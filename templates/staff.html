@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Management | Hotel ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --navy: #0b1622;
+            --navy-2: #111d2e;
+            --navy-3: #162236;
+            --blue: #2563eb;
+            --blue-light: #3b82f6;
+            --blue-glow: rgba(37,99,235,0.18);
+            --accent: #f59e0b;
+            --green: #10b981;
+            --red: #ef4444;
+            --purple: #7c3aed;
+            --cyan: #06b6d4;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --surface-3: #f1f5f9;
+            --border: #e2e8f0;
+            --border-dark: rgba(255,255,255,0.08);
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --sidebar-w: 256px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow: 0 4px 16px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--surface-2); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+        /* ── SIDEBAR ── */
+        .sidebar { position: fixed; left: 0; top: 0; width: var(--sidebar-w); height: 100vh; background: var(--navy); display: flex; flex-direction: column; z-index: 100; }
+        .sidebar-brand { padding: 20px 16px 16px; border-bottom: 1px solid var(--border-dark); }
+        .brand-logo { display: flex; align-items: center; gap: 10px; }
+        .brand-icon { width: 34px; height: 34px; background: var(--blue); border-radius: 8px; display: grid; place-items: center; color: white; font-size: 15px; flex-shrink: 0; }
+        .brand-name { font-size: 0.9rem; font-weight: 800; color: white; line-height: 1; }
+        .brand-sub { font-size: 0.6rem; color: rgba(255,255,255,0.4); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 12px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+        .nav-label { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.25); padding: 12px 10px 5px; }
+        .nav-btn { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.55); font-size: 0.8rem; font-weight: 500; transition: all 0.15s; border: none; background: transparent; width: 100%; text-align: left; font-family: inherit; }
+        .nav-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+        .nav-btn.active { background: var(--blue); color: white; box-shadow: 0 2px 10px rgba(37,99,235,0.4); }
+        .nav-btn i { width: 15px; text-align: center; font-size: 13px; opacity: 0.8; }
+        .dropdown-btn { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.55); font-size: 0.8rem; font-weight: 500; background: transparent; width: 100%; text-align: left; border: none; font-family: inherit; transition: all 0.15s; }
+        .dropdown-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
+        .dropdown-btn .dd-left { display: flex; align-items: center; gap: 9px; }
+        .dropdown-menu { list-style: none; overflow: hidden; transition: max-height 0.28s ease; max-height: 0; padding-left: 24px; }
+        .dropdown-menu.open { max-height: 220px; }
+        .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 7px; cursor: pointer; color: rgba(255,255,255,0.45); font-size: 0.76rem; background: transparent; width: 100%; text-align: left; border: none; font-family: inherit; transition: all 0.13s; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+        .sidebar-footer { padding: 12px 10px; border-top: 1px solid var(--border-dark); text-align: center; font-size: 0.62rem; color: rgba(255,255,255,0.2); font-family: 'DM Mono', monospace; }
+
+        /* ── MAIN ── */
+        .main { margin-left: var(--sidebar-w); min-height: 100vh; padding: 22px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .topbar-left h1 { font-size: 1.35rem; font-weight: 800; color: var(--navy); line-height: 1.2; }
+        .topbar-left p { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* ── STATS ── */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: var(--surface); border-radius: var(--radius-lg); padding: 16px 18px; border: 1px solid var(--border); display: flex; align-items: center; gap: 13px; cursor: pointer; transition: 0.17s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+        .si-blue { background: #eff6ff; color: var(--blue); }
+        .si-green { background: #ecfdf5; color: var(--green); }
+        .si-amber { background: #fffbeb; color: var(--accent); }
+        .si-purple { background: #f5f3ff; color: var(--purple); }
+        .si-red { background: #fef2f2; color: var(--red); }
+        .si-cyan { background: #ecfeff; color: var(--cyan); }
+        .stat-info { min-width: 0; }
+        .stat-number { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* ── CARDS ── */
+        .card { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 18px; overflow: hidden; }
+        .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: var(--surface); }
+        .card-title { font-size: 0.86rem; font-weight: 700; display: flex; align-items: center; gap: 7px; color: var(--navy); }
+        .card-title i { color: var(--blue); font-size: 13px; }
+        .card-body { padding: 18px; }
+
+        /* ── LAYOUT GRIDS ── */
+        .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-bottom: 18px; }
+        .shift-cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 13px; margin-bottom: 20px; }
+        .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 11px; margin-bottom: 20px; }
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 11px; margin-bottom: 18px; }
+        .kpi { background: var(--surface-2); border-radius: var(--radius); padding: 14px 12px; text-align: center; border: 1px solid var(--border); }
+        .kpi-n { font-size: 1.4rem; font-weight: 800; }
+        .kpi-l { font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+
+        /* ── SHIFT CARDS ── */
+        .shift-card { border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; background: white; }
+        .sch { padding: 13px 15px 10px; display: flex; align-items: center; gap: 8px; }
+        .sch.morning { background: #fffbeb; border-bottom: 2px solid #fde68a; }
+        .sch.evening { background: #eff6ff; border-bottom: 2px solid #bfdbfe; }
+        .sch.night { background: #f5f3ff; border-bottom: 2px solid #ddd6fe; }
+        .sch-icon { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font-size: 12px; }
+        .sch.morning .sch-icon { background: #fde68a; color: #78350f; }
+        .sch.evening .sch-icon { background: #bfdbfe; color: #1e3a8a; }
+        .sch.night .sch-icon { background: #ddd6fe; color: #4c1d95; }
+        .sch-title { font-size: 0.83rem; font-weight: 700; }
+        .sch-sub { font-size: 0.65rem; color: var(--text-muted); }
+        .sch-count { margin-left: auto; font-size: 1.25rem; font-weight: 800; }
+        .shift-list { padding: 6px 0; max-height: 210px; overflow-y: auto; }
+        .shift-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; transition: 0.12s; }
+        .shift-row:hover { background: var(--surface-2); }
+        .shift-av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 0.58rem; font-weight: 800; flex-shrink: 0; }
+        .av-m { background: #fde68a; color: #78350f; }
+        .av-e { background: #bfdbfe; color: #1e3a8a; }
+        .av-n { background: #ddd6fe; color: #4c1d95; }
+        .shift-name { font-size: 0.77rem; font-weight: 600; }
+        .shift-dept { font-size: 0.64rem; color: var(--text-muted); }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { background: var(--surface-2); padding: 9px 13px; font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+        tbody td { padding: 11px 13px; border-bottom: 1px solid #f1f5f9; font-size: 0.8rem; vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #f8fbff; }
+
+        /* ── EXPAND ROW (Staff Directory) ── */
+        .staff-expand-row td { background: #f8faff; border-bottom: 2px solid var(--border); padding: 0 !important; }
+        .staff-expand-inner { padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+        .expand-section-title { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .expand-section-title i { font-size: 11px; }
+        .perm-toggle-list { display: flex; flex-direction: column; gap: 6px; }
+        .perm-toggle-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: white; border: 1px solid var(--border); border-radius: 8px; transition: 0.13s; }
+        .perm-toggle-item:hover { border-color: #bfdbfe; background: #f8fbff; }
+        .perm-toggle-item.active { border-color: #bfdbfe; background: #eff6ff; }
+        .perm-toggle-name { font-size: 0.72rem; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); display: flex; align-items: center; gap: 6px; }
+        .perm-toggle-name i { font-size: 9px; color: var(--blue); }
+        .toggle-switch { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-track { position: absolute; inset: 0; background: #cbd5e1; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+        .toggle-track::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+        .toggle-switch input:checked + .toggle-track { background: var(--blue); }
+        .toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
+        .perm-no-dept { color: var(--text-muted); font-size: 0.75rem; padding: 10px 0; text-align: center; }
+        .dept-info-box { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+        .dept-info-name { font-weight: 700; font-size: 0.82rem; margin-bottom: 4px; }
+        .dept-info-sub { font-size: 0.68rem; color: var(--text-muted); }
+        .staff-detail-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+        .staff-detail-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+        .staff-detail-value { font-size: 0.79rem; font-weight: 500; color: var(--text); }
+        .expand-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 13px; padding: 4px 6px; border-radius: 5px; transition: 0.13s; }
+        .expand-toggle-btn:hover { background: var(--surface-2); color: var(--navy); }
+        .expand-toggle-btn.open { color: var(--blue); }
+
+        /* ── BADGES ── */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 0.67rem; font-weight: 600; white-space: nowrap; }
+        .b-morning { background: #fef9c3; color: #854d0e; }
+        .b-evening { background: #dbeafe; color: #1e40af; }
+        .b-night { background: #ede9fe; color: #5b21b6; }
+        .b-pending { background: #fef2f2; color: #b91c1c; }
+        .b-completed { background: #ecfdf5; color: #065f46; }
+        .b-in-progress { background: #dbeafe; color: #1e40af; }
+        .b-confirmed { background: #e0f2fe; color: #0369a1; }
+        .b-checked_in { background: #dcfce7; color: #166534; }
+        .b-checked_out { background: #f1f5f9; color: #475569; }
+        .b-approved { background: #ecfdf5; color: #065f46; }
+        .b-rejected { background: #fef2f2; color: #b91c1c; }
+        .b-present { background: #ecfdf5; color: #065f46; }
+        .b-absent { background: #fef2f2; color: #b91c1c; }
+        .b-late { background: #fffbeb; color: #854d0e; }
+        .b-half-day { background: #f0fdf4; color: #166534; }
+        .b-paid { background: #ecfdf5; color: #065f46; }
+        .b-unpaid { background: #fef2f2; color: #b91c1c; }
+        .b-blue { background: #eff6ff; color: #1d4ed8; }
+        .b-gray { background: #f1f5f9; color: #475569; }
+        .b-green { background: #ecfdf5; color: #065f46; }
+        .b-amber { background: #fffbeb; color: #92400e; }
+        .b-working { background: #ecfdf5; color: #065f46; }
+        .b-purple { background: #f5f3ff; color: #5b21b6; }
+        .b-cyan { background: #ecfeff; color: #0e7490; }
+
+        /* ── BUTTONS ── */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.14s; white-space: nowrap; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--surface-2); }
+        .btn-sm { padding: 6px 12px; font-size: 0.74rem; }
+        .btn-xs { padding: 3px 8px; font-size: 0.67rem; border-radius: 6px; }
+        .btn-danger { background: var(--red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--green); color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-purple { background: var(--purple); color: white; }
+        .btn-purple:hover { background: #6d28d9; }
+
+        /* ── FORMS ── */
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.15s; }
+        .form-control:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 0.73rem; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+
+        /* ── FILTER BAR ── */
+        .filter-bar { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 14px; flex-wrap: wrap; }
+        .filter-bar .fg { display: flex; flex-direction: column; gap: 4px; }
+        .filter-bar .fg label { font-size: 0.67rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .search-input { position: relative; }
+        .search-input i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; }
+        .search-input input { padding-left: 30px; }
+
+        /* ── MISC ── */
+        .section-sep { display: flex; align-items: center; gap: 10px; margin: 20px 0 14px; }
+        .sep-label { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); white-space: nowrap; }
+        .sep-line { flex: 1; height: 1px; background: var(--border); }
+        .att-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .att-row:last-child { border-bottom: none; }
+        .progress-bar { background: #e2e8f0; border-radius: 20px; height: 5px; margin-top: 5px; }
+        .progress-fill { height: 5px; border-radius: 20px; }
+        .dept-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; cursor: pointer; transition: 0.15s; }
+        .dept-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 0.62rem; font-weight: 800; flex-shrink: 0; }
+        .av-blue { background: #dbeafe; color: #1e40af; }
+        .av-green { background: #dcfce7; color: #166534; }
+        .payslip-box { background: var(--surface-2); border-radius: 10px; padding: 16px; font-size: 0.79rem; border: 1px solid var(--border); }
+        .payslip-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .payslip-row:last-child { border-bottom: none; }
+        .payslip-total { display: flex; justify-content: space-between; padding: 10px 0 0; font-weight: 800; font-size: 0.88rem; color: var(--green); }
+        .empty { text-align: center; padding: 36px 20px; color: var(--text-muted); font-size: 0.79rem; }
+        .empty i { font-size: 24px; display: block; margin-bottom: 8px; opacity: 0.35; }
+        .staff-cell { display: flex; align-items: center; gap: 8px; }
+        .staff-initials { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 0.62rem; font-weight: 800; flex-shrink: 0; background: #dbeafe; color: #1e40af; }
+        .tab-group { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 9px; border: 1px solid var(--border); }
+        .tab-btn { padding: 6px 14px; border-radius: 7px; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none; background: transparent; font-family: inherit; color: var(--text-muted); transition: 0.15s; }
+        .tab-btn.active { background: var(--surface); color: var(--navy); box-shadow: var(--shadow-sm); }
+        .shift-timeline { display: flex; gap: 0; background: var(--surface-2); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 14px; }
+        .timeline-seg { flex: 1; padding: 10px 14px; text-align: center; font-size: 0.72rem; }
+        .timeline-seg .ts-count { font-size: 1.2rem; font-weight: 800; }
+        .timeline-seg .ts-label { color: var(--text-muted); font-size: 0.67rem; }
+        .timeline-seg.morning { border-right: 1px solid var(--border); }
+        .timeline-seg.evening { border-right: 1px solid var(--border); }
+        .perm-dept-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: 0.18s; }
+        .perm-dept-card:hover { box-shadow: var(--shadow); }
+        .perm-dept-header { padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+        .perm-dept-name { font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+        .perm-dept-body { padding: 12px 16px; }
+        .perm-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+        .perm-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.67rem; font-weight: 600; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .perm-tag .remove-perm { cursor: pointer; color: #93c5fd; font-size: 10px; line-height: 1; margin-left: 2px; padding: 0; background: none; border: none; transition: color 0.12s; }
+        .perm-tag .remove-perm:hover { color: var(--red); }
+        .perm-tag.no-perms { background: #f1f5f9; color: var(--text-muted); border-color: var(--border); font-style: italic; }
+        .perm-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; max-height: 280px; overflow-y: auto; padding: 4px 0; }
+        .perm-check-item { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: 0.13s; user-select: none; }
+        .perm-check-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+        .perm-check-item.checked { background: #eff6ff; border-color: #2563eb; }
+        .perm-check-item input[type=checkbox] { accent-color: var(--blue); width: 14px; height: 14px; cursor: pointer; }
+        .perm-check-label { font-size: 0.77rem; font-weight: 500; }
+        .dept-perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+        .perm-input-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+        .perm-input-wrap { display: flex; align-items: center; gap: 8px; position: relative; }
+        .perm-cmd-input { flex: 1; padding: 10px 14px 10px 36px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.82rem; font-family: 'DM Mono', monospace; background: white; color: var(--text); outline: none; transition: border-color 0.15s; }
+        .perm-cmd-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+        .perm-cmd-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; pointer-events: none; }
+        .perm-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .perm-suggest-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 0.67rem; font-weight: 600; font-family: 'DM Mono', monospace; background: white; color: var(--blue); border: 1px solid #bfdbfe; cursor: pointer; transition: all 0.12s; user-select: none; }
+        .perm-suggest-chip:hover { background: #eff6ff; border-color: var(--blue); }
+        .perm-suggest-chip.used { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; cursor: default; }
+        .perm-suggest-chip.used i { color: var(--green); }
+        .perm-section-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .perm-list-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 1px solid #f1f5f9; transition: 0.12s; }
+        .perm-list-item:last-child { border-bottom: none; }
+        .perm-list-item:hover { background: var(--surface-2); }
+        .perm-info { display: flex; align-items: center; gap: 9px; }
+        .perm-icon { width: 28px; height: 28px; border-radius: 7px; background: #eff6ff; color: var(--blue); display: grid; place-items: center; font-size: 11px; flex-shrink: 0; }
+        .dept-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; background: #f0fdf4; color: #166534; border: 1px solid #a7f3d0; border-radius: 20px; font-size: 0.64rem; font-weight: 600; }
+
+        /* ── MODAL ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--surface); border-radius: 16px; width: 100%; max-width: 480px; margin: 20px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; }
+        .modal-box.modal-lg { max-width: 620px; }
+        .modal-header { padding: 15px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: white; z-index: 1; }
+        .modal-header strong { font-size: 0.9rem; font-weight: 700; }
+        .modal-body { padding: 18px; }
+        .modal-footer { padding: 13px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 9px; position: sticky; bottom: 0; background: white; }
+        .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 2px; }
+
+        /* ── ERROR/SUCCESS INLINE ── */
+        .form-error { font-size: 0.71rem; color: var(--red); margin-top: 4px; display: none; }
+        .form-error.show { display: block; }
+        .form-control.error { border-color: var(--red); }
+        .form-control.error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+
+        /* ── TOAST ── */
+        .toast-stack { position: fixed; top: 18px; right: 18px; z-index: 999; display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
+        .toast { padding: 11px 15px; border-radius: 9px; font-size: 0.79rem; font-weight: 500; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 7px; pointer-events: auto; max-width: 320px; animation: slideIn 0.25s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .toast.success { background: var(--green); color: white; }
+        .toast.error { background: var(--red); color: white; }
+        .toast.info { background: var(--blue); color: white; }
+
+        /* ── MOBILE ── */
+        .menu-btn { display: none; position: fixed; top: 12px; left: 12px; z-index: 150; background: var(--navy); color: white; border: none; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+
+        @media (max-width: 900px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.25s; }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; padding: 14px; padding-top: 56px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .dash-grid, .shift-cards-row { grid-template-columns: 1fr; }
+            .menu-btn { display: grid; place-items: center; }
+            .form-grid { grid-template-columns: 1fr; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .dept-perm-grid { grid-template-columns: 1fr; }
+            .perm-checkbox-grid { grid-template-columns: 1fr 1fr; }
+            .staff-expand-inner { grid-template-columns: 1fr; }
+        }
+
+        /* ── LOADING SPINNER ── */
+        .btn-loading { position: relative; pointer-events: none; }
+        .btn-loading::after { content: ''; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            <div class="brand-icon"><i class="fas fa-hotel"></i></div>
+            <div>
+                <div class="brand-name">Hotel ERP</div>
+                <div class="brand-sub">Staff Management</div>
+            </div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-label">Main</div>
+        <button class="nav-btn active" data-panel="overview"><i class="fas fa-chart-pie"></i> Dashboard</button>
+        <button class="nav-btn" data-panel="add-staff"><i class="fas fa-user-plus"></i> Add Staff</button>
+        <button class="nav-btn" data-panel="staff-list"><i class="fas fa-users"></i> Staff Directory</button>
+        <div class="nav-label">HR Operations</div>
+        <button class="nav-btn" data-panel="attendance"><i class="fas fa-calendar-check"></i> Attendance</button>
+        <button class="nav-btn" data-panel="shifts"><i class="fas fa-sync-alt"></i> Shift Management</button>
+        <button class="nav-btn" data-panel="leave"><i class="fas fa-umbrella-beach"></i> Leave Requests</button>
+        <button class="nav-btn" data-panel="payroll"><i class="fas fa-rupee-sign"></i> Payroll</button>
+        <div class="nav-label">Setup &amp; Access</div>
+        <button class="nav-btn" data-panel="departments"><i class="fas fa-building"></i> Departments</button>
+        <button class="nav-btn" data-panel="permissions"><i class="fas fa-shield-alt"></i> Permissions</button>
+        <button class="dropdown-btn" id="reportsDropdownBtn">
+            <span class="dd-left"><i class="fas fa-chart-bar" style="width:15px;font-size:13px"></i> Reports</span>
+            <i class="fas fa-chevron-down" style="font-size:11px;transition:transform 0.25s" id="ddChevron"></i>
+        </button>
+        <ul class="dropdown-menu" id="reportsMenu">
+            <li><button class="dropdown-item" data-report="booking"><i class="fas fa-calendar-check"></i> Booking Report</button></li>
+            <li><button class="dropdown-item" data-report="task"><i class="fas fa-tasks"></i> Task Report</button></li>
+            <li><button class="dropdown-item" data-report="inventory"><i class="fas fa-boxes"></i> Inventory Report</button></li>
+            <li><button class="dropdown-item" data-report="payroll"><i class="fas fa-rupee-sign"></i> Payroll Report</button></li>
+        </ul>
+    </nav>
+    <div class="sidebar-footer">Hotel ERP v2.0</div>
+</aside>
+
+<main class="main">
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="panel active" id="panel-overview">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Staff Dashboard</h1><p id="overviewDate">Loading…</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="switchPanel('attendance')"><i class="fas fa-calendar-check"></i> Attendance</button>
+            <button class="btn btn-primary btn-sm" onclick="switchPanel('add-staff')"><i class="fas fa-plus"></i> Add Staff</button>
+        </div>
+    </div>
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-building"></i></div><div class="stat-info"><div class="stat-number" id="s-depts">0</div><div class="stat-label">Departments</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-users"></i></div><div class="stat-info"><div class="stat-number" id="s-staff">0</div><div class="stat-label">Total Staff</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-tasks"></i></div><div class="stat-info"><div class="stat-number" id="s-tasks">0</div><div class="stat-label">Pending Tasks</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-purple"><i class="fas fa-umbrella-beach"></i></div><div class="stat-info"><div class="stat-number" id="s-leaves">0</div><div class="stat-label">Leave Requests</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-red"><i class="fas fa-rupee-sign"></i></div><div class="stat-info"><div class="stat-number" id="s-payroll">&#8377;0</div><div class="stat-label">This Month Payroll</div></div></div>
+    </div>
+    <div class="section-sep"><div class="sep-label"><i class="fas fa-clock" style="margin-right:5px"></i>Today's Shifts</div><div class="sep-line"></div></div>
+    <div class="shift-cards-row" id="shiftCardsRow"></div>
+    <div class="section-sep"><div class="sep-label"><i class="fas fa-building" style="margin-right:5px"></i>Departments</div><div class="sep-line"></div></div>
+    <div class="dept-grid" id="deptGrid"></div>
+    <div class="dash-grid">
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-calendar-check"></i> Today's Attendance</div><button class="btn btn-outline btn-sm" onclick="switchPanel('attendance')">View All</button></div>
+            <div class="card-body" id="attMini" style="max-height:280px;overflow-y:auto;padding:8px 18px"></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-tasks"></i> Recent Tasks</div></div>
+            <div class="card-body" id="taskMini" style="max-height:280px;overflow-y:auto;padding:8px 18px"></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-alt"></i> Recent Bookings</div></div>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Guest</th><th>Room Type</th><th>Check In</th><th>Check Out</th><th>Status</th><th>Amount</th></tr></thead>
+            <tbody id="bookMini"></tbody>
+        </table></div>
+    </div>
+</div>
+
+<!-- ═══ ADD STAFF ═══ -->
+<div class="panel" id="panel-add-staff">
+    <div class="topbar"><div class="topbar-left"><h1>Add Staff Member</h1><p>Create a new employee record</p></div></div>
+    <div class="card" style="max-width:680px">
+        <div class="card-header"><div class="card-title"><i class="fas fa-user-plus"></i> Staff Information</div></div>
+        <div class="card-body">
+            <!-- ✅ FIX: Added id="addStaffForm" for validation reference -->
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input class="form-control" id="sName" placeholder="Enter full name">
+                    <div class="form-error" id="sNameErr">Name is required</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input class="form-control" id="sEmail" type="email" placeholder="email@example.com">
+                    <div class="form-error" id="sEmailErr">Valid email is required</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input class="form-control" id="sPhone" placeholder="Phone number">
+                </div>
+                <!-- ✅ FIX: Department select uses department ID (not name) as value -->
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    <select class="form-control" id="sDept">
+                        <option value="">— Select Department —</option>
+                    </select>
+                    <div class="form-error" id="sDeptErr">Please select a department</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="sRole">
+                        <option value="Staff">Staff</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Team Lead">Team Lead</option>
+                        <option value="Head">Head</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Salary (&#8377;/month)</label>
+                    <input class="form-control" id="sSalary" type="number" placeholder="e.g. 25000" min="0">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input class="form-control" id="sPass" type="password" placeholder="Set login password">
+                    <div class="form-error" id="sPassErr">Password is required (min 6 chars)</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Photo</label>
+                    <input class="form-control" id="sPhoto" type="file" accept="image/*">
+                </div>
+            </div>
+            <!-- ✅ FIX: Button shows loading state, disabled during request -->
+            <button class="btn btn-primary" id="addStaffBtn">
+                <i class="fas fa-save"></i> Add Staff Member
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ STAFF DIRECTORY ═══ -->
+<div class="panel" id="panel-staff-list">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Staff Directory</h1>
+            <p>Click <i class="fas fa-chevron-down" style="font-size:10px"></i> on any row to view details &amp; manage permissions</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="switchPanel('add-staff')"><i class="fas fa-plus"></i> Add Staff</button>
+    </div>
+    <div class="filter-bar">
+        <div class="fg"><label>Search</label>
+            <div class="search-input"><i class="fas fa-search"></i>
+                <input class="form-control" id="staffSearch" style="width:210px;padding-left:30px" placeholder="Name, email, phone…">
+            </div>
+        </div>
+        <div class="fg"><label>Department</label>
+            <select class="form-control" id="staffDeptFilter" style="width:170px"><option value="">All Departments</option></select>
+        </div>
+        <div class="fg"><label>Role</label>
+            <select class="form-control" id="staffRoleFilter" style="width:150px">
+                <option value="">All Roles</option><option>Staff</option><option>Supervisor</option><option>Manager</option><option>Team Lead</option><option>Head</option>
+            </select>
+        </div>
+        <div class="fg"><label>Shift Today</label>
+            <select class="form-control" id="staffShiftFilter" style="width:140px">
+                <option value="">All Shifts</option><option value="Morning">Morning</option><option value="Evening">Evening</option><option value="Night">Night</option><option value="none">No Shift</option>
+            </select>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="renderStaff()" style="align-self:flex-end"><i class="fas fa-filter"></i> Apply</button>
+        <button class="btn btn-outline btn-sm" onclick="clearStaffFilters()" style="align-self:flex-end"><i class="fas fa-times"></i> Clear</button>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-users"></i> All Staff</div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:0.7rem;color:var(--text-muted)"><i class="fas fa-info-circle"></i> Click ▼ to expand details</span>
+                <span class="badge b-blue" id="staffCount">0 members</span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th style="width:36px"></th><th>Emp ID</th><th>Name</th><th>Contact</th><th>Department</th><th>Role</th><th>Salary</th><th>Shift Today</th><th>Actions</th></tr></thead>
+                <tbody id="staffBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ ATTENDANCE ═══ -->
+<div class="panel" id="panel-attendance">
+    <div class="topbar"><div class="topbar-left"><h1>Attendance Management</h1><p>Track daily staff presence and overtime</p></div></div>
+    <div class="kpi-row">
+        <div class="kpi"><div class="kpi-n" id="att-present" style="color:var(--green)">0</div><div class="kpi-l">Present</div></div>
+        <div class="kpi"><div class="kpi-n" id="att-absent" style="color:var(--red)">0</div><div class="kpi-l">Absent</div></div>
+        <div class="kpi"><div class="kpi-n" id="att-late" style="color:var(--accent)">0</div><div class="kpi-l">Late</div></div>
+        <div class="kpi"><div class="kpi-n" id="att-halfday" style="color:var(--purple)">0</div><div class="kpi-l">Half Day</div></div>
+        <div class="kpi"><div class="kpi-n" id="att-ot" style="color:var(--blue)">0h</div><div class="kpi-l">Total OT</div></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+        <div class="card-body" style="padding:14px 18px">
+            <div class="filter-bar" style="margin-bottom:0">
+                <div class="fg"><label>Report Type</label>
+                    <div class="tab-group">
+                        <button class="tab-btn active" id="attTabDaily" onclick="setAttTab('daily')"><i class="fas fa-calendar-day"></i> Daily</button>
+                        <button class="tab-btn" id="attTabMonthly" onclick="setAttTab('monthly')"><i class="fas fa-calendar-alt"></i> Monthly</button>
+                        <button class="tab-btn" id="attTabLive" onclick="setAttTab('live')"><i class="fas fa-circle" style="color:var(--green);font-size:8px"></i> Live</button>
+                    </div>
+                </div>
+                <div class="fg" id="attDateGroup"><label>Date</label><input type="date" class="form-control" id="attDateFilter" style="width:170px"></div>
+                <div class="fg"><label>Status</label>
+                    <select class="form-control" id="attStatusFilter" style="width:150px">
+                        <option value="">All Status</option><option value="Present">Present</option><option value="Absent">Absent</option><option value="Late">Late</option><option value="Half Day">Half Day</option>
+                    </select>
+                </div>
+                <div class="fg"><label>Department</label>
+                    <select class="form-control" id="attDeptFilter" style="width:160px"><option value="">All Departments</option></select>
+                </div>
+                <button class="btn btn-primary btn-sm" id="loadAttBtn" style="align-self:flex-end"><i class="fas fa-sync"></i> Load</button>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-check"></i> Attendance Records</div><span class="badge b-blue" id="attCount">0 records</span></div>
+        <div class="table-wrap"><table><thead><tr id="attHead"><th>Staff</th><th>Department</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours Worked</th><th>Overtime</th><th>Status</th></tr></thead><tbody id="attBody"></tbody></table></div>
+    </div>
+</div>
+
+<!-- ═══ SHIFTS ═══ -->
+<div class="panel" id="panel-shifts">
+    <div class="topbar"><div class="topbar-left"><h1>Shift Management</h1><p>Assign and manage work schedules</p></div></div>
+    <div class="dash-grid">
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-sync-alt"></i> Assign / Update Shift</div></div>
+            <div class="card-body">
+                <div class="form-group"><label class="form-label">Staff Member *</label><select class="form-control" id="shiftStaff"><option value="">— Select Staff —</option></select></div>
+                <div class="form-group"><label class="form-label">Department</label><select class="form-control" id="shiftDept"><option value="">— Auto from staff —</option></select></div>
+                <div class="form-group"><label class="form-label">Shift *</label>
+                    <select class="form-control" id="shiftType">
+                        <option value="Morning">☀️ Morning (9 AM – 5 PM)</option>
+                        <option value="Evening">🌤 Evening (2 PM – 10 PM)</option>
+                        <option value="Night">🌙 Night (10 PM – 6 AM)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-control" id="shiftDate"></div>
+                <button class="btn btn-primary" id="assignShiftBtn" style="width:100%"><i class="fas fa-save"></i> Assign Shift</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Today's Shift Summary</div></div>
+            <div class="card-body">
+                <div class="shift-timeline">
+                    <div class="timeline-seg morning"><div class="ts-count" id="tm-morning">0</div><div class="ts-label">☀️ Morning</div></div>
+                    <div class="timeline-seg evening"><div class="ts-count" id="tm-evening">0</div><div class="ts-label">🌤 Evening</div></div>
+                    <div class="timeline-seg night"><div class="ts-count" id="tm-night">0</div><div class="ts-label">🌙 Night</div></div>
+                </div>
+                <div id="shiftOverviewCards"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i class="fas fa-list"></i> Shift Assignments</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="date" class="form-control" id="shiftFilterDate" style="width:155px">
+                <select class="form-control" id="shiftFilterType" style="width:140px"><option value="">All Shifts</option><option value="Morning">Morning</option><option value="Evening">Evening</option><option value="Night">Night</option></select>
+                <select class="form-control" id="shiftFilterDept" style="width:155px"><option value="">All Departments</option></select>
+                <button class="btn btn-outline btn-sm" id="loadShiftsBtn"><i class="fas fa-filter"></i> Filter</button>
+            </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Staff</th><th>Employee ID</th><th>Department</th><th>Shift</th><th>Date</th><th>Action</th></tr></thead><tbody id="shiftsBody"></tbody></table></div>
+    </div>
+</div>
+
+<!-- ═══ LEAVE ═══ -->
+<div class="panel" id="panel-leave">
+    <div class="topbar"><div class="topbar-left"><h1>Leave Management</h1><p>Review and manage leave applications</p></div></div>
+    <div class="kpi-row">
+        <div class="kpi"><div class="kpi-n" id="lv-pending" style="color:var(--accent)">0</div><div class="kpi-l">Pending</div></div>
+        <div class="kpi"><div class="kpi-n" id="lv-approved" style="color:var(--green)">0</div><div class="kpi-l">Approved</div></div>
+        <div class="kpi"><div class="kpi-n" id="lv-rejected" style="color:var(--red)">0</div><div class="kpi-l">Rejected</div></div>
+    </div>
+    <div class="filter-bar" style="margin-bottom:14px">
+        <div class="fg"><label>Status</label>
+            <select class="form-control" id="leaveStatusFilter" style="width:150px"><option value="">All Status</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option></select>
+        </div>
+        <div class="fg"><label>Search Staff</label>
+            <div class="search-input"><i class="fas fa-search"></i>
+                <input class="form-control" id="leaveSearch" style="width:200px;padding-left:30px" placeholder="Staff name…">
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="renderLeave()" style="align-self:flex-end"><i class="fas fa-filter"></i> Apply</button>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-umbrella-beach"></i> Leave Applications</div><span class="badge b-blue" id="leaveCount">0 requests</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Staff</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Applied On</th><th>Status</th><th>Action</th></tr></thead><tbody id="leaveBody"></tbody></table></div>
+    </div>
+</div>
+
+<!-- ═══ PAYROLL ═══ -->
+<div class="panel" id="panel-payroll">
+    <div class="topbar"><div class="topbar-left"><h1>Payroll Management</h1><p>Generate and manage staff salaries</p></div></div>
+    <div class="dash-grid">
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-cog"></i> Generate Payroll</div></div>
+            <div class="card-body">
+                <div class="form-grid">
+                    <div class="form-group"><label class="form-label">Month</label>
+                        <select class="form-control" id="payMonth">
+                            <option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Year</label><input class="form-control" type="number" id="payYear"></div>
+                </div>
+                <button class="btn btn-success" id="genPayrollBtn" style="width:100%"><i class="fas fa-cog"></i> Generate Payroll</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i> Payroll Summary</div></div>
+            <div class="card-body">
+                <div class="kpi-row" style="margin-bottom:0">
+                    <div class="kpi"><div class="kpi-n" id="py-paid" style="color:var(--green)">0</div><div class="kpi-l">Paid</div></div>
+                    <div class="kpi"><div class="kpi-n" id="py-unpaid" style="color:var(--red)">0</div><div class="kpi-l">Unpaid</div></div>
+                    <div class="kpi"><div class="kpi-n" id="py-total" style="color:var(--navy)">&#8377;0</div><div class="kpi-l">Total Net</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="filter-bar" style="margin-bottom:14px">
+        <div class="fg"><label>Filter by Month</label>
+            <select class="form-control" id="payFilterMonth" style="width:150px"><option value="">All Months</option><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select>
+        </div>
+        <div class="fg"><label>Payment Status</label>
+            <select class="form-control" id="payFilterStatus" style="width:150px"><option value="">All</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option></select>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="renderPayroll()" style="align-self:flex-end"><i class="fas fa-filter"></i> Apply</button>
+        <button class="btn btn-outline btn-sm" id="loadPayrollBtn" style="align-self:flex-end"><i class="fas fa-sync"></i> Refresh</button>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-list"></i> Payroll Records</div><span class="badge b-blue" id="payrollCount">0 records</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Staff</th><th>Emp ID</th><th>Month / Year</th><th>Basic</th><th>Overtime</th><th>Deductions</th><th>Net Salary</th><th>Status</th><th>Payslip</th></tr></thead><tbody id="payrollBody"></tbody></table></div>
+    </div>
+</div>
+
+<!-- ═══ DEPARTMENTS ═══ -->
+<div class="panel" id="panel-departments">
+    <div class="topbar"><div class="topbar-left"><h1>Departments</h1><p>Manage hotel departments and staff counts</p></div></div>
+    <div class="dash-grid">
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-plus-circle"></i> Add Department</div></div>
+            <div class="card-body">
+                <div class="form-group"><label class="form-label">Department Name</label>
+                    <select class="form-control" id="newDeptName">
+                        <option value="">— Select —</option>
+                        <option>Housekeeping</option><option>HR</option><option>Front Desk</option>
+                        <option>Accountant</option><option>Restaurant</option><option>Maintenance</option>
+                        <option>Security</option><option>Spa</option><option>Concierge</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="createDeptBtn" style="width:100%"><i class="fas fa-plus"></i> Create Department</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Department Summary</div></div>
+            <div class="card-body" id="deptSummary" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+    </div>
+    <div class="dept-grid" id="deptGrid2"></div>
+</div>
+
+<!-- ═══ PERMISSIONS ═══ -->
+<div class="panel" id="panel-permissions">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Permissions &amp; Access Control</h1><p>Create permissions and assign them to departments</p></div>
+    </div>
+    <div class="kpi-row" style="margin-bottom:20px">
+        <div class="kpi"><div class="kpi-n" id="perm-total-kpi" style="color:var(--blue)">0</div><div class="kpi-l">Total Permissions</div></div>
+        <div class="kpi"><div class="kpi-n" id="perm-depts-kpi" style="color:var(--green)">0</div><div class="kpi-l">Departments</div></div>
+        <div class="kpi"><div class="kpi-n" id="perm-assigned-kpi" style="color:var(--purple)">0</div><div class="kpi-l">Assignments</div></div>
+    </div>
+    <div class="dash-grid" style="align-items:start">
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-key"></i> Manage Permissions</div><span class="badge b-purple" id="permCount">0</span></div>
+            <div class="card-body" style="padding-bottom:0">
+                <div class="perm-section-label"><i class="fas fa-bolt"></i> Quick add</div>
+                <div class="perm-input-panel" style="margin-bottom:16px">
+                    <div class="perm-input-wrap">
+                        <i class="fas fa-key perm-cmd-icon"></i>
+                        <input class="perm-cmd-input" id="quickPermName" placeholder="Type permission name, e.g. manage_rooms" autocomplete="off" spellcheck="false">
+                        <button class="btn btn-purple btn-sm" id="quickAddPermBtn"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                    <div style="margin-top:10px">
+                        <div class="perm-section-label" style="margin-bottom:6px"><i class="fas fa-magic"></i> Presets — click to insert</div>
+                        <div class="perm-suggestions" id="permSuggestions">
+                            <span class="perm-suggest-chip" data-val="view_bookings" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> view_bookings</span>
+                            <span class="perm-suggest-chip" data-val="manage_staff" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> manage_staff</span>
+                            <span class="perm-suggest-chip" data-val="edit_rooms" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> edit_rooms</span>
+                            <span class="perm-suggest-chip" data-val="view_reports" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> view_reports</span>
+                            <span class="perm-suggest-chip" data-val="manage_inventory" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> manage_inventory</span>
+                            <span class="perm-suggest-chip" data-val="process_payments" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> process_payments</span>
+                            <span class="perm-suggest-chip" data-val="approve_leave" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> approve_leave</span>
+                            <span class="perm-suggest-chip" data-val="manage_payroll" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> manage_payroll</span>
+                            <span class="perm-suggest-chip" data-val="view_attendance" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> view_attendance</span>
+                            <span class="perm-suggest-chip" data-val="assign_shifts" onclick="insertPermSuggest(this)"><i class="fas fa-plus"></i> assign_shifts</span>
+                        </div>
+                    </div>
+                    <p style="font-size:.65rem;color:var(--text-muted);margin-top:8px;margin-bottom:0">Use <strong>snake_case</strong> like <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:.63rem">manage_staff</code>. Press <kbd style="background:#f1f5f9;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-size:.62rem">Enter</kbd> to add.</p>
+                </div>
+                <div class="perm-section-label"><i class="fas fa-list"></i> All permissions</div>
+            </div>
+            <div id="permList" style="max-height:360px;overflow-y:auto"></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-sitemap"></i> Assign to Department</div></div>
+            <div class="card-body">
+                <div class="form-group"><label class="form-label">Select Department</label>
+                    <select class="form-control" id="assignDeptSelect"><option value="">— Choose a department —</option></select>
+                </div>
+                <div class="form-group" id="assignPermGroup" style="display:none">
+                    <label class="form-label" style="margin-bottom:10px">Select Permissions</label>
+                    <div class="perm-checkbox-grid" id="permCheckboxGrid"></div>
+                </div>
+                <div id="assignPermPlaceholder" style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:.79rem">
+                    <i class="fas fa-arrow-up" style="display:block;margin-bottom:6px;opacity:.3"></i>Choose a department to manage its permissions
+                </div>
+                <button class="btn btn-purple" id="saveAssignBtn" style="width:100%;display:none;margin-top:4px"><i class="fas fa-save"></i> Save Permissions</button>
+            </div>
+        </div>
+    </div>
+    <div class="section-sep"><div class="sep-label"><i class="fas fa-building" style="margin-right:5px"></i>Department Permission Overview</div><div class="sep-line"></div></div>
+    <div class="dept-perm-grid" id="deptPermGrid"></div>
+</div>
+
+<!-- ═══ REPORT ═══ -->
+<div class="panel" id="panel-report">
+    <div class="topbar">
+        <div class="topbar-left"><h1 id="reportTitle">Report</h1><p>Generated report data</p></div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="switchPanel('overview')"><i class="fas fa-arrow-left"></i> Back</button>
+            <button class="btn btn-outline btn-sm" id="exportBtn"><i class="fas fa-download"></i> Export CSV</button>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><div class="card-title" id="reportCardTitle"><i class="fas fa-chart-bar"></i> Report Data</div><span class="badge b-blue" id="reportBadge">0 records</span></div>
+        <div class="table-wrap"><table id="reportTable"><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
+    </div>
+</div>
+
+</main>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Payslip Modal -->
+<div class="modal-overlay" id="payslipModal">
+    <div class="modal-box">
+        <div class="modal-header"><strong><i class="fas fa-file-invoice" style="color:var(--blue);margin-right:6px"></i>Employee Payslip</strong><button class="modal-close" onclick="closeModal('payslipModal')">&#215;</button></div>
+        <div class="modal-body" id="payslipContent"></div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('payslipModal')">Close</button><button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button></div>
+    </div>
+</div>
+
+<!-- ✅ FIX: Edit Staff Modal — department select now uses ID as value, role field included -->
+<div class="modal-overlay" id="editStaffModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <strong><i class="fas fa-user-edit" style="color:var(--blue);margin-right:6px"></i>Edit Staff Member</strong>
+            <button class="modal-close" onclick="closeModal('editStaffModal')">&#215;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editStaffId">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input class="form-control" id="editName" placeholder="Full name">
+                    <div class="form-error" id="editNameErr">Name is required</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <!-- ✅ FIX: email field added — backend now supports updating email -->
+                    <input class="form-control" id="editEmail" type="email" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input class="form-control" id="editPhone" placeholder="Phone number">
+                </div>
+                <!-- ✅ FIX: Role field added — backend now saves role on update -->
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="editRole">
+                        <option value="Staff">Staff</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Team Lead">Team Lead</option>
+                        <option value="Head">Head</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Salary (&#8377;)</label>
+                    <input class="form-control" id="editSalary" type="number" placeholder="Monthly salary" min="0">
+                </div>
+                <!-- ✅ FIX: Department select populated with ID as value (not name) -->
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select class="form-control" id="editDept">
+                        <option value="">— Select Department —</option>
+                    </select>
+                </div>
+            </div>
+            <!-- ✅ NEW: Show which department is currently assigned -->
+            <div id="editCurrentDept" style="display:none;padding:8px 12px;background:var(--surface-2);border-radius:8px;font-size:0.74rem;color:var(--text-muted);margin-top:-6px">
+                <i class="fas fa-building" style="color:var(--blue);margin-right:4px"></i>
+                Current: <strong id="editCurrentDeptName">—</strong>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('editStaffModal')">Cancel</button>
+            <!-- ✅ FIX: Button shows loading state during update -->
+            <button class="btn btn-primary" id="updateStaffBtn"><i class="fas fa-save"></i> Update Staff</button>
+        </div>
+    </div>
+</div>
+
+<!-- Dept Permission Modal -->
+<div class="modal-overlay" id="deptPermModal">
+    <div class="modal-box modal-lg">
+        <div class="modal-header">
+            <strong><i class="fas fa-shield-alt" style="color:var(--purple);margin-right:6px"></i>Manage Permissions — <span id="deptPermModalName"></span></strong>
+            <button class="modal-close" onclick="closeModal('deptPermModal')">&#215;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:12px">Select all permissions this department should have:</p>
+            <div class="perm-checkbox-grid" id="deptPermModalGrid"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('deptPermModal')">Cancel</button>
+            <button class="btn btn-purple" id="saveDeptPermModalBtn"><i class="fas fa-save"></i> Save Permissions</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- ═══ JAVASCRIPT ═══ -->
+<script>
+// ── UTILS ──
+function toast(msg, type='success'){
+    const s=document.getElementById('toastStack');
+    const el=document.createElement('div');
+    el.className='toast '+type;
+    const icons={success:'fa-check-circle',error:'fa-exclamation-circle',info:'fa-info-circle'};
+    el.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}"></i> ${msg}`;
+    s.appendChild(el);
+    setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),300); },3200);
+}
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function setFieldError(fieldId, errId, show){
+    const f=document.getElementById(fieldId), e=document.getElementById(errId);
+    if(f) f.classList.toggle('error', show);
+    if(e) e.classList.toggle('show', show);
+}
+function clearFieldError(fieldId, errId){ setFieldError(fieldId, errId, false); }
+
+const csrftoken=(document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken='))||'=').split('=')[1]||'';
+
+async function api(url){
+    try{ const r=await fetch(url); if(!r.ok) return null; return await r.json(); }
+    catch(e){ return null; }
+}
+async function postJSON(url, data){
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},body:JSON.stringify(data)});
+}
+async function deleteReq(url){
+    return fetch(url,{method:'DELETE',headers:{'X-CSRFToken':csrftoken}});
+}
+
+let depts=[], staff=[], tasks=[], shifts=[], bookings=[], payrolls=[], leaves=[];
+let permissions=[], activeDeptId=null;
+let currentReport='task', attRawData=[];
+let expandedStaffIds=new Set();
+let attTab='daily';
+
+// ── NAVIGATION ──
+function switchPanel(name){
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    const panel=document.getElementById('panel-'+name);
+    if(panel) panel.classList.add('active');
+    document.querySelectorAll('.nav-btn[data-panel]').forEach(b=>b.classList.toggle('active',b.dataset.panel===name));
+    document.getElementById('sidebar').classList.remove('open');
+    if(name==='staff-list'){ expandedStaffIds.clear(); renderStaff(); }
+    if(name==='shifts'){ loadShifts(); populateSelects(); }
+    if(name==='attendance') loadAttendance();
+    if(name==='leave') loadLeave();
+    if(name==='payroll') loadPayroll();
+    if(name==='departments') renderDeptSummary();
+    if(name==='permissions') loadPermissionsPanel();
+}
+
+async function loadAll(){
+    const today=new Date();
+    const dateStr=today.toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const el=document.getElementById('overviewDate');
+    if(el) el.textContent=dateStr;
+    const [d,s,t,sh,b,l]=await Promise.all([
+        api('/get-departments/'), api('/get-staff/'), api('/get-tasks/'),
+        api('/get-shifts/'), api('/get-bookings/'), api('/leave/requests/')
+    ]);
+    depts=Array.isArray(d)?d:[];
+    staff=(s&&s.staffs)?s.staffs:(Array.isArray(s)?s:[]);
+    tasks=(t&&t.tasks)?t.tasks:(Array.isArray(t)?t:[]);
+    shifts=Array.isArray(sh)?sh:[];
+    bookings=Array.isArray(b)?b:[];
+    leaves=Array.isArray(l)?l:[];
+    renderOverview();
+    populateSelects();
+}
+
+function renderOverview(){
+    document.getElementById('s-depts').textContent=depts.length;
+    document.getElementById('s-staff').textContent=staff.length;
+    document.getElementById('s-tasks').textContent=tasks.filter(t=>t.status!=='Completed').length;
+    document.getElementById('s-leaves').textContent=leaves.filter(l=>l.status==='Pending').length;
+    renderShiftCards('shiftCardsRow');
+    renderDeptGrid();
+    renderAttMini();
+    renderTaskMini();
+    renderBookMini();
+}
+
+function renderShiftCards(containerId){
+    const today=new Date().toISOString().split('T')[0];
+    const todayShifts=shifts.filter(s=>s.date===today);
+    const defs=[
+        {key:'Morning',cls:'morning',avCls:'av-m',icon:'fa-sun'},
+        {key:'Evening',cls:'evening',avCls:'av-e',icon:'fa-cloud-sun'},
+        {key:'Night',cls:'night',avCls:'av-n',icon:'fa-moon'}
+    ];
+    const el=document.getElementById(containerId);
+    if(!el) return;
+    const tms={Morning:'tm-morning',Evening:'tm-evening',Night:'tm-night'};
+    Object.keys(tms).forEach(k=>{const ce=document.getElementById(tms[k]);if(ce)ce.textContent=todayShifts.filter(s=>s.shift===k).length;});
+    el.innerHTML=defs.map(sd=>{
+        const assigned=todayShifts.filter(s=>s.shift===sd.key);
+        const rows=assigned.map(s=>{
+            const st=staff.find(x=>x.id===s.staff_id);
+            const name=st?st.name:(s.staff||'?');
+            const dept=s.department||(st&&st.department&&st.department.name)||'Staff';
+            return `<div class="shift-row"><div class="shift-av ${sd.avCls}">${esc(initials(name))}</div><div><div class="shift-name">${esc(name)}</div><div class="shift-dept">${esc(dept)}</div></div></div>`;
+        }).join('');
+        return `<div class="shift-card"><div class="sch ${sd.cls}"><div class="sch-icon"><i class="fas ${sd.icon}"></i></div><div><div class="sch-title">${sd.key} Shift</div><div class="sch-sub">${sd.key==='Morning'?'9AM–5PM':sd.key==='Evening'?'2PM–10PM':'10PM–6AM'}</div></div><div class="sch-count">${assigned.length}</div></div><div class="shift-list">${rows||'<div class="empty" style="padding:16px 14px;font-size:.74rem">No staff assigned</div>'}</div></div>`;
+    }).join('');
+}
+
+function renderDeptGrid(){
+    const el=document.getElementById('deptGrid'); if(!el) return;
+    const colors=['#2563eb','#10b981','#f59e0b','#7c3aed','#ef4444','#0891b2','#db2777','#059669'];
+    el.innerHTML=depts.map((d,i)=>{
+        const cnt=staff.filter(s=>s.department&&s.department.name===d.name).length;
+        const pct=staff.length?Math.round(cnt/staff.length*100):0;
+        const c=colors[i%colors.length];
+        return `<div class="dept-card" onclick="switchPanel('staff-list')">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div style="width:34px;height:34px;border-radius:8px;background:${c}18;color:${c};display:grid;place-items:center;flex-shrink:0"><i class="fas fa-building" style="font-size:13px"></i></div>
+                <div><div style="font-weight:700;font-size:.82rem">${esc(d.name)}</div><div style="font-size:.67rem;color:var(--text-muted)">${cnt} staff member${cnt!==1?'s':''}</div></div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${c}"></div></div>
+        </div>`;
+    }).join('')||'<div class="empty"><i class="fas fa-building"></i>No departments yet</div>';
+}
+
+function renderAttMini(){
+    const el=document.getElementById('attMini'); if(!el) return;
+    if(!staff.length){el.innerHTML='<div class="empty"><i class="fas fa-users"></i>No staff records</div>';return;}
+    const today=new Date().toISOString().split('T')[0];
+    el.innerHTML=staff.slice(0,8).map(s=>{
+        const sh=shifts.find(x=>x.staff_id===s.id&&x.date===today);
+        const deptName=s.department?s.department.name:'';
+        return `<div class="att-row"><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blue">${initials(s.name)}</div><div><div style="font-size:.78rem;font-weight:600">${esc(s.name)}</div><div style="font-size:.65rem;color:var(--text-muted)">${esc(deptName)}</div></div></div><span class="badge ${sh?'b-'+sh.shift.toLowerCase():'b-gray'}">${sh?sh.shift:'No Shift'}</span></div>`;
+    }).join('');
+}
+
+function renderTaskMini(){
+    const el=document.getElementById('taskMini'); if(!el) return;
+    if(!tasks.length){el.innerHTML='<div class="empty"><i class="fas fa-tasks"></i>No tasks found</div>';return;}
+    el.innerHTML=tasks.slice(0,5).map(t=>{
+        const sc=t.status==='Completed'?'b-completed':(t.status==='In Progress'?'b-in-progress':'b-pending');
+        return `<div class="att-row"><div><div style="font-size:.78rem;font-weight:600">${esc(t.title)}</div><div style="font-size:.65rem;color:var(--text-muted)">${esc(t.staff||'')}</div></div><span class="badge ${sc}">${t.status||'Pending'}</span></div>`;
+    }).join('');
+}
+
+function renderBookMini(){
+    const el=document.getElementById('bookMini'); if(!el) return;
+    if(!bookings.length){el.innerHTML='<tr><td colspan="6"><div class="empty"><i class="fas fa-calendar-alt"></i>No bookings found</div></td></tr>';return;}
+    el.innerHTML=bookings.slice(0,5).map(b=>{
+        const sc=b.status==='confirmed'?'b-confirmed':(b.status==='checked_in'?'b-checked_in':'b-checked_out');
+        return `<tr><td><strong>${esc(b.guest||'N/A')}</strong></td><td>${esc(b.room_type||'—')}</td><td style="font-size:.74rem">${b.check_in||'—'}</td><td style="font-size:.74rem">${b.check_out||'—'}</td><td><span class="badge ${sc}">${b.status||''}</span></td><td><strong>&#8377;${Number(b.total||0).toLocaleString('en-IN')}</strong></td></tr>`;
+    }).join('');
+}
+
+// ── POPULATE SELECTS ──
+function populateSelects(){
+    // ✅ FIX: department selects use d.id as value (integer), not d.name
+    ['sDept','editDept'].forEach(id=>{
+        const el=document.getElementById(id); if(!el) return;
+        const cur=el.value;
+        el.innerHTML='<option value="">— Select Department —</option>'+depts.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+        if(cur) el.value=cur;
+    });
+    const shiftDept=document.getElementById('shiftDept');
+    if(shiftDept) shiftDept.innerHTML='<option value="">— Auto from staff —</option>'+depts.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+    ['staffDeptFilter','attDeptFilter','shiftFilterDept'].forEach(id=>{
+        const el=document.getElementById(id); if(!el) return;
+        el.innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('');
+    });
+    const shiftStaffEl=document.getElementById('shiftStaff');
+    if(shiftStaffEl){
+        shiftStaffEl.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>{
+            const dn=s.department?s.department.name:'';
+            return `<option value="${s.id}">${esc(s.name)}${dn?' ('+esc(dn)+')':''}</option>`;
+        }).join('');
+    }
+    const ads=document.getElementById('assignDeptSelect');
+    if(ads) ads.innerHTML='<option value="">— Choose a department —</option>'+depts.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+}
+
+// ── STAFF DIRECTORY ──
+function clearStaffFilters(){
+    ['staffSearch','staffDeptFilter','staffRoleFilter','staffShiftFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    renderStaff();
+}
+
+function toggleStaffExpand(staffId){
+    if(expandedStaffIds.has(staffId)) expandedStaffIds.delete(staffId);
+    else expandedStaffIds.add(staffId);
+    renderStaff();
+}
+
+async function toggleStaffPerm(staffId, permName, deptId, enable){
+    const dept=depts.find(d=>d.id===deptId);
+    if(!dept){toast('Department not found','error');return;}
+    let currentPerms=[...(dept.permissions||[])];
+    if(enable){ if(!currentPerms.includes(permName)) currentPerms.push(permName); }
+    else { currentPerms=currentPerms.filter(p=>p!==permName); }
+    const permIds=permissions.filter(p=>currentPerms.includes(p.name)).map(p=>p.id);
+    const r=await postJSON('/assign-permission/',{department_id:deptId,permission_ids:permIds});
+    if(r&&r.ok){
+        const data=await r.json();
+        dept.permissions=data.assigned_permissions||data.permissions||currentPerms;
+        staff.forEach(s=>{if(s.department&&s.department.id===deptId) s.department.permissions=dept.permissions;});
+        toast(`${enable?'Enabled':'Disabled'}: ${permName}`,enable?'success':'info');
+        renderStaff();
+    } else { toast('Failed to update permission','error'); }
+}
+
+function renderStaff(){
+    const search=(document.getElementById('staffSearch')?.value||'').toLowerCase().trim();
+    const deptF=document.getElementById('staffDeptFilter')?.value||'';
+    const roleF=document.getElementById('staffRoleFilter')?.value||'';
+    const shiftF=document.getElementById('staffShiftFilter')?.value||'';
+    const today=new Date().toISOString().split('T')[0];
+    const filtered=staff.filter(s=>{
+        const deptName=s.department?s.department.name:'';
+        const matchSearch=!search||(s.name||'').toLowerCase().includes(search)||(s.email||'').toLowerCase().includes(search)||(s.phone||'').includes(search);
+        const matchDept=!deptF||deptName===deptF;
+        const matchRole=!roleF||s.role===roleF;
+        const sh=shifts.find(x=>x.staff_id===s.id&&x.date===today);
+        const matchShift=!shiftF||(shiftF==='none'?!sh:(sh&&sh.shift===shiftF));
+        return matchSearch&&matchDept&&matchRole&&matchShift;
+    });
+    const countEl=document.getElementById('staffCount');
+    if(countEl) countEl.textContent=filtered.length+' member'+(filtered.length!==1?'s':'');
+    const body=document.getElementById('staffBody'); if(!body) return;
+    if(!filtered.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><i class="fas fa-search"></i>No staff found</div></td></tr>';return;}
+
+    let html='';
+    filtered.forEach(s=>{
+        const sh=shifts.find(x=>x.staff_id===s.id&&x.date===today);
+        const dept=s.department||{};
+        const deptName=dept.name||'—';
+        const deptObjFull=depts.find(d=>d.id===dept.id)||{};
+        const deptPerms=deptObjFull.permissions||dept.permissions||[];
+        const isExpanded=expandedStaffIds.has(s.id);
+        const staffCount=staff.filter(x=>x.department&&x.department.id===dept.id).length;
+
+        html+=`<tr style="cursor:pointer" onclick="toggleStaffExpand(${s.id})">
+            <td><button class="expand-toggle-btn ${isExpanded?'open':''}" title="${isExpanded?'Collapse':'Expand'}"><i class="fas fa-chevron-${isExpanded?'up':'down'}"></i></button></td>
+            <td><span class="badge b-gray" style="font-family:'DM Mono',monospace">${esc(s.employee_id||'EMP'+s.id)}</span></td>
+            <td><div class="staff-cell"><div class="staff-initials">${initials(s.name)}</div><div style="font-weight:600;font-size:.8rem">${esc(s.name)}</div></div></td>
+            <td><div style="font-size:.75rem">${esc(s.email||'—')}</div><div style="font-size:.68rem;color:var(--text-muted)">${s.phone||''}</div></td>
+            <td><span class="badge b-blue">${esc(deptName)}</span></td>
+            <td><span class="badge b-gray">${esc(s.role||'Staff')}</span></td>
+            <td style="font-weight:600">&#8377;${Number(s.salary||0).toLocaleString('en-IN')}</td>
+            <td>${sh?`<span class="badge b-${sh.shift.toLowerCase()}">${sh.shift}</span>`:'<span class="badge b-gray">—</span>'}</td>
+            <td style="white-space:nowrap" onclick="event.stopPropagation()">
+                <button class="btn btn-outline btn-xs" onclick="editStaff(${s.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger btn-xs" onclick="deleteStaff(${s.id})" title="Delete" style="margin-left:4px"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+
+        if(isExpanded){
+            let permTogglesHtml='';
+            if(!dept.id){
+                permTogglesHtml=`<div class="perm-no-dept"><i class="fas fa-ban" style="display:block;margin-bottom:4px;opacity:.3;font-size:18px"></i>No department assigned<br><span style="font-size:.67rem">Assign a department to manage permissions</span></div>`;
+            } else if(!permissions.length){
+                permTogglesHtml=`<div class="perm-no-dept"><i class="fas fa-key" style="display:block;margin-bottom:4px;opacity:.3;font-size:18px"></i>No permissions yet<br><span style="font-size:.67rem"><a href="#" onclick="switchPanel('permissions');return false;" style="color:var(--blue)">Go to Permissions</a> to create some</span></div>`;
+            } else {
+                permTogglesHtml=`<div class="perm-toggle-list">${permissions.map(p=>{
+                    const isOn=deptPerms.includes(p.name);
+                    return `<div class="perm-toggle-item ${isOn?'active':''}">
+                        <span class="perm-toggle-name"><i class="fas fa-key"></i>${esc(p.name)}</span>
+                        <label class="toggle-switch" onclick="event.stopPropagation()">
+                            <input type="checkbox" ${isOn?'checked':''} onchange="toggleStaffPerm(${s.id},'${esc(p.name)}',${dept.id},this.checked)">
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>`;
+                }).join('')}</div>`;
+            }
+            html+=`<tr class="staff-expand-row">
+                <td colspan="9">
+                    <div class="staff-expand-inner">
+                        <div>
+                            <div class="expand-section-title"><i class="fas fa-id-card"></i> Staff Details</div>
+                            <div style="background:white;border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+                                <div class="staff-detail-item"><span class="staff-detail-label">Employee ID</span><span class="staff-detail-value" style="font-family:'DM Mono',monospace">${esc(s.employee_id||'EMP'+s.id)}</span></div>
+                                <div class="staff-detail-item"><span class="staff-detail-label">Full Name</span><span class="staff-detail-value">${esc(s.name)}</span></div>
+                                <div class="staff-detail-item"><span class="staff-detail-label">Email</span><span class="staff-detail-value">${esc(s.email||'—')}</span></div>
+                                <div class="staff-detail-item"><span class="staff-detail-label">Phone</span><span class="staff-detail-value">${esc(s.phone||'—')}</span></div>
+                                <div class="staff-detail-item"><span class="staff-detail-label">Role</span><span class="staff-detail-value"><span class="badge b-purple">${esc(s.role||'Staff')}</span></span></div>
+                                <div class="staff-detail-item" style="margin-bottom:0"><span class="staff-detail-label">Monthly Salary</span><span class="staff-detail-value" style="font-weight:700;color:var(--green)">&#8377;${Number(s.salary||0).toLocaleString('en-IN')}</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="expand-section-title"><i class="fas fa-building"></i> Department</div>
+                            ${dept.id?`
+                            <div class="dept-info-box" style="margin-bottom:10px">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                    <div style="width:32px;height:32px;background:#eff6ff;border-radius:8px;display:grid;place-items:center;color:var(--blue);flex-shrink:0"><i class="fas fa-building" style="font-size:12px"></i></div>
+                                    <div><div class="dept-info-name">${esc(deptName)}</div><div class="dept-info-sub">${staffCount} staff in this dept</div></div>
+                                </div>
+                                <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:6px">Permissions here apply to <strong>all ${staffCount} staff</strong> in ${esc(deptName)}</div>
+                                <button class="btn btn-outline btn-xs" style="width:100%" onclick="event.stopPropagation();switchPanel('permissions');setTimeout(()=>{const sel=document.getElementById('assignDeptSelect');if(sel){sel.value='${dept.id}';onAssignDeptChange();}},200)">
+                                    <i class="fas fa-cog"></i> Manage via Permissions Panel
+                                </button>
+                            </div>
+                            <div style="font-size:.7rem;color:var(--text-muted);margin-bottom:4px">Today's Shift</div>
+                            ${sh?`<span class="badge b-${sh.shift.toLowerCase()}" style="font-size:.75rem;padding:5px 12px">${sh.shift} Shift</span>`:'<span class="badge b-gray">No shift assigned today</span>'}
+                            `:'<div style="color:var(--text-muted);font-size:.78rem;padding:10px 0">No department assigned</div>'}
+                        </div>
+                        <div>
+                            <div class="expand-section-title" style="justify-content:space-between">
+                                <span><i class="fas fa-shield-alt"></i> Permissions <span style="font-weight:400;font-style:italic;font-size:.62rem">(dept: ${esc(deptName)})</span></span>
+                                ${dept.id&&permissions.length?`<span style="font-size:.62rem;color:var(--text-muted);font-weight:400">${deptPerms.length}/${permissions.length} on</span>`:''}
+                            </div>
+                            ${permTogglesHtml}
+                            ${dept.id&&permissions.length?`<div style="font-size:.63rem;color:var(--text-muted);margin-top:8px;padding:4px 0;border-top:1px solid var(--border)"><i class="fas fa-info-circle"></i> Toggles affect all staff in <strong>${esc(deptName)}</strong></div>`:''}
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+        }
+    });
+    body.innerHTML=html;
+}
+
+// ✅ FIX: editStaff now correctly sets department by ID in the select
+function editStaff(id){
+    const s=staff.find(x=>x.id===id); if(!s) return;
+    document.getElementById('editStaffId').value=s.id;
+    document.getElementById('editName').value=s.name||'';
+    document.getElementById('editEmail').value=s.email||'';
+    document.getElementById('editPhone').value=s.phone||'';
+    document.getElementById('editRole').value=s.role||'Staff';
+    document.getElementById('editSalary').value=s.salary||'';
+    // ✅ FIX: set department by ID (integer) — populates correctly after populateSelects
+    const editDept=document.getElementById('editDept');
+    if(editDept&&s.department&&s.department.id){
+        editDept.value=String(s.department.id);
+    }
+    // show current dept info
+    const curDeptBox=document.getElementById('editCurrentDept');
+    const curDeptName=document.getElementById('editCurrentDeptName');
+    if(curDeptBox&&curDeptName){
+        if(s.department&&s.department.name){
+            curDeptName.textContent=s.department.name;
+            curDeptBox.style.display='block';
+        } else {
+            curDeptBox.style.display='none';
+        }
+    }
+    openModal('editStaffModal');
+}
+
+async function deleteStaff(id){
+    if(!confirm('Delete this staff member? This cannot be undone.')) return;
+    const fd=new FormData();
+    fd.append('staff_id',id);
+    const r=await fetch('/delete-staff/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    if(r&&r.ok){ toast('Staff member deleted'); await loadAll(); renderStaff(); }
+    else toast('Delete failed','error');
+}
+
+// ── ATTENDANCE ──
+function setAttTab(tab){
+    attTab=tab;
+    ['daily','monthly','live'].forEach(t=>{
+        const btn=document.getElementById('attTab'+t.charAt(0).toUpperCase()+t.slice(1));
+        if(btn) btn.classList.toggle('active',t===tab);
+    });
+    const dg=document.getElementById('attDateGroup');
+    if(dg) dg.style.display=tab==='monthly'?'none':'flex';
+    const head=document.getElementById('attHead');
+    if(head){
+        if(tab==='monthly') head.innerHTML='<tr><th>Staff</th><th>Department</th><th>Present</th><th>Absent</th><th>Late</th><th>Total OT</th></tr>';
+        else head.innerHTML='<tr><th>Staff</th><th>Department</th><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours Worked</th><th>Overtime</th><th>Status</th></tr>';
+    }
+    loadAttendance();
+}
+
+async function loadAttendance(){
+    setAttTab(attTab);
+    const date=document.getElementById('attDateFilter')?.value||new Date().toISOString().split('T')[0];
+    let data=[];
+    if(attTab==='live') data=await api('/attendance/live/')||[];
+    else if(attTab==='monthly') data=await api('/attendance/monthly/')||[];
+    else data=await api('/attendance/daily/?date='+date)||[];
+    attRawData=data;
+    renderAttendance(data);
+}
+
+function renderAttendance(data){
+    const statusF=document.getElementById('attStatusFilter')?.value||'';
+    const deptF=document.getElementById('attDeptFilter')?.value||'';
+    const body=document.getElementById('attBody');
+    const countEl=document.getElementById('attCount');
+    let present=0,absent=0,late=0,halfday=0,ot=0;
+    if(attTab==='monthly'){
+        let filtered=data;
+        if(deptF) filtered=data.filter(r=>(r.department||r['staff__department__name']||'')===deptF);
+        filtered.forEach(r=>{present+=(r.present||0);absent+=(r.absent||0);late+=(r.late||0);ot+=parseFloat(r.overtime||0);});
+        document.getElementById('att-present').textContent=present;
+        document.getElementById('att-absent').textContent=absent;
+        document.getElementById('att-late').textContent=late;
+        document.getElementById('att-halfday').textContent='—';
+        document.getElementById('att-ot').textContent=ot.toFixed(1)+'h';
+        if(countEl) countEl.textContent=filtered.length+' staff';
+        if(!filtered.length){body.innerHTML='<tr><td colspan="6"><div class="empty">No monthly records</div></td></tr>';return;}
+        body.innerHTML=filtered.map(r=>{
+            const name=r['staff__name']||r.name||'';
+            return `<tr><td><div class="staff-cell"><div class="staff-initials">${initials(name)}</div><div style="font-weight:600">${esc(name)}</div></div></td><td>${esc(r['staff__department__name']||r.department||'—')}</td><td style="color:var(--green);font-weight:700">${r.present||0}</td><td style="color:var(--red);font-weight:700">${r.absent||0}</td><td style="color:var(--accent);font-weight:700">${r.late||0}</td><td style="color:var(--blue)">${parseFloat(r.overtime||0).toFixed(1)}h</td></tr>`;
+        }).join('');
+        return;
+    }
+    let filtered=data;
+    if(statusF) filtered=filtered.filter(r=>(r.status||r.attendance_status||'')===statusF);
+    if(deptF) filtered=filtered.filter(r=>{const st=staff.find(s=>s.name===(r.name||r['staff__name']||''));return st&&st.department&&st.department.name===deptF;});
+    filtered.forEach(r=>{const st=r.status||r.attendance_status||'';if(st==='Present')present++;else if(st==='Absent')absent++;else if(st==='Late')late++;else if(st==='Half Day')halfday++;ot+=parseFloat(r.overtime||r.overtime_hours||0);});
+    document.getElementById('att-present').textContent=present;
+    document.getElementById('att-absent').textContent=absent;
+    document.getElementById('att-late').textContent=late;
+    document.getElementById('att-halfday').textContent=halfday;
+    document.getElementById('att-ot').textContent=ot.toFixed(1)+'h';
+    if(countEl) countEl.textContent=filtered.length+' records';
+    if(!filtered.length){body.innerHTML=`<tr><td colspan="8"><div class="empty"><i class="fas fa-calendar-check"></i>No records found</div></td></tr>`;return;}
+    body.innerHTML=filtered.map(r=>{
+        const name=r.name||r['staff__name']||'';
+        const st_obj=staff.find(s=>s.name===name)||{};
+        const dept=(st_obj.department&&st_obj.department.name)||r.department||'—';
+        const ciRaw=r.check_in; const coRaw=r.check_out;
+        const ci=ciRaw?new Date(ciRaw).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
+        const co=coRaw?new Date(coRaw).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
+        let wh='—';
+        if(ciRaw&&coRaw){const diff=(new Date(coRaw)-new Date(ciRaw))/3600000;wh=diff.toFixed(1)+'h';}
+        const statusVal=r.status||r.attendance_status||'N/A';
+        const sc=statusVal==='Present'?'b-present':statusVal==='Absent'?'b-absent':statusVal==='Late'?'b-late':statusVal==='Half Day'?'b-half-day':'b-gray';
+        return `<tr><td><div class="staff-cell"><div class="staff-initials">${initials(name)}</div><strong style="font-size:.79rem">${esc(name)}</strong></div></td><td style="font-size:.75rem">${esc(dept)}</td><td style="font-size:.74rem;color:var(--text-muted)">${r.date||''}</td><td style="font-weight:500;color:var(--green)">${ci}</td><td style="color:var(--red)">${co}</td><td style="font-weight:600">${wh}</td><td style="color:var(--blue)">${parseFloat(r.overtime||r.overtime_hours||0).toFixed(1)}h</td><td><span class="badge ${sc}">${statusVal}</span></td></tr>`;
+    }).join('');
+}
+
+// ── SHIFTS ──
+async function loadShifts(){
+    const date=document.getElementById('shiftFilterDate')?.value||'';
+    const data=await api(date?'/get-shifts/?date='+date:'/get-shifts/');
+    shifts=Array.isArray(data)?data:[];
+    renderShifts();
+    renderShiftCards('shiftCardsRow');
+    renderShiftCards('shiftOverviewCards');
+}
+
+function renderShifts(){
+    const typeF=document.getElementById('shiftFilterType')?.value||'';
+    const deptF=document.getElementById('shiftFilterDept')?.value||'';
+    let filtered=shifts;
+    if(typeF) filtered=filtered.filter(s=>s.shift===typeF);
+    if(deptF) filtered=filtered.filter(s=>s.department===deptF);
+    const body=document.getElementById('shiftsBody'); if(!body) return;
+    if(!filtered.length){body.innerHTML='<tr><td colspan="6"><div class="empty"><i class="fas fa-calendar-times"></i>No shift assignments found</div></td></tr>';return;}
+    body.innerHTML=filtered.map(s=>{
+        const st=staff.find(x=>x.id===s.staff_id)||{};
+        return `<tr><td><div class="staff-cell"><div class="staff-initials">${initials(s.staff||'')}</div><strong style="font-size:.79rem">${esc(s.staff||'')}</strong></div></td><td style="font-size:.74rem;color:var(--text-muted);font-family:'DM Mono',monospace">${esc(st.employee_id||'—')}</td><td><span class="badge b-blue">${esc(s.department||'—')}</span></td><td><span class="badge b-${(s.shift||'').toLowerCase()}">${s.shift||'—'}</span></td><td style="font-size:.74rem;color:var(--text-muted)">${s.date||'—'}</td><td><button class="btn btn-outline btn-xs" onclick="editShift(${s.id},'${esc(s.shift)}')"><i class="fas fa-edit"></i> Edit</button></td></tr>`;
+    }).join('');
+}
+
+async function editShift(id,currentShift){
+    const newShift=prompt('Change shift (Morning / Evening / Night):',currentShift);
+    if(!newShift||!['Morning','Evening','Night'].includes(newShift)) return;
+    const fd=new FormData();
+    fd.append('shift_id',id);fd.append('shift',newShift);
+    const r=await fetch('/update-shift/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    if(r.ok){toast('Shift updated');await loadShifts();}
+    else toast('Update failed','error');
+}
+
+// ── LEAVE ──
+async function loadLeave(){
+    const data=await api('/leave/requests/');
+    leaves=Array.isArray(data)?data:[];
+    document.getElementById('lv-pending').textContent=leaves.filter(l=>l.status==='Pending').length;
+    document.getElementById('lv-approved').textContent=leaves.filter(l=>l.status==='Approved').length;
+    document.getElementById('lv-rejected').textContent=leaves.filter(l=>l.status==='Rejected').length;
+    renderLeave();
+}
+
+function renderLeave(){
+    const statusF=document.getElementById('leaveStatusFilter')?.value||'';
+    const search=(document.getElementById('leaveSearch')?.value||'').toLowerCase().trim();
+    let filtered=leaves;
+    if(statusF) filtered=filtered.filter(l=>l.status===statusF);
+    if(search) filtered=filtered.filter(l=>(l.staff||'').toLowerCase().includes(search));
+    const countEl=document.getElementById('leaveCount');
+    if(countEl) countEl.textContent=filtered.length+' request'+(filtered.length!==1?'s':'');
+    const body=document.getElementById('leaveBody'); if(!body) return;
+    if(!filtered.length){body.innerHTML='<tr><td colspan="8"><div class="empty"><i class="fas fa-umbrella-beach"></i>No leave requests</div></td></tr>';return;}
+    body.innerHTML=filtered.map(l=>{
+        const from=new Date(l.from_date),to=new Date(l.to_date);
+        const days=Math.ceil((to-from)/86400000)+1;
+        const sc=l.status==='Approved'?'b-approved':l.status==='Rejected'?'b-rejected':'b-pending';
+        const actions=l.status==='Pending'?`<button class="btn btn-success btn-xs" onclick="updateLeave(${l.id},'approve')"><i class="fas fa-check"></i> Approve</button> <button class="btn btn-danger btn-xs" onclick="updateLeave(${l.id},'reject')" style="margin-left:3px"><i class="fas fa-times"></i> Reject</button>`:`<span style="font-size:.7rem;color:var(--text-muted)">${l.status}</span>`;
+        return `<tr><td><div class="staff-cell"><div class="staff-initials">${initials(l.staff||'')}</div><strong style="font-size:.79rem">${esc(l.staff||'')}</strong></div></td><td style="font-size:.76rem">${l.from_date||'—'}</td><td style="font-size:.76rem">${l.to_date||'—'}</td><td style="font-weight:700">${days}</td><td style="max-width:140px;font-size:.74rem;color:var(--text-muted)">${esc(l.reason||'—')}</td><td style="font-size:.7rem;color:var(--text-muted)">${l.applied_at?new Date(l.applied_at).toLocaleDateString('en-IN'):'N/A'}</td><td><span class="badge ${sc}">${l.status}</span></td><td style="white-space:nowrap">${actions}</td></tr>`;
+    }).join('');
+}
+
+async function updateLeave(id,action){
+    const fd=new FormData();fd.append('action',action);
+    const r=await fetch('/leave/update/'+id+'/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    if(r.ok){toast('Leave '+(action==='approve'?'approved':'rejected'));await loadLeave();}
+    else toast('Action failed','error');
+}
+
+// ── PAYROLL ──
+async function loadPayroll(){
+    const data=await api('/payroll/dashboard/');
+    payrolls=Array.isArray(data)?data:[];
+    const paid=payrolls.filter(p=>p.paid||p.paid_status===true||p.paid_status==='Paid').length;
+    const total=payrolls.reduce((s,p)=>s+parseFloat(p.net_salary||0),0);
+    document.getElementById('py-paid').textContent=paid;
+    document.getElementById('py-unpaid').textContent=payrolls.length-paid;
+    document.getElementById('py-total').innerHTML='&#8377;'+Math.round(total).toLocaleString('en-IN');
+    document.getElementById('s-payroll').innerHTML='&#8377;'+Math.round(total/1000)+'k';
+    renderPayroll();
+}
+
+function renderPayroll(){
+    const mF=document.getElementById('payFilterMonth')?.value||'';
+    const sF=document.getElementById('payFilterStatus')?.value||'';
+    let filtered=payrolls;
+    if(mF) filtered=filtered.filter(p=>String(p.month)===mF);
+    if(sF){const isPaidFilter=sF==='paid';filtered=filtered.filter(p=>{const isPaid=p.paid||p.paid_status===true||p.paid_status==='Paid';return isPaidFilter?isPaid:!isPaid;});}
+    const countEl=document.getElementById('payrollCount');
+    if(countEl) countEl.textContent=filtered.length+' record'+(filtered.length!==1?'s':'');
+    const months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const body=document.getElementById('payrollBody'); if(!body) return;
+    if(!filtered.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><i class="fas fa-rupee-sign"></i>No payroll records.</div></td></tr>';return;}
+    body.innerHTML=filtered.map(p=>{
+        const isPaid=p.paid||p.paid_status===true||p.paid_status==='Paid';
+        const st=staff.find(s=>s.name===p.staff)||{};
+        return `<tr><td><div class="staff-cell"><div class="staff-initials">${initials(p.staff||'')}</div><strong style="font-size:.79rem">${esc(p.staff||'')}</strong></div></td><td style="font-size:.72rem;color:var(--text-muted);font-family:'DM Mono',monospace">${esc(st.employee_id||p.employee_id||'—')}</td><td style="font-size:.76rem">${months[p.month]||p.month} ${p.year}</td><td>&#8377;${Number(p.basic_salary||0).toLocaleString('en-IN')}</td><td style="color:var(--green)">+&#8377;${Number(p.overtime_amount||0).toLocaleString('en-IN')}</td><td style="color:var(--red)">-&#8377;${Number(p.deductions||0).toLocaleString('en-IN')}</td><td><strong>&#8377;${Number(p.net_salary||0).toLocaleString('en-IN')}</strong></td><td><span class="badge ${isPaid?'b-paid':'b-unpaid'}">${isPaid?'Paid':'Unpaid'}</span></td><td><button class="btn btn-outline btn-xs" onclick="viewPayslip(${p.id})"><i class="fas fa-file-invoice"></i> Slip</button></td></tr>`;
+    }).join('');
+}
+
+async function viewPayslip(id){
+    const data=await api('/payroll/payslip/'+id+'/');
+    if(!data||data.error){toast('Payslip not found','error');return;}
+    const months=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+    const isPaid=data.paid_status==='Paid'||data.paid_status===true;
+    document.getElementById('payslipContent').innerHTML=`<div style="text-align:center;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)"><div style="width:46px;height:46px;border-radius:50%;background:#dbeafe;color:#1e40af;display:grid;place-items:center;font-weight:800;font-size:.9rem;margin:0 auto 8px">${initials(data.staff||'')}</div><div style="font-weight:800;font-size:1rem">${esc(data.staff)}</div><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">ID: ${esc(data.employee_id)}</div><div style="font-size:.72rem;color:var(--text-muted)">${months[data.month]||data.month} ${data.year}</div></div><div class="payslip-box"><div class="payslip-row"><span>Basic Salary</span><span><strong>&#8377;${Number(data.basic_salary||0).toLocaleString('en-IN')}</strong></span></div><div class="payslip-row" style="color:var(--green)"><span>Overtime Bonus</span><span>+&#8377;${Number(data.overtime||0).toLocaleString('en-IN')}</span></div><div class="payslip-row" style="color:var(--red)"><span>Deductions</span><span>-&#8377;${Number(data.deductions||0).toLocaleString('en-IN')}</span></div><div class="payslip-total"><span>Net Salary</span><span>&#8377;${Number(data.net_salary||0).toLocaleString('en-IN')}</span></div></div><div style="margin-top:12px;text-align:center"><span class="badge ${isPaid?'b-paid':'b-unpaid'}" style="font-size:.76rem;padding:5px 14px">${isPaid?'✓ Paid':'Unpaid'}</span></div>`;
+    openModal('payslipModal');
+}
+
+// ── DEPARTMENTS ──
+function renderDeptSummary(){
+    const el=document.getElementById('deptSummary');
+    const el2=document.getElementById('deptGrid2');
+    if(el) el.innerHTML=depts.map(d=>{
+        const cnt=staff.filter(s=>s.department&&s.department.name===d.name).length;
+        return `<div class="att-row"><div style="display:flex;align-items:center;gap:8px"><div class="avatar av-blue"><i class="fas fa-building" style="font-size:10px"></i></div><strong>${esc(d.name)}</strong></div><span class="badge b-blue">${cnt} staff</span><button class="btn btn-danger btn-xs" style="margin-left:auto" onclick="deleteDepartment(${d.id})"><i class="fas fa-trash"></i> Delete</button></div>`;
+    }).join('')||'<div class="empty">No departments yet</div>';
+    const colors=['#2563eb','#10b981','#f59e0b','#7c3aed','#ef4444','#0891b2'];
+    if(el2) el2.innerHTML=depts.map((d,i)=>{
+        const cnt=staff.filter(s=>s.department&&s.department.name===d.name).length;
+        const c=colors[i%colors.length];
+        return `<div class="dept-card"><div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:9px;background:${c}18;color:${c};display:grid;place-items:center;flex-shrink:0"><i class="fas fa-building" style="font-size:13px"></i></div><div><div style="font-weight:700;font-size:.82rem">${esc(d.name)}</div><div style="font-size:.68rem;color:var(--text-muted)">${cnt} employee${cnt!==1?'s':''}</div></div></div><button class="btn btn-danger btn-xs" onclick="deleteDepartment(${d.id})"><i class="fas fa-trash"></i></button></div></div>`;
+    }).join('')||'<div class="empty">No departments</div>';
+}
+
+async function deleteDepartment(deptId){
+    if(!confirm('Delete this department? Staff will keep their records but lose department assignment.')) return;
+    const r=await fetch(`/delete-department/${deptId}/`,{method:'DELETE',headers:{'X-CSRFToken':csrftoken}});
+    if(r.ok){toast('Department deleted');await loadAll();renderDeptSummary();}
+    else toast('Failed to delete department','error');
+}
+
+// ── PERMISSIONS ──
+async function loadPermissionsPanel(){
+    const [pData,dData]=await Promise.all([api('/get-permissions/'),api('/get-departments/')]);
+    permissions=Array.isArray(pData)?pData:[];
+    depts=Array.isArray(dData)?dData:[];
+    renderPermList();renderDeptPermGrid();populateAssignDeptSelect();updatePermKPIs();updatePermSuggestionState();
+}
+
+function updatePermKPIs(){
+    document.getElementById('perm-total-kpi').textContent=permissions.length;
+    document.getElementById('perm-depts-kpi').textContent=depts.length;
+    const total=depts.reduce((s,d)=>s+(d.permissions?d.permissions.length:0),0);
+    document.getElementById('perm-assigned-kpi').textContent=total;
+}
+
+function updatePermSuggestionState(){
+    document.querySelectorAll('.perm-suggest-chip').forEach(chip=>{
+        const val=chip.dataset.val;
+        const exists=permissions.some(p=>p.name===val);
+        chip.classList.toggle('used',exists);
+        const icon=chip.querySelector('i');
+        if(icon) icon.className=exists?'fas fa-check':'fas fa-plus';
+    });
+}
+
+async function insertPermSuggest(chip){
+    const val=chip.dataset.val;
+    if(chip.classList.contains('used')){toast(`"${val}" already exists`,'info');return;}
+    const inp=document.getElementById('quickPermName');
+    if(inp){inp.value=val;inp.focus();}
+    await doQuickAddPerm(val);
+}
+
+async function doQuickAddPerm(name){
+    if(!name) return;
+    if(permissions.some(p=>p.name===name)){toast(`"${name}" already exists`,'info');return;}
+    const r=await postJSON('/add-permission/',{name:name});
+    if(r&&r.ok){
+        const data=await r.json();
+        if(!permissions.find(p=>p.id===data.id)) permissions.push({id:data.id,name:data.name});
+        const inp=document.getElementById('quickPermName');
+        if(inp) inp.value='';
+        renderPermList();updatePermKPIs();updatePermSuggestionState();
+        if(activeDeptId) renderPermCheckboxGrid(activeDeptId);
+        toast(`Permission "${name}" created`);
+    } else { toast('Failed to create permission','error'); }
+}
+
+async function quickAddPerm(){
+    const inp=document.getElementById('quickPermName');
+    const name=(inp?inp.value:'').trim();
+    if(!name){toast('Enter a permission name','error');return;}
+    await doQuickAddPerm(name);
+}
+
+function renderPermList(){
+    const el=document.getElementById('permList'); if(!el) return;
+    const count=document.getElementById('permCount');
+    if(count) count.textContent=permissions.length;
+    if(!permissions.length){el.innerHTML='<div class="empty"><i class="fas fa-key"></i>No permissions yet. Add one above.</div>';return;}
+    el.innerHTML=permissions.map(p=>{
+        const assignedTo=depts.filter(d=>d.permissions&&d.permissions.includes(p.name));
+        return `<div class="perm-list-item"><div class="perm-info"><div class="perm-icon"><i class="fas fa-key"></i></div><div><div style="font-weight:600;font-size:.8rem;font-family:'DM Mono',monospace">${esc(p.name)}</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">${assignedTo.length?assignedTo.map(d=>`<span class="dept-chip"><i class="fas fa-building" style="font-size:9px"></i>${esc(d.name)}</span>`).join(''):'<span style="font-size:.65rem;color:var(--text-muted)">Not assigned</span>'}</div></div></div><button class="btn btn-danger btn-xs" onclick="deletePerm(${p.id},'${esc(p.name)}')" title="Delete"><i class="fas fa-trash"></i></button></div>`;
+    }).join('');
+}
+
+function renderDeptPermGrid(){
+    const el=document.getElementById('deptPermGrid'); if(!el) return;
+    if(!depts.length){el.innerHTML='<div class="empty"><i class="fas fa-building"></i>No departments found.</div>';return;}
+    const colors=['#2563eb','#10b981','#f59e0b','#7c3aed','#ef4444','#0891b2','#db2777','#059669'];
+    el.innerHTML=depts.map((d,i)=>{
+        const perms=d.permissions||[];
+        const c=colors[i%colors.length];
+        const staffCount=staff.filter(s=>s.department&&s.department.name===d.name).length;
+        return `<div class="perm-dept-card"><div class="perm-dept-header"><div class="perm-dept-name"><div style="width:30px;height:30px;border-radius:7px;background:${c}18;color:${c};display:grid;place-items:center;flex-shrink:0;font-size:12px"><i class="fas fa-building"></i></div><div><div>${esc(d.name)}</div><div style="font-size:.64rem;font-weight:400;color:var(--text-muted)">${staffCount} staff · ${perms.length} perm${perms.length!==1?'s':''}</div></div></div><button class="btn btn-outline btn-xs" onclick="openDeptPermModal(${d.id},'${esc(d.name)}')"><i class="fas fa-cog"></i> Manage</button></div><div class="perm-dept-body"><div class="perm-tags">${perms.length?perms.map(p=>`<span class="perm-tag"><i class="fas fa-key" style="font-size:9px"></i>${esc(p)}<button class="remove-perm" onclick="removePermFromDept(${d.id},'${esc(p)}')" title="Remove">✕</button></span>`).join(''):'<span class="perm-tag no-perms">No permissions assigned</span>'}</div></div></div>`;
+    }).join('');
+}
+
+function populateAssignDeptSelect(){
+    const el=document.getElementById('assignDeptSelect'); if(!el) return;
+    el.innerHTML='<option value="">— Choose a department —</option>'+depts.map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');
+}
+
+async function deletePerm(id,name){
+    if(!confirm(`Delete permission "${name}"? This will remove it from all departments.`)) return;
+    const r=await deleteReq(`/delete-permission/${id}/`);
+    if(r&&r.ok){
+        permissions=permissions.filter(p=>p.id!==id);
+        depts.forEach(d=>{if(d.permissions) d.permissions=d.permissions.filter(p=>p!==name);});
+        renderPermList();renderDeptPermGrid();updatePermKPIs();updatePermSuggestionState();
+        toast('Permission deleted');
+    } else { toast('Delete failed','error'); }
+}
+
+function onAssignDeptChange(){
+    const sel=document.getElementById('assignDeptSelect');
+    const val=sel?parseInt(sel.value):0;
+    const group=document.getElementById('assignPermGroup');
+    const placeholder=document.getElementById('assignPermPlaceholder');
+    const saveBtn=document.getElementById('saveAssignBtn');
+    if(!val){
+        activeDeptId=null;
+        if(group) group.style.display='none';
+        if(placeholder) placeholder.style.display='block';
+        if(saveBtn) saveBtn.style.display='none';
+        return;
+    }
+    activeDeptId=val;
+    if(placeholder) placeholder.style.display='none';
+    if(group) group.style.display='block';
+    if(saveBtn) saveBtn.style.display='block';
+    renderPermCheckboxGrid(val);
+}
+
+function renderPermCheckboxGrid(deptId){
+    const dept=depts.find(d=>d.id===deptId);
+    const currentPerms=dept?(dept.permissions||[]):[];
+    const grid=document.getElementById('permCheckboxGrid'); if(!grid) return;
+    if(!permissions.length){grid.innerHTML='<div style="color:var(--text-muted);font-size:.75rem;grid-column:1/-1">No permissions available. Create some first.</div>';return;}
+    grid.innerHTML=permissions.map(p=>{
+        const isChecked=currentPerms.includes(p.name);
+        return `<label class="perm-check-item ${isChecked?'checked':''}" data-perm-id="${p.id}"><input type="checkbox" value="${p.id}" ${isChecked?'checked':''} onchange="toggleCheckItem(this)"><span class="perm-check-label" style="font-family:'DM Mono',monospace;font-size:.72rem">${esc(p.name)}</span></label>`;
+    }).join('');
+}
+
+function toggleCheckItem(input){
+    const label=input.closest('.perm-check-item');
+    if(label) label.classList.toggle('checked',input.checked);
+}
+
+async function saveAssignedPerms(){
+    if(!activeDeptId){toast('Select a department first','error');return;}
+    const checkboxes=document.querySelectorAll('#permCheckboxGrid input[type=checkbox]:checked');
+    const ids=Array.from(checkboxes).map(c=>parseInt(c.value));
+    const r=await postJSON('/assign-permission/',{department_id:activeDeptId,permission_ids:ids});
+    if(r&&r.ok){
+        const data=await r.json();
+        const dept=depts.find(d=>d.id===activeDeptId);
+        if(dept) dept.permissions=data.assigned_permissions||data.permissions||[];
+        renderPermList();renderDeptPermGrid();updatePermKPIs();
+        toast(`Permissions saved for ${data.dept_name||'department'}`);
+    } else { toast('Save failed','error'); }
+}
+
+async function removePermFromDept(deptId,permName){
+    const dept=depts.find(d=>d.id===deptId); if(!dept) return;
+    const newPerms=(dept.permissions||[]).filter(p=>p!==permName);
+    const permIds=permissions.filter(p=>newPerms.includes(p.name)).map(p=>p.id);
+    const r=await postJSON('/assign-permission/',{department_id:deptId,permission_ids:permIds});
+    if(r&&r.ok){
+        dept.permissions=newPerms;
+        renderPermList();renderDeptPermGrid();updatePermKPIs();
+        toast(`Removed "${permName}" from ${dept.name}`);
+    } else { toast('Remove failed','error'); }
+}
+
+function openDeptPermModal(deptId,deptName){
+    activeDeptId=deptId;
+    document.getElementById('deptPermModalName').textContent=deptName;
+    const dept=depts.find(d=>d.id===deptId);
+    const currentPerms=dept?(dept.permissions||[]):[];
+    const grid=document.getElementById('deptPermModalGrid');
+    if(grid){
+        if(!permissions.length){grid.innerHTML='<div style="color:var(--text-muted);font-size:.75rem;grid-column:1/-1">No permissions available. Create some first.</div>';}
+        else{grid.innerHTML=permissions.map(p=>{const isChecked=currentPerms.includes(p.name);return `<label class="perm-check-item ${isChecked?'checked':''}" data-perm-id="${p.id}"><input type="checkbox" value="${p.id}" ${isChecked?'checked':''} onchange="toggleCheckItem(this)"><span class="perm-check-label" style="font-family:'DM Mono',monospace;font-size:.72rem">${esc(p.name)}</span></label>`;}).join('');}
+    }
+    openModal('deptPermModal');
+}
+
+async function saveDeptPermFromModal(){
+    if(!activeDeptId) return;
+    const checkboxes=document.querySelectorAll('#deptPermModalGrid input[type=checkbox]:checked');
+    const ids=Array.from(checkboxes).map(c=>parseInt(c.value));
+    const r=await postJSON('/assign-permission/',{department_id:activeDeptId,permission_ids:ids});
+    if(r&&r.ok){
+        const data=await r.json();
+        const dept=depts.find(d=>d.id===activeDeptId);
+        if(dept) dept.permissions=data.assigned_permissions||data.permissions||[];
+        renderPermList();renderDeptPermGrid();updatePermKPIs();
+        closeModal('deptPermModal');
+        toast(`Permissions updated for ${data.dept_name||'department'}`);
+    } else { toast('Save failed','error'); }
+}
+
+// ── REPORTS ──
+function loadReport(type){
+    currentReport=type;
+    switchPanel('report');
+    const months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const head=document.getElementById('reportHead');
+    const body=document.getElementById('reportBody');
+    const title=type.charAt(0).toUpperCase()+type.slice(1);
+    document.getElementById('reportTitle').textContent=title+' Report';
+    document.getElementById('reportCardTitle').innerHTML=`<i class="fas fa-chart-bar"></i> ${title} Report`;
+    if(type==='booking'){
+        document.getElementById('reportBadge').textContent=bookings.length+' records';
+        head.innerHTML='<tr><th>ID</th><th>Guest</th><th>Phone</th><th>Room Type</th><th>Room No</th><th>Check In</th><th>Check Out</th><th>Status</th><th>Amount</th></tr>';
+        body.innerHTML=bookings.map(b=>{const sc=b.status==='confirmed'?'b-confirmed':b.status==='checked_in'?'b-checked_in':'b-checked_out';return `<tr><td>#${b.id}</td><td><strong>${esc(b.guest||'N/A')}</strong></td><td style="font-size:.75rem">${b.phone||'—'}</td><td>${esc(b.room_type||'—')}</td><td><span class="badge b-gray">${b.room_no||'—'}</span></td><td style="font-size:.74rem">${b.check_in||'—'}</td><td style="font-size:.74rem">${b.check_out||'—'}</td><td><span class="badge ${sc}">${b.status||''}</span></td><td><strong>&#8377;${Number(b.total||0).toLocaleString('en-IN')}</strong></td></tr>`;}).join('')||'<tr><td colspan="9"><div class="empty">No data</div></td></tr>';
+    } else if(type==='task'){
+        document.getElementById('reportBadge').textContent=tasks.length+' tasks';
+        head.innerHTML='<tr><th>ID</th><th>Title</th><th>Assigned To</th><th>Department</th><th>Status</th><th>Created</th></tr>';
+        body.innerHTML=tasks.map(t=>{const sc=t.status==='Completed'?'b-completed':t.status==='In Progress'?'b-in-progress':'b-pending';const st=staff.find(s=>s.id===t.staff_id);const deptN=st&&st.department?st.department.name:'—';return `<tr><td>#${t.id}</td><td><strong>${esc(t.title)}</strong></td><td>${esc(t.staff||(st&&st.name)||'—')}</td><td>${esc(deptN)}</td><td><span class="badge ${sc}">${t.status||'Pending'}</span></td><td style="font-size:.72rem;color:var(--text-muted)">${t.created_at?new Date(t.created_at).toLocaleDateString('en-IN'):'—'}</td></tr>`;}).join('')||'<tr><td colspan="6"><div class="empty">No tasks</div></td></tr>';
+    } else if(type==='payroll'){
+        document.getElementById('reportBadge').textContent=payrolls.length+' records';
+        head.innerHTML='<tr><th>Staff</th><th>Emp ID</th><th>Month</th><th>Year</th><th>Basic</th><th>Overtime</th><th>Deductions</th><th>Net Salary</th><th>Status</th></tr>';
+        body.innerHTML=payrolls.map(p=>{const isPaid=p.paid||p.paid_status===true||p.paid_status==='Paid';const st=staff.find(s=>s.name===p.staff)||{};return `<tr><td><strong>${esc(p.staff||'')}</strong></td><td style="font-size:.72rem;font-family:'DM Mono',monospace">${esc(st.employee_id||'—')}</td><td>${months[p.month]||p.month}</td><td>${p.year}</td><td>&#8377;${Number(p.basic_salary||0).toLocaleString('en-IN')}</td><td style="color:var(--green)">+&#8377;${Number(p.overtime_amount||0).toLocaleString('en-IN')}</td><td style="color:var(--red)">-&#8377;${Number(p.deductions||0).toLocaleString('en-IN')}</td><td><strong>&#8377;${Number(p.net_salary||0).toLocaleString('en-IN')}</strong></td><td><span class="badge ${isPaid?'b-paid':'b-unpaid'}">${isPaid?'Paid':'Unpaid'}</span></td></tr>`;}).join('')||'<tr><td colspan="9"><div class="empty">No payroll data.</div></td></tr>';
+    }
+}
+
+function exportCSV(){
+    const table=document.getElementById('reportTable'); if(!table) return;
+    const csv=Array.from(table.querySelectorAll('tr')).map(r=>Array.from(r.querySelectorAll('th,td')).map(c=>'"'+c.innerText.replace(/"/g,'""').trim()+'"').join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download=currentReport+'_report.csv'; a.click();
+    toast('CSV exported!');
+}
+
+// ── EVENT LISTENERS ──
+
+// ✅ FIX: Add Staff — sends department_id (integer) matching backend's data.get("department_id")
+document.getElementById('addStaffBtn')?.addEventListener('click', async function(){
+    // Validation
+    let valid=true;
+    const name=document.getElementById('sName').value.trim();
+    const email=document.getElementById('sEmail').value.trim();
+    const deptId=document.getElementById('sDept').value;
+    const pass=document.getElementById('sPass').value;
+
+    clearFieldError('sName','sNameErr');
+    clearFieldError('sEmail','sEmailErr');
+    clearFieldError('sDept','sDeptErr');
+    clearFieldError('sPass','sPassErr');
+
+    if(!name){setFieldError('sName','sNameErr',true);valid=false;}
+    if(!email||!email.includes('@')){setFieldError('sEmail','sEmailErr',true);valid=false;}
+    if(!deptId){setFieldError('sDept','sDeptErr',true);valid=false;}
+    if(!pass||pass.length<6){setFieldError('sPass','sPassErr',true);valid=false;}
+    if(!valid) return;
+
+    const btn=this;
+    btn.classList.add('btn-loading');
+    btn.disabled=true;
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Adding…';
+
+    // ✅ KEY FIX: send department_id (integer) in JSON body — backend reads data.get("department_id")
+    const r=await postJSON('/add-staff/',{
+        name: name,
+        email: email,
+        phone: document.getElementById('sPhone').value||'',
+        department_id: parseInt(deptId),   // ← integer, matches backend
+        role: document.getElementById('sRole').value||'Staff',
+        salary: document.getElementById('sSalary').value||0,
+        password: pass,
+    });
+
+    btn.classList.remove('btn-loading');
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-save"></i> Add Staff Member';
+
+    if(r&&r.ok){
+        const data=await r.json();
+        toast(`Staff "${name}" added successfully`);
+        ['sName','sEmail','sPhone','sSalary','sPass'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+        document.getElementById('sDept').value='';
+        await loadAll();
+        switchPanel('staff-list');
+    } else {
+        let errMsg='Failed to add staff';
+        try{const err=await r?.json();if(err&&err.error) errMsg=err.error;}catch(e){}
+        toast(errMsg,'error');
+    }
+});
+
+// ✅ FIX: Update Staff — sends department as ID in FormData, also sends role and email
+document.getElementById('updateStaffBtn')?.addEventListener('click', async function(){
+    const id=document.getElementById('editStaffId').value;
+    const name=document.getElementById('editName').value.trim();
+
+    clearFieldError('editName','editNameErr');
+    if(!name){setFieldError('editName','editNameErr',true);return;}
+
+    const btn=this;
+    btn.classList.add('btn-loading');
+    btn.disabled=true;
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+    const fd=new FormData();
+    fd.append('staff_id',id);
+    fd.append('name',name);
+    fd.append('email',document.getElementById('editEmail').value||'');  // ✅ NEW
+    fd.append('phone',document.getElementById('editPhone').value||'');
+    fd.append('role',document.getElementById('editRole').value||'Staff'); // ✅ FIX: role now sent
+    fd.append('salary',document.getElementById('editSalary').value||0);
+    // ✅ FIX: send department as integer ID — backend does Department.objects.get(id=int(dept_id))
+    const deptVal=document.getElementById('editDept').value;
+    if(deptVal) fd.append('department',deptVal);
+
+    const r=await fetch('/update-staff/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+
+    btn.classList.remove('btn-loading');
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-save"></i> Update Staff';
+
+    if(r&&r.ok){
+        toast('Staff updated successfully');
+        closeModal('editStaffModal');
+        await loadAll();
+        renderStaff();
+    } else {
+        let errMsg='Update failed';
+        try{const err=await r?.json();if(err&&err.error) errMsg=err.error;}catch(e){}
+        toast(errMsg,'error');
+    }
+});
+
+document.getElementById('createDeptBtn')?.addEventListener('click',async function(){
+    const name=document.getElementById('newDeptName').value;
+    if(!name) return toast('Please select a department name','error');
+    const fd=new FormData();fd.append('name',name);
+    const r=await fetch('/add-department/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    if(r&&r.ok){toast('Department created');await loadAll();renderDeptSummary();}
+    else toast('Failed to create department','error');
+});
+
+document.getElementById('assignShiftBtn')?.addEventListener('click',async function(){
+    const staffId=document.getElementById('shiftStaff').value;
+    const dept=document.getElementById('shiftDept').value;
+    const shift=document.getElementById('shiftType').value;
+    const date=document.getElementById('shiftDate').value||new Date().toISOString().split('T')[0];
+    if(!staffId) return toast('Please select a staff member','error');
+    const fd=new FormData();
+    fd.append('staff',staffId);fd.append('department',dept||'');fd.append('shift',shift);fd.append('date',date);
+    const r=await fetch('/assign-shift/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    if(r&&r.ok){toast('Shift assigned');await loadShifts();}
+    else toast('Failed to assign shift','error');
+});
+
+document.getElementById('genPayrollBtn')?.addEventListener('click',async function(){
+    const month=document.getElementById('payMonth').value;
+    const year=document.getElementById('payYear').value;
+    if(!month||!year) return toast('Select month and year','error');
+    const btn=this;btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generating…';
+    const fd=new FormData();fd.append('month',month);fd.append('year',year);
+    const r=await fetch('/payroll/generate/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrftoken}});
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-cog"></i> Generate Payroll';
+    if(r&&r.ok){toast('Payroll generated');await loadPayroll();}
+    else toast('Failed','error');
+});
+
+document.getElementById('quickAddPermBtn')?.addEventListener('click',quickAddPerm);
+document.getElementById('quickPermName')?.addEventListener('keydown',e=>{if(e.key==='Enter') quickAddPerm();});
+document.getElementById('assignDeptSelect')?.addEventListener('change',onAssignDeptChange);
+document.getElementById('saveAssignBtn')?.addEventListener('click',saveAssignedPerms);
+document.getElementById('saveDeptPermModalBtn')?.addEventListener('click',saveDeptPermFromModal);
+document.getElementById('loadAttBtn')?.addEventListener('click',loadAttendance);
+document.getElementById('loadShiftsBtn')?.addEventListener('click',loadShifts);
+document.getElementById('loadPayrollBtn')?.addEventListener('click',loadPayroll);
+document.getElementById('exportBtn')?.addEventListener('click',exportCSV);
+document.getElementById('staffSearch')?.addEventListener('input',renderStaff);
+document.getElementById('staffDeptFilter')?.addEventListener('change',renderStaff);
+document.getElementById('staffRoleFilter')?.addEventListener('change',renderStaff);
+document.getElementById('staffShiftFilter')?.addEventListener('change',renderStaff);
+document.getElementById('attStatusFilter')?.addEventListener('change',()=>renderAttendance(attRawData));
+document.getElementById('attDeptFilter')?.addEventListener('change',()=>renderAttendance(attRawData));
+document.getElementById('shiftFilterType')?.addEventListener('change',renderShifts);
+document.getElementById('shiftFilterDept')?.addEventListener('change',renderShifts);
+document.getElementById('leaveStatusFilter')?.addEventListener('change',renderLeave);
+document.getElementById('leaveSearch')?.addEventListener('input',renderLeave);
+document.getElementById('payFilterMonth')?.addEventListener('change',renderPayroll);
+document.getElementById('payFilterStatus')?.addEventListener('change',renderPayroll);
+
+document.getElementById('reportsDropdownBtn')?.addEventListener('click',function(){
+    const menu=document.getElementById('reportsMenu');
+    const chevron=document.getElementById('ddChevron');
+    if(menu) menu.classList.toggle('open');
+    if(chevron) chevron.style.transform=menu?.classList.contains('open')?'rotate(180deg)':'rotate(0)';
+});
+document.querySelectorAll('.dropdown-item[data-report]').forEach(el=>{
+    el.addEventListener('click',function(){loadReport(el.dataset.report);});
+});
+document.querySelectorAll('.nav-btn[data-panel]').forEach(btn=>{
+    btn.addEventListener('click',function(){switchPanel(btn.dataset.panel);});
+});
+document.getElementById('menuBtn')?.addEventListener('click',function(){
+    document.getElementById('sidebar')?.classList.toggle('open');
+});
+
+// ── INIT ──
+const shiftDate=document.getElementById('shiftDate');
+if(shiftDate) shiftDate.value=new Date().toISOString().split('T')[0];
+const attDateFilter=document.getElementById('attDateFilter');
+if(attDateFilter) attDateFilter.value=new Date().toISOString().split('T')[0];
+const now=new Date();
+const payMonth=document.getElementById('payMonth');
+if(payMonth) payMonth.value=now.getMonth()+1;
+const payYear=document.getElementById('payYear');
+if(payYear) payYear.value=now.getFullYear();
+
+// Expose globals
+window.switchPanel=switchPanel; window.editStaff=editStaff; window.deleteStaff=deleteStaff;
+window.updateLeave=updateLeave; window.viewPayslip=viewPayslip; window.loadReport=loadReport;
+window.closeModal=closeModal; window.openModal=openModal; window.renderStaff=renderStaff;
+window.renderLeave=renderLeave; window.renderPayroll=renderPayroll; window.clearStaffFilters=clearStaffFilters;
+window.editShift=editShift; window.setAttTab=setAttTab; window.deletePerm=deletePerm;
+window.removePermFromDept=removePermFromDept; window.openDeptPermModal=openDeptPermModal;
+window.toggleCheckItem=toggleCheckItem; window.deleteDepartment=deleteDepartment;
+window.toggleStaffExpand=toggleStaffExpand; window.onAssignDeptChange=onAssignDeptChange;
+window.toggleStaffPerm=toggleStaffPerm; window.insertPermSuggest=insertPermSuggest;
+window.doQuickAddPerm=doQuickAddPerm;
+
+loadAll();
+</script>
+</body>
+</html>

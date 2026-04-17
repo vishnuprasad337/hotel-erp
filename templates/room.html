@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Management | Hotel ERP</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* [All existing styles remain exactly the same - keeping your design unchanged] */
+:root {
+  --navy: #0b1622;
+  --navy-2: #111d2e;
+  --navy-3: #162236;
+  --blue: #2563eb;
+  --blue-light: #3b82f6;
+  --blue-glow: rgba(37,99,235,0.18);
+  --accent: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  --purple: #7c3aed;
+  --cyan: #06b6d4;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+  --border: #e2e8f0;
+  --border-dark: rgba(255,255,255,0.08);
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --sidebar-w: 256px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow: 0 4px 16px rgba(0,0,0,0.07);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--surface-2); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+/* ═══ SIDEBAR ═══ */
+.sidebar {
+  position: fixed; left: 0; top: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: var(--navy);
+  display: flex; flex-direction: column;
+  z-index: 200; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.brand-wrap {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.brand-gem {
+  width: 40px; height: 40px;
+  background: var(--blue);
+  border-radius: 11px;
+  display: grid; place-items: center;
+  font-size: 17px; color: white; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+}
+
+.brand-text { line-height: 1; }
+.brand-name { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; }
+.brand-sub { font-size: 0.6rem; color: rgba(255,255,255,0.38); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+.sidebar-section { padding: 8px 12px; }
+.sidebar-label {
+  font-size: 0.57rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.25);
+  padding: 14px 8px 6px; font-family: 'DM Mono', monospace;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px;
+  color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; transition: all 0.18s; border: none;
+  background: transparent; width: 100%; text-align: left;
+  font-family: 'DM Sans', sans-serif; text-decoration: none;
+  margin-bottom: 2px;
+}
+
+.nav-item i { width: 16px; text-align: center; font-size: 13px; }
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88); }
+.nav-item.active { background: var(--blue); color: white; box-shadow: 0 2px 10px rgba(37,99,235,0.4); }
+.nav-item.active i { color: white; }
+
+.nav-dropdown { overflow: hidden; }
+.nav-dd-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 10px;
+  color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 500;
+  cursor: pointer; transition: all 0.18s; border: none;
+  background: transparent; width: 100%; font-family: 'DM Sans', sans-serif;
+  margin-bottom: 2px;
+}
+.nav-dd-btn:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88); }
+.nav-dd-btn .dd-left { display: flex; align-items: center; gap: 10px; }
+.nav-dd-btn .dd-left i { width: 16px; text-align: center; font-size: 13px; }
+.nav-dd-btn .dd-chevron { font-size: 10px; transition: transform 0.25s; }
+.nav-dd-btn.open .dd-chevron { transform: rotate(180deg); }
+.nav-dd-children { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; padding-left: 18px; }
+.nav-dd-children.open { max-height: 300px; }
+.nav-dd-child {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  color: rgba(255,255,255,0.4); font-size: 0.77rem;
+  cursor: pointer; transition: all 0.13s; border: none;
+  background: transparent; width: 100%; font-family: 'DM Sans', sans-serif;
+  margin-bottom: 1px;
+}
+.nav-dd-child::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); flex-shrink: 0; }
+.nav-dd-child:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.05); }
+.nav-dd-child:hover::before { background: var(--blue); }
+
+.sidebar-footer {
+  margin-top: auto; padding: 14px 12px;
+  border-top: 1px solid var(--border-dark);
+  font-size: 0.61rem; color: rgba(255,255,255,0.2);
+  text-align: center; font-family: 'DM Mono', monospace;
+}
+
+/* ═══ MAIN ═══ */
+.main { margin-left: var(--sidebar-w); min-height: 100vh; }
+
+/* ═══ TOPBAR ═══ */
+.topbar {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 60%, #1a2540 100%);
+  padding: 20px 28px 24px;
+  border-radius: 0 0 24px 0;
+  position: relative; overflow: hidden;
+}
+.topbar::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%);
+}
+.topbar::after {
+  content: ''; position: absolute; bottom: -40px; left: 30%;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%);
+}
+
+.topbar-inner { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.topbar-left h1 { font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.1; }
+.topbar-left p { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+.topbar-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 40px; padding: 8px 16px;
+  font-size: 0.78rem; color: rgba(255,255,255,0.8); font-weight: 500;
+}
+.topbar-badge i { color: var(--blue); }
+
+/* ═══ CONTENT WRAP ═══ */
+.content { padding: 26px 28px 32px; max-width: 1480px; }
+
+/* ═══ PANELS ═══ */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ═══ STATS ROW ═══ */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+
+.stat-card {
+  background: var(--surface); border-radius: var(--radius); padding: 18px 20px;
+  border: 1px solid var(--border); position: relative; overflow: hidden;
+  cursor: pointer; transition: all 0.2s;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.stat-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+}
+.stat-card.s-total::after { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.stat-card.s-avail::after { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+.stat-card.s-occ::after { background: linear-gradient(90deg, var(--red), #ff6b6b); }
+.stat-card.s-dirty::after { background: linear-gradient(90deg, var(--accent), var(--blue)); }
+.stat-card.s-res::after { background: linear-gradient(90deg, var(--purple), var(--blue)); }
+
+.stat-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; margin-bottom: 12px; }
+.si-sky { background: rgba(37,99,235,0.12); color: var(--blue); }
+.si-teal { background: rgba(16,185,129,0.12); color: var(--green); }
+.si-rose { background: rgba(239,68,68,0.12); color: var(--red); }
+.si-amber { background: rgba(245,158,11,0.12); color: var(--accent); }
+.si-violet { background: rgba(124,92,252,0.12); color: var(--purple); }
+.si-gold { background: rgba(37,99,235,0.15); color: var(--blue); }
+.si-emerald { background: rgba(16,185,129,0.12); color: var(--green); }
+
+.stat-num { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+/* ═══ SECTION HEADER ═══ */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+.section-title { font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.section-title i { font-size: 15px; color: var(--blue); }
+
+/* ═══ FILTER CHIPS ═══ */
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 6px 16px; border-radius: 100px; font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text-muted); transition: all 0.16s; font-family: 'DM Sans', sans-serif;
+}
+.chip:hover { border-color: var(--blue); color: var(--blue); }
+.chip.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+/* ═══ ROOM CARDS GRID ═══ */
+.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; }
+
+/* ═══ ROOM CARD ═══ */
+.room-card {
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+  overflow: hidden; transition: all 0.22s; position: relative;
+}
+.room-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+
+.rc-status-bar { height: 4px; width: 100%; }
+.rc-status-bar.available { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+.rc-status-bar.occupied { background: linear-gradient(90deg, var(--red), #ff8a8a); }
+.rc-status-bar.cleaning { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.rc-status-bar.dirty { background: linear-gradient(90deg, var(--accent), var(--blue)); }
+.rc-status-bar.reserved { background: linear-gradient(90deg, var(--purple), var(--blue)); }
+.rc-status-bar.maintenance { background: linear-gradient(90deg, #6b7280, #9ca3af); }
+
+.rc-image {
+  width: 100%; height: 170px; object-fit: cover;
+  background: var(--surface-3); position: relative; overflow: hidden;
+}
+.rc-image-placeholder {
+  width: 100%; height: 170px;
+  background: linear-gradient(135deg, var(--surface-3) 0%, var(--surface-2) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; opacity: 0.3;
+}
+.rc-image img { width: 100%; height: 100%; object-fit: cover; }
+
+.rc-status-badge {
+  position: absolute; top: 10px; right: 10px;
+  padding: 4px 12px; border-radius: 100px;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 5px; text-transform: uppercase;
+}
+.rc-status-badge.available { background: rgba(16,185,129,0.95); color: white; }
+.rc-status-badge.occupied { background: rgba(239,68,68,0.95); color: white; }
+.rc-status-badge.cleaning { background: rgba(37,99,235,0.95); color: white; }
+.rc-status-badge.dirty { background: rgba(245,158,11,0.95); color: white; }
+.rc-status-badge.reserved { background: rgba(124,92,252,0.95); color: white; }
+.rc-status-badge.maintenance { background: rgba(107,114,128,0.95); color: white; }
+
+.rc-body { padding: 16px 18px; }
+.rc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.rc-room-num { font-family: 'DM Mono', monospace; font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1; }
+.rc-floor { font-size: 0.67rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+.rc-price { text-align: right; }
+.rc-price-val { font-family: 'DM Sans', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--blue); }
+.rc-price-label { font-size: 0.62rem; color: var(--text-muted); }
+
+.rc-type { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px; font-size: 0.73rem; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+
+.rc-meta { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.rc-meta-row { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; color: var(--text-muted); }
+.rc-meta-row i { width: 14px; text-align: center; color: var(--text-light); font-size: 12px; }
+.rc-meta-row strong { color: var(--text); font-weight: 600; }
+
+.rc-amenities { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.amenity-tag { font-size: 0.65rem; padding: 3px 9px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.amenity-tag i { font-size: 10px; }
+
+.rc-guest-box {
+  background: linear-gradient(135deg, rgba(37,99,235,0.05) 0%, rgba(124,92,252,0.05) 100%);
+  border: 1px solid rgba(37,99,235,0.15);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;
+}
+.rc-guest-name { font-weight: 700; font-size: 0.83rem; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.rc-guest-badge { background: var(--blue); color: white; font-size: 0.55rem; font-weight: 800; padding: 2px 7px; border-radius: 100px; letter-spacing: 0.05em; }
+.rc-guest-id { font-family: 'DM Mono', monospace; font-size: 0.67rem; color: var(--text-muted); margin-top: 3px; }
+.rc-guest-dates { display: flex; gap: 12px; margin-top: 7px; }
+.rc-date-item { font-size: 0.67rem; }
+.rc-date-label { color: var(--text-light); }
+.rc-date-val { color: var(--text); font-weight: 600; }
+
+.rc-note {
+  background: rgba(245,158,11,0.07); border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0; padding: 8px 10px;
+  font-size: 0.71rem; color: var(--text-muted); font-style: italic;
+  margin-bottom: 14px;
+}
+
+.rc-actions { display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 9px; font-size: 0.77rem; font-weight: 600;
+  cursor: pointer; border: none; font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--blue); color: white; }
+.btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
+.btn-outline:hover { border-color: var(--blue); color: var(--blue); background: var(--surface-2); }
+.btn-gold { background: var(--blue); color: white; font-weight: 700; }
+.btn-gold:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.35); transform: translateY(-1px); }
+.btn-teal { background: var(--green); color: white; }
+.btn-teal:hover { background: #059669; }
+.btn-rose { background: var(--red); color: white; }
+.btn-rose:hover { background: #dc2626; }
+.btn-sm { padding: 6px 12px; font-size: 0.72rem; border-radius: 7px; }
+.btn-xs { padding: 4px 9px; font-size: 0.67rem; border-radius: 6px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ═══ ROOM TYPE SECTION ═══ */
+.rtype-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+}
+.rtype-header {
+  padding: 18px 22px; background: var(--navy);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.rtype-name { font-family: 'DM Sans', sans-serif; font-size: 1.15rem; font-weight: 800; color: white; }
+.rtype-price { font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,0.8); }
+.rtype-price small { font-size: 0.65rem; color: rgba(255,255,255,0.4); font-weight: 400; }
+.rtype-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.rtype-badge {
+  font-size: 0.67rem; font-weight: 700; padding: 4px 12px; border-radius: 100px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.rb-avail { background: rgba(16,185,129,0.2); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.rb-full { background: rgba(239,68,68,0.2); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.rb-info { background: rgba(37,99,235,0.15); color: var(--blue); border: 1px solid rgba(37,99,235,0.25); }
+
+.room-boxes-wrap { padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 10px; }
+.room-box {
+  width: 68px; height: 68px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; position: relative;
+}
+.room-box:hover { transform: scale(1.1); z-index: 2; }
+.room-box .box-num { font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.95); margin-top: 4px; font-family: 'DM Mono', monospace; }
+.room-box .box-icon { font-size: 1.05rem; }
+
+.box-available { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 3px 10px rgba(16,185,129,0.3); }
+.box-occupied { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 3px 10px rgba(239,68,68,0.3); }
+.box-dirty { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 3px 10px rgba(245,158,11,0.3); }
+.box-reserved { background: linear-gradient(135deg, #7c3aed, #6d28d9); box-shadow: 0 3px 10px rgba(124,92,252,0.3); }
+.box-cleaning { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 3px 10px rgba(59,130,246,0.3); }
+.box-maintenance { background: linear-gradient(135deg, #6b7280, #4b5563); box-shadow: 0 3px 10px rgba(107,114,128,0.3); }
+
+.legend-row { padding: 12px 22px; border-top: 1px solid var(--border); display: flex; gap: 18px; flex-wrap: wrap; background: var(--surface-2); }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-muted); font-weight: 500; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.ld-avail { background: var(--green); }
+.ld-occ { background: var(--red); }
+.ld-dirty { background: var(--accent); }
+.ld-res { background: var(--purple); }
+.ld-clean { background: var(--blue); }
+.ld-maint { background: #6b7280; }
+
+/* ═══ FORM PANEL ═══ */
+.form-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; max-width: 680px; }
+.form-panel-head { padding: 18px 22px; border-bottom: 1px solid var(--border); background: var(--navy); display: flex; align-items: center; gap: 10px; }
+.form-panel-head h2 { font-family: 'DM Sans', sans-serif; font-size: 1.05rem; font-weight: 700; color: white; margin: 0; }
+.form-panel-body { padding: 22px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { margin-bottom: 0; }
+.form-label { display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.form-control {
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+  border-radius: 9px; font-size: 0.82rem; font-family: 'DM Sans', sans-serif;
+  color: var(--text); background: var(--surface); outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.form-control-full { grid-column: 1 / -1; }
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+/* Image Upload */
+.image-upload-area {
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 24px; text-align: center; cursor: pointer;
+  transition: all 0.2s; grid-column: 1 / -1; background: var(--surface-2);
+}
+.image-upload-area:hover { border-color: var(--blue); background: var(--blue-glow); }
+.image-upload-area i { font-size: 2rem; color: var(--text-light); margin-bottom: 8px; display: block; }
+.image-upload-area p { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
+.image-upload-area small { font-size: 0.65rem; color: var(--text-light); }
+.image-preview-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.preview-thumb { width: 72px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid var(--border); }
+
+/* ═══ CONTROL BAR ═══ */
+.control-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 18px; margin-bottom: 22px;
+  flex-wrap: wrap; gap: 12px;
+}
+.refresh-grp { display: flex; align-items: center; gap: 12px; }
+.auto-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; color: var(--text-muted); }
+.toggle { position: relative; width: 38px; height: 20px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: #ddd; border-radius: 20px; cursor: pointer; transition: 0.25s; }
+.toggle-track::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.toggle input:checked + .toggle-track { background: var(--blue); }
+.toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+.last-upd { font-size: 0.67rem; color: var(--text-light); font-family: 'DM Mono', monospace; }
+
+/* ═══ MODAL ═══ */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--surface); border-radius: 16px; width: 100%; max-width: 520px; margin: 20px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto; }
+.modal-box.modal-lg { max-width: 700px; }
+.modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--navy); border-radius: 16px 16px 0 0; }
+.modal-head h3 { font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 700; color: white; margin: 0; }
+.modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: rgba(255,255,255,0.5); transition: color 0.13s; }
+.modal-close:hover { color: white; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ═══ BOOKING CARD ═══ */
+.booking-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; transition: all 0.18s; }
+.booking-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.bc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.bc-code { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-muted); background: var(--surface-2); padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 100px; font-size: 0.65rem; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
+.b-confirmed { background: #e0f2fe; color: #0369a1; }
+.b-checked-in { background: #dcfce7; color: #166534; }
+.b-checked-out { background: #f1f5f9; color: #475569; }
+.b-cancelled { background: #fee2e2; color: #991b1b; }
+.b-no-show { background: #fef3c7; color: #92400e; }
+.b-pending { background: #fef9c3; color: #854d0e; }
+.b-available { background: #d1fae5; color: #065f46; }
+
+/* ═══ TOAST ═══ */
+.toast-stack { position: fixed; top: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { padding: 11px 16px; border-radius: 10px; font-size: 0.8rem; font-weight: 500; box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 8px; pointer-events: auto; max-width: 300px; animation: toastIn 0.25s ease; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.toast.success { background: var(--green); color: white; }
+.toast.error { background: var(--red); color: white; }
+.toast.info { background: var(--blue); color: white; }
+
+/* ═══ EMPTY STATE ═══ */
+.empty-state { text-align: center; padding: 64px 20px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.empty-icon { font-size: 3rem; opacity: 0.25; display: block; margin-bottom: 14px; }
+
+/* ═══ TABLE ═══ */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th { background: var(--surface-2); padding: 9px 14px; font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+tbody td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.8rem; vertical-align: middle; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f8fbff; }
+
+/* ═══ SEARCH + FILTER BAR ═══ */
+.search-filter { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; }
+.search-input { padding-left: 32px; width: 100%; }
+
+/* ═══ MOBILE ═══ */
+.menu-toggle { display: none; position: fixed; top: 14px; left: 14px; z-index: 300; background: var(--navy); color: white; border: none; border-radius: 10px; width: 40px; height: 40px; cursor: pointer; font-size: 1.1rem; }
+
+@media (max-width: 900px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-toggle { display: grid; place-items: center; }
+  .content { padding: 16px 16px 24px; padding-top: 60px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .rooms-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ OVERVIEW GRID ═══ */
+.ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+.ov-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.card-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.card-title { font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 7px; }
+.card-title i { font-size: 13px; color: var(--blue); }
+.card-body { padding: 18px; }
+
+/* ═══ OCCUPANCY PROGRESS ═══ */
+.occ-bar-wrap { margin-bottom: 16px; }
+.occ-bar-label { display: flex; justify-content: space-between; font-size: 0.73rem; font-weight: 600; margin-bottom: 6px; }
+.occ-bar { height: 8px; background: var(--surface-3); border-radius: 100px; overflow: hidden; }
+.occ-fill { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+
+/* ═══ LOADING ═══ */
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.booking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-wrap">
+      <div class="brand-gem"><i class="fas fa-hotel"></i></div>
+      <div class="brand-text">
+        <div class="brand-name" id="sidebarHotelName">Hotel ERP</div>
+        <div class="brand-sub">Property Management</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Overview</div>
+    <button class="nav-item active" data-panel="overview">
+      <i class="fas fa-chart-pie"></i> Dashboard
+    </button>
+
+    <div class="sidebar-label">Rooms</div>
+    <button class="nav-item" data-panel="room-inventory">
+      <i class="fas fa-th-large"></i> Room Inventory
+    </button>
+    <button class="nav-item" data-panel="add-room">
+      <i class="fas fa-plus-circle"></i> Add Room Type
+    </button>
+    <button class="nav-item" data-panel="room-list">
+      <i class="fas fa-list"></i> Room View (Cards)
+    </button>
+
+    <div class="sidebar-label">Guests & Bookings</div>
+
+    <!-- Bookings dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-dd-btn" id="bookingsDD">
+        <span class="dd-left"><i class="fas fa-book"></i> Bookings</span>
+        <i class="fas fa-chevron-down dd-chevron"></i>
+      </button>
+      <div class="nav-dd-children" id="bookingsDDMenu">
+        <button class="nav-dd-child" data-panel="all-bookings">All Bookings</button>
+        <button class="nav-dd-child" data-panel="add-booking">Add Booking</button>
+        <button class="nav-dd-child" data-panel="checkin-checkout">Check-in / Check-out</button>
+      </div>
+    </div>
+
+    <!-- Guests dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-dd-btn" id="guestsDD">
+        <span class="dd-left"><i class="fas fa-user-friends"></i> Guests</span>
+        <i class="fas fa-chevron-down dd-chevron"></i>
+      </button>
+      <div class="nav-dd-children" id="guestsDDMenu">
+        <button class="nav-dd-child" data-panel="all-guests">All Guests</button>
+        <button class="nav-dd-child" data-panel="add-guest">Add Guest</button>
+      </div>
+    </div>
+
+    <div class="sidebar-label">Links</div>
+    <a class="nav-item" href="/staff/"><i class="fas fa-users"></i> Staff Management</a>
+    <a class="nav-item" href="/amenities/"><i class="fas fa-concierge-bell"></i> Amenities</a>
+    <a class="nav-item" href="/dashboard/"><i class="fas fa-tachometer-alt"></i> Main Dashboard</a>
+  </div>
+
+  <div class="sidebar-footer">Hotel ERP System · Room Module</div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <h1>Room Management</h1>
+        <p>Property Management System · Rooms, Bookings & Guests</p>
+      </div>
+      <div class="topbar-badge">
+        <i class="fas fa-hotel"></i>
+        <strong id="hotelNameDisplay">Loading…</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ════ OVERVIEW ════ -->
+    <div class="panel active" id="panel-overview">
+      <div class="stats-row">
+        <div class="stat-card s-total">
+          <div class="stat-icon si-sky"><i class="fas fa-bed"></i></div>
+          <div class="stat-num" id="ov-total">--</div>
+          <div class="stat-label">Total Rooms</div>
+        </div>
+        <div class="stat-card s-avail">
+          <div class="stat-icon si-teal"><i class="fas fa-check-circle"></i></div>
+          <div class="stat-num" id="ov-avail">--</div>
+          <div class="stat-label">Available</div>
+        </div>
+        <div class="stat-card s-occ">
+          <div class="stat-icon si-rose"><i class="fas fa-user-check"></i></div>
+          <div class="stat-num" id="ov-occ">--</div>
+          <div class="stat-label">Occupied</div>
+        </div>
+        <div class="stat-card s-dirty">
+          <div class="stat-icon si-amber"><i class="fas fa-broom"></i></div>
+          <div class="stat-num" id="ov-dirty">--</div>
+          <div class="stat-label">Dirty / Cleaning</div>
+        </div>
+        <div class="stat-card s-res">
+          <div class="stat-icon si-violet"><i class="fas fa-calendar-check"></i></div>
+          <div class="stat-num" id="ov-res">--</div>
+          <div class="stat-label">Reserved</div>
+        </div>
+      </div>
+
+      <div class="control-bar">
+        <div class="refresh-grp">
+          <button class="btn btn-primary btn-sm" onclick="loadDashboard()"><i class="fas fa-sync-alt"></i> Refresh</button>
+          <div class="auto-toggle">
+            <span>Auto-refresh</span>
+            <label class="toggle">
+              <input type="checkbox" id="autoRefresh">
+              <span class="toggle-track"></span>
+            </label>
+            <span id="autoStatus">Off</span>
+          </div>
+        </div>
+        <div class="last-upd">Last: <span id="lastUpdated">—</span></div>
+      </div>
+
+      <div class="ov-grid" style="align-items:start">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fas fa-chart-bar"></i> Occupancy by Room Type</div>
+          </div>
+          <div class="card-body" id="ovOccupancy"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><i class="fas fa-map-marker-alt"></i> Quick Status Overview</div>
+            <button class="btn btn-outline btn-sm" onclick="switchPanel('room-inventory')">View All</button>
+          </div>
+          <div class="card-body" id="ovStatusSummary"></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-th-large"></i> Room Type Summary</div>
+        <button class="btn btn-primary btn-sm" onclick="switchPanel('add-room')"><i class="fas fa-plus"></i> Add Room Type</button>
+      </div>
+      <div class="rooms-grid" id="ovRoomTypes"></div>
+    </div>
+
+    <!-- ════ ROOM INVENTORY ════ -->
+    <div class="panel" id="panel-room-inventory">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-th-large"></i> Room Inventory</div>
+        <div class="filter-chips" id="invFilters">
+          <div class="chip active" onclick="invFilter(this,'')">All</div>
+          <div class="chip" onclick="invFilter(this,'Single')">Single</div>
+          <div class="chip" onclick="invFilter(this,'Double')">Double</div>
+          <div class="chip" onclick="invFilter(this,'Deluxe')">Deluxe</div>
+          <div class="chip" onclick="invFilter(this,'Suite')">Suite</div>
+        </div>
+      </div>
+      <div id="invContainer"><div class="empty-state"><i class="fas fa-spinner fa-spin empty-icon"></i><p>Loading rooms…</p></div></div>
+    </div>
+
+    <!-- ════ ADD ROOM TYPE ════ -->
+    <div class="panel" id="panel-add-room">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-plus-circle"></i> Add New Room Type</div>
+      </div>
+      <div class="form-panel">
+        <div class="form-panel-head">
+          <i class="fas fa-bed" style="color:var(--blue);font-size:16px"></i>
+          <h2>Room Type Configuration</h2>
+        </div>
+        <div class="form-panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Room Type *</label>
+              <select class="form-control" id="ar-type">
+                <option value="">Select Type</option>
+                <option>Single</option><option>Double</option>
+                <option>Deluxe</option><option>Suite</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Base Price (₹) *</label>
+              <input class="form-control" type="number" id="ar-price" placeholder="e.g. 2500" step="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Adults *</label>
+              <input class="form-control" type="number" id="ar-adults" value="2" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Children</label>
+              <input class="form-control" type="number" id="ar-children" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Units *</label>
+              <input class="form-control" type="number" id="ar-units" placeholder="e.g. 10" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Extra Adult Price (₹)</label>
+              <input class="form-control" type="number" id="ar-extra-adult" value="0" step="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Extra Child Price (₹)</label>
+              <input class="form-control" type="number" id="ar-extra-child" value="0" step="100">
+            </div>
+            <div class="form-group form-control-full">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="ar-desc" placeholder="Describe room amenities, view, special features…"></textarea>
+            </div>
+            <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('ar-images').click()">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p><strong>Click to upload room images</strong></p>
+              <small>JPG, PNG, WEBP supported · Multiple files allowed</small>
+              <div class="image-preview-row" id="imagePreviewRow"></div>
+              <input type="file" id="ar-images" multiple accept="image/*" style="display:none" onchange="previewImages(this)">
+            </div>
+          </div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary btn-full" id="addRoomBtn" onclick="addRoom()">
+              <i class="fas fa-save"></i> Add Room Type
+            </button>
+            <div id="ar-msg" style="margin-top:10px;text-align:center;font-size:0.8rem;min-height:20px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ROOM CARDS VIEW ════ -->
+    <div class="panel" id="panel-room-list">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-grip-horizontal"></i> Room Cards View</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="filter-chips" id="cardFilters">
+            <div class="chip active" onclick="cardFilter(this,'')">All</div>
+            <div class="chip" onclick="cardFilter(this,'Available')">Available</div>
+            <div class="chip" onclick="cardFilter(this,'Occupied')">Occupied</div>
+            <div class="chip" onclick="cardFilter(this,'Dirty')">Dirty</div>
+            <div class="chip" onclick="cardFilter(this,'Reserved')">Reserved</div>
+            <div class="chip" onclick="cardFilter(this,'Cleaning')">Cleaning</div>
+          </div>
+        </div>
+      </div>
+      <div class="rooms-grid" id="cardContainer"></div>
+    </div>
+
+    <!-- ════ ALL BOOKINGS ════ -->
+    <div class="panel" id="panel-all-bookings">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-book"></i> All Bookings</div>
+        <button class="btn btn-primary btn-sm" onclick="switchPanel('add-booking')"><i class="fas fa-plus"></i> New Booking</button>
+      </div>
+      <div class="search-filter">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input class="form-control search-input" id="bookingSearch" placeholder="Search guest, booking code…" oninput="renderBookings()">
+        </div>
+        <select class="form-control" style="width:160px" id="bookingStatusFilter" onchange="renderBookings()">
+          <option value="">All Status</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="checked_in">Checked In</option>
+          <option value="checked_out">Checked Out</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="fas fa-list"></i> Bookings</div>
+          <span id="bookingCount" class="badge b-confirmed">0 records</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="bookingTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ADD BOOKING ════ -->
+    <div class="panel" id="panel-add-booking">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-plus"></i> New Booking</div>
+      </div>
+      <div class="form-panel" style="max-width:720px">
+        <div class="form-panel-head">
+          <i class="fas fa-book" style="color:var(--blue);font-size:16px"></i>
+          <h2>Booking Details</h2>
+        </div>
+        <div class="form-panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Guest *</label>
+              <select class="form-control" id="bk-guest"><option value="">— Select Guest —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Room Type *</label>
+              <select class="form-control" id="bk-room-type" onchange="loadAvailableUnits()"><option value="">— Select Room Type —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Room Unit *</label>
+              <select class="form-control" id="bk-unit"><option value="">— Select Unit —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adults</label>
+              <input class="form-control" type="number" id="bk-adults" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Children</label>
+              <input class="form-control" type="number" id="bk-children" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-in Date *</label>
+              <input class="form-control" type="date" id="bk-checkin">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-out Date *</label>
+              <input class="form-control" type="date" id="bk-checkout">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Source</label>
+              <select class="form-control" id="bk-source">
+                <option value="walk-in">Walk-in</option>
+                <option value="online">Online</option>
+                <option value="phone">Phone</option>
+                <option value="booking.com">Booking.com</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group form-control-full">
+              <label class="form-label">Special Requests</label>
+              <textarea class="form-control" id="bk-requests" placeholder="Any special requirements…"></textarea>
+            </div>
+          </div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary btn-full" onclick="createBooking()"><i class="fas fa-calendar-check"></i> Create Booking</button>
+            <div id="bk-msg" style="margin-top:10px;text-align:center;font-size:0.8rem;min-height:20px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ CHECK-IN / CHECK-OUT ════ -->
+    <div class="panel" id="panel-checkin-checkout">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-exchange-alt"></i> Check-in & Check-out</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:900px">
+        <div class="form-panel">
+          <div class="form-panel-head" style="background:linear-gradient(135deg,#10b981,#059669)">
+            <i class="fas fa-sign-in-alt" style="color:white;font-size:16px"></i>
+            <h2 style="color:white">Check-in</h2>
+          </div>
+          <div class="form-panel-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Booking ID</label>
+              <input class="form-control" type="number" id="ci-booking-id" placeholder="Enter booking ID">
+            </div>
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">ID Type</label>
+              <select class="form-control" id="ci-id-type">
+                <option value="passport">Passport</option>
+                <option value="aadhar">Aadhar Card</option>
+                <option value="driving">Driving Licence</option>
+                <option value="voter">Voter ID</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label class="form-label">ID Number</label>
+              <input class="form-control" id="ci-id-number" placeholder="Enter ID number">
+            </div>
+            <button class="btn btn-teal btn-full" onclick="doCheckIn()"><i class="fas fa-sign-in-alt"></i> Check In Guest</button>
+            <div id="ci-msg" style="margin-top:8px;text-align:center;font-size:0.78rem;min-height:20px"></div>
+          </div>
+        </div>
+        <div class="form-panel">
+          <div class="form-panel-head" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            <i class="fas fa-sign-out-alt" style="color:white;font-size:16px"></i>
+            <h2 style="color:white">Check-out</h2>
+          </div>
+          <div class="form-panel-body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label class="form-label">Booking ID</label>
+              <input class="form-control" type="number" id="co-booking-id" placeholder="Enter booking ID">
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+              <label class="form-label">Payment Method</label>
+              <select class="form-control" id="co-method">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
+            <button class="btn btn-outline btn-full" style="margin-bottom:10px" onclick="getBill()"><i class="fas fa-file-invoice"></i> View Bill</button>
+            <button class="btn btn-rose btn-full" onclick="doCheckOut()"><i class="fas fa-sign-out-alt"></i> Check Out Guest</button>
+            <div id="co-msg" style="margin-top:8px;text-align:center;font-size:0.78rem;min-height:20px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ALL GUESTS ════ -->
+    <div class="panel" id="panel-all-guests">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-user-friends"></i> All Guests</div>
+        <button class="btn btn-primary btn-sm" onclick="switchPanel('add-guest')"><i class="fas fa-plus"></i> Add Guest</button>
+      </div>
+      <div class="search-filter">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input class="form-control search-input" id="guestSearch" placeholder="Search name, email, phone…" oninput="renderGuests()">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="fas fa-users"></i> Guest Directory</div>
+          <span id="guestCount" class="badge b-confirmed">0 guests</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Nationality</th><th>ID Type</th><th>Bookings</th><th>Actions</th></tr></thead>
+            <tbody id="guestTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ ADD GUEST ════ -->
+    <div class="panel" id="panel-add-guest">
+      <div class="section-head">
+        <div class="section-title"><i class="fas fa-user-plus"></i> Add Guest</div>
+      </div>
+      <div class="form-panel">
+        <div class="form-panel-head">
+          <i class="fas fa-user" style="color:var(--blue);font-size:16px"></i>
+          <h2>Guest Information</h2>
+        </div>
+        <div class="form-panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input class="form-control" id="ag-name" placeholder="Guest full name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-control" type="email" id="ag-email" placeholder="guest@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input class="form-control" id="ag-phone" placeholder="Phone number">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nationality</label>
+              <input class="form-control" id="ag-nationality" placeholder="e.g. Indian">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ID Type</label>
+              <select class="form-control" id="ag-id-type">
+                <option value="">— Select —</option>
+                <option value="passport">Passport</option>
+                <option value="aadhar">Aadhar</option>
+                <option value="driving">Driving Licence</option>
+                <option value="voter">Voter ID</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ID Number</label>
+              <input class="form-control" id="ag-id-number" placeholder="ID number">
+            </div>
+            <div class="form-group form-control-full">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="ag-notes" placeholder="VIP, preferences, allergies…"></textarea>
+            </div>
+          </div>
+          <div style="margin-top:20px">
+            <button class="btn btn-primary btn-full" onclick="addGuest()"><i class="fas fa-save"></i> Add Guest</button>
+            <div id="ag-msg" style="margin-top:10px;text-align:center;font-size:0.8rem;min-height:20px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══ MODALS ═══ -->
+<!-- Bill Modal -->
+<div class="modal-overlay" id="billModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3><i class="fas fa-receipt" style="margin-right:8px;color:var(--blue)"></i>Bill Summary</h3><button class="modal-close" onclick="closeModal('billModal')">✕</button></div>
+    <div class="modal-body" id="billContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('billModal')">Close</button>
+      <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room Detail Modal -->
+<div class="modal-overlay" id="roomDetailModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head"><h3 id="roomDetailTitle">Room Details</h3><button class="modal-close" onclick="closeModal('roomDetailModal')">✕</button></div>
+    <div class="modal-body" id="roomDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('roomDetailModal')">Close</button>
+      <button class="btn btn-primary btn-sm" id="roomDetailBookBtn"><i class="fas fa-calendar-plus"></i> Create Booking</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+// ─── STATE ───
+let roomData = [];
+let bookings = [];
+let guests = [];
+let invCurrentFilter = '';
+let cardCurrentFilter = '';
+let autoRefreshInterval = null;
+
+const csrftoken = (document.cookie.split(';').find(c => c.trim().startsWith('csrftoken=')) || '=').split('=')[1] || '';
+
+// ─── UTILS ───
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+function toast(msg, type = 'success') {
+  const s = document.getElementById('toastStack');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${msg}`;
+  s.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function api(url) {
+  try { const r = await fetch(url); if (!r.ok) return null; return await r.json(); } catch { return null; }
+}
+async function postJSON(url, data) {
+  return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken }, body: JSON.stringify(data) });
+}
+async function postForm(url, formData) {
+  return fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRFToken': csrftoken } });
+}
+
+// ─── PANEL NAVIGATION ───
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const p = document.getElementById('panel-' + name);
+  if (p) p.classList.add('active');
+
+  document.querySelectorAll('.nav-item[data-panel]').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+  document.querySelectorAll('.nav-dd-child[data-panel]').forEach(b => b.classList.toggle('active', b.dataset.panel === name));
+
+  document.getElementById('sidebar').classList.remove('open');
+
+  if (name === 'overview') loadDashboard();
+  if (name === 'room-inventory') loadInventory();
+  if (name === 'room-list') loadCardView();
+  if (name === 'all-bookings') loadBookings();
+  if (name === 'add-booking') loadBookingFormData();
+  if (name === 'all-guests') loadGuests();
+}
+
+// ─── ROOMS API ───
+async function fetchRooms() {
+  const data = await api('/api/rooms/');
+  if (data && data.success) {
+    roomData = data.rooms || [];
+  }
+  return roomData;
+}
+
+// ─── DASHBOARD ───
+async function loadDashboard() {
+  const rooms = await fetchRooms();
+  let total = 0, avail = 0, occ = 0, dirty = 0, res = 0;
+  rooms.forEach(r => {
+    total += r.total_units;
+    avail += r.available_units;
+    r.units.forEach(u => {
+      if (u.status === 'Occupied') occ++;
+      if (u.status === 'Dirty' || u.status === 'Cleaning') dirty++;
+      if (u.status === 'Reserved') res++;
+    });
+  });
+
+  document.getElementById('ov-total').textContent = total;
+  document.getElementById('ov-avail').textContent = avail;
+  document.getElementById('ov-occ').textContent = occ;
+  document.getElementById('ov-dirty').textContent = dirty;
+  document.getElementById('ov-res').textContent = res;
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+  const occEl = document.getElementById('ovOccupancy');
+  if (!rooms.length) { occEl.innerHTML = '<p style="color:var(--text-muted);font-size:.78rem">No room types found.</p>'; }
+  else {
+    occEl.innerHTML = rooms.map(r => {
+      const oP = r.total_units > 0 ? ((r.units.filter(u => u.status === 'Occupied').length / r.total_units) * 100).toFixed(0) : 0;
+      const colors = { Single: '#3b82f6', Double: '#10b981', Deluxe: '#2563eb', Suite: '#7c3aed' };
+      const c = colors[r.room_type] || '#3b82f6';
+      return `<div class="occ-bar-wrap">
+        <div class="occ-bar-label">
+          <span style="font-weight:600;font-size:.8rem">${esc(r.room_type)}</span>
+          <span style="color:var(--text-muted)">${r.units.filter(u => u.status === 'Occupied').length}/${r.total_units} occ · ${oP}%</span>
+        </div>
+        <div class="occ-bar"><div class="occ-fill" style="width:${oP}%;background:${c}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  const statuses = ['Available', 'Occupied', 'Dirty', 'Reserved', 'Cleaning', 'Maintenance'];
+  const statusColors = { Available: '#10b981', Occupied: '#ef4444', Dirty: '#f59e0b', Reserved: '#7c3aed', Cleaning: '#3b82f6', Maintenance: '#6b7280' };
+  let statusCounts = {};
+  statuses.forEach(s => statusCounts[s] = 0);
+  rooms.forEach(r => r.units.forEach(u => { if (statusCounts[u.status] !== undefined) statusCounts[u.status]++; }));
+  document.getElementById('ovStatusSummary').innerHTML = statuses.map(s => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--surface-3)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${statusColors[s]};flex-shrink:0"></div>
+        <span style="font-size:.8rem;font-weight:500">${s}</span>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:700">${statusCounts[s]}</span>
+    </div>`).join('');
+
+  const rtEl = document.getElementById('ovRoomTypes');
+  if (!rooms.length) { rtEl.innerHTML = '<div class="empty-state"><i class="fas fa-bed empty-icon"></i><p>No room types yet. <a href="#" onclick="switchPanel(\'add-room\');return false;">Add one?</a></p></div>'; return; }
+  rtEl.innerHTML = rooms.map(r => {
+    const occ2 = r.units.filter(u => u.status === 'Occupied').length;
+    const occP = r.total_units > 0 ? ((occ2 / r.total_units) * 100).toFixed(0) : 0;
+    return `<div class="stat-card" style="cursor:pointer;padding-bottom:16px" onclick="switchPanel('room-inventory')">
+      <div class="stat-icon si-gold" style="margin-bottom:10px"><i class="fas fa-bed"></i></div>
+      <div style="font-weight:800;font-size:1.1rem">${esc(r.room_type)}</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:10px">₹${parseInt(r.price).toLocaleString('en-IN')}/night</div>
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:6px">
+        <span style="color:var(--green);font-weight:700">${r.available_units} available</span>
+        <span style="color:var(--text-muted)">${r.total_units} total</span>
+      </div>
+      <div class="occ-bar"><div class="occ-fill" style="width:${occP}%;background:var(--red)"></div></div>
+      <div style="font-size:.67rem;color:var(--text-muted);margin-top:4px">${occP}% occupied</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── INVENTORY VIEW ───
+async function loadInventory() {
+  const rooms = await fetchRooms();
+  renderInventory(rooms);
+}
+
+function invFilter(el, val) {
+  invCurrentFilter = val;
+  document.querySelectorAll('#invFilters .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const filtered = val ? roomData.filter(r => r.room_type === val) : roomData;
+  renderInventory(filtered);
+}
+
+function renderInventory(rooms) {
+  const c = document.getElementById('invContainer');
+  if (!rooms.length) { c.innerHTML = '<div class="empty-state"><i class="fas fa-bed empty-icon"></i><p>No rooms found.</p></div>'; return; }
+  const icons = { Available: '🟢', Occupied: '🔴', Dirty: '🟡', Reserved: '🔵', Cleaning: '🔵', Maintenance: '⚫' };
+  const boxCls = { Available: 'box-available', Occupied: 'box-occupied', Dirty: 'box-dirty', Reserved: 'box-reserved', Cleaning: 'box-cleaning', Maintenance: 'box-maintenance' };
+  c.innerHTML = rooms.map(r => {
+    const occ = r.units.filter(u => u.status === 'Occupied').length;
+    const dirty = r.units.filter(u => u.status === 'Dirty').length;
+    const res = r.units.filter(u => u.status === 'Reserved').length;
+    const cleaning = r.units.filter(u => u.status === 'Cleaning').length;
+    const maint = r.units.filter(u => u.status === 'Maintenance').length;
+    return `<div class="rtype-section">
+      <div class="rtype-header">
+        <div>
+          <div class="rtype-name">${esc(r.room_type)}</div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,0.45);margin-top:2px">${r.max_adults} adults · ${r.max_children} children</div>
+        </div>
+        <div class="rtype-price">₹${parseInt(r.price).toLocaleString('en-IN')}<small>/night</small></div>
+        <div class="rtype-meta">
+          <span class="rtype-badge ${r.available_units === 0 ? 'rb-full' : 'rb-avail'}">${r.available_units === 0 ? 'Full' : `${r.available_units} Available`}</span>
+          <span class="rtype-badge rb-info">${r.total_units} Units</span>
+        </div>
+      </div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot ld-avail"></div> Available (${r.available_units})</div>
+        <div class="legend-item"><div class="legend-dot ld-occ"></div> Occupied (${occ})</div>
+        <div class="legend-item"><div class="legend-dot ld-dirty"></div> Dirty (${dirty})</div>
+        <div class="legend-item"><div class="legend-dot ld-res"></div> Reserved (${res})</div>
+        <div class="legend-item"><div class="legend-dot ld-clean"></div> Cleaning (${cleaning})</div>
+        <div class="legend-item"><div class="legend-dot ld-maint"></div> Maintenance (${maint})</div>
+      </div>
+      <div class="room-boxes-wrap">
+        ${r.units.map((u, i) => `
+          <div class="room-box ${boxCls[u.status] || 'box-available'}" style="animation:boxIn 0.2s ease ${i * 20}ms both" onclick="openRoomDetail(${r.id},${u.id})" title="${u.status}">
+            <div class="box-icon">${icons[u.status] || '⚫'}</div>
+            <div class="box-num">${esc(u.number)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── CARD VIEW ───
+async function loadCardView() {
+  const rooms = await fetchRooms();
+  renderCards(rooms);
+}
+
+function cardFilter(el, val) {
+  cardCurrentFilter = val;
+  document.querySelectorAll('#cardFilters .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderCards(roomData);
+}
+
+function renderCards(rooms) {
+  const c = document.getElementById('cardContainer');
+  let allUnits = [];
+  rooms.forEach(r => {
+    r.units.forEach(u => allUnits.push({ ...u, room: r }));
+  });
+  if (cardCurrentFilter) allUnits = allUnits.filter(u => u.status === cardCurrentFilter);
+
+  if (!allUnits.length) { c.innerHTML = '<div class="empty-state"><i class="fas fa-bed empty-icon"></i><p>No rooms match this filter.</p></div>'; return; }
+
+  c.innerHTML = allUnits.map(u => {
+    const r = u.room;
+    const statusClass = u.status.toLowerCase().replace(' ', '-');
+    const img = r.images && r.images.length ? `<img src="${esc(r.images[0])}" alt="Room" style="width:100%;height:100%;object-fit:cover">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:3rem;opacity:0.25">🛏️</div>`;
+    return `<div class="room-card">
+      <div class="rc-status-bar ${statusClass}"></div>
+      <div class="rc-image" style="position:relative">
+        ${img}
+        <div class="rc-status-badge ${statusClass}" style="position:absolute;top:10px;right:10px">
+          <i class="fas fa-circle" style="font-size:6px"></i> ${u.status}
+        </div>
+      </div>
+      <div class="rc-body">
+        <div class="rc-header">
+          <div>
+            <div class="rc-room-num">${esc(u.number)}</div>
+            <div class="rc-floor">Floor ${u.number.replace(/\D/g,'').charAt(0) || '1'}</div>
+          </div>
+          <div class="rc-price">
+            <div class="rc-price-val">₹${parseInt(r.price).toLocaleString('en-IN')}</div>
+            <div class="rc-price-label">/night</div>
+          </div>
+        </div>
+        <div class="rc-type"><i class="fas fa-bed" style="font-size:11px;color:var(--blue)"></i> ${esc(r.room_type)}</div>
+        <div class="rc-meta">
+          <div class="rc-meta-row"><i class="fas fa-users"></i> <strong>${r.max_adults} Adults</strong>${r.max_children > 0 ? `, ${r.max_children} Children` : ''}</div>
+          ${r.description ? `<div class="rc-meta-row"><i class="fas fa-info-circle"></i> <span style="font-style:italic">${esc(r.description.substring(0, 60))}${r.description.length > 60 ? '…' : ''}</span></div>` : ''}
+        </div>
+        ${r.amenities && r.amenities.length ? `<div class="rc-amenities">${r.amenities.slice(0, 5).map(a => `<span class="amenity-tag"><i class="fas fa-star" style="color:var(--blue)"></i>${esc(a)}</span>`).join('')}${r.amenities.length > 5 ? `<span class="amenity-tag">+${r.amenities.length - 5} more</span>` : ''}</div>` : ''}
+        <div class="rc-actions">
+          ${u.status === 'Available' ?
+            `<button class="btn btn-primary btn-sm" onclick="quickBookRoom(${r.id},${u.id})"><i class="fas fa-calendar-plus"></i> Book Now</button>
+             <button class="btn btn-outline btn-sm" onclick="openRoomDetail(${r.id},${u.id})"><i class="fas fa-eye"></i></button>` :
+          u.status === 'Occupied' ?
+            `<button class="btn btn-primary btn-sm" onclick="switchPanel('checkin-checkout')"><i class="fas fa-sign-out-alt"></i> Check Out</button>
+             <button class="btn btn-outline btn-sm" onclick="openRoomDetail(${r.id},${u.id})"><i class="fas fa-eye"></i></button>` :
+            `<button class="btn btn-outline btn-sm" onclick="openRoomDetail(${r.id},${u.id})"><i class="fas fa-eye"></i> View</button>`
+          }
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── ROOM DETAIL MODAL ───
+function openRoomDetail(roomId, unitId) {
+  const r = roomData.find(x => x.id === roomId);
+  if (!r) return;
+  const u = r.units.find(x => x.id === unitId);
+  if (!u) return;
+
+  document.getElementById('roomDetailTitle').innerHTML = `<i class="fas fa-bed" style="margin-right:8px;color:var(--blue)"></i>Room ${u.number} · ${r.room_type}`;
+
+  const statusColors = { Available: '#10b981', Occupied: '#ef4444', Dirty: '#f59e0b', Reserved: '#7c3aed', Cleaning: '#3b82f6', Maintenance: '#6b7280' };
+  const img = r.images && r.images.length ? `<img src="${esc(r.images[0])}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:16px">` : '';
+
+  document.getElementById('roomDetailBody').innerHTML = `
+    ${img}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="form-label">Room Number</div><div style="font-family:'DM Mono',monospace;font-weight:700;font-size:1.1rem">${esc(u.number)}</div></div>
+      <div><div class="form-label">Status</div><div style="font-weight:700;color:${statusColors[u.status] || '#666'}">${u.status}</div></div>
+      <div><div class="form-label">Type</div><div style="font-weight:600">${esc(r.room_type)}</div></div>
+      <div><div class="form-label">Price</div><div style="font-weight:700;color:var(--blue)">₹${parseInt(r.price).toLocaleString('en-IN')}/night</div></div>
+      <div><div class="form-label">Max Adults</div><div>${r.max_adults}</div></div>
+      <div><div class="form-label">Max Children</div><div>${r.max_children}</div></div>
+    </div>
+    ${r.description ? `<div style="background:var(--surface-2);border-radius:8px;padding:12px;font-size:.8rem;color:var(--text-muted);margin-bottom:16px;border-left:3px solid var(--blue)">${esc(r.description)}</div>` : ''}
+    ${r.amenities && r.amenities.length ? `<div><div class="form-label" style="margin-bottom:8px">Amenities</div><div style="display:flex;flex-wrap:wrap;gap:6px">${r.amenities.map(a => `<span class="amenity-tag">${esc(a)}</span>`).join('')}</div></div>` : ''}
+  `;
+
+  const bookBtn = document.getElementById('roomDetailBookBtn');
+  if (u.status === 'Available') {
+    bookBtn.style.display = 'flex';
+    bookBtn.onclick = () => { closeModal('roomDetailModal'); quickBookRoom(r.id, u.id); };
+  } else { bookBtn.style.display = 'none'; }
+
+  openModal('roomDetailModal');
+}
+
+function quickBookRoom(roomId, unitId) {
+  switchPanel('add-booking');
+  setTimeout(() => {
+    const r = roomData.find(x => x.id === roomId);
+    if (r) {
+      const sel = document.getElementById('bk-room-type');
+      if (sel) { sel.value = r.id; loadAvailableUnits(unitId); }
+    }
+  }, 200);
+}
+
+// ─── ADD ROOM ───
+function previewImages(input) {
+  const row = document.getElementById('imagePreviewRow');
+  row.innerHTML = '';
+  Array.from(input.files).forEach(f => {
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url; img.className = 'preview-thumb';
+    row.appendChild(img);
+  });
+}
+
+async function addRoom() {
+  const roomType = document.getElementById('ar-type').value;
+  const basePrice = document.getElementById('ar-price').value;
+  const totalUnits = document.getElementById('ar-units').value;
+  const msg = document.getElementById('ar-msg');
+  if (!roomType || !basePrice || !totalUnits) { msg.textContent = '❌ Please fill all required fields.'; msg.style.color = 'var(--rose)'; return; }
+
+  const fd = new FormData();
+  fd.append('room_type', roomType);
+  fd.append('base_price', basePrice);
+  fd.append('max_adults', document.getElementById('ar-adults').value);
+  fd.append('max_children', document.getElementById('ar-children').value);
+  fd.append('total_units', totalUnits);
+  fd.append('extra_adult_price', document.getElementById('ar-extra-adult').value || 0);
+  fd.append('extra_child_price', document.getElementById('ar-extra-child').value || 0);
+  fd.append('description', document.getElementById('ar-desc').value);
+  const imgs = document.getElementById('ar-images').files;
+  for (let i = 0; i < imgs.length; i++) fd.append('images', imgs[i]);
+
+  try {
+    const r = await fetch('/api/add-room/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrftoken } });
+    const data = await r.json();
+    if (data.success) {
+      msg.textContent = '✅ Room type added!'; msg.style.color = 'var(--teal)';
+      toast('Room type added successfully!');
+      ['ar-type','ar-price','ar-adults','ar-children','ar-units','ar-extra-adult','ar-extra-child','ar-desc'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id.includes('adults') ? '2' : id.includes('children') || id.includes('extra') ? '0' : ''; });
+      document.getElementById('imagePreviewRow').innerHTML = '';
+      loadDashboard();
+    } else { msg.textContent = '❌ ' + (data.error || 'Failed'); msg.style.color = 'var(--rose)'; }
+  } catch (e) { msg.textContent = '❌ Network error'; msg.style.color = 'var(--rose)'; }
+}
+
+// ─── BOOKINGS API ───
+async function loadBookings() {
+  const data = await api('/get-bookings/');
+  bookings = Array.isArray(data) ? data : [];
+  renderBookings();
+}
+
+function renderBookings() {
+  const search = (document.getElementById('bookingSearch')?.value || '').toLowerCase();
+  const statusF = document.getElementById('bookingStatusFilter')?.value || '';
+  let filtered = bookings;
+  if (search) filtered = filtered.filter(b => (b.guest || '').toLowerCase().includes(search) || (b.booking_code || '').toLowerCase().includes(search));
+  if (statusF) filtered = filtered.filter(b => b.status === statusF);
+
+  const countEl = document.getElementById('bookingCount');
+  if (countEl) countEl.textContent = filtered.length + ' records';
+
+  const statusBadge = { confirmed: 'b-confirmed', checked_in: 'b-checked-in', checked_out: 'b-checked-out', cancelled: 'b-cancelled', no_show: 'b-no-show' };
+  const body = document.getElementById('bookingTable');
+  if (!body) return;
+  if (!filtered.length) { body.innerHTML = '<tr><td colspan="9"><div class="empty-state" style="border:none;padding:32px">No bookings found.</div></td></tr>'; return; }
+  body.innerHTML = filtered.map(b => {
+    const nights = b.check_in && b.check_out ? Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / 86400000) : '—';
+    return `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:.72rem;background:var(--surface-2);padding:2px 8px;border-radius:5px;border:1px solid var(--border)">${esc(b.booking_code || '#' + b.id)}</span></td>
+      <td><strong>${esc(b.guest || '—')}</strong></td>
+      <td>${esc(b.room_type || '—')} <span style="color:var(--text-muted);font-size:.72rem">${esc(b.room_no || '')}</span></td>
+      <td style="font-size:.75rem">${b.check_in || '—'}</td>
+      <td style="font-size:.75rem">${b.check_out || '—'}</td>
+      <td style="font-weight:600;text-align:center">${nights}</td>
+      <td><strong>₹${Number(b.total || 0).toLocaleString('en-IN')}</strong></td>
+      <td><span class="badge ${statusBadge[b.status] || 'b-pending'}">${b.status || 'pending'}</span></td>
+      <td style="white-space:nowrap">
+        ${b.status === 'confirmed' ? `<button class="btn btn-teal btn-xs" onclick="document.getElementById('ci-booking-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-in-alt"></i> Check-in</button>` : ''}
+        ${b.status === 'checked_in' ? `<button class="btn btn-rose btn-xs" onclick="document.getElementById('co-booking-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-out-alt"></i> Check-out</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── ADD BOOKING FORM ───
+async function loadBookingFormData() {
+  // First, ensure roomData is loaded
+  let rooms = roomData;
+  if (!rooms || rooms.length === 0) {
+    const data = await api('/api/rooms/');
+    if (data && data.success) {
+      roomData = data.rooms || [];
+      rooms = roomData;
+    }
+  }
+  
+  const sel = document.getElementById('bk-room-type');
+  if (sel) {
+    if (!rooms || rooms.length === 0) {
+      sel.innerHTML = '<option value="">— No rooms available —</option>';
+    } else {
+      sel.innerHTML = '<option value="">— Select Room Type —</option>' + 
+        rooms.map(r => `<option value="${r.id}">${esc(r.room_type)} - ₹${parseInt(r.price).toLocaleString('en-IN')}/night (${r.available_units} available)</option>`).join('');
+    }
+  }
+  
+  const gData = await api('/get-guests/');
+  const gArr = Array.isArray(gData) ? gData : [];
+  const gSel = document.getElementById('bk-guest');
+  if (gSel) {
+    if (!gArr || gArr.length === 0) {
+      gSel.innerHTML = '<option value="">— No guests available —</option>';
+    } else {
+      gSel.innerHTML = '<option value="">— Select Guest —</option>' + 
+        gArr.map(g => `<option value="${g.id}">${esc(g.full_name)} (${esc(g.email || 'no email')})</option>`).join('');
+    }
+  }
+}
+
+async function loadAvailableUnits(preselectUnitId) {
+  const roomId = document.getElementById('bk-room-type').value;
+  const unitSel = document.getElementById('bk-unit');
+  
+  console.log('loadAvailableUnits called - roomId:', roomId); // Debug log
+  
+  if (!unitSel) return;
+  if (!roomId) { 
+    unitSel.innerHTML = '<option value="">— Select Unit —</option>'; 
+    return; 
+  }
+  
+  // Make sure roomData is loaded
+  let rooms = roomData;
+  if (!rooms || rooms.length === 0) {
+    const data = await api('/api/rooms/');
+    if (data && data.success) {
+      roomData = data.rooms || [];
+      rooms = roomData;
+    }
+  }
+  
+  // Find the room - convert both to string for comparison
+  const r = rooms.find(x => String(x.id) === String(roomId));
+  
+  console.log('Found room:', r); // Debug log
+  
+  if (!r) {
+    unitSel.innerHTML = '<option value="">— No units available —</option>';
+    return;
+  }
+  
+  const avail = r.units.filter(u => u.status === 'Available');
+  console.log('Available units:', avail.length); // Debug log
+  
+  if (avail.length === 0) {
+    unitSel.innerHTML = '<option value="">— No available units —</option>';
+  } else {
+    unitSel.innerHTML = '<option value="">— Select Unit —</option>' + 
+      avail.map(u => `<option value="${u.id}" ${preselectUnitId && u.id === preselectUnitId ? 'selected' : ''}>${esc(u.number)} (${esc(u.status)})</option>`).join('');
+  }
+}
+
+// Update the createBooking function in your HTML
+
+async function createBooking() {
+  const guestId = document.getElementById('bk-guest').value;
+  const roomId = document.getElementById('bk-room-type').value;
+  const unitId = document.getElementById('bk-unit').value;
+  const checkIn = document.getElementById('bk-checkin').value;
+  const checkOut = document.getElementById('bk-checkout').value;
+  const msg = document.getElementById('bk-msg');
+
+  // Validate all required fields
+  if (!guestId) {
+    msg.textContent = '❌ Please select a guest';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+  if (!roomId) {
+    msg.textContent = '❌ Please select a room type';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+  if (!unitId) {
+    msg.textContent = '❌ Please select a room unit';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+  if (!checkIn) {
+    msg.textContent = '❌ Please select check-in date';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+  if (!checkOut) {
+    msg.textContent = '❌ Please select check-out date';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+
+  // Validate dates
+  const today = new Date().toISOString().split('T')[0];
+  if (checkIn < today) {
+    msg.textContent = '❌ Check-in date cannot be in the past';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+  if (checkOut <= checkIn) {
+    msg.textContent = '❌ Check-out date must be after check-in date';
+    msg.style.color = 'var(--rose)';
+    return;
+  }
+
+  const bookingData = {
+    guest: parseInt(guestId),
+    room: parseInt(roomId),
+    room_unit: parseInt(unitId),
+    check_in: checkIn,
+    check_out: checkOut,
+    adults: parseInt(document.getElementById('bk-adults').value) || 1,
+    children: parseInt(document.getElementById('bk-children').value) || 0,
+    source: document.getElementById('bk-source').value,
+    special_requests: document.getElementById('bk-requests').value || ''
+  };
+
+  console.log('Sending booking data:', bookingData); // Debug log
+
+  try {
+    const response = await fetch('/api/create-booking/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken
+      },
+      body: JSON.stringify(bookingData)
+    });
+    
+    const data = await response.json();
+    console.log('Response:', data); // Debug log
+    
+    if (response.ok && data.success) {
+      msg.textContent = `✅ Booking created! Room: ${data.room_number}, ID: ${data.booking_id}`;
+      msg.style.color = 'var(--teal)';
+      toast('Booking created successfully!');
+      
+      // Reset form
+      document.getElementById('bk-guest').value = '';
+      document.getElementById('bk-room-type').value = '';
+      document.getElementById('bk-unit').innerHTML = '<option value="">— Select Unit —</option>';
+      document.getElementById('bk-adults').value = '1';
+      document.getElementById('bk-children').value = '0';
+      document.getElementById('bk-requests').value = '';
+      
+      // Refresh data
+      loadBookings();
+      loadDashboard();
+      
+      // Switch to bookings view after 1.5 seconds
+      setTimeout(() => switchPanel('all-bookings'), 1500);
+    } else {
+      msg.textContent = '❌ ' + (data.error || 'Failed to create booking');
+      msg.style.color = 'var(--rose)';
+      toast(msg.textContent, 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    msg.textContent = '❌ Network error. Please try again.';
+    msg.style.color = 'var(--rose)';
+    toast(msg.textContent, 'error');
+  }
+}
+// ─── CHECK-IN / OUT ───
+async function doCheckIn() {
+  const bookingId = document.getElementById('ci-booking-id').value;
+  const idType = document.getElementById('ci-id-type').value;
+  const idNumber = document.getElementById('ci-id-number').value;
+  const msg = document.getElementById('ci-msg');
+  if (!bookingId) { msg.textContent = '❌ Enter booking ID'; msg.style.color = 'var(--rose)'; return; }
+  try {
+    const r = await postJSON('/api/check-in/', { booking_id: bookingId, id_type: idType, id_number: idNumber });
+    if (r.success) { 
+      msg.textContent = '✅ Guest checked in!'; 
+      msg.style.color = 'var(--teal)'; 
+      toast('Guest checked in successfully!');
+      loadDashboard();
+      loadBookings();
+    } else { 
+      msg.textContent = '❌ ' + (r.error || 'Failed'); 
+      msg.style.color = 'var(--rose)'; 
+    }
+  } catch { msg.textContent = '❌ Network error'; msg.style.color = 'var(--rose)'; }
+}
+
+async function doCheckOut() {
+  const bookingId = document.getElementById('co-booking-id').value;
+  const method = document.getElementById('co-method').value;
+  const msg = document.getElementById('co-msg');
+  if (!bookingId) { msg.textContent = '❌ Enter booking ID'; msg.style.color = 'var(--rose)'; return; }
+  try {
+    const r = await postJSON('/api/check-out/', { booking_id: bookingId, method: method });
+    if (r.success) { 
+      msg.textContent = '✅ Guest checked out!'; 
+      msg.style.color = 'var(--teal)'; 
+      toast('Guest checked out!');
+      loadDashboard();
+      loadBookings();
+    } else { 
+      msg.textContent = '❌ ' + (r.error || 'Failed'); 
+      msg.style.color = 'var(--rose)'; 
+    }
+  } catch { msg.textContent = '❌ Network error'; msg.style.color = 'var(--rose)'; }
+}
+
+async function getBill() {
+  const bookingId = document.getElementById('co-booking-id').value;
+  if (!bookingId) { toast('Enter booking ID first', 'error'); return; }
+  const data = await api(`/api/get-bill/?booking_id=${bookingId}`);
+  if (!data || data.error) { toast('Bill not found', 'error'); return; }
+  document.getElementById('billContent').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-family:'DM Sans',sans-serif;font-size:1.2rem;font-weight:800">Bill Summary</div>
+      <div style="font-size:.75rem;color:var(--text-muted)">Booking #${bookingId}</div>
+    </div>
+    <div style="background:var(--surface-2);border-radius:10px;padding:16px;font-size:.82rem">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Room Type</span><strong>${esc(data.room_type)}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Room Number</span><strong>${esc(data.room_number)}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Check-in</span><strong>${data.check_in}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Check-out</span><strong>${data.check_out}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Nights</span><strong>${data.nights}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Room Charges</span><strong>₹${Number(data.room_charges || 0).toLocaleString('en-IN')}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:.92rem;font-weight:800;color:var(--green)"><span>Total Amount</span><span>₹${Number(data.total_amount || 0).toLocaleString('en-IN')}</span></div>
+    </div>`;
+  openModal('billModal');
+}
+
+// ─── GUESTS API ───
+async function loadGuests() {
+  const data = await api('/get-guests/');
+  guests = Array.isArray(data) ? data : [];
+  renderGuests();
+}
+
+function renderGuests() {
+  const search = (document.getElementById('guestSearch')?.value || '').toLowerCase();
+  let filtered = guests;
+  if (search) filtered = filtered.filter(g => (g.full_name || '').toLowerCase().includes(search) || (g.email || '').toLowerCase().includes(search) || (g.phone || '').includes(search));
+  const countEl = document.getElementById('guestCount');
+  if (countEl) countEl.textContent = filtered.length + ' guests';
+  const body = document.getElementById('guestTable');
+  if (!body) return;
+  if (!filtered.length) { body.innerHTML = '<tr><td colspan="7"><div class="empty-state" style="border:none;padding:32px">No guests found.</div></td></tr>'; return; }
+  body.innerHTML = filtered.map(g => `<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:var(--blue-glow);color:var(--blue);display:grid;place-items:center;font-size:.65rem;font-weight:800;flex-shrink:0">${(g.full_name || '?').charAt(0).toUpperCase()}</div><strong>${esc(g.full_name)}</strong></div></td>
+    <td style="font-size:.77rem">${esc(g.email || '—')}</td>
+    <td style="font-size:.77rem">${esc(g.phone || '—')}</td>
+    <td>${esc(g.nationality || '—')}</td>
+    <td><span style="font-family:'DM Mono',monospace;font-size:.72rem;background:var(--surface-2);padding:2px 8px;border-radius:5px;border:1px solid var(--border)">${esc(g.id_type || '—')}</span></td>
+    <td style="text-align:center;font-weight:700">${g.booking_count || 0}</td>
+    <td><button class="btn btn-primary btn-xs" onclick="guestBook(${g.id})"><i class="fas fa-calendar-plus"></i> Book</button></td>
+  </tr>`).join('');
+}
+
+function guestBook(guestId) {
+  switchPanel('add-booking');
+  setTimeout(() => {
+    const sel = document.getElementById('bk-guest');
+    if (sel) sel.value = guestId;
+  }, 200);
+}
+
+async function addGuest() {
+  const name = document.getElementById('ag-name').value.trim();
+  const msg = document.getElementById('ag-msg');
+  if (!name) { msg.textContent = '❌ Name is required'; msg.style.color = 'var(--rose)'; return; }
+  
+  const fd = new FormData();
+  fd.append('full_name', name);
+  fd.append('email', document.getElementById('ag-email').value);
+  fd.append('phone', document.getElementById('ag-phone').value);
+  fd.append('nationality', document.getElementById('ag-nationality').value);
+  fd.append('id_type', document.getElementById('ag-id-type').value);
+  fd.append('id_number', document.getElementById('ag-id-number').value);
+  fd.append('notes', document.getElementById('ag-notes').value);
+  
+  try {
+    const r = await fetch('/add-guest/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrftoken } });
+    const data = await r.json();
+    if (data.success) { 
+      msg.textContent = '✅ Guest added!'; 
+      msg.style.color = 'var(--teal)'; 
+      toast('Guest added successfully!');
+      loadGuests();
+      loadBookingFormData();
+      setTimeout(() => switchPanel('all-guests'), 1500);
+    } else { 
+      msg.textContent = '❌ ' + (data.error || 'Failed'); 
+      msg.style.color = 'var(--rose)'; 
+    }
+  } catch { msg.textContent = '❌ Network error'; msg.style.color = 'var(--rose)'; }
+}
+
+// ─── AUTO REFRESH ───
+document.getElementById('autoRefresh')?.addEventListener('change', function () {
+  if (this.checked) {
+    document.getElementById('autoStatus').textContent = 'On';
+    autoRefreshInterval = setInterval(() => {
+      const active = document.querySelector('.panel.active');
+      if (active?.id === 'panel-overview') loadDashboard();
+      else if (active?.id === 'panel-room-inventory') loadInventory();
+      else if (active?.id === 'panel-all-bookings') loadBookings();
+      else if (active?.id === 'panel-all-guests') loadGuests();
+    }, 30000);
+  } else {
+    document.getElementById('autoStatus').textContent = 'Off';
+    if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+  }
+});
+
+// ─── DROPDOWNS ───
+document.getElementById('bookingsDD')?.addEventListener('click', function () {
+  this.classList.toggle('open');
+  document.getElementById('bookingsDDMenu')?.classList.toggle('open');
+});
+document.getElementById('guestsDD')?.addEventListener('click', function () {
+  this.classList.toggle('open');
+  document.getElementById('guestsDDMenu')?.classList.toggle('open');
+});
+
+// ─── NAV EVENTS ───
+document.querySelectorAll('.nav-item[data-panel]').forEach(btn => {
+  btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
+});
+document.querySelectorAll('.nav-dd-child[data-panel]').forEach(btn => {
+  btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
+});
+document.getElementById('menuToggle')?.addEventListener('click', () => {
+  document.getElementById('sidebar')?.classList.toggle('open');
+});
+
+// ─── CSS ANIMATION ───
+const style = document.createElement('style');
+style.textContent = `@keyframes boxIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }`;
+document.head.appendChild(style);
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  const ci = document.getElementById('bk-checkin');
+  if (ci) ci.value = today;
+  const co = document.getElementById('bk-checkout');
+  if (co) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    co.value = tomorrow.toISOString().split('T')[0];
+  }
+  loadDashboard();
+  loadGuests();
+  loadBookings();
+});
+
+// Expose functions globally
+window.switchPanel = switchPanel;
+window.invFilter = invFilter;
+window.cardFilter = cardFilter;
+window.openRoomDetail = openRoomDetail;
+window.quickBookRoom = quickBookRoom;
+window.addRoom = addRoom;
+window.previewImages = previewImages;
+window.createBooking = createBooking;
+window.loadAvailableUnits = loadAvailableUnits;
+window.doCheckIn = doCheckIn;
+window.doCheckOut = doCheckOut;
+window.getBill = getBill;
+window.addGuest = addGuest;
+window.guestBook = guestBook;
+window.closeModal = closeModal;
+window.loadDashboard = loadDashboard;
+window.loadInventory = loadInventory;
+window.loadCardView = loadCardView;
+window.loadBookings = loadBookings;
+window.loadGuests = loadGuests;
+window.renderBookings = renderBookings;
+window.renderGuests = renderGuests;
+</script>
+</body>
+</html>

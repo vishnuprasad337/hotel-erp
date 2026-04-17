@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Modules | Premium & Core Features</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --navy: #0a1628;
+            --blue: #2563eb;
+            --blue-light: #3b82f6;
+            --accent: #f59e0b;
+            --green: #10b981;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --sidebar-w: 280px;
+            --radius: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+            --shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 25px -12px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: var(--sidebar-w); height: 100vh;
+            background: var(--navy);
+            display: flex; flex-direction: column;
+            z-index: 100; overflow-y: auto;
+            transition: transform .3s ease;
+            scrollbar-width: thin;
+        }
+        .sidebar-brand { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+        .brand-logo { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 42px; height: 42px; background: var(--blue); border-radius: 12px; display: grid; place-items: center; color: white; font-size: 1.2rem; }
+        .brand-name { font-size: 1rem; font-weight: 800; color: white; line-height: 1.2; }
+        .brand-sub { font-size: .65rem; color: rgba(255,255,255,.45); font-weight: 500; letter-spacing: .05em; text-transform: uppercase; }
+        .sidebar-nav { flex: 1; padding: 20px 12px; }
+        .nav-label { font-size: .65rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.35); padding: 12px 10px 6px; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin: 4px 0; border-radius: 12px; transition: all .2s ease; cursor: pointer; color: rgba(255,255,255,.7); font-weight: 500; font-size: .85rem; text-decoration: none; }
+        .menu-item i { width: 24px; font-size: 1rem; color: var(--blue-light); }
+        .menu-item:hover { background: rgba(255,255,255,.08); color: white; transform: translateX(3px); }
+        .menu-item.active { background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%); color: white; }
+        .menu-item.active i { color: white; }
+        .sidebar-footer { padding: 16px 12px; border-top: 1px solid rgba(255,255,255,.08); font-size: .7rem; color: rgba(255,255,255,.3); text-align: center; }
+
+        .main-content { margin-left: var(--sidebar-w); min-height: 100vh; transition: margin-left .3s ease; }
+
+        .topbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 28px; border-radius: 0 0 24px 24px; margin-bottom: 28px;
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            box-shadow: 0 8px 20px rgba(102,126,234,.25);
+        }
+        .topbar-icon { width: 48px; height: 48px; background: rgba(255,255,255,.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .topbar-text h1 { font-size: 1.5rem; color: #fff; font-weight: 700; margin: 0; }
+        .topbar-text p { font-size: .75rem; color: rgba(255,255,255,.7); margin: 4px 0 0; }
+        .hotel-name-pill { margin-left: auto; background: rgba(255,255,255,.15); border-radius: 40px; padding: 8px 20px; font-size: .8rem; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 8px; }
+
+        .wrap { max-width: 1400px; margin: 0 auto; padding: 0 28px 28px; }
+
+        .modules-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+        .selected-count { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 24px; border-radius: 40px; font-size: .85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm); transition: background .4s; }
+        .btn-clear { background: white; border: 1.5px solid var(--border); color: var(--red); padding: 8px 24px; border-radius: 40px; font-size: .8rem; font-weight: 600; transition: all .2s; cursor: pointer; }
+        .btn-clear:hover { background: var(--red); color: white; border-color: var(--red); transform: translateY(-2px); }
+
+        .section-card { background: white; border-radius: 24px; margin-bottom: 32px; overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+        .section-header { padding: 20px 24px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .section-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 1.2rem; }
+        .section-icon.free { background: #d1fae5; color: #059669; }
+        .section-icon.premium { background: #fed7aa; color: #ea580c; }
+        .section-title { font-weight: 700; font-size: 1.1rem; color: var(--text); }
+        .section-sub { font-size: .7rem; color: var(--text-muted); margin-top: 2px; }
+        .section-badge { margin-left: auto; font-size: .7rem; padding: 4px 12px; border-radius: 30px; font-weight: 600; }
+        .section-badge.free { background: #d1fae5; color: #059669; }
+        .section-badge.premium { background: #fed7aa; color: #ea580c; }
+
+        .modules-list { display: flex; flex-direction: column; gap: 0; padding: 8px 0; }
+
+        .module-row {
+            display: flex; align-items: center; gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background .2s;
+            position: relative;
+        }
+        .module-row:last-child { border-bottom: none; }
+        .module-row:hover { background: #fafbff; }
+
+        .module-row-icon {
+            width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #667eea;
+            transition: all .3s;
+        }
+        .module-row.is-on .module-row-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102,126,234,.35);
+        }
+
+        .module-row-body { flex: 1; min-width: 0; }
+        .module-row-name { font-size: .92rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+        .module-row-desc { font-size: .72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .module-row-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+        .module-badge-pill {
+            font-size: .62rem; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+        }
+        .module-badge-pill.free-badge { background: #d1fae5; color: #059669; }
+        .module-badge-pill.premium-badge { background: #fed7aa; color: #ea580c; }
+
+        .toggle-switch {
+            position: relative; width: 52px; height: 28px; cursor: pointer;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #e2e8f0;
+            transition: background .3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,.08);
+        }
+        .toggle-switch input:checked ~ .toggle-track {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: inset 0 2px 4px rgba(102,126,234,.3);
+        }
+        .toggle-knob {
+            position: absolute; top: 4px; left: 4px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,.2);
+            transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+        }
+        .toggle-switch input:checked ~ .toggle-knob { transform: translateX(24px); }
+
+        .btn-install-sm {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border: none; padding: 6px 14px;
+            font-weight: 600; border-radius: 8px;
+            transition: all .2s; color: white;
+            font-size: .72rem; cursor: pointer; white-space: nowrap;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .btn-install-sm:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139,92,246,.4); }
+
+        .empty-row { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: .85rem; }
+        .empty-row i { font-size: 2rem; opacity: .4; display: block; margin-bottom: 10px; }
+
+        .btn-primary-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 12px 28px; font-weight: 600; border-radius: 12px; transition: all .2s; color: white; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .btn-primary-custom:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(102,126,234,.4); color: white; }
+        .btn-success-custom { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; padding: 12px 28px; font-weight: 600; border-radius: 12px; transition: all .2s; color: white; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .btn-success-custom:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16,185,129,.4); color: white; }
+
+        .modal-content { border-radius: 20px; border: none; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .modal-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 20px 24px; }
+        .modal-header .btn-close { background-color: white; opacity: .8; border-radius: 50%; }
+        .form-control, .form-select { border-radius: 12px; border: 1.5px solid var(--border); padding: 10px 14px; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .form-control:focus, .form-select:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.1); }
+
+        .plans-container { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 0; }
+        .plan-card { background: white; border-radius: 16px; border: 2px solid var(--border); padding: 16px; transition: all .3s; cursor: pointer; }
+        .plan-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: #667eea; }
+        .plan-card.selected { border-color: #10b981; background: linear-gradient(135deg, rgba(16,185,129,.05) 0%, rgba(5,150,105,.05) 100%); }
+        .plan-name { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+        .plan-price { font-size: 1.2rem; font-weight: 800; color: #667eea; margin-bottom: 10px; }
+        .plan-price small { font-size: .65rem; font-weight: 500; color: var(--text-muted); }
+        .plan-features { list-style: none; margin: 10px 0; }
+        .plan-features li { padding: 3px 0; font-size: .68rem; display: flex; align-items: center; gap: 6px; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 280px; }
+        .toast-custom { background: white; border-radius: 12px; padding: 12px 18px; margin-bottom: 10px; box-shadow: var(--shadow-lg); animation: slideIn .3s ease; border-left: 4px solid; font-weight: 500; font-size: .82rem; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .toast-custom.success { border-left-color: #10b981; }
+        .toast-custom.error { border-left-color: #ef4444; }
+        .toast-custom.warning { border-left-color: #f59e0b; }
+        .toast-custom.info { border-left-color: #3b82f6; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: white; animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .menu-toggle { display: none; position: fixed; top: 20px; left: 20px; z-index: 1100; background: var(--navy); color: white; border: none; width: 44px; height: 44px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .wrap { padding: 0 15px 20px; }
+            .plans-container { grid-template-columns: 1fr; }
+            .module-row-desc { display: none; }
+            .section-badge { margin-left: 0; }
+            .section-header { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menuToggleBtn"><i class="fas fa-bars"></i></button>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            <div class="brand-icon"><i class="fas fa-hotel"></i></div>
+            <div>
+                <div class="brand-name" id="sidebarHotelName">Hotel Name</div>
+                <div class="brand-sub">Module Management</div>
+            </div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-label">MAIN NAVIGATION</div>
+        <a href="#" class="menu-item" onclick="showToast('Dashboard coming soon','info')"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+        <a href="#" class="menu-item" onclick="showToast('Room Management coming soon','info')"><i class="fas fa-bed"></i><span>Room Management</span></a>
+        <a href="#" class="menu-item" onclick="showToast('Staff Management coming soon','info')"><i class="fas fa-users"></i><span>Staff Management</span></a>
+        <a href="#" class="menu-item active"><i class="fas fa-cubes"></i><span>Hotel Modules</span></a>
+    </nav>
+    <div class="sidebar-footer"><i class="fas fa-building me-1"></i> Hotel ERP System</div>
+</div>
+
+<div class="main-content">
+    <div class="topbar">
+        <div class="topbar-icon">🏨</div>
+        <div class="topbar-text">
+            <h1>Hotel Modules</h1>
+            <p>Toggle services & features on or off for your hotel</p>
+        </div>
+        <div class="hotel-name-pill"><i class="fas fa-hotel"></i> <strong id="hotelNameDisplay"></strong></div>
+    </div>
+
+    <div class="wrap">
+        <div class="modules-header">
+            <div class="selected-count" id="selectedCountDisplay">
+                <i class="fas fa-toggle-on"></i>
+                <span id="selectedCount">0</span> module(s) enabled
+            </div>
+            <button class="btn-clear" onclick="clearAllSelections()"><i class="fas fa-power-off"></i> Disable All</button>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-icon free"><i class="fas fa-gift"></i></div>
+                <div>
+                    <div class="section-title">Core Free Modules</div>
+                    <div class="section-sub">Essential features included with every hotel subscription</div>
+                </div>
+                <div class="section-badge free"><i class="fas fa-check-circle"></i> Always Included</div>
+            </div>
+            <div class="modules-list" id="defaultModulesContainer">
+                <div class="empty-row"><i class="fas fa-spinner fa-spin"></i>Loading free modules…</div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-icon premium"><i class="fas fa-crown"></i></div>
+                <div>
+                    <div class="section-title">Premium Paid Modules</div>
+                    <div class="section-sub">Advanced features available with Professional & Enterprise plans</div>
+                </div>
+                <div class="section-badge premium"><i class="fas fa-star"></i> Paid Add-ons</div>
+            </div>
+            <div class="modules-list" id="premiumModulesContainer">
+                <div class="empty-row"><i class="fas fa-spinner fa-spin"></i>Loading premium modules…</div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-3 flex-wrap">
+            <button class="btn-primary-custom" data-bs-toggle="modal" data-bs-target="#moduleModal"><i class="fas fa-plus-circle"></i> Add Custom Module</button>
+            <button class="btn-success-custom" onclick="saveSelectedModules()" id="saveBtn"><i class="fas fa-save"></i> Save & Continue</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="moduleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i> Add Custom Module</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fw-bold">Module Name</label>
+                <input type="text" id="moduleName" class="form-control" placeholder="e.g., Conference Room, Laundry Service">
+                <small class="text-muted mt-2 d-block"><i class="fas fa-info-circle"></i> Custom modules are treated as premium paid features</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-primary-custom" onclick="saveModule()" id="saveModuleBtn"><i class="fas fa-save"></i> Add Module</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="subscriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-crown me-2"></i> Activate Premium Module</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div style="width:64px;height:64px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                        <i id="modalModuleIcon" class="fas fa-cube" style="font-size:1.8rem;color:#667eea;"></i>
+                    </div>
+                    <h5 id="modalModuleName" class="fw-800 mb-1">Module Name</h5>
+                    <p class="text-muted small mb-0" id="modalModuleDesc">Module description</p>
+                </div>
+                <div class="alert alert-warning small"><i class="fas fa-info-circle"></i> This is a <strong>premium module</strong>. Select a plan to activate it.</div>
+                <label class="fw-bold mb-2 d-block">Choose Subscription Plan:</label>
+                <div class="plans-container" id="modalPlansContainer"></div>
+                <div class="mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmActivation">
+                        <label class="form-check-label small" for="confirmActivation">I confirm that I want to activate this premium module</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-primary-custom" style="padding:8px 20px;font-size:.8rem;" onclick="confirmModuleActivation()"><i class="fas fa-check-circle"></i> Activate Module</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let selectedModules = [];
+let allDefaultModules = [];
+let allPremiumModules = [];
+let selectedModuleForInstall = null;
+let selectedPlanForModule = null;
+
+const subscriptionPlans = [
+    { id:"basic",        name:"Basic Plan",        price:"₹2,999", features:["Rooms Management","Staff Management","Front Desk","Basic Reports"] },
+    { id:"professional", name:"Professional Plan",  price:"₹5,999", features:["Restaurant POS","Bar Management","Gym & Fitness","Pool Management"] },
+    { id:"enterprise",   name:"Enterprise Plan",    price:"₹9,999", features:["Everything in Pro","Spa & Wellness","Custom Reports","API Access"] }
+];
+
+const menuToggleBtn = document.getElementById('menuToggleBtn');
+const sidebar = document.getElementById('sidebar');
+if (menuToggleBtn) {
+    menuToggleBtn.addEventListener('click', e => { 
+        e.stopPropagation(); 
+        sidebar.classList.toggle('open'); 
+    });
+}
+document.addEventListener('click', e => { 
+    if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target!==menuToggleBtn) 
+        sidebar.classList.remove('open'); 
+});
+
+function escapeHtml(t) { 
+    if(!t) return ''; 
+    const d=document.createElement('div'); 
+    d.textContent=t; 
+    return d.innerHTML; 
+}
+
+function getCSRFToken() { 
+    const cookieValue = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+    return cookieValue ? cookieValue.pop() : '';
+}
+
+function showToast(message, type='success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast-custom ${type}`;
+    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+    toast.innerHTML = `<i class="fas ${icons[type]} me-2"></i> ${escapeHtml(message)}`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function getModuleIcon(name) {
+    const n = name.toLowerCase();
+    const map = { 
+        room:'fa-bed', staff:'fa-users', restaurant:'fa-utensils', 
+        pool:'fa-swimming-pool', gym:'fa-dumbbell', spa:'fa-spa', 
+        wifi:'fa-wifi', parking:'fa-parking', bar:'fa-glass-martini-alt',
+        conference:'fa-chalkboard-user', housekeeping:'fa-broom', 
+        laundry:'fa-tshirt', security:'fa-shield-alt', transport:'fa-shuttle-van',
+        front:'fa-desktop', house:'fa-broom'
+    };
+    for(const [k,v] of Object.entries(map)) 
+        if(n.includes(k)) return v;
+    return 'fa-cube';
+}
+
+function loadModules() {
+    const defaultContainer = document.getElementById('defaultModulesContainer');
+    const premiumContainer = document.getElementById('premiumModulesContainer');
+    if (defaultContainer) defaultContainer.innerHTML = '<div class="empty-row"><i class="fas fa-spinner fa-spin"></i>Loading modules...</div>';
+    if (premiumContainer) premiumContainer.innerHTML = '<div class="empty-row"><i class="fas fa-spinner fa-spin"></i>Loading modules...</div>';
+    
+    fetch("/get-amenities/")
+        .then(r => r.json())
+        .then(data => {
+            allDefaultModules = data.default || [];
+            allPremiumModules = data.premium || [];
+            if(data.hotel_name){ 
+                const hotelDisplay = document.getElementById("hotelNameDisplay");
+                const sidebarHotel = document.getElementById("sidebarHotelName");
+                if (hotelDisplay) hotelDisplay.textContent = data.hotel_name;
+                if (sidebarHotel) sidebarHotel.textContent = data.hotel_name;
+            }
+            renderDefaultModules();
+            renderPremiumModules();
+            loadSavedModules();
+        })
+        .catch(error => {
+            console.error("Error loading modules:", error);
+            showToast("Failed to load modules", "error");
+            if (defaultContainer) defaultContainer.innerHTML = '<div class="empty-row"><i class="fas fa-exclamation-circle"></i>Failed to load modules</div>';
+            if (premiumContainer) premiumContainer.innerHTML = '<div class="empty-row"><i class="fas fa-exclamation-circle"></i>Failed to load modules</div>';
+        });
+}
+
+function loadSavedModules() {
+    fetch("/get-saved-modules/")
+        .then(r => r.json())
+        .then(data => {
+            if (data.modules && data.modules.length) {
+                selectedModules = data.modules.map(m => String(m.id));
+                updateSelectedCount();
+                document.querySelectorAll('.module-row input[type=checkbox]').forEach(checkbox => {
+                    const row = checkbox.closest('.module-row');
+                    if (row) {
+                        const moduleId = row.getAttribute('data-id');
+                        if (selectedModules.includes(moduleId)) {
+                            checkbox.checked = true;
+                            row.classList.add('is-on');
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => console.log("No saved modules found"));
+}
+
+function buildToggleRow(module, type) {
+    const id = String(module.id);
+    const icon = getModuleIcon(module.name);
+    const isOn = selectedModules.includes(id);
+    const badgeClass = type === 'default' ? 'free-badge' : 'premium-badge';
+    const badgeText = type === 'default' ? '✓ Free' : '★ Premium';
+
+    const row = document.createElement('div');
+    row.className = `module-row${isOn ? ' is-on' : ''}`;
+    row.setAttribute('data-id', id);
+
+    row.innerHTML = `
+        <div class="module-row-icon"><i class="fas ${icon}"></i></div>
+        <div class="module-row-body">
+            <div class="module-row-name">${escapeHtml(module.name)}</div>
+            <div class="module-row-desc">${escapeHtml(module.description || (type==='default'?'Core hotel management feature':'Premium add-on feature'))}</div>
+        </div>
+        <div class="module-row-right">
+            <span class="module-badge-pill ${badgeClass}">${badgeText}</span>
+            ${type === 'premium' ? `<button class="btn-install-sm" onclick="event.stopPropagation();openSubscriptionModal(${module.id},'${escapeHtml(module.name)}','${escapeHtml(module.description||'Premium module')}','${icon}')"><i class="fas fa-crown me-1"></i>Plans</button>` : ''}
+            <label class="toggle-switch" title="${isOn?'Disable':'Enable'} ${escapeHtml(module.name)}">
+                <input type="checkbox" ${isOn ? 'checked' : ''} onchange="toggleModule(this,'${id}','${escapeHtml(module.name)}')">
+                <span class="toggle-track"></span>
+                <span class="toggle-knob"></span>
+            </label>
+        </div>`;
+    return row;
+}
+
+function renderDefaultModules() {
+    const container = document.getElementById('defaultModulesContainer');
+    if (!container) return;
+    if (!allDefaultModules.length) { 
+        container.innerHTML = `<div class="empty-row"><i class="fas fa-cube"></i>No default modules configured.</div>`; 
+        return; 
+    }
+    container.innerHTML = '';
+    allDefaultModules.forEach(m => container.appendChild(buildToggleRow(m,'default')));
+}
+
+function renderPremiumModules() {
+    const container = document.getElementById('premiumModulesContainer');
+    if (!container) return;
+    if (!allPremiumModules.length) { 
+        container.innerHTML = `<div class="empty-row"><i class="fas fa-gem"></i>No premium modules available.</div>`; 
+        return; 
+    }
+    container.innerHTML = '';
+    allPremiumModules.forEach(m => container.appendChild(buildToggleRow(m,'premium')));
+}
+
+function toggleModule(checkbox, id, name) {
+    const row = checkbox.closest('.module-row');
+    if (checkbox.checked) {
+        if (!selectedModules.includes(id)) {
+            selectedModules.push(id);
+        }
+        if (row) row.classList.add('is-on');
+        showToast(`✓ "${name}" enabled`, 'success');
+    } else {
+        selectedModules = selectedModules.filter(x => x !== id);
+        if (row) row.classList.remove('is-on');
+        showToast(`"${name}" disabled`, 'info');
+    }
+    updateSelectedCount();
+    console.log("Selected modules:", selectedModules);
+}
+
+function updateSelectedCount() {
+    const count = selectedModules.length;
+    const countSpan = document.getElementById('selectedCount');
+    const display = document.getElementById('selectedCountDisplay');
+    if (countSpan) countSpan.textContent = count;
+    if (display) {
+        display.style.background = count > 0 ? 'linear-gradient(135deg,#10b981 0%,#059669 100%)' : 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)';
+        display.innerHTML = `<i class="fas fa-toggle-on"></i> ${count} module${count===1?'':'s'} enabled`;
+    }
+}
+
+function clearAllSelections() {
+    if (!confirm('Disable all modules?')) return;
+    selectedModules = [];
+    document.querySelectorAll('.module-row.is-on').forEach(row => {
+        row.classList.remove('is-on');
+        const checkbox = row.querySelector('input[type=checkbox]');
+        if (checkbox) checkbox.checked = false;
+    });
+    updateSelectedCount();
+    showToast('All modules disabled', 'info');
+}
+
+function saveModule() {
+    const nameInput = document.getElementById("moduleName");
+    const name = nameInput.value.trim();
+    if (!name) { 
+        showToast("Please enter a module name", "error"); 
+        return; 
+    }
+    const saveBtn = document.getElementById('saveModuleBtn');
+    const orig = saveBtn.innerHTML;
+    saveBtn.disabled = true; 
+    saveBtn.innerHTML = '<span class="loading-spinner"></span> Adding…';
+    
+    fetch("/add-amenity/", { 
+        method: "POST", 
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+        }, 
+        body: JSON.stringify({name, amenity_type: "premium"}) 
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.error){ 
+            showToast(data.error, "error"); 
+            return; 
+        }
+        loadModules();
+        selectedModules.push(String(data.id));
+        updateSelectedCount();
+        showToast(`✓ "${data.name}" added!`, "success");
+        nameInput.value = "";
+        const modal = bootstrap.Modal.getInstance(document.getElementById('moduleModal'));
+        if (modal) modal.hide();
+    })
+    .catch(() => showToast("Failed to save module", "error"))
+    .finally(() => { 
+        saveBtn.disabled = false; 
+        saveBtn.innerHTML = orig; 
+    });
+}
+
+function saveSelectedModules() {
+    console.log("Saving modules:", selectedModules);
+    
+    if (!selectedModules.length) { 
+        showToast("Please enable at least one module before continuing", "warning"); 
+        return; 
+    }
+    
+    const saveBtn = document.getElementById('saveBtn');
+    const orig = saveBtn.innerHTML;
+    saveBtn.disabled = true; 
+    saveBtn.innerHTML = '<span class="loading-spinner"></span> Saving…';
+    
+    fetch("/save-selected-amenities/", { 
+        method: "POST", 
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+        }, 
+        body: JSON.stringify({amenities: selectedModules})
+    })
+    .then(r => r.json())
+    .then(data => {
+        console.log("Save response:", data);
+        if(data.status === "success" || data.success){ 
+            const savedCount = data.saved_count || data.created_modules || selectedModules.length;
+            showToast(`✓ Saved ${savedCount} module(s)! Redirecting…`, "success"); 
+            setTimeout(() => {
+                window.location.href = "/dashboard/";
+            }, 1000);
+        } else { 
+            showToast(data.error || data.message || "Error saving", "error"); 
+            saveBtn.disabled = false; 
+            saveBtn.innerHTML = orig; 
+        }
+    })
+    .catch((error) => { 
+        console.error("Save error:", error);
+        showToast("Something went wrong: " + error.message, "error"); 
+        saveBtn.disabled = false; 
+        saveBtn.innerHTML = orig; 
+    });
+}
+
+function openSubscriptionModal(moduleId, moduleName, moduleDesc, moduleIcon) {
+    selectedModuleForInstall = { id:moduleId, name:moduleName, desc:moduleDesc, icon:moduleIcon };
+    selectedPlanForModule = null;
+    document.getElementById('modalModuleName').textContent = moduleName;
+    document.getElementById('modalModuleDesc').textContent = moduleDesc;
+    document.getElementById('modalModuleIcon').className = `fas ${moduleIcon}`;
+    document.getElementById('modalPlansContainer').innerHTML = subscriptionPlans.map(plan => `
+        <div class="plan-card" onclick="selectPlanForModal('${plan.id}',this)">
+            <div class="plan-name">${escapeHtml(plan.name)}</div>
+            <div class="plan-price">${plan.price} <small>/month</small></div>
+            <ul class="plan-features">
+                ${plan.features.slice(0,2).map(f=>`<li><i class="fas fa-check-circle" style="color:#10b981;"></i> ${escapeHtml(f)}</li>`).join('')}
+            </ul>
+        </div>`).join('');
+    document.getElementById('confirmActivation').checked = false;
+    new bootstrap.Modal(document.getElementById('subscriptionModal')).show();
+}
+
+function selectPlanForModal(planId, el) {
+    selectedPlanForModule = planId;
+    document.querySelectorAll('#modalPlansContainer .plan-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function confirmModuleActivation() {
+    if (!selectedModuleForInstall) { 
+        showToast("No module selected", "error"); 
+        return; 
+    }
+    if (!selectedPlanForModule) { 
+        showToast("Please select a subscription plan", "warning"); 
+        return; 
+    }
+    if (!document.getElementById('confirmActivation').checked) { 
+        showToast("Please confirm activation", "warning"); 
+        return; 
+    }
+    const plan = subscriptionPlans.find(p=>p.id===selectedPlanForModule);
+    showToast(`✓ "${selectedModuleForInstall.name}" activated with ${plan.name}!`, "success");
+    bootstrap.Modal.getInstance(document.getElementById('subscriptionModal')).hide();
+    
+    selectedModules.push(String(selectedModuleForInstall.id));
+    updateSelectedCount();
+    
+    const row = document.querySelector(`.module-row[data-id="${selectedModuleForInstall.id}"]`);
+    if (row) {
+        const checkbox = row.querySelector('input[type=checkbox]');
+        if (checkbox) {
+            checkbox.checked = true;
+            row.classList.add('is-on');
+        }
+    }
+    
+    selectedModuleForInstall = null; 
+    selectedPlanForModule = null;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadModules();
+    console.log("Page loaded, waiting for user interaction");
+});
+</script>
+</body>
+</html>

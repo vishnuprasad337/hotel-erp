@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin · Hotel ERP</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f172a;display:flex;}
+:root{
+  --sidebar:260px;
+  --navy:#0a1628;
+  --blue:#2563eb;
+  --green:#10b981;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --purple:#8b5cf6;
+  --border:#e2edf2;
+  --radius:18px;
+}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--navy);height:100vh;position:sticky;top:0;display:flex;flex-direction:column;}
+.sb-brand{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;gap:12px;align-items:center;}
+.sb-logo{width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#06b6d4);border-radius:14px;display:grid;place-items:center;color:white;}
+.sb-title{font-weight:800;color:white;font-size:1rem;}
+.sb-sub{font-size:0.6rem;color:rgba(255,255,255,0.4);}
+.sb-nav{flex:1;padding:20px 14px;}
+.sb-section{font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.3);padding:12px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;background:transparent;border:none;border-radius:12px;font-size:0.85rem;font-weight:500;color:rgba(255,255,255,0.6);cursor:pointer;text-align:left;font-family:'Inter',sans-serif;}
+.nav-item i{width:20px;}
+.nav-item:hover{background:rgba(37,99,235,0.2);color:white;}
+.nav-item.active{background:#2563eb;color:white;}
+.nav-badge{margin-left:auto;background:#ef4444;color:white;font-size:0.6rem;padding:2px 8px;border-radius:30px;}
+.sb-footer{padding:16px;border-top:1px solid rgba(255,255,255,0.06);font-size:0.65rem;color:rgba(255,255,255,0.3);}
+
+/* MAIN */
+.main{flex:1;min-width:0;}
+.topbar{background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;}
+.menu-toggle{display:none;background:white;border:1px solid var(--border);padding:6px 12px;border-radius:10px;cursor:pointer;}
+.tb-title{font-weight:800;font-size:1.2rem;}
+.tb-date{background:#eef2f6;padding:6px 14px;border-radius:40px;font-size:0.75rem;}
+.content{padding:24px 28px;}
+.panel{display:none;animation:fade 0.2s ease;}
+.panel.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* PAGE HEADER */
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:1.5rem;font-weight:800;}
+.page-header p{font-size:0.82rem;color:#5b6e8c;margin-top:4px;}
+
+/* KPI */
+.stats-g{display:grid;gap:18px;margin-bottom:28px;}
+.g4{grid-template-columns:repeat(4,1fr);}
+.kpi{background:white;border-radius:20px;padding:18px 20px;display:flex;align-items:center;gap:14px;border:1px solid var(--border);}
+.kpi-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:1.4rem;}
+.kpi.blue .kpi-icon{background:#eef2ff;color:#2563eb;}
+.kpi.green .kpi-icon{background:#e6f7ec;color:#10b981;}
+.kpi.amber .kpi-icon{background:#fffbeb;color:#f59e0b;}
+.kpi.purple .kpi-icon{background:#f3e8ff;color:#8b5cf6;}
+.kpi-val{font-size:1.9rem;font-weight:800;}
+.kpi-lbl{font-size:0.7rem;color:#5b6e8c;}
+
+/* CARD */
+.card{background:white;border-radius:20px;border:1px solid var(--border);margin-bottom:24px;overflow:hidden;}
+.card-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.card-title{font-weight:700;display:flex;gap:8px;align-items:center;}
+.card-body{padding:20px;}
+
+/* BADGES */
+.badge{display:inline-flex;padding:4px 12px;border-radius:40px;font-size:0.7rem;font-weight:600;}
+.b-green{background:#e0f2e9;color:#0b5e42;}
+.b-amber{background:#fff0db;color:#b45309;}
+.b-purple{background:#ede9fe;color:#6d28d9;}
+.b-red{background:#fee2e2;color:#b91c1c;}
+.b-blue{background:#e0f2fe;color:#0369a1;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:40px;font-size:0.75rem;font-weight:600;cursor:pointer;border:none;transition:0.2s;font-family:'Inter',sans-serif;}
+.btn-primary{background:#2563eb;color:white;}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-success{background:#10b981;color:white;}
+.btn-danger{background:#ef4444;color:white;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:#1e293b;}
+.btn-outline:hover{background:#f8fafc;}
+.btn-sm{padding:6px 14px;}
+.btn-xs{padding:3px 10px;font-size:0.65rem;}
+
+/* FORM */
+.form-group{margin-bottom:16px;}
+.form-group label{font-size:0.7rem;font-weight:700;display:block;margin-bottom:6px;color:#374151;}
+.form-group input,
+.form-group select,
+.form-group textarea{
+  width:100%;padding:10px 14px;
+  border:1px solid var(--border);border-radius:14px;
+  font-size:0.85rem;font-family:'Inter',sans-serif;
+  color:#0f172a;background:white;
+  transition:border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 16px;text-align:left;font-size:0.7rem;font-weight:700;color:#4a5a7a;border-bottom:1px solid var(--border);}
+td{padding:12px 16px;font-size:0.8rem;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+.td-sub{font-size:0.7rem;color:#5e6f8d;margin-top:2px;}
+
+/* MODULES */
+.modules-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:16px;}
+.module-card{background:white;border-radius:20px;border:1px solid var(--border);padding:20px;transition:0.2s;}
+.module-card:hover{box-shadow:0 8px 20px rgba(0,0,0,0.08);}
+.module-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.module-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:1.4rem;}
+.module-icon.free{background:#e6f7ec;color:#10b981;}
+.module-icon.paid{background:#fef3c7;color:#f59e0b;}
+.module-name{font-weight:800;font-size:1rem;}
+.module-desc{font-size:0.7rem;color:#5b6e8c;margin-top:4px;}
+.module-badge{margin-left:auto;}
+.module-features{font-size:0.7rem;color:#475569;margin-top:12px;padding-top:12px;border-top:1px solid #eef2f6;}
+
+/* SWITCH */
+.switch{position:relative;display:inline-block;width:44px;height:24px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;transition:0.2s;border-radius:24px;}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:white;transition:0.2s;border-radius:50%;}
+input:checked+.slider{background:#2563eb;}
+input:checked+.slider:before{transform:translateX(20px);}
+
+/* PLANS */
+.plans-container{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:12px;}
+.plan-card{background:white;border-radius:28px;border:1px solid var(--border);padding:28px 24px;transition:all 0.25s;position:relative;}
+.plan-card:hover{transform:translateY(-6px);box-shadow:0 20px 35px -12px rgba(0,0,0,0.15);}
+.plan-card.popular{border:2px solid #2563eb;}
+.popular-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2563eb;color:white;padding:4px 16px;border-radius:40px;font-size:0.7rem;font-weight:700;}
+.plan-name{font-size:1.5rem;font-weight:800;margin-bottom:12px;}
+.plan-price{font-size:2.2rem;font-weight:800;color:#0f172a;margin:16px 0;display:flex;align-items:baseline;gap:4px;}
+.plan-price small{font-size:0.8rem;font-weight:500;color:#64748b;}
+.plan-features{list-style:none;margin:20px 0;padding-top:12px;border-top:1px solid #eef2f6;}
+.plan-features li{padding:8px 0;font-size:0.8rem;color:#334155;display:flex;align-items:center;gap:10px;}
+.plan-features li i.fa-check-circle{color:#10b981;}
+.plan-features li i.fa-times-circle{color:#cbd5e1;}
+.plan-btn{margin-top:20px;width:100%;justify-content:center;}
+
+/* PENDING */
+.pending-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);}
+.pending-item:last-child{border-bottom:none;}
+
+/* MODAL */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;}
+.modal.open{display:flex;}
+.modal-content{background:white;border-radius:28px;max-width:650px;width:90%;padding:24px;max-height:80vh;overflow-y:auto;}
+.modal-header{display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;}
+.modal-close{background:none;border:none;font-size:1.6rem;cursor:pointer;color:#64748b;}
+
+/* TOAST */
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:1100;}
+.toast{background:#0f172a;color:white;padding:10px 18px;border-radius:40px;margin-top:8px;font-size:0.8rem;display:flex;align-items:center;gap:8px;}
+.toast.err{background:#b91c1c;}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:40px 20px;color:#94a3b8;}
+.empty-state i{font-size:2rem;margin-bottom:10px;display:block;opacity:0.4;}
+.empty-state p{font-size:0.82rem;}
+
+.module-tags{display:flex;flex-wrap:wrap;gap:8px;}
+
+@media(max-width:880px){
+  .sidebar{position:fixed;transform:translateX(-100%);z-index:200;}
+  .sidebar.open{transform:translateX(0);}
+  .menu-toggle{display:block;}
+  .g4{grid-template-columns:1fr 1fr;}
+  .plans-container{grid-template-columns:1fr;}
+  .modules-container{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+}
+@media(max-width:480px){.g4{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo"><i class="fas fa-hotel"></i></div>
+    <div>
+      <div class="sb-title">HotelERP</div>
+      <div class="sb-sub">SUPER ADMIN</div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">MAIN</div>
+    <button class="nav-item active" data-panel="overview"><i class="fas fa-chart-pie"></i> Dashboard</button>
+    <button class="nav-item" data-panel="hotels">
+      <i class="fas fa-building"></i> Hotels
+      {% if pending_hotels > 0 %}<span class="nav-badge">{{ pending_hotels }}</span>{% endif %}
+    </button>
+    <button class="nav-item" data-panel="register"><i class="fas fa-plus-circle"></i> Register Hotel</button>
+    <div class="sb-section">FEATURES</div>
+    <button class="nav-item" data-panel="modules"><i class="fas fa-puzzle-piece"></i> Module Management</button>
+    <button class="nav-item" data-panel="subscriptions"><i class="fas fa-crown"></i> Plans & Pricing</button>
+  </nav>
+  <div class="sb-footer"><i class="fas fa-check-circle"></i> Module Management</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <div class="tb-title" id="tbTitle">Dashboard</div>
+    <div class="tb-date" id="tbDate"></div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="page-header"><h1>Hotel Portfolio Dashboard</h1><p>Hotel approval & module assignment</p></div>
+      <div class="stats-g g4">
+        <div class="kpi blue"><div class="kpi-icon"><i class="fas fa-building"></i></div><div><div class="kpi-val">{{ total_hotels }}</div><div class="kpi-lbl">Total Hotels</div></div></div>
+        <div class="kpi green"><div class="kpi-icon"><i class="fas fa-check-circle"></i></div><div><div class="kpi-val">{{ active_hotels }}</div><div class="kpi-lbl">Active Hotels</div></div></div>
+        <div class="kpi amber"><div class="kpi-icon"><i class="fas fa-clock"></i></div><div><div class="kpi-val">{{ pending_hotels }}</div><div class="kpi-lbl">Pending Approval</div></div></div>
+        <div class="kpi purple"><div class="kpi-icon"><i class="fas fa-puzzle-piece"></i></div><div><div class="kpi-val" id="totalModulesCount">{{ amenities|length }}</div><div class="kpi-lbl">Total Modules</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><i class="fas fa-cube"></i> Free Modules (Default for all hotels)</div></div>
+        <div class="card-body">
+          <div class="module-tags">
+            <span class="badge b-green"><i class="fas fa-check"></i> Room Management</span>
+            <span class="badge b-green"><i class="fas fa-check"></i> Staff Management</span>
+            <span class="badge b-green"><i class="fas fa-check"></i> Front Desk Operations</span>
+            <span class="badge b-green"><i class="fas fa-check"></i> Housekeeping</span>
+            <span class="badge b-green"><i class="fas fa-check"></i> Guest Management</span>
+            <span class="badge b-green"><i class="fas fa-check"></i> Billing & Payments</span>
+            {% for amenity in amenities %}{% if amenity.amenity_type == 'default' %}<span class="badge b-blue">{{ amenity.name }}</span>{% endif %}{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title"><i class="fas fa-clock"></i> Pending Approvals</div>
+          <button class="btn btn-outline btn-sm" onclick="switchPanel('hotels')">View All</button>
+        </div>
+        <div class="card-body">
+          {% for hotel in pending_hotel_list %}
+          <div class="pending-item">
+            <div>
+              <strong>{{ hotel.hotel_name }}</strong>
+              <div class="td-sub">
+                <i class="fas fa-user"></i> {{ hotel.owner_name|default:"—" }} &nbsp;·&nbsp;
+                <i class="fas fa-map-marker-alt"></i> {{ hotel.city|default:"—" }} &nbsp;·&nbsp;
+                {{ hotel.email }}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <a href="{% url 'approve_hotel' hotel.id %}" class="btn btn-success btn-xs"
+                 onclick="return confirm('Approve {{ hotel.hotel_name|escapejs }}?')">
+                <i class="fas fa-check"></i> Approve
+              </a>
+              <a href="{% url 'reject_hotel' hotel.id %}" class="btn btn-danger btn-xs"
+                 onclick="return confirm('Reject and delete {{ hotel.hotel_name|escapejs }}?')">
+                <i class="fas fa-times"></i> Reject
+              </a>
+            </div>
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-check-double"></i><p>No pending approvals</p></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTER HOTEL -->
+    <div class="panel" id="panel-register">
+      <div class="page-header"><h1><i class="fas fa-plus-circle"></i> Register New Hotel</h1><p>Fill in all details to register a new property</p></div>
+      <div class="card">
+        <div class="card-body">
+          <form id="registerHotelForm">
+            {% csrf_token %}
+            <div class="form-row">
+              <div class="form-group"><label>Hotel Name *</label><input type="text" id="regHotelName" placeholder="Grand Luxury Hotel" required></div>
+              <div class="form-group"><label>Owner Name *</label><input type="text" id="regOwnerName" placeholder="John Smith" required></div>
+            </div>
+            <div class="form-group"><label>Email *</label><input type="email" id="regEmail" placeholder="hotel@example.com" required></div>
+            <div class="form-row">
+              <div class="form-group"><label>City</label><input type="text" id="regCity" placeholder="Mumbai"></div>
+              <div class="form-group"><label>Property Type</label><input type="text" id="regPropertyType" placeholder="Hotel / Resort / Boutique"></div>
+            </div>
+            <div class="form-group"><label>Address</label><textarea id="regAddress" rows="2" placeholder="Full property address..."></textarea></div>
+            <div class="form-group"><label>Description</label><textarea id="regDescription" rows="2" placeholder="Brief description of the property..."></textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>Password *</label><input type="password" id="regPassword" required></div>
+              <div class="form-group"><label>Confirm Password *</label><input type="password" id="regConfirmPwd" required></div>
+            </div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+              <button type="button" class="btn btn-outline" onclick="resetRegForm()">Reset</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Register Hotel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOTELS MANAGEMENT -->
+    <div class="panel" id="panel-hotels">
+      <div class="page-header"><h1><i class="fas fa-building"></i> Hotels Management</h1><p>Approve/Reject hotels and manage their installed modules</p></div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Hotel</th><th>City</th><th>Owner</th><th>Status</th><th>Plan</th><th>Modules</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for hotel in hotels %}
+              <tr>
+                <td><strong>{{ hotel.hotel_name }}</strong><div class="td-sub">{{ hotel.address|truncatechars:40 }}</div></td>
+                <td>{{ hotel.city|default:"—" }}</td>
+                <td>{{ hotel.owner_name|default:"—" }}</td>
+                <td>{% if hotel.is_approved %}<span class="badge b-green">Approved</span>{% else %}<span class="badge b-amber">Pending</span>{% endif %}</td>
+                <td><span class="badge b-purple">{{ hotel.subscription_plan|default:"Basic" }}</span></td>
+                <td>{% for module in hotel.properties.all %}<span class="badge b-blue" style="margin:2px;">{{ module.name }}</span>{% empty %}<span class="badge">—</span>{% endfor %}</td>
+                <td>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    {% if not hotel.is_approved %}
+                      <a href="{% url 'approve_hotel' hotel.id %}" class="btn btn-success btn-xs"
+                         onclick="return confirm('Approve {{ hotel.hotel_name|escapejs }}?')">
+                        <i class="fas fa-check"></i> Approve
+                      </a>
+                      <a href="{% url 'reject_hotel' hotel.id %}" class="btn btn-danger btn-xs"
+                         onclick="return confirm('Reject {{ hotel.hotel_name|escapejs }}?')">
+                        <i class="fas fa-times"></i> Reject
+                      </a>
+                    {% else %}
+                      <button class="btn btn-outline btn-xs"
+                        onclick="openModuleManager('{{ hotel.hotel_name|escapejs }}')">
+                        <i class="fas fa-puzzle-piece"></i> Modules
+                      </button>
+                      <button class="btn btn-outline btn-xs"
+                        onclick="openUpgradeForHotel('{{ hotel.hotel_name|escapejs }}')">
+                        <i class="fas fa-arrow-up"></i> Plan
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="7"><div class="empty-state"><i class="fas fa-building"></i><p>No hotels registered yet</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE MANAGEMENT -->
+    <div class="panel" id="panel-modules">
+      <div class="page-header"><h1><i class="fas fa-puzzle-piece"></i> Module Management</h1><p>Restaurant, Bar, Gym, Spa, Pool are premium paid modules. Core free modules can also be deleted.</p></div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><i class="fas fa-star-of-life"></i> Core Free Modules (with Delete option)</div></div>
+        <div class="card-body"><div class="modules-container" id="coreModulesList"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><i class="fas fa-plus-circle"></i> Create New Module</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Module Name <span style="color:#ef4444;">*</span></label>
+              <select id="newModuleNameSelect">
+                <option value="" disabled selected>-- Choose module name --</option>
+                <option value="Restaurant POS">Restaurant POS (Paid)</option>
+                <option value="Restaurant POS">Room</option>
+                <option value="Restaurant POS">Staff</option>
+                <option value="Bar Management">Bar Management (Paid)</option>
+                <option value="Gym & Fitness">Gym & Fitness (Paid)</option>
+                <option value="Spa & Wellness">Spa & Wellness (Paid)</option>
+                <option value="Pool Management">Pool Management (Paid)</option>
+                <option value="Housekeeping Pro">Housekeeping Pro (Paid)</option>
+                <option value="Event Management">Event Management (Paid)</option>
+                <option value="Inventory Management">Inventory Management (Paid)</option>
+                <option value="Custom Free Module">Custom Free Module</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Module Type</label>
+              <select id="newModuleType">
+                <option value="default">Free (Default for all hotels)</option>
+                <option value="premium" selected>Premium (Paid Add-on)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="newModuleDesc" rows="2" placeholder="Brief description of this module (optional)"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="addGlobalModuleFromDropdown()"><i class="fas fa-plus"></i> Create Module</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><i class="fas fa-cube"></i> Free Modules (Default) — with Delete</div></div>
+        <div class="card-body"><div class="modules-container" id="defaultModulesList"><p style="color:#94a3b8;font-size:0.82rem;">Loading...</p></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title"><i class="fas fa-gem"></i> Premium Paid Modules — with Delete</div></div>
+        <div class="card-body"><div class="modules-container" id="premiumModulesList"><p style="color:#94a3b8;font-size:0.82rem;">Loading...</p></div></div>
+      </div>
+    </div>
+
+    <!-- SUBSCRIPTIONS -->
+    <div class="panel" id="panel-subscriptions">
+      <div class="page-header"><h1><i class="fas fa-crown"></i> Subscription Plans & Modules</h1><p>Restaurant module is exclusively available in Professional & Enterprise plans</p></div>
+      <div class="plans-container">
+        <div class="plan-card">
+          <div class="plan-name">Basic Plan</div>
+          <div class="plan-price">₹2,999 <small>/month</small></div>
+          <ul class="plan-features">
+            <li><i class="fas fa-check-circle"></i> Rooms Management</li>
+            <li><i class="fas fa-check-circle"></i> Staff Management</li>
+            <li><i class="fas fa-check-circle"></i> Front Desk Operations</li>
+            <li><i class="fas fa-check-circle"></i> Basic Reports</li>
+            <li><i class="fas fa-times-circle"></i> Restaurant Module</li>
+            <li><i class="fas fa-times-circle"></i> Bar Management</li>
+            <li><i class="fas fa-times-circle"></i> Gym & Fitness</li>
+            <li><i class="fas fa-times-circle"></i> Spa & Wellness</li>
+            <li><i class="fas fa-times-circle"></i> Pool Management</li>
+          </ul>
+          <button class="btn btn-outline plan-btn" onclick="selectPlanForUpgrade('Basic')">Select Basic</button>
+        </div>
+        <div class="plan-card popular">
+          <div class="popular-badge">🔥 MOST POPULAR</div>
+          <div class="plan-name">Professional Plan</div>
+          <div class="plan-price">₹5,999 <small>/month</small></div>
+          <ul class="plan-features">
+            <li><i class="fas fa-check-circle"></i> Everything in Basic</li>
+            <li><i class="fas fa-check-circle"></i> Restaurant Module <span class="badge b-amber" style="margin-left:4px;">Premium</span></li>
+            <li><i class="fas fa-check-circle"></i> Bar Management</li>
+            <li><i class="fas fa-check-circle"></i> Gym & Fitness</li>
+            <li><i class="fas fa-check-circle"></i> Pool Management</li>
+            <li><i class="fas fa-check-circle"></i> Advanced Analytics</li>
+            <li><i class="fas fa-times-circle"></i> Spa & Wellness</li>
+          </ul>
+          <button class="btn btn-primary plan-btn" onclick="selectPlanForUpgrade('Professional')">Upgrade to Pro</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Enterprise Plan</div>
+          <div class="plan-price">₹9,999 <small>/month</small></div>
+          <ul class="plan-features">
+            <li><i class="fas fa-check-circle"></i> Everything in Professional</li>
+            <li><i class="fas fa-check-circle"></i> Spa & Wellness</li>
+            <li><i class="fas fa-check-circle"></i> Custom Reports & API</li>
+            <li><i class="fas fa-check-circle"></i> Unlimited Staff Accounts</li>
+            <li><i class="fas fa-check-circle"></i> Priority Support 24/7</li>
+          </ul>
+          <button class="btn btn-outline plan-btn" onclick="selectPlanForUpgrade('Enterprise')">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODULE MANAGER MODAL -->
+<div id="moduleManagerModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-puzzle-piece"></i> Manage Hotel Modules</h3>
+      <button class="modal-close" onclick="closeModuleManager()">&times;</button>
+    </div>
+    <p id="moduleManagerHotelInfo" style="margin-bottom:8px;font-size:0.85rem;color:#64748b;"></p>
+    <p style="font-size:0.75rem;color:#64748b;margin-bottom:14px;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid var(--border);">
+      <i class="fas fa-info-circle" style="color:#2563eb;"></i> Core free modules always enabled. Toggle premium modules per hotel.
+    </p>
+    <div id="hotelModulesList" style="max-height:400px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeModuleManager()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHotelModules()"><i class="fas fa-save"></i> Save Modules</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div id="upgradeModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Upgrade Hotel Subscription</h3>
+      <button class="modal-close" onclick="closeUpgradeModal()">&times;</button>
+    </div>
+    <p id="upgradeHotelInfo" style="margin-bottom:16px;font-size:0.85rem;color:#64748b;"></p>
+    <div class="form-group">
+      <label>Select Plan</label>
+      <select id="planSelectModal">
+        <option value="Basic">Basic Plan — ₹2,999/month</option>
+        <option value="Professional">Professional Plan — ₹5,999/month</option>
+        <option value="Enterprise">Enterprise Plan — ₹9,999/month</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-outline" onclick="closeUpgradeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmUpgrade()">Confirm Upgrade</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+let CORE_MODULES = [
+  {id:1,name:"Room Management",       icon:"fa-bed",          description:"Manage rooms, room types, availability, and pricing"},
+  {id:2,name:"Staff Management",      icon:"fa-users",        description:"Manage staff, departments, roles, and attendance"},
+  {id:3,name:"Front Desk Operations", icon:"fa-desktop",      description:"Check-in, check-out, guest management"},
+  {id:4,name:"Housekeeping",          icon:"fa-broom",        description:"Room cleaning, task assignment, inventory"},
+  {id:5,name:"Guest Management",      icon:"fa-user-friends", description:"Guest profiles, preferences, history"},
+  {id:6,name:"Billing & Payments",    icon:"fa-receipt",      description:"Invoicing, payment processing, reports"}
+];
+let allModules = [];
+let currentHotelId = null;
+let upgradeHotelId = null;
+
+function getCSRFToken(){
+  const c=document.cookie.split(';').find(x=>x.trim().startsWith('csrftoken='));
+  return c?decodeURIComponent(c.split('=')[1]):'';
+}
+function escapeHtml(s){
+  if(!s)return'';
+  return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function toast(msg,type='ok'){
+  const d=document.createElement('div');
+  d.className='toast'+(type==='err'?' err':'');
+  d.innerHTML=`<i class="fas ${type==='err'?'fa-exclamation-triangle':'fa-check-circle'}"></i> ${escapeHtml(msg)}`;
+  document.getElementById('toastStack').appendChild(d);
+  setTimeout(()=>d.remove(),3000);
+}
+
+function renderCoreModules(){
+  const c=document.getElementById('coreModulesList');
+  if(!c)return;
+  c.innerHTML=CORE_MODULES.length?CORE_MODULES.map(m=>`
+    <div class="module-card" id="core-mod-${m.id}" style="background:#f0fdf4;border-color:#bbf7d0;">
+      <div class="module-header">
+        <div class="module-icon free"><i class="fas ${escapeHtml(m.icon)}"></i></div>
+        <div>
+          <div class="module-name">${escapeHtml(m.name)}</div>
+          <div class="module-desc">${escapeHtml(m.description)}</div>
+        </div>
+        <div class="module-badge"><span class="badge b-green"><i class="fas fa-check-circle"></i> Always Free</span></div>
+      </div>
+      <div class="module-features">
+        <i class="fas fa-lock-open" style="color:#10b981;"></i> Included by default for all hotels
+        <div style="margin-top:12px;">
+          <button class="btn btn-danger btn-xs" onclick="deleteDefaultCoreModule(${m.id},'${escapeHtml(m.name)}')">
+            <i class="fas fa-trash-alt"></i> Delete Default Module
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join(''):'<p style="color:#94a3b8;font-size:0.82rem;">All core modules deleted.</p>';
+}
+
+window.deleteDefaultCoreModule=async function(id,name){
+  if(!confirm(`⚠️ Delete default module "${name}"?\nThis removes it from ALL hotels system-wide.`))return;
+  try{
+    const res=await fetch(`/delete-amenity/${id}/`,{method:'DELETE',headers:{'X-CSRFToken':getCSRFToken(),'X-Requested-With':'XMLHttpRequest'}});
+    if(res.ok){CORE_MODULES=CORE_MODULES.filter(m=>m.id!==id);renderCoreModules();toast(`"${name}" deleted`);}
+    else{const e=await res.json().catch(()=>({}));toast(e.error||'Failed to delete','err');}
+  }catch{toast('Network error','err');}
+};
+
+async function loadModulesFromBackend(){
+  try{
+    const res=await fetch('/get-amenities/',{headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const data=await res.json();
+    allModules=[...(data.default||[]).map(a=>({...a,amenity_type:'default'})),...(data.premium||[]).map(a=>({...a,amenity_type:'premium'}))];
+    renderModuleLists();
+    document.getElementById('totalModulesCount').innerText=allModules.length+CORE_MODULES.length;
+  }catch{toast('Could not load modules','err');allModules=[];renderModuleLists();}
+}
+
+function renderModuleLists(){
+  const defaults=allModules.filter(m=>m.amenity_type==='default');
+  const premiums=allModules.filter(m=>m.amenity_type==='premium');
+  const dc=document.getElementById('defaultModulesList');
+  if(dc)dc.innerHTML=defaults.length?defaults.map(m=>`
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon free"><i class="fas fa-cube"></i></div>
+        <div><div class="module-name">${escapeHtml(m.name)}</div><div class="module-desc">${escapeHtml(m.description||'Free module')}</div></div>
+        <div class="module-badge"><span class="badge b-green">Free</span></div>
+      </div>
+      <div class="module-features">
+        <i class="fas fa-check-circle" style="color:#10b981;"></i> Included for all hotels
+        <div style="margin-top:8px;"><button class="btn btn-danger btn-xs" onclick="deleteModule(${m.id})"><i class="fas fa-trash"></i> Delete</button></div>
+      </div>
+    </div>
+  `).join(''):'<p style="color:#94a3b8;font-size:0.82rem;">No free modules in database.</p>';
+  const pc=document.getElementById('premiumModulesList');
+  if(pc)pc.innerHTML=premiums.length?premiums.map(m=>`
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon paid"><i class="fas fa-gem"></i></div>
+        <div><div class="module-name">${escapeHtml(m.name)}</div><div class="module-desc">${escapeHtml(m.description||'Premium add-on module')}</div></div>
+        <div class="module-badge"><span class="badge b-amber">Paid</span></div>
+      </div>
+      <div class="module-features">
+        <i class="fas fa-star" style="color:#f59e0b;"></i> Advanced features
+        <div style="margin-top:8px;"><button class="btn btn-danger btn-xs" onclick="deleteModule(${m.id})"><i class="fas fa-trash"></i> Delete</button></div>
+      </div>
+    </div>
+  `).join(''):'<p style="color:#94a3b8;font-size:0.82rem;">No premium modules configured.</p>';
+}
+
+window.addGlobalModuleFromDropdown=async function(){
+  const name=document.getElementById('newModuleNameSelect').value;
+  if(!name){toast('Please select a module name','err');return;}
+  const amenity_type=document.getElementById('newModuleType').value;
+  const description=document.getElementById('newModuleDesc').value;
+  try{
+    const res=await fetch('/add-amenity/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken(),'X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({name,amenity_type,description})});
+    const data=await res.json();
+    if(data.id||data.success){toast('Module created successfully');setTimeout(()=>location.reload(),800);}
+    else toast(data.error||'Failed','err');
+  }catch{toast('Network error','err');}
+};
+
+window.deleteModule=async function(id){
+  if(!confirm('Delete this module permanently? It will be removed from all hotels.'))return;
+  try{
+    const res=await fetch(`/delete-amenity/${id}/`,{method:'DELETE',headers:{'X-CSRFToken':getCSRFToken(),'X-Requested-With':'XMLHttpRequest'}});
+    if(res.ok){toast('Module deleted');setTimeout(()=>location.reload(),800);}
+    else{const e=await res.json().catch(()=>({}));toast(e.error||'Failed','err');}
+  }catch{toast('Network error','err');}
+};
+
+window.openModuleManager=async function(hotelId,hotelName){
+  currentHotelId=hotelId;
+  document.getElementById('moduleManagerHotelInfo').innerHTML=`Managing modules for <strong>${escapeHtml(hotelName)}</strong>`;
+  document.getElementById('hotelModulesList').innerHTML='<p style="text-align:center;padding:20px;color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading...</p>';
+  document.getElementById('moduleManagerModal').classList.add('open');
+  try{
+    const res=await fetch('/superadmin/dashboard/',{headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const data=await res.json();
+    const hotel=(data.hotels||[]).find(h=>h.id==hotelId);
+    const currentIds=(hotel?.properties||[]).map(p=>p.id);
+    const premiumOnly=allModules.filter(m=>m.amenity_type==='premium');
+    document.getElementById('hotelModulesList').innerHTML=premiumOnly.length?premiumOnly.map(m=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid var(--border);">
+        <div>
+          <strong>${escapeHtml(m.name)}</strong>
+          <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">${escapeHtml(m.description||'Premium module')}</div>
+        </div>
+        <label class="switch"><input type="checkbox" class="module-toggle" data-module-id="${m.id}" ${currentIds.includes(m.id)?'checked':''}><span class="slider"></span></label>
+      </div>
+    `).join(''):'<div class="empty-state"><i class="fas fa-gem"></i><p>No premium modules available.</p></div>';
+  }catch{document.getElementById('hotelModulesList').innerHTML='<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Failed to load data.</p></div>';}
+};
+
+function closeModuleManager(){document.getElementById('moduleManagerModal').classList.remove('open');currentHotelId=null;}
+
+window.saveHotelModules=async function(){
+  const selected=Array.from(document.querySelectorAll('#hotelModulesList .module-toggle:checked')).map(t=>parseInt(t.dataset.moduleId));
+  try{
+    const res=await fetch(`/save-hotel-modules/${currentHotelId}/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},body:JSON.stringify({modules:selected})});
+    const data=await res.json();
+    if(data.success){toast('Modules updated successfully');closeModuleManager();setTimeout(()=>location.reload(),800);}
+    else toast('Update failed','err');
+  }catch{toast('Network error','err');}
+};
+
+window.openUpgradeForHotel=function(id,name){
+  upgradeHotelId=id;
+  document.getElementById('upgradeHotelInfo').innerHTML=`Upgrade subscription for <strong>${escapeHtml(name)}</strong>`;
+  document.getElementById('planSelectModal').value='Professional';
+  document.getElementById('upgradeModal').classList.add('open');
+};
+window.selectPlanForUpgrade=function(plan){
+  const hid=prompt('Enter Hotel ID:');if(!hid)return;
+  upgradeHotelId=parseInt(hid);
+  document.getElementById('upgradeHotelInfo').innerHTML=`Upgrading Hotel #${hid} to <strong>${escapeHtml(plan)}</strong>`;
+  document.getElementById('planSelectModal').value=plan;
+  document.getElementById('upgradeModal').classList.add('open');
+};
+function closeUpgradeModal(){document.getElementById('upgradeModal').classList.remove('open');upgradeHotelId=null;}
+window.confirmUpgrade=async function(){
+  if(!upgradeHotelId)return;
+  const plan=document.getElementById('planSelectModal').value;
+  try{
+    const res=await fetch(`/upgrade-hotel-plan/${upgradeHotelId}/`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},body:JSON.stringify({plan})});
+    const data=await res.json();
+    if(data.success){toast(`Upgraded to ${plan}`);closeUpgradeModal();setTimeout(()=>location.reload(),800);}
+    else toast(data.error||'Failed','err');
+  }catch{toast('Network error','err');}
+};
+
+document.getElementById('registerHotelForm')?.addEventListener('submit',async function(e){
+  e.preventDefault();
+  const pwd=document.getElementById('regPassword').value;
+  const cpwd=document.getElementById('regConfirmPwd').value;
+  if(pwd!==cpwd){toast('Passwords do not match!','err');return;}
+  const fd=new FormData();
+  fd.append('hotel_name',document.getElementById('regHotelName').value);
+  fd.append('owner_name',document.getElementById('regOwnerName').value);
+  fd.append('email',document.getElementById('regEmail').value);
+  fd.append('city',document.getElementById('regCity').value);
+  fd.append('address',document.getElementById('regAddress').value);
+  fd.append('property_type',document.getElementById('regPropertyType').value);
+  fd.append('description',document.getElementById('regDescription').value);
+  fd.append('password',pwd);
+  fd.append('csrfmiddlewaretoken',getCSRFToken());
+  try{
+    const res=await fetch('/register/',{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const data=await res.json();
+    if(res.ok&&(data.success||data.id)){toast('Hotel registered!');setTimeout(()=>location.reload(),1200);}
+    else toast(data.error||'Registration failed','err');
+  }catch{toast('Network error','err');}
+});
+function resetRegForm(){document.getElementById('registerHotelForm').reset();}
+
+const panelTitles={overview:'Dashboard',hotels:'Hotels Management',register:'Register Hotel',modules:'Module Management',subscriptions:'Plans & Pricing'};
+function switchPanel(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`panel-${name}`)?.classList.add('active');
+  document.querySelector(`.nav-item[data-panel="${name}"]`)?.classList.add('active');
+  document.getElementById('tbTitle').innerText=panelTitles[name]||name;
+  document.getElementById('sidebar').classList.remove('open');
+}
+document.querySelectorAll('.nav-item[data-panel]').forEach(btn=>btn.addEventListener('click',()=>switchPanel(btn.dataset.panel)));
+document.getElementById('menuToggle')?.addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+window.addEventListener('click',e=>{
+  if(e.target===document.getElementById('upgradeModal'))closeUpgradeModal();
+  if(e.target===document.getElementById('moduleManagerModal'))closeModuleManager();
+});
+
+function updateClock(){
+  const d=new Date();
+  document.getElementById('tbDate').innerText=d.toLocaleDateString('en-IN')+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+updateClock();setInterval(updateClock,1000);
+renderCoreModules();
+loadModulesFromBackend();
+</script>
+</body>
+</html>

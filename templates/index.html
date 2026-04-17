@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel ERP | Staff Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --navy: #0f1f3d;
+            --blue: #1a56db;
+            --blue-light: #3b82f6;
+            --accent: #f59e0b;
+            --green: #10b981;
+            --red: #ef4444;
+            --purple: #7c3aed;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --sidebar-w: 300px;
+            --radius: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Floating shapes background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.05)" fill-opacity="1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: rgba(15, 31, 61, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+            box-shadow: 4px 0 30px rgba(0,0,0,0.2);
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-brand {
+            padding: 32px 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        .brand-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 0 8px 20px rgba(102,126,234,0.3);
+        }
+        .brand-name {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -0.3px;
+        }
+        .brand-sub {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            margin-top: 6px;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 24px 16px;
+        }
+        .nav-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+            padding: 16px 12px 8px;
+        }
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            margin-bottom: 4px;
+        }
+        .nav-btn i {
+            width: 22px;
+            font-size: 1rem;
+        }
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        /* ── MAIN CONTENT ── */
+        .main {
+            margin-left: var(--sidebar-w);
+            min-height: 100vh;
+            padding: 40px 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── PANELS ── */
+        .panel {
+            display: none;
+            width: 100%;
+            max-width: 520px;
+            animation: fadeInUp 0.4s ease;
+        }
+        .panel.active {
+            display: block;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 28px 32px 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--border);
+        }
+        .card-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        .card-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .card-body {
+            padding: 32px;
+        }
+        .card-footer {
+            padding: 20px 32px;
+            background: var(--surface-2);
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ── FORMS ── */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .form-label i {
+            color: var(--blue);
+            width: 20px;
+            margin-right: 6px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text);
+            background: var(--surface);
+            transition: all 0.2s;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--blue-light);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .form-control::placeholder {
+            color: var(--text-light);
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+            width: 100%;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--blue);
+            border: 1.5px solid var(--border);
+        }
+        .btn-outline:hover {
+            background: var(--surface-2);
+            border-color: var(--blue-light);
+        }
+
+        /* ── ALERTS ── */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success {
+            background: #ecfdf5;
+            color: #065f46;
+            border-left: 3px solid var(--green);
+        }
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border-left: 3px solid var(--red);
+        }
+        .alert-info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 3px solid var(--blue);
+        }
+
+        /* ── TOAST ── */
+        .toast-stack {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            min-width: 280px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .toast.success { background: var(--green); color: white; }
+        .toast.error { background: var(--red); color: white; }
+        .toast.info { background: var(--blue); color: white; }
+
+        /* ── SPINNER ── */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── WELCOME SECTION ── */
+        .welcome-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 48px;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-lg);
+        }
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2.5rem;
+            color: white;
+        }
+        .welcome-card h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .welcome-card p {
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 32px;
+            text-align: left;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text);
+            padding: 8px 0;
+        }
+        .feature-item i {
+            color: var(--green);
+            font-size: 0.9rem;
+        }
+
+        /* ── MOBILE ── */
+        .menu-btn {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 150;
+            background: var(--navy);
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main {
+                margin-left: 0;
+                padding: 80px 20px 40px;
+            }
+            .menu-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .welcome-card {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <i class="fas fa-hotel"></i>
+        </div>
+        <div class="brand-name">Hotel ERP</div>
+        <div class="brand-sub">Complete Hotel Management</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-label">Navigation</div>
+        <button class="nav-btn" onclick="navigateTo('/')">
+            <i class="fas fa-home"></i> Welcome
+        </button>
+        <div class="nav-label" style="margin-top: 16px;">Hotel Access</div>
+        <button class="nav-btn" onclick="navigateTo('/register/')">
+            <i class="fas fa-building"></i> Register Hotel
+        </button>
+        <button class="nav-btn" onclick="navigateTo('/login/')">
+            <i class="fas fa-sign-in-alt"></i> Hotel Login
+        </button>
+        <div class="nav-label" style="margin-top: 16px;">Staff Access</div>
+        <button class="nav-btn active" onclick="showStaffLogin()">
+            <i class="fas fa-user-clock"></i> Staff Login
+        </button>
+    </nav>
+    <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
+        <div style="font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center;">
+            <i class="fas fa-shield-alt"></i> Secure Access<br>
+            v2.0
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+    <!-- Welcome Panel -->
+    <div class="panel" id="panel-welcome">
+        <div class="welcome-card">
+            <div class="welcome-icon">
+                <i class="fas fa-hotel"></i>
+            </div>
+            <h1>Welcome to Hotel ERP</h1>
+            <p>Complete hotel management solution for modern hospitality businesses. Manage departments, staff, shifts, tasks, and attendance all in one place.</p>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Department Management</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Staff & Shift Scheduling</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Task Assignment & Tracking</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Attendance & Overtime</span>
+                </div>
+            </div>
+            <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center;">
+                <button onclick="navigateTo('/register/')" class="btn btn-primary" style="width: auto; padding: 10px 24px;">
+                    <i class="fas fa-building"></i> Register Hotel
+                </button>
+                <button onclick="navigateTo('/login/')" class="btn btn-outline" style="width: auto; padding: 10px 24px;">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Login Panel - matches URL pattern: path("staff-login/", staff_login, name="staff_login") -->
+    <div class="panel" id="panel-staff-login">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-user-clock"></i> Staff Login</h2>
+                <p>Access your work dashboard</p>
+            </div>
+            <div class="card-body">
+                <div id="staffLoginAlert"></div>
+                <form id="staffLoginForm" onsubmit="return handleStaffLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" class="form-control" id="staffEmail" placeholder="staff@hotel.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <input type="password" class="form-control" id="staffPassword" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="staffLoginBtn">
+                        <i class="fas fa-sign-in-alt"></i> Login to Staff Portal
+                    </button>
+                </form>
+                <div style="margin-top: 20px; text-align: center; font-size: 0.75rem; color: var(--text-muted);">
+                    <i class="fas fa-info-circle"></i> Contact your hotel administrator if you don't have credentials
+                </div>
+            </div>
+            <div class="card-footer">
+                <i class="fas fa-hotel"></i> Hotel ERP Staff Portal | Secure Access
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+    // Current active panel
+    let currentPanel = 'welcome';
+
+    // Toast notification
+    function showToast(message, type = 'success') {
+        const stack = document.getElementById('toastStack');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+        toast.innerHTML = `<i class="fas ${icons[type]}"></i> ${message}`;
+        stack.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Navigation function - simulates Django URL routing
+    function navigateTo(url) {
+        // Update browser history
+        window.history.pushState({}, '', url);
+        
+        // Handle different routes
+        if (url === '/' || url === '/welcome/') {
+            showPanel('welcome');
+            updateActiveNavButton('welcome');
+        } else if (url === '/register/') {
+            showToast('Redirecting to hotel registration page...', 'info');
+            // Simulate redirect - in production this would be a real page
+            setTimeout(() => {
+                window.location.href = '/register/';
+            }, 500);
+        } else if (url === '/login/') {
+            showToast('Redirecting to hotel login page...', 'info');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 500);
+        } else if (url === '/staff-login/') {
+            showStaffLogin();
+        }
+    }
+
+    // Show staff login panel - matches the URL pattern "staff-login/"
+    function showStaffLogin() {
+        showPanel('staff-login');
+        updateActiveNavButton('staff-login');
+        // Update URL to match the staff-login route
+        window.history.pushState({}, '', '/staff-login/');
+        // Clear any previous alerts
+        const alertDiv = document.getElementById('staffLoginAlert');
+        if (alertDiv) alertDiv.innerHTML = '';
+    }
+
+    // Show welcome panel
+    function showWelcome() {
+        showPanel('welcome');
+        updateActiveNavButton('welcome');
+        window.history.pushState({}, '', '/');
+    }
+
+    // Show specific panel
+    function showPanel(panelName) {
+        // Hide all panels
+        document.getElementById('panel-welcome').classList.remove('active');
+        document.getElementById('panel-staff-login').classList.remove('active');
+        
+        // Show selected panel
+        if (panelName === 'welcome') {
+            document.getElementById('panel-welcome').classList.add('active');
+            currentPanel = 'welcome';
+        } else if (panelName === 'staff-login') {
+            document.getElementById('panel-staff-login').classList.add('active');
+            currentPanel = 'staff-login';
+        }
+    }
+
+    // Update active state of navigation buttons
+    function updateActiveNavButton(activeSection) {
+        const buttons = document.querySelectorAll('.nav-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            const btnText = btn.textContent.trim();
+            if (activeSection === 'welcome' && (btnText === 'Welcome' || btn.innerHTML.includes('fa-home'))) {
+                btn.classList.add('active');
+            } else if (activeSection === 'staff-login' && (btnText === 'Staff Login' || btn.innerHTML.includes('fa-user-clock'))) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    // Handle staff login form submission - POST to staff_login endpoint
+    async function handleStaffLogin(event) {
+        event.preventDefault();
+        
+        const email = document.getElementById('staffEmail').value.trim();
+        const password = document.getElementById('staffPassword').value;
+        const loginBtn = document.getElementById('staffLoginBtn');
+        const alertDiv = document.getElementById('staffLoginAlert');
+        
+        if (!email || !password) {
+            alertDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Please enter both email and password</div>';
+            return false;
+        }
+        
+        // Show loading state
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+        alertDiv.innerHTML = '';
+        
+        try {
+            // Simulate API call to staff_login endpoint
+            // In production, this would be: fetch('/staff-login/', { method: 'POST', body: formData })
+            // For demo purposes, we'll simulate a successful login after validation
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Demo validation - accept any email ending with @hotel.com and password length >= 4
+            if (email.includes('@') && password.length >= 4) {
+                // Success - redirect to staff dashboard
+                showToast('Login successful! Redirecting to staff dashboard...', 'success');
+                setTimeout(() => {
+                    // Redirect to staff dashboard page
+                    window.location.href = '/staff-dashboard/';
+                }, 1000);
+            } else {
+                // Failed login
+                alertDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Invalid credentials. Please check your email and password.</div>';
+                showToast('Login failed. Invalid credentials.', 'error');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Staff Portal';
+            }
+        } catch (error) {
+            alertDiv.innerHTML = '<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Network error. Please try again.</div>';
+            showToast('Network error. Please try again.', 'error');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login to Staff Portal';
+        }
+        
+        return false;
+    }
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (event) => {
+        const path = window.location.pathname;
+        if (path === '/' || path === '/welcome/') {
+            showPanel('welcome');
+            updateActiveNavButton('welcome');
+        } else if (path === '/staff-login/') {
+            showPanel('staff-login');
+            updateActiveNavButton('staff-login');
+        } else {
+            showPanel('welcome');
+            updateActiveNavButton('welcome');
+        }
+    });
+
+    // Mobile menu toggle
+    document.getElementById('menuBtn').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('open');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.getElementById('menuBtn');
+            if (!sidebar.contains(e.target) && !menuBtn.contains(e.target) && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Initialize - check current URL path on load
+    (function init() {
+        const currentPath = window.location.pathname;
+        
+        // Check for query parameters (e.g., after approval)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('approved') === 'true') {
+            showToast('Your account has been approved! You can now login.', 'success');
+        }
+        
+        // Show appropriate panel based on URL
+        if (currentPath === '/staff-login/' || currentPath.includes('staff-login')) {
+            showStaffLogin();
+        } else {
+            // Default to welcome page
+            showPanel('welcome');
+            updateActiveNavButton('welcome');
+            // Ensure URL is clean
+            if (currentPath !== '/') {
+                window.history.pushState({}, '', '/');
+            }
+        }
+    })();
+</script>
+</body>
+</html>

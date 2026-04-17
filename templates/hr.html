@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Dashboard | Hotel ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  {% csrf_token %}
+  <style>
+    :root {
+      --navy: #0d1b2e; --navy-mid: #162032; --navy-border: rgba(255,255,255,0.07);
+      --blue: #2563eb; --blue-light: #3b82f6; --blue-dim: #1e3a5f;
+      --surface: #ffffff; --surface-2: #f8fafc; --surface-3: #f1f5f9;
+      --border: #e2e8f0; --border-dark: #cbd5e1; --text: #0f172a;
+      --text-muted: #64748b; --text-light: #94a3b8;
+      --green: #059669; --green-bg: #ecfdf5; --amber: #d97706; --amber-bg: #fffbeb;
+      --red: #dc2626; --red-bg: #fef2f2; --purple: #7c3aed; --purple-bg: #f5f3ff;
+      --teal: #0891b2; --teal-bg: #ecfeff; --sidebar-w: 252px;
+      --radius: 10px; --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow: 0 4px 12px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 30px rgba(0,0,0,0.10); --transition: 0.18s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--surface-3); color: var(--text); min-height: 100vh; font-size: 13.5px; line-height: 1.5; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-w); background: var(--navy); display: flex; flex-direction: column; z-index: 200; overflow-y: auto; scrollbar-width: none; }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px; border-bottom: 1px solid var(--navy-border); flex-shrink: 0; }
+    .brand-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--blue); display: grid; place-items: center; color: #fff; font-size: 15px; flex-shrink: 0; }
+    .brand-name { font-size: 13px; font-weight: 600; color: #fff; line-height: 1.2; }
+    .brand-sub  { font-size: 10.5px; color: rgba(255,255,255,0.35); }
+    .nav-wrap { flex: 1; padding: 10px; }
+    .nav-section { margin-bottom: 4px; }
+    .nav-group-label { font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,0.25); padding: 10px 8px 5px; }
+    .nav-parent { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.55); font-size: 12.5px; font-weight: 500; transition: background var(--transition), color var(--transition); user-select: none; border: none; background: transparent; width: 100%; text-align: left; font-family: inherit; }
+    .nav-parent i.icon { width: 16px; text-align: center; font-size: 12px; flex-shrink: 0; }
+    .nav-parent .chevron { margin-left: auto; font-size: 9px; transition: transform .2s; }
+    .nav-parent:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .nav-parent.active { background: var(--blue); color: #fff; }
+    .nav-parent.open   { color: #fff; }
+    .sub-menu { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+    .sub-menu.open { max-height: 600px; }
+    .sub-item { display: flex; align-items: center; gap: 7px; padding: 6px 10px 6px 34px; border-radius: 7px; cursor: pointer; color: rgba(255,255,255,0.4); font-size: 12px; transition: color var(--transition), background var(--transition); }
+    .sub-item::before { content: '·'; font-size: 16px; line-height: 1; flex-shrink: 0; }
+    .sub-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
+    .sub-item.active { color: var(--blue-light); }
+    .sidebar-footer { padding: 12px 14px; border-top: 1px solid var(--navy-border); display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+    .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--blue-dim); color: var(--blue-light); font-size: 11px; font-weight: 600; display: grid; place-items: center; flex-shrink: 0; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 10px; color: rgba(255,255,255,0.3); }
+    .main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 22px; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .page-title { font-size: 14.5px; font-weight: 600; }
+    .breadcrumb { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+    .breadcrumb span { color: var(--text-light); }
+    .topbar-right { display: flex; align-items: center; gap: 6px; }
+    .tb-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; display: grid; place-items: center; font-size: 13px; color: var(--text-muted); position: relative; transition: background var(--transition); }
+    .tb-btn:hover { background: var(--surface-2); }
+    .notif-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; border-radius: 50%; background: var(--red); border: 1.5px solid var(--surface); }
+    .tb-avatar { width: 34px; height: 34px; border-radius: 50%; background: #dbeafe; color: var(--blue); font-size: 12px; font-weight: 600; display: grid; place-items: center; cursor: pointer; }
+    .content { flex: 1; padding: 22px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; align-items: center; gap: 14px; transition: box-shadow var(--transition), transform var(--transition); cursor: pointer; }
+    .metric-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+    .metric-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+    .ic-blue   { background: #dbeafe; color: var(--blue); }
+    .ic-green  { background: var(--green-bg); color: var(--green); }
+    .ic-amber  { background: var(--amber-bg); color: var(--amber); }
+    .ic-red    { background: var(--red-bg); color: var(--red); }
+    .ic-purple { background: var(--purple-bg); color: var(--purple); }
+    .ic-teal   { background: var(--teal-bg); color: var(--teal); }
+    .metric-val   { font-size: 22px; font-weight: 600; line-height: 1; font-family: 'DM Mono', monospace; }
+    .metric-label { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
+    .metric-sub   { font-size: 10.5px; color: var(--text-light); margin-top: 2px; }
+    .grid-2-1 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+    .grid-2   { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .card-head { padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-head-left { display: flex; align-items: center; gap: 8px; }
+    .card-head h3 { font-size: 13px; font-weight: 600; }
+    .card-head-icon { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; }
+    .card-body { padding: 16px 18px; }
+    .card-body-flush { padding: 0; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead th { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); background: var(--surface-2); padding: 9px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table tbody td { padding: 11px 16px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr { transition: background var(--transition); }
+    .data-table tbody tr:hover { background: var(--surface-2); }
+    .emp-cell { display: flex; align-items: center; gap: 9px; }
+    .emp-av { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 10.5px; font-weight: 600; flex-shrink: 0; }
+    .av-blue   { background: #dbeafe; color: var(--blue); }
+    .av-green  { background: var(--green-bg); color: var(--green); }
+    .av-amber  { background: var(--amber-bg); color: var(--amber); }
+    .av-purple { background: var(--purple-bg); color: var(--purple); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
+    .b-blue   { background: #dbeafe; color: var(--blue); }
+    .b-green  { background: var(--green-bg); color: var(--green); }
+    .b-amber  { background: var(--amber-bg); color: var(--amber); }
+    .b-red    { background: var(--red-bg); color: var(--red); }
+    .b-purple { background: var(--purple-bg); color: var(--purple); }
+    .b-gray   { background: var(--surface-3); color: var(--text-muted); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 15px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all var(--transition); font-family: inherit; }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger  { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-sm { padding: 5px 11px; font-size: 11.5px; }
+    .btn-icon { padding: 7px; border-radius: 7px; }
+    .btn:hover { background: var(--surface-2); }
+    .btn-primary:hover { background: #1d4ed8; }
+    .progress-wrap { background: var(--surface-3); border-radius: 20px; height: 6px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 20px; transition: width .6s ease; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 500; display: none; place-items: center; padding: 20px; }
+    .modal-backdrop.open { display: grid; }
+    .modal { background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 520px; box-shadow: var(--shadow-lg); animation: fadeUp .2s ease; }
+    .modal-lg { max-width: 680px; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h3 { font-size: 14px; font-weight: 600; }
+    .modal-body { padding: 18px 20px; }
+    .modal-close { width: 28px; height: 28px; border-radius: 7px; border: none; background: var(--surface-2); cursor: pointer; font-size: 1rem; transition: background var(--transition); }
+    .modal-footer { padding: 13px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
+    .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; font-family: inherit; background: var(--surface); color: var(--text); transition: border-color var(--transition); }
+    .form-control:focus { outline: none; border-color: var(--blue-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .toast-stack { position: fixed; top: 16px; right: 16px; z-index: 999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { padding: 11px 16px; border-radius: 10px; font-size: 12.5px; font-weight: 500; background: #0f172a; color: #fff; box-shadow: var(--shadow-lg); animation: toastIn .3s ease; display: flex; align-items: center; gap: 9px; pointer-events: auto; min-width: 220px; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+    .search-wrap { position: relative; }
+    .search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 11px; }
+    .search-wrap input { padding-left: 30px; }
+    .tabs { display: flex; gap: 2px; background: var(--surface-3); border-radius: 8px; padding: 3px; }
+    .tab { padding: 5px 13px; border-radius: 6px; border: none; background: transparent; font-size: 11.5px; font-weight: 500; cursor: pointer; color: var(--text-muted); font-family: inherit; transition: all var(--transition); }
+    .tab.active { background: var(--surface); color: var(--blue); box-shadow: var(--shadow-sm); }
+    .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .quick-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 13px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: all var(--transition); text-align: left; font-family: inherit; }
+    .quick-btn:hover { background: var(--surface-2); box-shadow: var(--shadow-sm); border-color: var(--border-dark); }
+    .qb-icon { font-size: 16px; color: var(--blue); }
+    .qb-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+    .qb-sub { font-size: 11px; color: var(--text-muted); }
+    .act-list { display: flex; flex-direction: column; gap: 12px; }
+    .act-item { display: flex; align-items: flex-start; gap: 10px; }
+    .act-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .act-text { font-size: 12.5px; font-weight: 500; }
+    .act-time { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .stat-row:last-child { border-bottom: none; }
+    .att-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .att-row:last-child { border-bottom: none; }
+    .leave-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .leave-row:last-child { border-bottom: none; }
+    .leave-info { flex: 1; }
+    .leave-name { font-size: 12.5px; font-weight: 600; }
+    .leave-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .empty-state { text-align: center; padding: 30px; color: var(--text-muted); font-size: 12.5px; }
+    .empty-state i { font-size: 28px; color: var(--text-light); display: block; margin-bottom: 8px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin: auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-row td { text-align: center; padding: 24px; }
+    .payslip-wrap { background: var(--surface-2); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .payslip-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+    .payslip-row:last-child { border-bottom: none; }
+    .payslip-total { display: flex; justify-content: space-between; padding: 10px 0 0; font-size: 14px; font-weight: 700; color: var(--green); }
+    .mobile-toggle { display: none; position: fixed; top: 11px; left: 11px; z-index: 300; width: 34px; height: 34px; background: var(--navy); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 190; }
+
+    /* ── SHIFT CALENDAR ── */
+    .shift-cal-header { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+    .shift-cal-nav { display: flex; align-items: center; gap: 8px; }
+    .shift-cal-month { font-size: 14px; font-weight: 600; min-width: 150px; text-align: center; }
+    .shift-cal-nav-btn { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: grid; place-items: center; font-size: 12px; color: var(--text-muted); transition: background var(--transition); }
+    .shift-cal-nav-btn:hover { background: var(--surface-2); }
+    .shift-cal-legend { display: flex; gap: 10px; flex-wrap: wrap; }
+    .shift-leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+    .shift-leg-dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+    .shift-cal-grid-wrap { padding: 14px 18px; overflow-x: auto; }
+    .shift-cal-daynames { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; margin-bottom: 6px; }
+    .shift-cal-dayname { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-muted); padding: 4px 0; }
+    .shift-cal-cells { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 4px; }
+    .shift-cal-cell { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; min-height: 82px; padding: 6px; cursor: pointer; transition: border-color var(--transition), background var(--transition); }
+    .shift-cal-cell:hover { border-color: var(--blue-light); background: #eff6ff; }
+    .shift-cal-cell.other-month { opacity: 0.38; pointer-events: none; }
+    .shift-cal-cell.today { border-color: var(--blue); border-width: 1.5px; }
+    .shift-cal-date { font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .shift-cal-cell.today .shift-cal-date { color: var(--blue); }
+    .shift-pill { font-size: 9.5px; font-weight: 500; border-radius: 4px; padding: 2px 5px; margin-bottom: 2px; display: flex; align-items: center; justify-content: space-between; gap: 3px; line-height: 1.4; }
+    .shift-pill-del { background: none; border: none; cursor: pointer; font-size: 9px; color: inherit; opacity: 0; padding: 0; line-height: 1; }
+    .shift-pill:hover .shift-pill-del { opacity: 0.7; }
+    .shift-morning   { background: #fffbeb; color: #92400e; }
+    .shift-afternoon { background: #eff6ff; color: #1e40af; }
+    .shift-night     { background: #f5f3ff; color: #4c1d95; }
+    .shift-more { font-size: 10px; color: var(--text-light); margin-top: 2px; }
+    .shift-add-hint { font-size: 9.5px; color: var(--text-light); text-align: center; margin-top: 4px; }
+
+    /* ── ATTENDANCE TRACKER ── */
+    .track-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 16px 18px; }
+    .track-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; display: flex; align-items: center; gap: 12px; transition: box-shadow var(--transition); }
+    .track-card:hover { box-shadow: var(--shadow-sm); }
+    .track-av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .track-name { font-size: 12.5px; font-weight: 600; }
+    .track-dept { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .track-status { margin-left: auto; }
+    .track-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .track-dot.present { background: var(--green); }
+    .track-dot.absent  { background: var(--red); }
+    .track-dot.working { background: var(--blue); }
+
+    @media (max-width: 960px) {
+      .sidebar { transform: translateX(-100%); transition: transform .25s ease; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .main { margin-left: 0; }
+      .mobile-toggle { display: grid; place-items: center; }
+      .topbar { padding-left: 54px; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2-1, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .quick-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="toast-stack" id="toastStack"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i class="fas fa-hotel"></i></div>
+    <div><div class="brand-name">Hotel ERP</div><div class="brand-sub">Human Resources</div></div>
+  </div>
+  <nav class="nav-wrap">
+    <div class="nav-section">
+      <button class="nav-parent active" onclick="switchPanel('overview')" data-panel="overview">
+        <i class="fas fa-chart-pie icon"></i> Overview
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-group-label">Workforce</div>
+      <button class="nav-parent" onclick="toggleSub('sub-employees',this)" data-panel="employees">
+        <i class="fas fa-users icon"></i> Employees <i class="fas fa-chevron-right chevron"></i>
+      </button>
+      <div class="sub-menu" id="sub-employees">
+        <div class="sub-item" onclick="switchPanel('employees')">Employee list</div>
+        <div class="sub-item" onclick="openModal('addEmployeeModal')">Add employee</div>
+      </div>
+      <button class="nav-parent" onclick="toggleSub('sub-shifts',this)" data-panel="shifts">
+        <i class="fas fa-rotate icon"></i> Shifts <i class="fas fa-chevron-right chevron"></i>
+      </button>
+      <div class="sub-menu" id="sub-shifts">
+        <div class="sub-item" onclick="switchPanel('shifts')">Shift calendar</div>
+        <div class="sub-item" onclick="openModal('addShiftModal')">Assign shift</div>
+        <div class="sub-item" onclick="switchPanel('shifts')">Weekly schedule</div>
+      </div>
+      <button class="nav-parent" onclick="toggleSub('sub-attendance',this)" data-panel="attendance">
+        <i class="fas fa-clock icon"></i> Attendance <i class="fas fa-chevron-right chevron"></i>
+      </button>
+      <div class="sub-menu" id="sub-attendance">
+        <div class="sub-item" onclick="switchPanel('attendance')">Track — today</div>
+        <div class="sub-item" onclick="switchPanel('attendance')">Daily report</div>
+        <div class="sub-item" onclick="switchPanel('attendance')">Monthly report</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-group-label">HR Operations</div>
+      <button class="nav-parent" onclick="toggleSub('sub-leave',this)" data-panel="leave">
+        <i class="fas fa-umbrella-beach icon"></i> Leave <i class="fas fa-chevron-right chevron"></i>
+      </button>
+      <div class="sub-menu" id="sub-leave">
+        <div class="sub-item" onclick="switchPanel('leave')">Requests — approve/reject</div>
+        <div class="sub-item" onclick="openModal('applyLeaveModal')">Apply leave</div>
+      </div>
+      <button class="nav-parent" onclick="toggleSub('sub-payroll',this)" data-panel="payroll">
+        <i class="fas fa-money-bill-wave icon"></i> Payroll <i class="fas fa-chevron-right chevron"></i>
+      </button>
+      <div class="sub-menu" id="sub-payroll">
+        <div class="sub-item" onclick="switchPanel('payroll')">Payroll dashboard</div>
+        <div class="sub-item" onclick="openModal('generatePayrollModal')">Generate salary</div>
+        <div class="sub-item" onclick="switchPanel('payroll')">Salary slips</div>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-avatar">{{ staff.name|first|upper }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ staff.name }}</div>
+      <div class="user-role">{{ hotel.hotel_name }}</div>
+    </div>
+    <button class="tb-btn" style="border:none;background:transparent;color:rgba(255,255,255,0.3);" onclick="window.location.href='/staff-login/'">
+      <i class="fas fa-arrow-right-from-bracket"></i>
+    </button>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="page-title" id="pageTitle">Overview</span>
+      <div class="breadcrumb">
+        <span>HR</span><i class="fas fa-chevron-right"></i>
+        <span id="breadcrumbSub" style="color:var(--text);">Dashboard</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn" title="Notifications" onclick="switchPanel('leave')">
+        <i class="fas fa-bell"></i>
+        <span class="notif-dot" id="notifDot" style="display:none;"></span>
+      </button>
+      <div class="tb-avatar">{{ staff.name|first|upper }}</div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- OVERVIEW PANEL -->
+    <div class="panel active" id="panel-overview">
+      <div class="metrics-grid">
+        <div class="metric-card" onclick="switchPanel('employees')">
+          <div class="metric-icon ic-blue"><i class="fas fa-users"></i></div>
+          <div>
+            <div class="metric-val" id="ov-total-staff">—</div>
+            <div class="metric-label">Total employees</div>
+            <div class="metric-sub" id="ov-total-depts">Loading…</div>
+          </div>
+        </div>
+        <div class="metric-card" onclick="switchPanel('attendance')">
+          <div class="metric-icon ic-green"><i class="fas fa-user-check"></i></div>
+          <div>
+            <div class="metric-val" id="ov-present">—</div>
+            <div class="metric-label">Present today</div>
+            <div class="metric-sub" id="ov-present-pct">Loading…</div>
+          </div>
+        </div>
+        <div class="metric-card" onclick="switchPanel('leave')">
+          <div class="metric-icon ic-amber"><i class="fas fa-umbrella-beach"></i></div>
+          <div>
+            <div class="metric-val" id="ov-leaves">—</div>
+            <div class="metric-label">Leave requests</div>
+            <div class="metric-sub" id="ov-leaves-sub">pending approval</div>
+          </div>
+        </div>
+        <div class="metric-card" onclick="switchPanel('payroll')">
+          <div class="metric-icon ic-red"><i class="fas fa-file-invoice-dollar"></i></div>
+          <div>
+            <div class="metric-val" id="ov-payroll-pending">—</div>
+            <div class="metric-label">Payroll pending</div>
+            <div class="metric-sub">unpaid slips</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2-1">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-blue"><i class="fas fa-users"></i></div>
+              <h3>Recent employees</h3>
+            </div>
+            <button class="btn btn-sm" onclick="switchPanel('employees')">View all</button>
+          </div>
+          <div class="card-body-flush">
+            <table class="data-table">
+              <thead><tr><th>Employee</th><th>Department</th><th>Role</th><th>Status</th></tr></thead>
+              <tbody id="ov-emp-rows"><tr class="loading-row"><td colspan="4"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-teal"><i class="fas fa-bolt"></i></div>
+              <h3>Quick actions</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="quick-grid">
+              <button class="quick-btn" onclick="switchPanel('attendance')">
+                <span class="qb-icon"><i class="fas fa-clock"></i></span>
+                <span class="qb-label">Track attendance</span>
+                <span class="qb-sub">Today's live</span>
+              </button>
+              <button class="quick-btn" onclick="switchPanel('leave')">
+                <span class="qb-icon"><i class="fas fa-file-circle-check"></i></span>
+                <span class="qb-label">Leave requests</span>
+                <span class="qb-sub">Approve / Reject</span>
+              </button>
+              <button class="quick-btn" onclick="switchPanel('payroll')">
+                <span class="qb-icon"><i class="fas fa-money-bill-wave"></i></span>
+                <span class="qb-label">Generate payroll</span>
+                <span class="qb-sub">Current month</span>
+              </button>
+              <button class="quick-btn" onclick="openModal('addEmployeeModal')">
+                <span class="qb-icon"><i class="fas fa-user-plus"></i></span>
+                <span class="qb-label">Add staff</span>
+                <span class="qb-sub">New employee</span>
+              </button>
+              <button class="quick-btn" onclick="openModal('addShiftModal')">
+                <span class="qb-icon"><i class="fas fa-rotate"></i></span>
+                <span class="qb-label">Assign shift</span>
+                <span class="qb-sub">Shift schedule</span>
+              </button>
+              <button class="quick-btn" onclick="openModal('applyLeaveModal')">
+                <span class="qb-icon"><i class="fas fa-calendar-plus"></i></span>
+                <span class="qb-label">Apply leave</span>
+                <span class="qb-sub">Staff leave form</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-purple"><i class="fas fa-sitemap"></i></div>
+              <h3>Departments</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="dept-list"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-green"><i class="fas fa-calendar-check"></i></div>
+              <h3>Today's attendance</h3>
+            </div>
+            <button class="btn btn-sm" onclick="switchPanel('attendance')">Full report</button>
+          </div>
+          <div class="card-body">
+            <div id="ov-att-list"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMPLOYEES PANEL -->
+    <div class="panel" id="panel-employees">
+      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card">
+          <div class="metric-icon ic-blue"><i class="fas fa-users"></i></div>
+          <div><div class="metric-val" id="emp-total">—</div><div class="metric-label">Total staff</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-purple"><i class="fas fa-sitemap"></i></div>
+          <div><div class="metric-val" id="emp-depts">—</div><div class="metric-label">Departments</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-green"><i class="fas fa-user-check"></i></div>
+          <div><div class="metric-val" id="emp-active">—</div><div class="metric-label">Active</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-blue"><i class="fas fa-users"></i></div>
+            <h3>All employees</h3>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div class="search-wrap">
+              <i class="fas fa-search"></i>
+              <input class="form-control" placeholder="Search…" oninput="filterTable('empTable',this.value)" style="width:180px;">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openModal('addEmployeeModal')">
+              <i class="fas fa-plus"></i> Add employee
+            </button>
+          </div>
+        </div>
+        <div class="card-body-flush">
+          <table class="data-table" id="empTable">
+            <thead>
+              <tr><th>Employee</th><th>ID</th><th>Department</th><th>Role</th><th>Phone</th><th>Salary</th><th>Join date</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="emp-tbody">
+              <tr class="loading-row"><td colspan="9"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE PANEL — Track People Attendance -->
+    <div class="panel" id="panel-attendance">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon ic-green"><i class="fas fa-user-check"></i></div>
+          <div><div class="metric-val" id="att-present">—</div><div class="metric-label">Present</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-red"><i class="fas fa-user-xmark"></i></div>
+          <div><div class="metric-val" id="att-absent">—</div><div class="metric-label">Absent</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-amber"><i class="fas fa-clock-rotate-left"></i></div>
+          <div><div class="metric-val" id="att-overtime">—</div><div class="metric-label">Total overtime hrs</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-blue"><i class="fas fa-hourglass-half"></i></div>
+          <div><div class="metric-val" id="att-working">—</div><div class="metric-label">Currently working</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <div class="tabs">
+          <button class="tab active" onclick="switchAttTab('live',this)">Track Today</button>
+          <button class="tab" onclick="switchAttTab('daily',this)">Daily Report</button>
+          <button class="tab" onclick="switchAttTab('monthly',this)">Monthly Report</button>
+        </div>
+      </div>
+
+      <!-- Track Today tab -->
+      <div id="att-live">
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-green"><i class="fas fa-circle" style="color:#22c55e;font-size:8px;"></i></div>
+              <h3>Track attendance — today</h3>
+            </div>
+            <button class="btn btn-sm" onclick="loadLiveAttendance()"><i class="fas fa-refresh"></i> Refresh</button>
+          </div>
+          <!-- Track board: person cards -->
+          <div class="track-board" id="att-track-board">
+            <div style="grid-column:1/-1;text-align:center;padding:20px;"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <!-- Table view below board -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-head-icon ic-blue"><i class="fas fa-table-list"></i></div>
+              <h3>Detailed view</h3>
+            </div>
+          </div>
+          <div class="card-body-flush">
+            <table class="data-table">
+              <thead><tr><th>Employee</th><th>Check in</th><th>Check out</th><th>Overtime</th><th>Status</th></tr></thead>
+              <tbody id="att-live-tbody"><tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily tab -->
+      <div id="att-daily" class="card" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-blue"><i class="fas fa-calendar-day"></i></div>
+            <h3>Daily report</h3>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="date" class="form-control" id="dailyDatePicker" style="width:160px;">
+            <button class="btn btn-primary btn-sm" onclick="loadDailyReport()">Load</button>
+          </div>
+        </div>
+        <div class="card-body-flush">
+          <table class="data-table">
+            <thead><tr><th>Employee</th><th>Status</th><th>Overtime hrs</th></tr></thead>
+            <tbody id="att-daily-tbody"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted);">Select a date and click Load</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Monthly tab -->
+      <div id="att-monthly" class="card" style="display:none;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-purple"><i class="fas fa-calendar-alt"></i></div>
+            <h3>Monthly report — current month</h3>
+          </div>
+          <button class="btn btn-sm" onclick="loadMonthlyReport()"><i class="fas fa-refresh"></i> Refresh</button>
+        </div>
+        <div class="card-body-flush">
+          <table class="data-table">
+            <thead><tr><th>Employee</th><th>Present</th><th>Absent</th><th>Late</th><th>Overtime hrs</th></tr></thead>
+            <tbody id="att-monthly-tbody"><tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAVE PANEL -->
+    <div class="panel" id="panel-leave">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-amber"><i class="fas fa-umbrella-beach"></i></div>
+            <h3>Leave requests</h3>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="loadLeaveRequests()"><i class="fas fa-refresh"></i> Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('applyLeaveModal')"><i class="fas fa-plus"></i> Apply leave</button>
+          </div>
+        </div>
+        <div class="card-body-flush">
+          <table class="data-table">
+            <thead><tr><th>Employee</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="leave-tbody"><tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYROLL PANEL -->
+    <div class="panel" id="panel-payroll">
+      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="metric-card">
+          <div class="metric-icon ic-green"><i class="fas fa-money-bills"></i></div>
+          <div><div class="metric-val" id="pay-total-net">—</div><div class="metric-label">Total net salary</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-amber"><i class="fas fa-hourglass-half"></i></div>
+          <div><div class="metric-val" id="pay-unpaid">—</div><div class="metric-label">Unpaid</div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon ic-blue"><i class="fas fa-check-circle"></i></div>
+          <div><div class="metric-val" id="pay-paid">—</div><div class="metric-label">Paid</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-green"><i class="fas fa-money-bills"></i></div>
+            <h3>Payroll overview</h3>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="loadPayroll()"><i class="fas fa-refresh"></i> Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('generatePayrollModal')">
+              <i class="fas fa-gear"></i> Generate payroll
+            </button>
+          </div>
+        </div>
+        <div class="card-body-flush">
+          <table class="data-table">
+            <thead>
+              <tr><th>Employee</th><th>Month/Year</th><th>Basic salary</th><th>Overtime</th><th>Deductions</th><th>Net pay</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="payroll-tbody">
+              <tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHIFTS PANEL — Calendar -->
+    <div class="panel" id="panel-shifts">
+
+      <!-- Shift Calendar Card -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="shift-cal-header">
+          <div class="shift-cal-nav">
+            <button class="shift-cal-nav-btn" onclick="calNav(-1)"><i class="fas fa-chevron-left"></i></button>
+            <span class="shift-cal-month" id="calMonthLabel"></span>
+            <button class="shift-cal-nav-btn" onclick="calNav(1)"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <div class="shift-cal-legend">
+            <span class="shift-leg"><span class="shift-leg-dot" style="background:#d97706;"></span>Morning</span>
+            <span class="shift-leg"><span class="shift-leg-dot" style="background:#2563eb;"></span>Afternoon</span>
+            <span class="shift-leg"><span class="shift-leg-dot" style="background:#7c3aed;"></span>Night</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addShiftModal')">
+            <i class="fas fa-plus"></i> Assign shift
+          </button>
+        </div>
+        <div class="shift-cal-grid-wrap">
+          <div class="shift-cal-daynames">
+            <div class="shift-cal-dayname">Sun</div>
+            <div class="shift-cal-dayname">Mon</div>
+            <div class="shift-cal-dayname">Tue</div>
+            <div class="shift-cal-dayname">Wed</div>
+            <div class="shift-cal-dayname">Thu</div>
+            <div class="shift-cal-dayname">Fri</div>
+            <div class="shift-cal-dayname">Sat</div>
+          </div>
+          <div class="shift-cal-cells" id="shiftCalCells"></div>
+        </div>
+      </div>
+
+      <!-- Weekly schedule card -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-head-icon ic-purple"><i class="fas fa-calendar-week"></i></div>
+            <h3>Weekly schedule</h3>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="date" id="weekStartPicker" class="form-control" style="width:160px;">
+            <button class="btn btn-sm" onclick="loadWeeklySchedule()">Load week</button>
+          </div>
+        </div>
+        <div class="card-body" id="weekly-schedule-body">
+          <p style="color:var(--text-muted);font-size:12.5px;">Select a start date to view weekly schedule.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Add Employee -->
+<div class="modal-backdrop" id="addEmployeeModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Add Employee</h3><button class="modal-close" onclick="closeModal('addEmployeeModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="empName" placeholder="John Doe" required></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="empEmail" type="email" placeholder="email@hotel.com"></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="empPhone" placeholder="+91 9876543210"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Department *</label><select class="form-control" id="empDept"><option value="">Select department…</option></select></div>
+        <div class="form-group"><label class="form-label">Role</label><input class="form-control" id="empRole" value="Staff"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Password *</label><input type="password" class="form-control" id="empPassword" required></div>
+        <div class="form-group"><label class="form-label">Salary (₹)</label><input class="form-control" id="empSalary" type="number" step="0.01" placeholder="25000"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Photo</label><input type="file" class="form-control" id="empPhoto" accept="image/*"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addEmployeeModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddStaff()">Add Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Employee -->
+<div class="modal-backdrop" id="editEmployeeModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Edit Employee</h3><button class="modal-close" onclick="closeModal('editEmployeeModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editEmpId">
+      <div class="form-group"><label class="form-label">Full Name</label><input class="form-control" id="editEmpName"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="editEmpEmail" type="email"></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-control" id="editEmpPhone"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Department</label><select class="form-control" id="editEmpDept"></select></div>
+        <div class="form-group"><label class="form-label">Role</label><input class="form-control" id="editEmpRole"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Salary (₹)</label><input class="form-control" id="editEmpSalary" type="number" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Photo</label><input type="file" class="form-control" id="editEmpPhoto" accept="image/*"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('editEmployeeModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditStaff()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="modal-backdrop" id="deleteEmpModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Delete Employee</h3><button class="modal-close" onclick="closeModal('deleteEmpModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;">Are you sure you want to delete <strong id="deleteEmpName"></strong>? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <input type="hidden" id="deleteEmpId">
+      <button class="btn" onclick="closeModal('deleteEmpModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDeleteStaff()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Shift -->
+<div class="modal-backdrop" id="addShiftModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Assign Shift</h3><button class="modal-close" onclick="closeModal('addShiftModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Employee *</label><select class="form-control" id="shiftStaffSelect"><option value="">Select employee…</option></select></div>
+      <div class="form-group"><label class="form-label">Department</label><select class="form-control" id="shiftDeptSelect"><option value="">Auto (from employee)</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Shift *</label>
+          <select class="form-control" id="shiftType">
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Night">Night</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Date *</label><input type="date" class="form-control" id="shiftDate"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('addShiftModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAssignShift()">Assign shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- Apply Leave -->
+<div class="modal-backdrop" id="applyLeaveModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Apply Leave</h3><button class="modal-close" onclick="closeModal('applyLeaveModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Employee *</label><select class="form-control" id="leaveEmpSelect"><option value="">Select employee…</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">From *</label><input type="date" class="form-control" id="leaveFrom"></div>
+        <div class="form-group"><label class="form-label">To *</label><input type="date" class="form-control" id="leaveTo"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Reason</label><textarea class="form-control" id="leaveReason" rows="3" placeholder="Optional reason…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('applyLeaveModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitApplyLeave()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generate Payroll -->
+<div class="modal-backdrop" id="generatePayrollModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Generate Payroll</h3><button class="modal-close" onclick="closeModal('generatePayrollModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;margin-bottom:14px;color:var(--text-muted);">Generate payroll for all employees for the selected month.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Month *</label>
+          <select class="form-control" id="payrollMonth">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Year *</label><input type="number" class="form-control" id="payrollYear" value="2025" min="2020" max="2030"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('generatePayrollModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitGeneratePayroll()">Process payroll</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payslip -->
+<div class="modal-backdrop" id="payslipModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Salary Slip</h3><button class="modal-close" onclick="closeModal('payslipModal')">✕</button></div>
+    <div class="modal-body" id="payslip-body"><div class="spinner"></div></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('payslipModal')">Close</button>
+      <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cell Shift modal (click day on calendar) -->
+<div class="modal-backdrop" id="cellShiftModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="cellShiftModalTitle">Shifts on date</h3>
+      <button class="modal-close" onclick="closeModal('cellShiftModal')">✕</button>
+    </div>
+    <div class="modal-body" id="cellShiftModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('cellShiftModal')">Close</button>
+      <button class="btn btn-primary" onclick="openAddShiftForDate()"><i class="fas fa-plus"></i> Add shift</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let staffData = [];
+  let deptData  = [];
+  let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  // ── SHIFT CALENDAR STATE ──
+  let calYear, calMonth;
+  let calShifts = {};  // key: "YYYY-MM-DD", value: [{staff, shift, id}, ...]
+  let selectedCalDate = null;
+
+  function calKey(y, m, d) {
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+
+  function initCal() {
+    const now = new Date();
+    calYear  = now.getFullYear();
+    calMonth = now.getMonth();
+    renderCal();
+  }
+
+  function calNav(dir) {
+    calMonth += dir;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    if (calMonth < 0)  { calMonth = 11; calYear--; }
+    renderCal();
+  }
+
+  function renderCal() {
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('calMonthLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const prevDays = new Date(calYear, calMonth, 0).getDate();
+    const today = new Date();
+
+    let cells = '';
+
+    // prev month fillers
+    for (let i = firstDay - 1; i >= 0; i--) {
+      cells += `<div class="shift-cal-cell other-month"><div class="shift-cal-date">${prevDays - i}</div></div>`;
+    }
+
+    // current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = calKey(calYear, calMonth, d);
+      const isToday = today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===d;
+      const shifts = calShifts[key] || [];
+      const visible = shifts.slice(0, 2);
+      const extra = shifts.length - 2;
+
+      let pillsHtml = visible.map(s => {
+        const cls = s.shift === 'Morning' ? 'shift-morning' : s.shift === 'Night' ? 'shift-night' : 'shift-afternoon';
+        return `<div class="shift-pill ${cls}">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70px;">${s.staff}</span>
+          <button class="shift-pill-del" onclick="event.stopPropagation();deleteCalShift('${key}',${s.id})" title="Remove">✕</button>
+        </div>`;
+      }).join('');
+
+      if (extra > 0) pillsHtml += `<div class="shift-more">+${extra} more</div>`;
+      if (shifts.length === 0) pillsHtml += `<div class="shift-add-hint">+ add</div>`;
+
+      cells += `<div class="shift-cal-cell${isToday?' today':''}" onclick="openCellModal('${key}', ${d})">
+        <div class="shift-cal-date">${d}</div>
+        ${pillsHtml}
+      </div>`;
+    }
+
+    // next month fillers
+    const total = firstDay + daysInMonth;
+    const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+    for (let i = 1; i <= remaining; i++) {
+      cells += `<div class="shift-cal-cell other-month"><div class="shift-cal-date">${i}</div></div>`;
+    }
+
+    document.getElementById('shiftCalCells').innerHTML = cells;
+  }
+
+  function openCellModal(dateKey, day) {
+    selectedCalDate = dateKey;
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('cellShiftModalTitle').textContent = `Shifts — ${day} ${MONTHS[calMonth]} ${calYear}`;
+    const shifts = calShifts[dateKey] || [];
+    let body = '';
+    if (!shifts.length) {
+      body = '<p style="color:var(--text-muted);font-size:12.5px;text-align:center;padding:10px 0;">No shifts assigned. Click "Add shift" to assign one.</p>';
+    } else {
+      body = shifts.map(s => {
+        const cls = s.shift === 'Morning' ? 'b-amber' : s.shift === 'Night' ? 'b-purple' : 'b-blue';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;">${s.staff}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${s.department||''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge ${cls}">${s.shift}</span>
+            <button class="btn btn-icon btn-sm" style="color:var(--red);" onclick="deleteCalShift('${dateKey}',${s.id});closeModal('cellShiftModal');"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('cellShiftModalBody').innerHTML = body;
+    openModal('cellShiftModal');
+  }
+
+  function openAddShiftForDate() {
+    closeModal('cellShiftModal');
+    if (selectedCalDate) {
+      document.getElementById('shiftDate').value = selectedCalDate;
+    }
+    openModal('addShiftModal');
+  }
+
+  function deleteCalShift(dateKey, shiftId) {
+    if (!shiftId) {
+      if (calShifts[dateKey]) {
+        calShifts[dateKey] = calShifts[dateKey].filter(s => s.id !== shiftId);
+        renderCal();
+      }
+      return;
+    }
+    apiFetch(`/delete-shift/${shiftId}/`, { method: 'POST' })
+      .then(data => {
+        if (data.success || data.status === 'ok') {
+          showToast('Shift removed', 'success');
+        }
+        if (calShifts[dateKey]) {
+          calShifts[dateKey] = calShifts[dateKey].filter(s => s.id !== shiftId);
+          renderCal();
+        }
+      })
+      .catch(() => {
+        if (calShifts[dateKey]) {
+          calShifts[dateKey] = calShifts[dateKey].filter(s => s.id !== shiftId);
+          renderCal();
+        }
+      });
+  }
+
+  async function loadShiftsIntoCalendar() {
+    try {
+      const data = await apiFetch('/get-shifts/');
+      calShifts = {};
+      (data || []).forEach(s => {
+        if (!s.date) return;
+        if (!calShifts[s.date]) calShifts[s.date] = [];
+        calShifts[s.date].push({ staff: s.staff, shift: s.shift, id: s.id, department: s.department });
+      });
+      renderCal();
+    } catch(e) {
+      renderCal();
+    }
+  }
+
+  // ── TOAST ──
+  function showToast(msg, type='info') {
+    const stack = document.getElementById('toastStack');
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type==='success'?'success':type==='error'?'error':'');
+    const icon = type==='success'?'check-circle':type==='error'?'circle-xmark':'info-circle';
+    t.innerHTML = `<i class="fas fa-${icon}"></i> ${msg}`;
+    stack.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  // ── MODAL ──
+  function openModal(id)  { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  document.querySelectorAll('.modal-backdrop').forEach(m =>
+    m.addEventListener('click', e => { if (e.target===m) m.classList.remove('open'); })
+  );
+
+  // ── NAV ──
+  function switchPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`panel-${name}`);
+    if (panel) panel.classList.add('active');
+    document.querySelectorAll('.nav-parent').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`.nav-parent[data-panel="${name}"]`);
+    if (btn) btn.classList.add('active');
+    document.getElementById('pageTitle').innerText = name.charAt(0).toUpperCase()+name.slice(1);
+    document.getElementById('breadcrumbSub').innerText = name.charAt(0).toUpperCase()+name.slice(1);
+    closeSidebar();
+    if (name==='attendance') { loadLiveAttendance(); loadMonthlyReport(); }
+    if (name==='leave')      { loadLeaveRequests(); }
+    if (name==='payroll')    { loadPayroll(); }
+    if (name==='shifts')     { loadShiftsIntoCalendar(); }
+  }
+
+  function toggleSub(id, btn) {
+    const sub = document.getElementById(id);
+    if (!sub) return;
+    sub.classList.toggle('open');
+    if (btn) {
+      btn.classList.toggle('open');
+      const ch = btn.querySelector('.chevron');
+      if (ch) ch.style.transform = sub.classList.contains('open')?'rotate(90deg)':'';
+    }
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+
+  document.getElementById('mobileToggle')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  });
+  document.getElementById('sidebarOverlay')?.addEventListener('click', closeSidebar);
+
+  function filterTable(tableId, query) {
+    document.querySelectorAll('#'+tableId+' tbody tr').forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(query.toLowerCase()) ? '' : 'none';
+    });
+  }
+
+  // ── FETCH ──
+  async function apiFetch(url, options={}) {
+    const res = await fetch(url, { headers: {'X-CSRFToken': csrfToken, ...options.headers}, ...options });
+    return res.json();
+  }
+  async function apiPost(url, body) {
+    const fd = body instanceof FormData ? body : new URLSearchParams(body);
+    return apiFetch(url, { method:'POST', body: fd, headers:{'X-CSRFToken': csrfToken} });
+  }
+
+  // ── DEPARTMENTS ──
+  async function loadDepartments() {
+    try {
+      deptData = await apiFetch('/get-departments/');
+      populateDeptSelects();
+      renderDeptList();
+    } catch(e) { console.error(e); }
+  }
+
+  function populateDeptSelects() {
+    const opts = deptData.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    ['empDept','editEmpDept','shiftDeptSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        const base = id==='shiftDeptSelect' ? '<option value="">Auto (from employee)</option>' : '<option value="">Select department…</option>';
+        el.innerHTML = base + opts;
+      }
+    });
+  }
+
+  function renderDeptList() {
+    const el = document.getElementById('dept-list');
+    if (!el) return;
+    if (!deptData.length) { el.innerHTML = '<p class="empty-state">No departments</p>'; return; }
+    el.innerHTML = deptData.map(d => `
+      <div class="stat-row">
+        <div><div style="font-size:12.5px;font-weight:600;">${d.name}</div><div style="font-size:11px;color:var(--text-muted);">${d.staff_count} staff</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:120px;">
+          <div class="progress-wrap" style="flex:1;"><div class="progress-fill" style="width:${Math.min(100,d.staff_count*10)}%;background:var(--blue);"></div></div>
+          <span style="font-size:11px;font-family:'DM Mono';">${d.staff_count}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── STAFF ──
+  async function loadStaff() {
+    try {
+      const data = await apiFetch('/get-staff/');
+      if (data.success) {
+        staffData = data.staffs;
+        renderStaffTable(); renderOverviewStaff(); populateStaffSelects(); updateOverviewMetrics();
+      } else showToast(data.error||'Failed to load staff','error');
+    } catch(e) { showToast('Server error loading staff','error'); }
+  }
+
+  function renderStaffTable() {
+    const tbody = document.getElementById('emp-tbody');
+    if (!tbody) return;
+    if (!staffData.length) {
+      tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><i class="fas fa-users"></i>No employees found</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = staffData.map(emp => `
+      <tr>
+        <td><div class="emp-cell"><div class="emp-av av-blue">${(emp.name?.charAt(0)||'S').toUpperCase()}</div>
+          <div><div style="font-weight:500;">${emp.name}</div><div style="font-size:11px;color:var(--text-muted);">${emp.email||'-'}</div></div>
+        </div></td>
+        <td style="font-family:'DM Mono';font-size:11.5px;">${emp.employee_id||'EMP'+emp.id}</td>
+        <td>${emp.department_name||'N/A'}</td>
+        <td><span class="badge b-blue">${emp.role||'Staff'}</span></td>
+        <td>${emp.phone||'-'}</td>
+        <td style="font-family:'DM Mono';">₹${parseFloat(emp.salary||0).toLocaleString()}</td>
+        <td>${emp.joining_date||'-'}</td>
+        <td><span class="badge b-green">Active</span></td>
+        <td><div style="display:flex;gap:4px;">
+          <button class="btn btn-icon btn-sm" onclick="openEditModal(${emp.id})"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-icon btn-sm" style="color:var(--red);" onclick="openDeleteModal(${emp.id},'${emp.name.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>
+        </div></td>
+      </tr>`).join('');
+    document.getElementById('emp-total').innerText  = staffData.length;
+    document.getElementById('emp-active').innerText = staffData.length;
+    const depts = new Set(staffData.map(s=>s.department_name).filter(Boolean));
+    document.getElementById('emp-depts').innerText = depts.size;
+  }
+
+  function renderOverviewStaff() {
+    const tbody = document.getElementById('ov-emp-rows');
+    if (!tbody) return;
+    const rows = staffData.slice(0,5).map(emp => `
+      <tr>
+        <td><div class="emp-cell"><div class="emp-av av-blue">${emp.name.charAt(0).toUpperCase()}</div>${emp.name}</div></td>
+        <td>${emp.department_name||'N/A'}</td>
+        <td><span class="badge b-blue">${emp.role||'Staff'}</span></td>
+        <td><span class="badge b-green">Active</span></td>
+      </tr>`).join('');
+    tbody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);">No staff</td></tr>';
+  }
+
+  function populateStaffSelects() {
+    const opts = staffData.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    ['leaveEmpSelect','shiftStaffSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<option value="">Select employee…</option>' + opts;
+    });
+  }
+
+  function updateOverviewMetrics() {
+    document.getElementById('ov-total-staff').innerText = staffData.length;
+    const depts = new Set(staffData.map(s=>s.department_name).filter(Boolean));
+    document.getElementById('ov-total-depts').innerText = `${depts.size} departments`;
+  }
+
+  function openEditModal(staffId) {
+    const emp = staffData.find(s=>s.id===staffId);
+    if (!emp) return;
+    document.getElementById('editEmpId').value    = emp.id;
+    document.getElementById('editEmpName').value  = emp.name;
+    document.getElementById('editEmpEmail').value = emp.email||'';
+    document.getElementById('editEmpPhone').value = emp.phone||'';
+    document.getElementById('editEmpRole').value  = emp.role||'';
+    document.getElementById('editEmpSalary').value= emp.salary||'';
+    const sel = document.getElementById('editEmpDept');
+    if (sel) {
+      const opts = deptData.map(d=>`<option value="${d.id}" ${d.name===emp.department_name?'selected':''}>${d.name}</option>`).join('');
+      sel.innerHTML = '<option value="">Select…</option>' + opts;
+    }
+    openModal('editEmployeeModal');
+  }
+
+  async function submitEditStaff() {
+    const staffId = document.getElementById('editEmpId').value;
+    const fd = new FormData();
+    fd.append('staff_id', staffId);
+    fd.append('name',   document.getElementById('editEmpName').value);
+    fd.append('email',  document.getElementById('editEmpEmail').value);
+    fd.append('phone',  document.getElementById('editEmpPhone').value);
+    fd.append('role',   document.getElementById('editEmpRole').value);
+    fd.append('salary', document.getElementById('editEmpSalary').value);
+    fd.append('department', document.getElementById('editEmpDept').value);
+    const photo = document.getElementById('editEmpPhoto').files[0];
+    if (photo) fd.append('photo', photo);
+    try {
+      const data = await apiFetch('/update-staff/', { method:'POST', body: fd });
+      if (data.success) { showToast(data.message,'success'); closeModal('editEmployeeModal'); loadStaff(); }
+      else showToast(data.error||'Update failed','error');
+    } catch(e) { showToast('Error updating staff','error'); }
+  }
+
+  function openDeleteModal(staffId, name) {
+    document.getElementById('deleteEmpId').value = staffId;
+    document.getElementById('deleteEmpName').innerText = name;
+    openModal('deleteEmpModal');
+  }
+
+  async function confirmDeleteStaff() {
+    const staffId = document.getElementById('deleteEmpId').value;
+    try {
+      const data = await apiPost('/delete-staff/', { staff_id: staffId });
+      if (data.success) { showToast(data.message,'success'); closeModal('deleteEmpModal'); loadStaff(); }
+      else showToast(data.error||'Delete failed','error');
+    } catch(e) { showToast('Error deleting staff','error'); }
+  }
+
+  async function submitAddStaff() {
+    const fd = new FormData();
+    fd.append('name',       document.getElementById('empName').value);
+    fd.append('email',      document.getElementById('empEmail').value);
+    fd.append('phone',      document.getElementById('empPhone').value);
+    fd.append('department', document.getElementById('empDept').value);
+    fd.append('role',       document.getElementById('empRole').value);
+    fd.append('password',   document.getElementById('empPassword').value);
+    fd.append('salary',     document.getElementById('empSalary').value);
+    const photo = document.getElementById('empPhoto').files[0];
+    if (photo) fd.append('photo', photo);
+    if (!fd.get('name')||!fd.get('department')) { showToast('Name and department are required','error'); return; }
+    try {
+      const data = await apiFetch('/add-staff/', { method:'POST', body: fd });
+      if (data.success) {
+        showToast(data.message,'success');
+        closeModal('addEmployeeModal');
+        ['empName','empEmail','empPhone','empPassword','empSalary'].forEach(id => document.getElementById(id).value='');
+        loadStaff();
+      } else showToast(data.error||'Add failed','error');
+    } catch(e) { showToast('Error adding staff','error'); }
+  }
+
+  // ── SHIFTS ──
+  async function submitAssignShift() {
+    const fd = {
+      staff:      document.getElementById('shiftStaffSelect').value,
+      department: document.getElementById('shiftDeptSelect').value,
+      shift:      document.getElementById('shiftType').value,
+      date:       document.getElementById('shiftDate').value,
+    };
+    if (!fd.staff||!fd.shift||!fd.date) { showToast('Employee, shift and date are required','error'); return; }
+    try {
+      const data = await apiPost('/assign-shift/', fd);
+      if (data.success) {
+        showToast(data.message,'success');
+        closeModal('addShiftModal');
+        // add to local calendar state
+        if (!calShifts[fd.date]) calShifts[fd.date] = [];
+        const emp = staffData.find(s=>String(s.id)===String(fd.staff));
+        calShifts[fd.date].push({ staff: emp ? emp.name : fd.staff, shift: fd.shift, id: data.id || Date.now(), department: fd.department });
+        renderCal();
+      } else showToast(data.error||'Assign failed','error');
+    } catch(e) { showToast('Error assigning shift','error'); }
+  }
+
+  async function loadWeeklySchedule() {
+    const start = document.getElementById('weekStartPicker').value;
+    if (!start) { showToast('Select a start date','error'); return; }
+    try {
+      const data = await apiFetch(`/weekly-schedule/?start_date=${start}`);
+      const body = document.getElementById('weekly-schedule-body');
+      const days = Object.keys(data);
+      if (!days.length) { body.innerHTML='<p style="color:var(--text-muted);font-size:12.5px;">No shifts this week.</p>'; return; }
+      body.innerHTML = days.map(day => `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:700;color:var(--blue);margin-bottom:6px;">${day}</div>
+          ${data[day].map(s=>`
+            <div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+              <span class="badge b-blue" style="min-width:70px;justify-content:center;">${s.shift}</span>
+              <span style="font-size:12.5px;">${s.staff}</span>
+              <span style="font-size:11px;color:var(--text-muted);">${s.department}</span>
+            </div>`).join('')}
+        </div>`).join('');
+    } catch(e) { showToast('Error loading weekly schedule','error'); }
+  }
+
+  // ── ATTENDANCE TRACKER ──
+  async function loadLiveAttendance() {
+    try {
+      const data = await apiFetch('/attendance/live/');
+      const tbody = document.getElementById('att-live-tbody');
+      const board = document.getElementById('att-track-board');
+      const ovList = document.getElementById('ov-att-list');
+
+      let present=0, working=0, totalOT=0;
+      if (!data.length) {
+        if (tbody) tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="fas fa-clock"></i>No attendance records today</div></td></tr>';
+        if (board) board.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-muted);font-size:12.5px;">No attendance records today.</div>';
+        if (ovList) ovList.innerHTML='<div class="empty-state"><i class="fas fa-clock"></i>No records</div>';
+        ['att-present','att-absent','att-working','att-overtime'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerText='0'; });
+        document.getElementById('ov-present') && (document.getElementById('ov-present').innerText='0');
+        return;
+      }
+
+      // Track board cards
+      if (board) {
+        board.innerHTML = data.map(r => {
+          const statusCls = r.status==='Working'?'working':r.status==='Left'?'present':'absent';
+          const avBg = r.status==='Working'?'#dbeafe':r.status==='Left'?'#ecfdf5':'#fef2f2';
+          const avCl = r.status==='Working'?'#1d4ed8':r.status==='Left'?'#059669':'#dc2626';
+          return `<div class="track-card">
+            <div class="track-av" style="background:${avBg};color:${avCl};">${r.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div class="track-name">${r.name}</div>
+              <div class="track-dept">${r.check_in ? 'In: '+new Date(r.check_in).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'Not checked in'}</div>
+            </div>
+            <div class="track-status">
+              <span class="badge ${r.status==='Working'?'b-blue':r.status==='Left'?'b-green':'b-red'}">
+                <span class="track-dot ${statusCls}"></span>${r.status}
+              </span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      // Table
+      if (tbody) tbody.innerHTML = data.map(r => {
+        const statusClass = r.status==='Working'?'b-green':r.status==='Left'?'b-blue':'b-red';
+        if (r.status==='Working'||r.status==='Left') present++;
+        if (r.status==='Working') working++;
+        totalOT += r.overtime_hours||0;
+        return `<tr>
+          <td><div class="emp-cell"><div class="emp-av av-green">${r.name.charAt(0)}</div>${r.name}</div></td>
+          <td>${r.check_in ? new Date(r.check_in).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+          <td>${r.check_out ? new Date(r.check_out).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+          <td>${r.overtime_hours ? r.overtime_hours.toFixed(1)+'h' : '0h'}</td>
+          <td><span class="badge ${statusClass}">${r.status}</span></td>
+        </tr>`;
+      }).join('');
+
+      const absent = staffData.length - present;
+      document.getElementById('att-present') && (document.getElementById('att-present').innerText=present);
+      document.getElementById('att-absent')  && (document.getElementById('att-absent').innerText=Math.max(0,absent));
+      document.getElementById('att-working') && (document.getElementById('att-working').innerText=working);
+      document.getElementById('att-overtime')&& (document.getElementById('att-overtime').innerText=totalOT.toFixed(1));
+      document.getElementById('ov-present')  && (document.getElementById('ov-present').innerText=present);
+      const pct = staffData.length ? Math.round(present/staffData.length*100) : 0;
+      document.getElementById('ov-present-pct') && (document.getElementById('ov-present-pct').innerText=`${pct}% rate`);
+
+      if (ovList) ovList.innerHTML = data.slice(0,5).map(r => {
+        const statusClass = r.status==='Working'?'b-green':r.status==='Left'?'b-blue':'b-red';
+        return `<div class="att-row">
+          <div class="emp-cell"><div class="emp-av av-green">${r.name.charAt(0)}</div><div>
+            <div style="font-size:12.5px;font-weight:600;">${r.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${r.check_in ? 'In: '+new Date(r.check_in).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'Not checked in'}</div>
+          </div></div>
+          <span class="badge ${statusClass}">${r.status}</span>
+        </div>`;
+      }).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  async function loadDailyReport() {
+    const date = document.getElementById('dailyDatePicker').value;
+    if (!date) { showToast('Select a date','error'); return; }
+    const tbody = document.getElementById('att-daily-tbody');
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="3"><div class="spinner"></div></td></tr>';
+    try {
+      const data = await apiFetch(`/attendance/daily/?date=${date}`);
+      if (!data.length) { tbody.innerHTML='<tr><td colspan="3"><div class="empty-state"><i class="fas fa-calendar"></i>No records for this date</div></td></tr>'; return; }
+      tbody.innerHTML = data.map(r=>`
+        <tr>
+          <td>${r.name}</td>
+          <td><span class="badge ${r.status==='Present'?'b-green':r.status==='Absent'?'b-red':'b-amber'}">${r.status}</span></td>
+          <td>${r.overtime ? r.overtime.toFixed(1)+'h' : '0h'}</td>
+        </tr>`).join('');
+    } catch(e) { showToast('Error loading daily report','error'); }
+  }
+
+  async function loadMonthlyReport() {
+    const tbody = document.getElementById('att-monthly-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>';
+    try {
+      const data = await apiFetch('/attendance/monthly/');
+      if (!data.length) { tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="fas fa-chart-bar"></i>No monthly records</div></td></tr>'; return; }
+      tbody.innerHTML = data.map(r=>`
+        <tr>
+          <td>${r.staff__name}</td>
+          <td><span style="color:var(--green);font-weight:600;">${r.present}</span></td>
+          <td><span style="color:var(--red);font-weight:600;">${r.absent}</span></td>
+          <td><span style="color:var(--amber);font-weight:600;">${r.late}</span></td>
+          <td>${(r.overtime||0).toFixed(1)}h</td>
+        </tr>`).join('');
+    } catch(e) { showToast('Error loading monthly report','error'); }
+  }
+
+  function switchAttTab(tab, btn) {
+    ['live','daily','monthly'].forEach(t => {
+      const el = document.getElementById('att-'+t);
+      if (el) el.style.display = t===tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (tab==='monthly') loadMonthlyReport();
+  }
+
+  // ── LEAVE ──
+  async function loadLeaveRequests() {
+    const tbody = document.getElementById('leave-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="spinner"></div></td></tr>';
+    try {
+      const data = await apiFetch('/leave/requests/');
+      const pending = data.filter(l=>l.status==='Pending').length;
+      document.getElementById('ov-leaves') && (document.getElementById('ov-leaves').innerText=pending);
+      if (pending>0) document.getElementById('notifDot').style.display='';
+      if (!data.length) { tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="fas fa-umbrella-beach"></i>No leave requests</div></td></tr>'; return; }
+      tbody.innerHTML = data.map(l => {
+        const sc = l.status==='Approved'?'b-green':l.status==='Rejected'?'b-red':'b-amber';
+        const actions = l.status==='Pending' ? `
+          <div style="display:flex;gap:4px;">
+            <button class="btn btn-success btn-sm" onclick="updateLeave(${l.id},'approve')">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="updateLeave(${l.id},'reject')">Reject</button>
+          </div>` : '—';
+        return `<tr>
+          <td><div class="emp-cell"><div class="emp-av av-amber">${l.staff.charAt(0)}</div>${l.staff}</div></td>
+          <td>${l.from_date}</td><td>${l.to_date}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.reason||'—'}</td>
+          <td><span class="badge ${sc}">${l.status}</span></td>
+          <td>${actions}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) { showToast('Error loading leave requests','error'); }
+  }
+
+  async function updateLeave(leaveId, action) {
+    try {
+      const data = await apiPost(`/leave/update/${leaveId}/`, { action });
+      if (data.success) { showToast(`Leave ${action}d successfully`,'success'); loadLeaveRequests(); }
+      else showToast(data.error||'Action failed','error');
+    } catch(e) { showToast('Error updating leave','error'); }
+  }
+
+  async function submitApplyLeave() {
+    const staffSel = document.getElementById('leaveEmpSelect');
+    const from = document.getElementById('leaveFrom').value;
+    const to   = document.getElementById('leaveTo').value;
+    const reason = document.getElementById('leaveReason').value;
+    if (!staffSel.value||!from||!to) { showToast('Employee and dates are required','error'); return; }
+    try {
+      const data = await apiPost('/leave/apply/', { from_date: from, to_date: to, reason });
+      if (data.success) { showToast('Leave applied successfully','success'); closeModal('applyLeaveModal'); loadLeaveRequests(); }
+      else showToast(data.error||'Failed','error');
+    } catch(e) { showToast('Error applying leave','error'); }
+  }
+
+  // ── PAYROLL ──
+  async function loadPayroll() {
+    const tbody = document.getElementById('payroll-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>';
+    try {
+      const data = await apiFetch('/payroll/dashboard/');
+      let totalNet=0, unpaid=0, paid=0;
+      if (!data.length) {
+        tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><i class="fas fa-money-bills"></i>No payroll records. Generate payroll first.</div></td></tr>';
+        document.getElementById('pay-total-net').innerText='₹0';
+        document.getElementById('pay-unpaid').innerText=0;
+        document.getElementById('pay-paid').innerText=0;
+        document.getElementById('ov-payroll-pending') && (document.getElementById('ov-payroll-pending').innerText=0);
+        return;
+      }
+      tbody.innerHTML = data.map(p => {
+        totalNet += parseFloat(p.net_salary||0);
+        if (p.paid) paid++; else unpaid++;
+        const sc = p.paid?'b-green':'b-amber';
+        const months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `<tr>
+          <td>${p.staff}</td>
+          <td>${months[p.month]||p.month} ${p.year}</td>
+          <td style="font-family:'DM Mono';">₹${parseFloat(p.basic_salary||0).toLocaleString()}</td>
+          <td style="color:var(--green);font-family:'DM Mono';">₹${parseFloat(p.overtime_amount||0).toLocaleString()}</td>
+          <td style="color:var(--red);font-family:'DM Mono';">₹${parseFloat(p.deductions||0).toLocaleString()}</td>
+          <td style="font-weight:700;font-family:'DM Mono';">₹${parseFloat(p.net_salary||0).toLocaleString()}</td>
+          <td><span class="badge ${sc}">${p.paid_status||'Pending'}</span></td>
+          <td><button class="btn btn-icon btn-sm" onclick="viewPayslip(${p.id})"><i class="fas fa-file-lines"></i></button></td>
+        </tr>`;
+      }).join('');
+      document.getElementById('pay-total-net').innerText='₹'+Math.round(totalNet).toLocaleString();
+      document.getElementById('pay-unpaid').innerText=unpaid;
+      document.getElementById('pay-paid').innerText=paid;
+      document.getElementById('ov-payroll-pending') && (document.getElementById('ov-payroll-pending').innerText=unpaid);
+    } catch(e) { showToast('Error loading payroll','error'); }
+  }
+
+  async function viewPayslip(payrollId) {
+    openModal('payslipModal');
+    document.getElementById('payslip-body').innerHTML='<div class="spinner"></div>';
+    try {
+      const p = await apiFetch(`/payroll/payslip/${payrollId}/`);
+      const months=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+      document.getElementById('payslip-body').innerHTML=`
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:16px;font-weight:700;">{{ hotel.hotel_name }}</div>
+          <div style="font-size:12px;color:var(--text-muted);">Salary Slip — ${months[p.month]||p.month} ${p.year}</div>
+        </div>
+        <div class="payslip-wrap">
+          <div class="payslip-row"><span>Employee</span><span style="font-weight:600;">${p.staff}</span></div>
+          <div class="payslip-row"><span>Employee ID</span><span style="font-family:'DM Mono';">${p.employee_id}</span></div>
+          <div class="payslip-row"><span>Period</span><span>${months[p.month]||p.month} ${p.year}</span></div>
+        </div>
+        <div class="payslip-wrap">
+          <div class="payslip-row"><span>Basic Salary</span><span style="font-family:'DM Mono';">₹${parseFloat(p.basic_salary||0).toLocaleString()}</span></div>
+          <div class="payslip-row" style="color:var(--green);"><span>Overtime</span><span style="font-family:'DM Mono';">+ ₹${parseFloat(p.overtime||0).toLocaleString()}</span></div>
+          <div class="payslip-row" style="color:var(--red);"><span>Deductions</span><span style="font-family:'DM Mono';">− ₹${parseFloat(p.deductions||0).toLocaleString()}</span></div>
+          <div class="payslip-total"><span>Net Salary</span><span>₹${parseFloat(p.net_salary||0).toLocaleString()}</span></div>
+        </div>
+        <div style="text-align:center;margin-top:8px;">
+          <span class="badge ${p.paid_status==='Paid'?'b-green':'b-amber'}" style="font-size:12px;">${p.paid_status||'Pending'}</span>
+        </div>`;
+    } catch(e) { document.getElementById('payslip-body').innerHTML='<p class="empty-state">Failed to load payslip.</p>'; }
+  }
+
+  async function submitGeneratePayroll() {
+    const month = document.getElementById('payrollMonth').value;
+    const year  = document.getElementById('payrollYear').value;
+    try {
+      const data = await apiPost('/payroll/generate/', { month, year });
+      if (data.success) { showToast(data.message,'success'); closeModal('generatePayrollModal'); if (document.getElementById('panel-payroll').classList.contains('active')) loadPayroll(); }
+      else showToast(data.error||'Generation failed','error');
+    } catch(e) { showToast('Error generating payroll','error'); }
+  }
+
+  // ── INIT ──
+  function initDateDefaults() {
+    const today = new Date().toISOString().split('T')[0];
+    const el = document.getElementById('dailyDatePicker');
+    if (el) el.value = today;
+    const sd = document.getElementById('shiftDate');
+    if (sd) sd.value = today;
+    const now = new Date();
+    const pm = document.getElementById('payrollMonth');
+    if (pm) pm.value = now.getMonth()+1;
+    const py = document.getElementById('payrollYear');
+    if (py) py.value = now.getFullYear();
+  }
+
+  async function init() {
+    initDateDefaults();
+    initCal();
+    await loadDepartments();
+    await loadStaff();
+    loadLiveAttendance();
+    loadLeaveRequests();
+  }
+
+  init();
+</script>
+</body>
+</html>

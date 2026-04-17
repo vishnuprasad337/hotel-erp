@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Admin Login | Hotel ERP Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a2540 0%, #1a3a5c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* animated background pattern */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.08"><path fill="none" stroke="white" stroke-width="0.5" d="M10 10 L90 10 M10 20 L90 20 M10 30 L90 30 M10 40 L90 40 M10 50 L90 50 M10 60 L90 60 M10 70 L90 70 M10 80 L90 80 M10 90 L90 90 M20 10 L20 90 M30 10 L30 90 M40 10 L40 90 M50 10 L50 90 M60 10 L60 90 M70 10 L70 90 M80 10 L80 90"/><circle cx="30" cy="30" r="2" fill="white"/><circle cx="70" cy="70" r="2" fill="white"/><circle cx="50" cy="20" r="1.5" fill="white"/></svg>');
+            background-repeat: repeat;
+            pointer-events: none;
+        }
+
+        /* floating orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: #2c7da0;
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #1e4a6e;
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: #3b82f6;
+            top: 40%;
+            right: 10%;
+            animation-delay: 2s;
+            opacity: 0.25;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, 30px) scale(1.05); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        /* main card */
+        .login-container {
+            width: 100%;
+            max-width: 460px;
+            margin: 20px;
+            position: relative;
+            z-index: 10;
+            animation: fadeSlideUp 0.5s ease-out;
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(2px);
+            border-radius: 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.2);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #0f2b3d 0%, #0a1c2a 100%);
+            padding: 32px 28px;
+            text-align: center;
+            position: relative;
+        }
+
+        .brand-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(145deg, #2c7da0, #1f5e7a);
+            margin: 0 auto 16px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 12px 18px -8px rgba(0,0,0,0.3);
+        }
+
+        .brand-icon i {
+            font-size: 32px;
+            color: white;
+        }
+
+        .login-header h2 {
+            color: white;
+            font-weight: 700;
+            font-size: 1.6rem;
+            letter-spacing: -0.3px;
+            margin-bottom: 6px;
+        }
+
+        .login-header p {
+            color: #94b8cf;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .login-body {
+            padding: 36px 32px 40px;
+        }
+
+        /* form styling */
+        .input-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1rem;
+            transition: color 0.2s;
+            pointer-events: none;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px 14px 46px;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            background: #ffffff;
+            transition: all 0.25s;
+            outline: none;
+            font-weight: 500;
+            color: #0f172a;
+        }
+
+        .input-group input:focus {
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 4px rgba(44, 125, 160, 0.12);
+        }
+
+        .input-group input:focus + i {
+            color: #2c7da0;
+        }
+
+        /* options row (remember / forgot) */
+        .options-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            font-size: 0.8rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #334155;
+            font-weight: 500;
+        }
+
+        .checkbox-label input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #2c7da0;
+        }
+
+        .forgot-link {
+            color: #2c7da0;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .forgot-link:hover {
+            color: #1a4b63;
+            text-decoration: underline;
+        }
+
+        /* login button */
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(95deg, #1a5f7a, #2c7da0);
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 6px 14px rgba(28, 100, 128, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(95deg, #134b62, #236b8a);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(28, 100, 128, 0.35);
+        }
+
+        .login-btn:active {
+            transform: translateY(1px);
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: #b91c1c;
+            font-weight: 500;
+            animation: shake 0.3s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .error-message i {
+            font-size: 1rem;
+        }
+
+        .demo-note {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #6c86a3;
+            margin-top: 16px;
+            border-top: 1px solid #ecfdf5;
+            padding-top: 18px;
+        }
+
+        .demo-note span {
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #1e5f74;
+        }
+
+        /* loader animation */
+        .loader {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* responsive */
+        @media (max-width: 500px) {
+            .login-body {
+                padding: 28px 24px;
+            }
+            .login-header {
+                padding: 24px 20px;
+            }
+            .brand-icon {
+                width: 52px;
+                height: 52px;
+            }
+            .brand-icon i {
+                font-size: 26px;
+            }
+        }
+
+        /* subtle decorative line */
+        .decor-line {
+            height: 4px;
+            width: 60px;
+            background: #2c7da0;
+            margin: 12px auto 0;
+            border-radius: 4px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="brand-icon">
+                    <i class="fas fa-hotel"></i>
+                </div>
+                <h2>Admin Portal</h2>
+                <p>Hotel ERP · Secure Access</p>
+                <div class="decor-line"></div>
+            </div>
+            <div class="login-body">
+                {% if error %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form method="POST" id="adminLoginForm">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <i class="fas fa-user-shield"></i>
+                        <input type="text" name="username" placeholder="Username / Email" required autocomplete="username" autofocus>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" placeholder="Password" required autocomplete="current-password" id="passwordField">
+                    </div>
+
+                    <div class="options-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="remember_me" id="rememberMe">
+                            <span>Keep me signed in</span>
+                        </label>
+                        <a href="#" class="forgot-link" id="forgotPasswordLink"><i class="fas fa-key"></i> Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <i class="fas fa-arrow-right-to-bracket"></i>
+                        <span>Sign in to Dashboard</span>
+                    </button>
+                </form>
+
+                <div class="demo-note">
+                   
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // professional login enhancements: loading state, remember me (localStorage demo), smooth interactions
+            const form = document.getElementById('adminLoginForm');
+            const loginBtn = document.getElementById('loginBtn');
+            const usernameInput = document.querySelector('input[name="username"]');
+            const passwordInput = document.querySelector('input[name="password"]');
+            const rememberCheck = document.getElementById('rememberMe');
+            const forgotLink = document.getElementById('forgotPasswordLink');
+
+            // Load saved credentials if "remember me" was previously checked
+            if (localStorage.getItem('admin_remember') === 'true') {
+                const savedUser = localStorage.getItem('admin_username');
+                const savedPass = localStorage.getItem('admin_password');
+                if (savedUser) usernameInput.value = savedUser;
+                if (savedPass) passwordInput.value = savedPass;
+                if (rememberCheck) rememberCheck.checked = true;
+            }
+
+            // Form submit with loading effect and CSRF preservation (Django style)
+            form.addEventListener('submit', function(e) {
+                // Show loading state on button
+                const originalContent = loginBtn.innerHTML;
+                loginBtn.innerHTML = '<span class="loader"></span> Authenticating...';
+                loginBtn.disabled = true;
+                loginBtn.style.opacity = '0.8';
+
+                // Handle "remember me" - store credentials in localStorage if checked
+                const rememberVal = rememberCheck ? rememberCheck.checked : false;
+                if (rememberVal) {
+                    localStorage.setItem('admin_remember', 'true');
+                    localStorage.setItem('admin_username', usernameInput.value);
+                    localStorage.setItem('admin_password', passwordInput.value);
+                } else {
+                    localStorage.removeItem('admin_remember');
+                    localStorage.removeItem('admin_username');
+                    localStorage.removeItem('admin_password');
+                }
+
+                // Allow form to submit naturally to Django backend
+                // But in case of network error or double submission we restore after a delay?
+                // We'll use a fallback: if form submission takes too long? Not needed.
+                // However we need to ensure that if server validation fails (redirect back with error)
+                // we re-enable button? Django will render page again so this script re-runs.
+                // So it's fine. But if there is client-side validation we manage.
+                
+                // small timeout to prevent accidental double click (already disabled)
+                // the form will submit natively.
+                return true;
+            });
+
+            // Forgot password interaction - nice toast style (demo)
+            forgotLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Create a temporary floating notification
+                const toast = document.createElement('div');
+                toast.style.position = 'fixed';
+                toast.style.bottom = '24px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
+                toast.style.backgroundColor = '#1e293b';
+                toast.style.color = 'white';
+                toast.style.padding = '12px 24px';
+                toast.style.borderRadius = '60px';
+                toast.style.fontSize = '0.8rem';
+                toast.style.fontWeight = '500';
+                toast.style.zIndex = '9999';
+                toast.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.2)';
+                toast.style.backdropFilter = 'blur(4px)';
+                toast.style.fontFamily = "'Inter', sans-serif";
+                toast.innerHTML = '<i class="fas fa-envelope"></i> Contact system admin to reset password.';
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            });
+
+            // Additional effect: add subtle ripple on login button
+            const btn = document.querySelector('.login-btn');
+            if (btn) {
+                btn.addEventListener('mousedown', function(e) {
+                    const ripple = document.createElement('span');
+                    ripple.style.position = 'absolute';
+                    ripple.style.borderRadius = '50%';
+                    ripple.style.backgroundColor = 'rgba(255,255,255,0.4)';
+                    ripple.style.width = '40px';
+                    ripple.style.height = '40px';
+                    ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+                    ripple.style.transition = 'transform 0.4s ease-out';
+                    ripple.style.pointerEvents = 'none';
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    btn.style.position = 'relative';
+                    btn.style.overflow = 'hidden';
+                    btn.appendChild(ripple);
+                    setTimeout(() => {
+                        ripple.style.transform = 'translate(-50%, -50%) scale(4)';
+                        ripple.style.opacity = '0';
+                        setTimeout(() => ripple.remove(), 400);
+                    }, 10);
+                });
+            }
+
+            // Remove error message on user input (live feedback)
+            const clearErrorOnType = () => {
+                const errorDiv = document.querySelector('.error-message');
+                if (errorDiv) {
+                    errorDiv.style.transition = 'opacity 0.2s';
+                    errorDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        if (errorDiv.parentNode) errorDiv.remove();
+                    }, 200);
+                }
+            };
+            usernameInput.addEventListener('input', clearErrorOnType);
+            passwordInput.addEventListener('input', clearErrorOnType);
+
+            // Extra: show password strength indicator? optional professional touch
+            const addPasswordToggle = () => {
+                const toggleEye = document.createElement('i');
+                toggleEye.className = 'fas fa-eye-slash';
+                toggleEye.style.position = 'absolute';
+                toggleEye.style.right = '16px';
+                toggleEye.style.top = '50%';
+                toggleEye.style.transform = 'translateY(-50%)';
+                toggleEye.style.cursor = 'pointer';
+                toggleEye.style.color = '#94a3b8';
+                toggleEye.style.fontSize = '0.9rem';
+                toggleEye.style.zIndex = '5';
+                const parent = passwordInput.parentNode;
+                parent.style.position = 'relative';
+                parent.appendChild(toggleEye);
+                let isVisible = false;
+                toggleEye.addEventListener('click', () => {
+                    isVisible = !isVisible;
+                    if (isVisible) {
+                        passwordInput.type = 'text';
+                        toggleEye.className = 'fas fa-eye';
+                    } else {
+                        passwordInput.type = 'password';
+                        toggleEye.className = 'fas fa-eye-slash';
+                    }
+                });
+            };
+            addPasswordToggle();
+
+            // additional background parallax effect for orbs (light motion)
+            document.addEventListener('mousemove', (e) => {
+                const xAxis = (window.innerWidth / 2 - e.pageX) / 45;
+                const yAxis = (window.innerHeight / 2 - e.pageY) / 45;
+                const orbs = document.querySelectorAll('.orb');
+                orbs.forEach((orb, idx) => {
+                    const factor = (idx + 1) * 0.4;
+                    orb.style.transform = `translate(${xAxis * factor * 0.5}px, ${yAxis * factor * 0.3}px)`;
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
