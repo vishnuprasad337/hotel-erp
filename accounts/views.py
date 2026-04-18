@@ -473,9 +473,9 @@ def dashboard(request):
 
     with schema_context('public'):
         try:
-            hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+            hotel = Hotel.objects.get(tenant=current_tenant)
         except Hotel.DoesNotExist:
-            return redirect('hotel_setup')
+            return redirect('hotel_login')
 
     modules = HotelModule.objects.select_related('module')
     amenities = [m.module for m in modules]
@@ -487,7 +487,7 @@ def dashboard(request):
 
     total_staff = Staff.objects.count()
     total_bookings = Booking.objects.count()
-    
+
     today = timezone.now().date()
 
     today_checkins = Booking.objects.filter(check_in=today, status="confirmed").count()
