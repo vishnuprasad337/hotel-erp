@@ -95,6 +95,7 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
 import dj_database_url
 import os
 
@@ -105,6 +106,7 @@ DATABASES = {
 }
 
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+DATABASES ['default']= dj_database_url.parse("postgresql://hoterp_user:nLVfZeqW7u0bsqgbgSo0OIqc9aMnMEkv@dpg-d7hot1flk1mc739fcmt0-a/hoterp")
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
 )
