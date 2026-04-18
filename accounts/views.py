@@ -130,7 +130,6 @@ def generate_schema_name(name):
     name = re.sub(r'[^a-z0-9]+', '_', name)
     return name
 
-
 def hotel_register(request):
     error = None
 
@@ -147,28 +146,28 @@ def hotel_register(request):
 
         hotel_name = request.POST.get("hotel_name")
         password = request.POST.get("password")
-
         schema_name = generate_schema_name(hotel_name)
 
         try:
             with transaction.atomic():
                 with schema_context('public'):
 
-                    # ensure unique schema
                     base = schema_name
                     count = 1
                     while Client.objects.filter(schema_name=schema_name).exists():
                         schema_name = f"{base}_{count}"
                         count += 1
 
-                    # create tenant
                     tenant = Client.objects.create(
                         name=hotel_name,
                         schema_name=schema_name
                     )
 
-                    # ✅ domain
-                    domain_url = f"{schema_name}.localhost:8000"
+                    
+                    current_host = request.get_host()  
+                    
+                    base_host = current_host.split(':')[0]
+                    domain_url = f"{schema_name}.{base_host}"
 
                     Domain.objects.create(
                         domain=domain_url,
@@ -176,7 +175,6 @@ def hotel_register(request):
                         is_primary=True
                     )
 
-                    # create hotel
                     hotel = Hotel.objects.create(
                         tenant=tenant,
                         schema_name=schema_name,
@@ -184,15 +182,13 @@ def hotel_register(request):
                         email=email
                     )
 
-                    # create user
-                    User.objects.create_user(
+                    user = User.objects.create_user(
                         username=email,
                         email=email,
                         password=password
                     )
 
-            # 🔥 AUTO REDIRECT TO TENANT LOGIN
-            return redirect(f"http://{domain_url}/login")
+            return redirect("hotel_login")
 
         except Exception as e:
             error = str(e)
@@ -291,7 +287,6 @@ def update_hotel_profile(request):
         return JsonResponse({"error": str(e)}, status=500)
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
-
 def hotel_login(request):
     success_msg = request.GET.get("approved")
 
@@ -306,9 +301,12 @@ def hotel_login(request):
 
         login(request, user)
 
-        
-        if hasattr(user, "hotel") and user.hotel:
-            request.session["hotel_id"] = user.hotel.id
+        # ✅ Use request.tenant instead of user.hotel
+        tenant = request.tenant
+        with schema_context(tenant.schema_name):
+            hotel = Hotel.objects.filter(schema_name=tenant.schema_name).first()
+            if hotel:
+                request.session["hotel_id"] = hotel.id
 
         return redirect("dashboard")
 
