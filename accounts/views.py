@@ -472,7 +472,10 @@ def dashboard(request):
     current_tenant = connection.tenant
 
     with schema_context('public'):
-        hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+        try:
+            hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+        except Hotel.DoesNotExist:
+            return redirect('hotel_setup')
 
     modules = HotelModule.objects.select_related('module')
     amenities = [m.module for m in modules]
@@ -487,19 +490,9 @@ def dashboard(request):
     
     today = timezone.now().date()
 
-    today_checkins = Booking.objects.filter(
-        check_in=today,
-        status="confirmed"
-    ).count()
-
-    today_checkouts = Booking.objects.filter(
-        check_out=today,
-        status="checked_in"
-    ).count()
-
-    reserved_count = Booking.objects.filter(
-        status="confirmed"
-    ).count()
+    today_checkins = Booking.objects.filter(check_in=today, status="confirmed").count()
+    today_checkouts = Booking.objects.filter(check_out=today, status="checked_in").count()
+    reserved_count = Booking.objects.filter(status="confirmed").count()
 
     return render(request, "property.html", {
         "hotel": hotel,
