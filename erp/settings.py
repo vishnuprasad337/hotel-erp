@@ -27,6 +27,9 @@ SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com"
+]
 
 
 
