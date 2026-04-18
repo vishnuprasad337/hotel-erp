@@ -107,9 +107,14 @@ DATABASES = {
 }
 
 
-DATABASES['default'].update({
-    'ENGINE': 'django_tenants.postgresql_backend'
-})
+DATABASES = {
+    'default': dj_database_url.parse(
+        os.environ.get("DATABASE_URL")
+    )
+}
+
+
+DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 DATABASES ['default']= dj_database_url.parse("postgresql://hoterp_user:nLVfZeqW7u0bsqgbgSo0OIqc9aMnMEkv@dpg-d7hot1flk1mc739fcmt0-a/hoterp")
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
