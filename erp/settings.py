@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,9 +28,7 @@ SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = [
-    "https://*.onrender.com"
-]
+
 
 
 
@@ -100,8 +99,16 @@ import dj_database_url
 import os
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    'default': dj_database_url.parse(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql://postgres:vishnu123@localhost:5432/hoterp"
+        )
+    )
 }
+
+# 🔥 FORCE django-tenants backend AFTER parsing
+DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
 )
