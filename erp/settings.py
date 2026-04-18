@@ -100,14 +100,10 @@ import os
 
 DATABASES = {
     'default': dj_database_url.parse(
-        os.environ.get(
-            "DATABASE_URL",
-            "postgresql://postgres:vishnu123@localhost:5432/hoterp"
-        )
+        os.environ.get("DATABASE_URL")
     )
 }
 
-# 🔥 FORCE django-tenants backend AFTER parsing
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
