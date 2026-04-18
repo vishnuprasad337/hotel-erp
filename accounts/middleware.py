@@ -1,20 +1,25 @@
 from django.shortcuts import redirect
 from django.contrib.auth import logout
-from django.db import connection
+from django.urls import resolve
 
 class TenantSecurityMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated and not request.user.is_superuser:
+        if request.user.is_authenticated:
             user_hotel = getattr(request.user, 'hotel', None)
-            current_tenant = connection.tenant
+            
+            if user_hotel and user_hotel != request.tenant:
+                logout(request)
+                return redirect('hotel_login')
 
-            if user_hotel is not None:
-                
-                if user_hotel.schema_name != current_tenant.schema_name:
-                    logout(request)
-                    return redirect('hotel_login')
+        response = self.get_response(request)
+        return response
 
+class TenantContextMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         return self.get_response(request)

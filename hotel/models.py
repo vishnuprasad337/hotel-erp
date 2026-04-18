@@ -4,6 +4,7 @@ from accounts.models import Hotel
 from accounts.models import Department,Staff
 from django.contrib.auth import get_user_model
 from pms.models import Room,RoomUnit
+from customers.models import Client 
 
 User = get_user_model()
 
@@ -144,8 +145,7 @@ class LeaveRequest(models.Model):
     ]
 
     staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
-    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE)
-
+    tenant = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True)
     from_date = models.DateField()
     to_date = models.DateField()
 

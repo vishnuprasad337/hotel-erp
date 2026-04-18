@@ -228,6 +228,7 @@ def get_rooms(request):
             "success": False,
             "error": str(e)
         }, status=500)
+from django.utils import timezone  # Add this import at the top if missing
 
 def frontoffice_dashboard(request):
     staff_id = request.session.get("staff_id")
@@ -236,23 +237,38 @@ def frontoffice_dashboard(request):
 
     staff = Staff.objects.select_related("department").get(id=staff_id)
 
-    # ❌ REMOVE hotel reference
-    # hotel = staff.hotel
-
+    # Get rooms with their units for the template
     rooms = Room.objects.all()
     room_list = []
 
     for room in rooms:
         total_units = room.units.count()
         available_units = room.units.filter(status="Available").count()
+        
+        # Get units with their status for JavaScript
+        units_list = []
+        for unit in room.units.all().order_by('room_number'):
+            units_list.append({
+                "id": unit.id,
+                "number": unit.room_number,
+                "status": unit.status,
+            })
+
+        price = (
+            getattr(room, "price", None)
+            or getattr(room, "base_price", None)
+            or getattr(room, "rate", None)
+            or 0
+        )
 
         room_list.append({
-            "room_type": room.room_type,
+            "room_type": getattr(room, "room_type", "Unknown"),
             "total_rooms": total_units,
             "available_rooms": available_units,
-            "price": room.price,
+            "price": price,
             "id": room.id,
-            "description": room.description or ""
+            "description": getattr(room, "description", "") or "",
+            "units": units_list  # Add units to each room
         })
 
     housekeeping_staff = Staff.objects.filter(
@@ -297,7 +313,7 @@ def frontoffice_dashboard(request):
     room_units = RoomUnit.objects.select_related('room').all()
 
     return render(request, "frontoffice.html", {
-        "rooms": room_list,
+        "rooms": room_list,  # Now includes units
         "staff": staff,
         "housekeeping_staff": housekeeping_staff,
         "total_bookings": total_bookings,
@@ -315,113 +331,171 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BookingSerializer
+from django.db.models import Count
 
-# views.py - Complete working create_booking function
+
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 import json
 from datetime import datetime
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_booking(request):
     try:
-        # Parse JSON data
         data = json.loads(request.body)
+
+        def clean(val):
+            return val.strip() if isinstance(val, str) else None
+
         
-        print("Received data:", data)  # Debug log
-        
-        # Get required fields
-        guest_id = data.get("guest")
         room_id = data.get("room")
         room_unit_id = data.get("room_unit")
         check_in = data.get("check_in")
         check_out = data.get("check_out")
-        adults = data.get("adults", 1)
-        children = data.get("children", 0)
-        source = data.get("source", "walk-in")
-        special_requests = data.get("special_requests", "")
+        adults = int(data.get("adults", 1))
+        children = int(data.get("children", 0))
+        source = clean(data.get("source")) or "walk-in"
+        special_requests = clean(data.get("special_requests"))
+
         
-        # Validate required fields
-        if not guest_id:
-            return JsonResponse({"error": "Guest ID is required"}, status=400)
+        full_name = clean(data.get("full_name")) or ""
+        phone = clean(data.get("phone")) or ""
+        email = clean(data.get("email"))
+        nationality = clean(data.get("nationality"))
+        id_type = clean(data.get("id_type"))
+        id_number = clean(data.get("id_number"))
+
+        
+        errors = {}
         if not room_id:
-            return JsonResponse({"error": "Room ID is required"}, status=400)
+            errors["room"] = "Room ID is required"
         if not room_unit_id:
-            return JsonResponse({"error": "Room unit ID is required"}, status=400)
+            errors["room_unit"] = "Room unit ID is required"
         if not check_in:
-            return JsonResponse({"error": "Check-in date is required"}, status=400)
+            errors["check_in"] = "Check-in date is required"
         if not check_out:
-            return JsonResponse({"error": "Check-out date is required"}, status=400)
+            errors["check_out"] = "Check-out date is required"
+        if not full_name:
+            errors["full_name"] = "Guest full name is required"
+        if not phone:
+            errors["phone"] = "Guest phone number is required"
+
+        if errors:
+            return JsonResponse({"errors": errors}, status=400)
+
         
-        # Get objects
         try:
-            guest = Guest.objects.get(id=guest_id)
-        except Guest.DoesNotExist:
-            return JsonResponse({"error": f"Guest with ID {guest_id} not found"}, status=404)
+            check_in_date = datetime.strptime(check_in, "%Y-%m-%d").date()
+            check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+        if check_out_date <= check_in_date:
+            return JsonResponse({"error": "Check-out must be after check-in"}, status=400)
+
+        nights = (check_out_date - check_in_date).days
+
         
         try:
             room = Room.objects.get(id=room_id)
         except Room.DoesNotExist:
             return JsonResponse({"error": f"Room with ID {room_id} not found"}, status=404)
-        
+
         try:
             room_unit = RoomUnit.objects.get(id=room_unit_id)
         except RoomUnit.DoesNotExist:
             return JsonResponse({"error": f"Room unit with ID {room_unit_id} not found"}, status=404)
-        
-        # Check if room unit is available
+
         if room_unit.status != "Available":
-            return JsonResponse({"error": f"Room unit {room_unit.room_number} is not available. Current status: {room_unit.status}"}, status=400)
+            return JsonResponse({
+                "error": f"Room unit {room_unit.room_number} is not available. Current status: {room_unit.status}"
+            }, status=400)
+
         
-        # Calculate nights
-        check_in_date = datetime.strptime(check_in, '%Y-%m-%d')
-        check_out_date = datetime.strptime(check_out, '%Y-%m-%d')
-        nights = (check_out_date - check_in_date).days
-        if nights <= 0:
-            nights = 1
+        guest, created = Guest.objects.get_or_create(
+            phone=phone,
+            defaults={
+                "full_name": full_name,
+                "email": email,
+                "nationality": nationality,
+                "id_type": id_type,
+                "id_number": id_number,
+            }
+        )
+
+        if not created:
+            updated = False
+            if full_name and guest.full_name != full_name:
+                guest.full_name = full_name
+                updated = True
+            if email is not None and guest.email != email:
+                guest.email = email
+                updated = True
+            if nationality is not None and guest.nationality != nationality:
+                guest.nationality = nationality
+                updated = True
+            if id_type is not None and guest.id_type != id_type:
+                guest.id_type = id_type
+                updated = True
+            if id_number is not None and guest.id_number != id_number:
+                guest.id_number = id_number
+                updated = True
+            if updated:
+                guest.save()
+
         
-        # Create booking
+        room_charges = float(room.base_price) * nights
+        tax = room_charges * 0.18
+        total_amount = room_charges + tax
+
+        
         booking = Booking.objects.create(
             guest=guest,
             room=room,
             room_unit=room_unit,
-            check_in=check_in,
-            check_out=check_out,
+            check_in=check_in_date,
+            check_out=check_out_date,
+            adults=adults,
+            children=children,
             guests_count=adults + children,
             special_requests=special_requests,
-            status="confirmed"
+            source=source,
+            base_price=room.base_price,
+            tax=round(tax, 2),
+            total_amount=round(total_amount, 2),
+            status="confirmed",
         )
+
         
-        # Calculate payment
-        room_charges = float(room.base_price) * nights
-        tax = room_charges * 0.18  # 18% tax
-        total_amount = room_charges + tax
-        
-        # Create payment record
         Payment.objects.create(
             booking=booking,
-            room_charges=room_charges,
-            tax=tax,
-            total_amount=total_amount,
-            payment_status="pending"
+            room_charges=round(room_charges, 2),
+            tax=round(tax, 2),
+            total_amount=round(total_amount, 2),
+            payment_status="pending",
         )
+
         
-       
         room_unit.status = "Reserved"
         room_unit.save()
-        
+
         return JsonResponse({
             "success": True,
             "booking_id": booking.id,
+            "booking_code": f"BK{booking.id:06d}",
+            "guest_id": guest.id,
+            "guest_created": created,
             "room_number": room_unit.room_number,
-            "message": "Booking created successfully"
-        })
-        
+            "nights": nights,
+            "total_amount": round(total_amount, 2),
+            "message": "Booking created successfully",
+        }, status=201)
+
     except json.JSONDecodeError as e:
         return JsonResponse({"error": f"Invalid JSON: {str(e)}"}, status=400)
+
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -435,8 +509,17 @@ def check_in(request):
         booking = Booking.objects.get(id=data["booking_id"], status="confirmed")
 
         guest = booking.guest
-        guest.id_type = data["id_type"]
-        guest.id_number = data["id_number"]
+
+        if not guest:
+            guest = Guest.objects.create(
+                full_name=data.get("full_name", "Walk-in Guest"),
+                phone=data.get("phone", "")
+            )
+            booking.guest = guest
+
+        guest.id_type = data.get("id_type")
+        guest.id_number = data.get("id_number")
+        guest.nationality = data.get("nationality")
         guest.save()
 
         booking.status = "checked_in"
@@ -444,125 +527,109 @@ def check_in(request):
         booking.save()
 
         unit = booking.room_unit
-        unit.status = "Occupied"
-        unit.save()
-
-        room = booking.room
-        room.available_rooms -= 1
-        room.save()
+        if unit:
+            unit.status = "Occupied"
+            unit.save()
 
         return JsonResponse({"success": True})
 @csrf_exempt
 def check_out(request):
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=405)
+
+    try:
         data = json.loads(request.body)
+    except:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-        staff = Staff.objects.get(id=request.session.get("staff_id"))
+    booking = Booking.objects.filter(
+        id=data.get("booking_id"),
+        status="checked_in"
+    ).first()
 
-        booking = Booking.objects.get(id=data["booking_id"], status="checked_in")
+    if not booking:
+        return JsonResponse({"error": "Booking not found or not checked-in"}, status=404)
 
-        booking.status = "checked_out"
-        booking.actual_check_out = timezone.now()
-        booking.save()
+    booking.status = "checked_out"
+    booking.actual_check_out = timezone.now()
+    booking.save()
 
-        unit = booking.room_unit
-        unit.status = "Dirty"
-        unit.save()
+    if booking.room_unit:
+        booking.room_unit.status = "Dirty"
+        booking.room_unit.save()
 
-        # safer payment handling
-        payment = Payment.objects.filter(booking=booking).first()
+    payment = Payment.objects.filter(booking=booking).first()
 
-        if payment:
-            payment.payment_method = data.get("method")
-            payment.payment_status = "paid"
-            payment.paid_at = timezone.now()
-            payment.collected_by = staff
-            payment.save()
+    if payment:
+        payment.payment_method = data.get("method", payment.payment_method)
+        payment.payment_status = "paid"
+        payment.paid_at = timezone.now()
+        payment.save()
 
-        return JsonResponse({"success": True})
-
-@csrf_exempt
+    return JsonResponse({
+        "success": True,
+        "message": "Check-out completed successfully"
+    })
 def get_bill(request):
     booking_id = request.GET.get("booking_id")
 
-    try:
-        booking = Booking.objects.get(id=booking_id)
+    if not booking_id:
+        return JsonResponse({"error": "booking_id required"}, status=400)
 
-        payment = Payment.objects.filter(booking=booking).first()
+    
 
-        nights = (booking.check_out - booking.check_in).days or 1
+    booking = Booking.objects.filter(id=booking_id).first()
 
-        return JsonResponse({
-            "room_type": booking.room.room_type,
-            "room_number": booking.room_unit.room_number if booking.room_unit else None,
-            "check_in": str(booking.check_in),
-            "check_out": str(booking.check_out),
-            "nights": nights,
-            "room_charges": float(payment.amount if payment else 0),
-            "tax": 0,
-            "total_amount": float(payment.amount if payment else 0),
-        })
-
-    except Booking.DoesNotExist:
+    if not booking:
         return JsonResponse({"error": "Booking not found"}, status=404)
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    payment = Payment.objects.filter(booking=booking).first()
+
+    return JsonResponse({
+        "booking_id": booking.id,
+        "guest": booking.guest.name if booking.guest else None,
+        "room": str(booking.room_unit) if booking.room_unit else None,
+        "status": booking.status,
+        "amount": payment.amount if payment else 0,
+        "payment_status": payment.payment_status if payment else "pending"
+    })
+
 @csrf_exempt
 def assign_housekeeping_task(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-
             staff_id = data.get("staff_id")
             room_unit_id = data.get("room_unit_id")
-            task_type = data.get("task_type", "General Task")
-            priority = data.get("priority", "Normal")
-            duration = data.get("duration", "1 hour")
-            notes = data.get("notes", "")
-
-            if not staff_id:
-                return JsonResponse({"error": "Staff ID is required"}, status=400)
-
-            try:
-                staff = Staff.objects.get(id=staff_id)
-            except Staff.DoesNotExist:
-                return JsonResponse({"error": "Staff not found"}, status=404)
-
-            room_unit = None
-            room = None
             
-            if room_unit_id:
-                try:
-                    room_unit = RoomUnit.objects.get(id=room_unit_id)
-                    room = room_unit.room  # Get the room from room_unit
-                except RoomUnit.DoesNotExist:
-                    pass  # Room unit optional
+            # Debugging: Print to console to see what the frontend is sending
+            print(f"Assigning Staff: {staff_id} to Room Unit: {room_unit_id}")
 
-           
+            staff = Staff.objects.get(id=staff_id)
+            room_unit = RoomUnit.objects.get(id=room_unit_id) 
+            
+            
             task = Task.objects.create(
                 staff=staff,
-                room=room,
-                room_unit=room_unit,  # Now this field exists
-                title=task_type,
-                description=f"Priority: {priority} | Duration: {duration} | Notes: {notes}".strip(" | "),
+                room=room_unit.room, # Auto-link the parent Room
+                room_unit=room_unit, 
+                title=data.get("task_type", "Cleaning"),
+                description=data.get("notes", ""),
                 status="Pending"
             )
 
-            return JsonResponse({
-                "success": True,
-                "task_id": task.id,
-                "message": f"Task '{task_type}' assigned to {staff.name}"
-            })
+            
+            room_unit.status = "Cleaning"
+            room_unit.save()
+
+            return JsonResponse({"success": True, "task_id": task.id})
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             return JsonResponse({"error": str(e)}, status=500)
-    
-    return JsonResponse({"error": "Method not allowed"}, status=405)
 def get_guests(request):
-    guests = Guest.objects.all().order_by("-created_at")
+    guests = Guest.objects.annotate(
+        booking_count=Count("booking")
+    ).order_by("-created_at")
 
     data = [
         {
@@ -573,37 +640,48 @@ def get_guests(request):
             "nationality": g.nationality or "",
             "id_type": g.id_type or "",
             "id_number": g.id_number or "",
-            "booking_count": g.booking_set.count(),
-            "created_at": str(g.created_at) if hasattr(g, 'created_at') else ""
+            "booking_count": g.booking_count,        
         }
         for g in guests
     ]
 
     return JsonResponse(data, safe=False)
 
-
 def get_bookings(request):
     bookings = Booking.objects.select_related(
-        "guest", "room", "room_unit"
+        "guest", "room", "room_unit", "payment"   # include payment in the join
     ).order_by("-created_at")
 
-    data = [
-        {
+    data = []
+    for b in bookings:
+        try:
+            total = float(b.payment.total_amount)
+            payment_status = b.payment.payment_status
+        except Payment.DoesNotExist:
+            total = 0.0
+            payment_status = "no_payment"
+
+        data.append({
             "id": b.id,
-            "booking_code": f"BK{b.id:06d}",
+            "booking_code": b.booking_code or f"BK{b.id:06d}",
             "guest": b.guest.full_name if b.guest else "N/A",
+            "guest_id": b.guest.id if b.guest else None,
             "phone": b.guest.phone if b.guest else "",
             "room_type": b.room.room_type if b.room else "N/A",
             "room_no": b.room_unit.room_number if b.room_unit else "N/A",
-            "check_in": str(b.check_in),
-            "check_out": str(b.check_out),
+            "check_in": b.check_in.isoformat(),
+            "check_out": b.check_out.isoformat(),
+            "adults": b.adults,
+            "children": b.children,
             "status": b.status,
-            "total": float(b.payment.total_amount) if hasattr(b, 'payment') and b.payment else 0,
-        }
-        for b in bookings
-    ]
+            "source": b.source or "",
+            "total": total,
+            "payment_status": payment_status,
+            "created_at": b.created_at.isoformat(),
+        })
 
     return JsonResponse(data, safe=False)
+    
 
 
 @csrf_exempt

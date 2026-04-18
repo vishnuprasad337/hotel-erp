@@ -22,7 +22,7 @@ def index(request):
 
 
 
- ##----------------------ROOM MODULE----------------------
+ 
 
 
 ##----------------------STAFF MODULE----------------------
@@ -399,112 +399,64 @@ from django.utils import timezone
 
 def housekeeping_dashboard(request):
     staff_id = request.session.get("staff_id")
-
     if not staff_id:
         return redirect("staff_login")
-
-    staff = Staff.objects.select_related("hotel").get(id=staff_id)
-    hotel = staff.hotel
-
-    
-    
-    all_tasks = Task.objects.filter(staff_id=staff_id).select_related("room_unit").order_by('-created_at')
-
-    
-    
-    for task in all_tasks:
-        if task.room_unit and task.room_unit.status == "Available" and task.status != "Completed":
-            task.status = "Completed"
-            task.save()
-
-   
-   
-    tasks = Task.objects.filter(
-        staff_id=staff_id,
-        status="Pending"
-    ).select_related("room_unit")
-
-   
-    today = timezone.now().date()
-
-    shift = Shift.objects.filter(
-        staff_id=staff_id,
-    date=today
-).select_related("department").first()
-
-   
-    room_units = RoomUnit.objects.filter(
-        task__staff_id=staff_id,
-        task__status="Pending"
-    ).distinct().select_related('room')
-
-    
-    all_assigned_rooms = RoomUnit.objects.filter(
-        task__staff_id=staff_id
-    ).distinct()
-
-   
-    clean_count = all_assigned_rooms.filter(status="Available").count()
-    dirty_count = all_assigned_rooms.filter(status="Dirty").count()
-    maintenance_count = all_assigned_rooms.filter(status="Maintenance").count()
-    cleaning_count = all_assigned_rooms.filter(status="Cleaning").count()
-
-    
-    rooms_list = []
-    for unit in room_units:
-        rooms_list.append({
-            "number": unit.room_number,
-            "status": unit.status.lower(),
-            "room_type": unit.room.room_type,
-            "id": unit.id,
-            "notes": ""
-        })
-
-   
-    inventory_items = []
-    total_items = 0
-    in_stock_items = 0
-    low_stock_items = 0
-
+ 
+    staff = Staff.objects.select_related("department").get(id=staff_id)
+ 
+    # Only show rooms where a task is assigned to THIS staff member
+    my_tasks = Task.objects.filter(
+        staff=staff
+    ).select_related("room_unit", "room_unit__room")
+ 
+    # Get unique room units from my tasks
+    seen_ids = set()
+    rooms = []
+    for task in my_tasks:
+        unit = task.room_unit
+        if unit and unit.id not in seen_ids:
+            seen_ids.add(unit.id)
+            rooms.append({
+                "id": unit.id,
+                "number": unit.room_number,
+                "status": unit.status.lower(),  # CSS data-status needs lowercase
+                "room_type": unit.room.room_type if unit.room else "Standard",
+                "has_task": True,  # always True here since we got it from a task
+            })
+ 
+    # All units still needed for stats counts
+    all_units = RoomUnit.objects.all()
+ 
+    tasks = my_tasks.filter(status="Pending")
+    all_tasks = my_tasks
+ 
     context = {
         "staff": staff,
-        "hotel": hotel,
+        "rooms": rooms,
         "tasks": tasks,
         "all_tasks": all_tasks,
-        "shift": shift,
-
-        
-        "rooms": rooms_list,
-
-        
-        "clean_rooms": clean_count,
-        "dirty_rooms": dirty_count,
-        "maintenance_rooms": maintenance_count,
-        "cleaning_rooms": cleaning_count,
-
+        "clean_rooms": all_units.filter(status="Available").count(),
+        "dirty_rooms": all_units.filter(status="Dirty").count(),
+        "cleaning_rooms": all_units.filter(status="Cleaning").count(),
         "pending_tasks": tasks.count(),
-
-        "inventory_items": inventory_items,
-        "total_items": total_items,
-        "in_stock_items": in_stock_items,
-        "low_stock_items": low_stock_items,
     }
-
+ 
     return render(request, "housekeeping.html", context)
+ 
 @csrf_exempt
 def start_cleaning(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             room_unit_id = data.get("room_unit_id")
-            
+ 
             room_unit = RoomUnit.objects.get(id=room_unit_id)
             old_status = room_unit.status
-            
+ 
             if old_status == "Dirty":
                 room_unit.status = "Cleaning"
                 room_unit.save()
-                
+ 
                 task = Task.objects.create(
                     staff_id=request.session.get("staff_id"),
                     room_unit=room_unit,
@@ -513,7 +465,7 @@ def start_cleaning(request):
                     description="Room cleaning in progress",
                     status="Pending"
                 )
-                
+ 
                 return JsonResponse({
                     "success": True,
                     "message": f"Started cleaning Room {room_unit.room_number}",
@@ -524,15 +476,15 @@ def start_cleaning(request):
                 return JsonResponse({
                     "error": f"Room status is {old_status}, cannot start cleaning"
                 }, status=400)
-                
+ 
         except RoomUnit.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    
+ 
     return JsonResponse({"error": "Method not allowed"}, status=405)
-
-
+ 
+ 
 @csrf_exempt
 def complete_cleaning(request):
     if request.method == "POST":
@@ -540,17 +492,14 @@ def complete_cleaning(request):
             data = json.loads(request.body)
             room_unit_id = data.get("room_unit_id")
             task_id = data.get("task_id")
-            
+ 
             room_unit = RoomUnit.objects.get(id=room_unit_id)
-            
+ 
             if room_unit.status == "Cleaning":
                 room_unit.status = "Available"
                 room_unit.save()
-                
-                room = room_unit.room
-                room.available_rooms += 1
-                room.save()
-                
+ 
+                # Update task to completed if task_id provided
                 if task_id:
                     try:
                         task = Task.objects.get(id=task_id)
@@ -558,7 +507,13 @@ def complete_cleaning(request):
                         task.save()
                     except Task.DoesNotExist:
                         pass
-                
+ 
+                # Also mark any other pending tasks for this room as completed
+                Task.objects.filter(
+                    room_unit=room_unit,
+                    status__in=["Pending", "In Progress"]
+                ).update(status="Completed")
+ 
                 return JsonResponse({
                     "success": True,
                     "message": f"Room {room_unit.room_number} is now clean and available",
@@ -568,13 +523,14 @@ def complete_cleaning(request):
                 return JsonResponse({
                     "error": f"Room status is {room_unit.status}, cannot complete cleaning"
                 }, status=400)
-                
+ 
         except RoomUnit.DoesNotExist:
             return JsonResponse({"error": "Room not found"}, status=404)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-    
+ 
     return JsonResponse({"error": "Method not allowed"}, status=405)
+ 
 @csrf_exempt
 def add_inventory(request):
     if request.method == "POST":
@@ -731,7 +687,6 @@ def delete_inventory(request, item_id):
             return JsonResponse({"error": str(e)}, status=500)
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
-
 def hr_dashboard(request):
     staff_id = request.session.get("staff_id")
 
@@ -749,16 +704,24 @@ def hr_dashboard(request):
     tasks = Task.objects.filter(staff__hotel=hotel)
     shifts = Shift.objects.filter(hotel=hotel).select_related("staff", "department")
 
-   
     payroll_data = []
+
     for emp in employees:
-        salary = getattr(emp, "salary", 0)
-        bonus = getattr(emp, "bonus", 0)
-        deduction = getattr(emp, "deduction", 0)
+        salary = getattr(emp, "salary", 0) or 0
+        bonus = getattr(emp, "bonus", 0) or 0
+        deduction = getattr(emp, "deduction", 0) or 0
+
+        # FIX: role field safe handling
+        role = (
+            getattr(emp, "role", None)
+            or getattr(emp, "designation", None)
+            or getattr(emp, "position", None)
+            or "N/A"
+        )
 
         payroll_data.append({
             "name": emp.name,
-            "role": emp.role,
+            "role": role,
             "salary": salary,
             "bonus": bonus,
             "deduction": deduction,
@@ -974,37 +937,45 @@ def monthly_report(request):
             "overtime": round(float(r["overtime"] or 0), 2)
         })
 
-    return JsonResponse(data, safe=False)
+@csrf_exempt
 def apply_leave(request):
-    if request.method == "POST":
-        staff_id = request.session.get("staff_id")
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=405)
 
-        if not staff_id:
-            return JsonResponse({"error": "Unauthorized"}, status=401)
+    staff_id = request.session.get("staff_id")
+    tenant = request.tenant  
 
-        from_date = request.POST.get("from_date")
-        to_date = request.POST.get("to_date")
-        reason = request.POST.get("reason")
+    if not staff_id:
+        return JsonResponse({"error": "Unauthorized"}, status=401)
 
-        if not from_date or not to_date:
-            return JsonResponse({"error": "Dates required"}, status=400)
+    
+    staff = Staff.objects.filter(id=staff_id).first()
 
-        LeaveRequest.objects.create(
-            staff_id=staff_id,
-            hotel_id=request.session.get("hotel_id"),
-            from_date=datetime.strptime(from_date, "%Y-%m-%d").date(),
-            to_date=datetime.strptime(to_date, "%Y-%m-%d").date(),
-            reason=reason
-        )
+    if not staff:
+        return JsonResponse({"error": "Invalid staff"}, status=401)
 
-        return JsonResponse({"success": True, "message": "Leave applied"})
+    from_date = request.POST.get("from_date")
+    to_date = request.POST.get("to_date")
+    reason = request.POST.get("reason", "")
 
-    return JsonResponse({"error": "Invalid method"}, status=405)
+    from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+    to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+
+    LeaveRequest.objects.create(
+        staff=staff,
+        tenant=tenant,   
+        from_date=from_date,
+        to_date=to_date,
+        reason=reason,
+        status="Pending"
+    )
+
+    return JsonResponse({"success": True})
 def leave_requests(request):
-    hotel_id = request.session.get("hotel_id")
+    tenant = request.tenant
 
     leaves = LeaveRequest.objects.filter(
-        hotel_id=hotel_id
+        tenant=tenant   
     ).select_related("staff").order_by("-applied_at")
 
     data = []
@@ -1012,39 +983,41 @@ def leave_requests(request):
     for l in leaves:
         data.append({
             "id": l.id,
-            "staff": l.staff.name,
-            "from_date": l.from_date,
-            "to_date": l.to_date,
-            "reason": l.reason,
+            "staff": getattr(l.staff, "name", "Deleted Staff"),
+            "from_date": l.from_date.strftime("%Y-%m-%d") if l.from_date else None,
+            "to_date": l.to_date.strftime("%Y-%m-%d") if l.to_date else None,
+            "reason": l.reason or "",
             "status": l.status
         })
 
     return JsonResponse(data, safe=False)
+@require_POST
 def update_leave_status(request, leave_id):
-    if request.method == "POST":
-        action = request.POST.get("action") 
-        staff_id = request.session.get("staff_id")
+    tenant = request.tenant
+    staff_id = request.session.get("staff_id")
 
-        try:
-            leave = LeaveRequest.objects.get(id=leave_id)
+    action = request.POST.get("action")
 
-            if action == "approve":
-                leave.status = "Approved"
-            elif action == "reject":
-                leave.status = "Rejected"
-            else:
-                return JsonResponse({"error": "Invalid action"}, status=400)
+    leave = LeaveRequest.objects.filter(
+        id=leave_id,
+        tenant=tenant  
+    ).first()
 
-            leave.action_by_id = staff_id
-            leave.action_at = timezone.now()
-            leave.save()
+    if not leave:
+        return JsonResponse({"error": "Leave not found"}, status=404)
 
-            return JsonResponse({"success": True})
+    if action == "approve":
+        leave.status = "Approved"
+    elif action == "reject":
+        leave.status = "Rejected"
+    else:
+        return JsonResponse({"error": "Invalid action"}, status=400)
 
-        except LeaveRequest.DoesNotExist:
-            return JsonResponse({"error": "Not found"}, status=404)
+    leave.action_by_id = staff_id
+    leave.action_at = timezone.now()
+    leave.save()
 
-    return JsonResponse({"error": "Invalid method"}, status=405)
+    return JsonResponse({"success": True})
 from decimal import Decimal
 
 def calculate_payroll(staff, month, year):

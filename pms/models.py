@@ -95,7 +95,7 @@ class Booking(models.Model):
     ]
 
    
-    guest = models.ForeignKey(Guest, on_delete=models.CASCADE)
+    guest = models.ForeignKey(Guest, on_delete=models.CASCADE, null=True, blank=True)
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     room_unit = models.ForeignKey(RoomUnit, on_delete=models.SET_NULL, null=True, blank=True)
 
