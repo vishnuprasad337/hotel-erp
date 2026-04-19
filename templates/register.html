@@ -1,105 +1,624 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Hotel Registration</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Hotel Register | Hotel ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --navy: #0f1f3d;
+            --blue: #1a56db;
+            --blue-light: #3b82f6;
+            --accent: #ffb347;
+            --green: #10b981;
+            --red: #ef4444;
+            --purple: #7c3aed;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --sidebar-w: 280px;
+            --radius: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: Arial;
-            max-width: 500px;
-            margin: auto;
-            padding-top: 30px;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fc 0%, #e9eef5 100%);
+            min-height: 100vh;
+            position: relative;
         }
-        input, textarea, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            margin-bottom: 15px;
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed; left: 0; top: 0;
+            width: var(--sidebar-w); height: 100vh;
+            background: rgba(15, 31, 61, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column;
+            z-index: 100; overflow-y: auto;
+            box-shadow: 4px 0 30px rgba(0,0,0,0.2);
+            border-right: 1px solid rgba(255,255,255,0.1);
         }
-        .error {
-            color: red;
-            font-size: 14px;
+        .sidebar-brand { padding: 32px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .brand-icon {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 12px; font-size: 1.8rem; color: white;
+            box-shadow: 0 8px 20px rgba(102,126,234,0.3);
         }
-        button {
-            padding: 10px;
-            width: 100%;
-            background-color: #007bff;
-            color: white;
-            border: none;
+        .brand-name { font-size: 1.2rem; font-weight: 800; color: white; letter-spacing: -0.3px; }
+        .brand-sub  { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 6px; }
+        .sidebar-nav { flex: 1; padding: 24px 16px; }
+        .nav-label {
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255,255,255,0.4); padding: 16px 12px 8px;
         }
+        .nav-btn {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px; border-radius: 12px; cursor: pointer;
+            color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500;
+            transition: all 0.2s; border: none; background: transparent;
+            width: 100%; text-align: left; font-family: inherit;
+            margin-bottom: 4px; text-decoration: none;
+        }
+        .nav-btn i { width: 22px; font-size: 1rem; }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; transform: translateX(4px); }
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        /* ── MAIN ── */
+        .main {
+            margin-left: var(--sidebar-w); min-height: 100vh;
+            padding: 40px 48px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .register-container {
+            max-width: 880px; width: 100%; background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .form-header { background: #1e2a3e; padding: 1.8rem 2rem; color: white; }
+        .form-header h2 {
+            font-weight: 600; font-size: 1.8rem; letter-spacing: -0.3px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .form-header h2 i { font-size: 1.8rem; color: var(--accent); }
+        .form-header p { font-size: 0.9rem; opacity: 0.8; margin-top: 8px; }
+
+        .form-body { padding: 2rem 2rem 1.8rem; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem 1.5rem; }
+        .full-width { grid-column: span 2; }
+
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label {
+            font-size: 0.8rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            color: #4a5b6e; display: flex; align-items: center; gap: 6px;
+        }
+        .input-group label i { width: 18px; color: var(--accent); font-size: 0.85rem; }
+
+        /* style all Django-rendered inputs */
+        .input-group input[type="text"],
+        .input-group input[type="email"],
+        .input-group input[type="password"],
+        .input-group input[type="file"],
+        .input-group textarea,
+        .input-group select {
+            font-family: 'Inter', sans-serif;
+            width: 100%; padding: 12px 14px;
+            font-size: 0.95rem; border: 1.5px solid #e2e8f0;
+            border-radius: 16px; background-color: #fefefe;
+            transition: all 0.2s; outline: none;
+            color: #1a2c3e; resize: vertical; margin: 0;
+        }
+        .input-group textarea { min-height: 85px; }
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255,180,71,0.2);
+        }
+
+        /* password show/hide */
+        .password-wrapper { position: relative; }
+        .password-wrapper input { padding-right: 44px !important; }
+        .toggle-pw {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: #94a3b8; font-size: 0.95rem; padding: 0; transition: color 0.2s;
+        }
+        .toggle-pw:hover { color: var(--accent); }
+
+        /* subdomain */
+        .subdomain-wrapper { position: relative; }
+        .subdomain-wrapper input { padding-right: 44px !important; }
+        .subdomain-status {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%); font-size: 0.9rem; display: none;
+        }
+        .subdomain-status.auto   { color: #10b981; display: block; }
+        .subdomain-status.manual { color: #3b82f6; display: block; }
+        .subdomain-preview {
+            font-size: 0.7rem; color: #6c7e91;
+            margin-top: 2px; min-height: 16px; transition: all 0.2s;
+        }
+        .subdomain-preview span { color: var(--accent); font-weight: 600; }
+
+        /* field errors */
+        .field-error {
+            font-size: 0.75rem; color: #e53e3e;
+            display: flex; align-items: center; gap: 4px; margin-top: 2px;
+        }
+        .field-error i { font-size: 0.7rem; }
+
+        /* global errors */
+        .global-errors {
+            background: #fee9e6; border-left: 4px solid #e53e3e;
+            border-radius: 12px; padding: 12px 16px;
+            margin-bottom: 1.2rem; font-size: 0.85rem; color: #b33c1c;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .global-errors i { margin-top: 2px; }
+
+        /* section divider */
+        .section-divider {
+            grid-column: span 2; display: flex; align-items: center; gap: 12px; margin: 0.4rem 0;
+        }
+        .section-divider span {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: #94a3b8; white-space: nowrap;
+        }
+        .section-divider::before,
+        .section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+        /* file upload */
+        .file-upload {
+            border: 1.5px dashed #cbd5e1; background: #fafcff;
+            border-radius: 20px; padding: 6px 12px; cursor: pointer; transition: 0.2s;
+        }
+        .file-upload:hover { border-color: var(--accent); background: #fff9ef; }
+        .file-upload input { padding: 8px 0 !important; border: none !important; background: transparent !important; border-radius: 0 !important; }
+
+        /* actions */
+        .action-buttons {
+            margin-top: 2rem; display: flex; flex-wrap: wrap;
+            align-items: center; justify-content: space-between; gap: 1rem;
+        }
+        .btn-register {
+            background: #1e2a3e; border: none; padding: 14px 32px;
+            border-radius: 40px; font-weight: 700; font-size: 1rem; color: white;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
+            transition: all 0.25s; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .btn-register:hover { background: #2c3e4e; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .login-link {
+            background: #f1f5f9; padding: 10px 20px; border-radius: 40px;
+            font-size: 0.85rem; font-weight: 500; text-decoration: none;
+            color: #2d3e50; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .login-link:hover { background: #e6edf4; color: #1e2a3e; }
+
+        /* messages */
+        .message-card {
+            margin-top: 1.8rem; padding: 1rem 1.2rem;
+            display: flex; align-items: center; gap: 12px;
+            font-weight: 500; animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .success-msg  { background: #e6f9ed; border-left: 6px solid #2ecc71; color: #1f6e43; }
+        .error-msg    { background: #fee9e6; border-left: 6px solid #e67e22; color: #b33c1c; }
+        .approved-msg { background: linear-gradient(135deg,#eef2ff,#e0e7ff); border-left: 6px solid #3b82f6; color: #1e40af; }
+        .warning-msg  { background: #fef3c7; border-left: 6px solid #f59e0b; color: #92400e; }
+
+        .login-now-btn {
+            display: inline-flex; background: #3b82f6; color: white;
+            text-decoration: none; padding: 10px 28px; border-radius: 40px;
+            font-weight: 600; margin-top: 12px; gap: 8px; transition: 0.2s;
+        }
+        .login-now-btn:hover { background: #2563eb; transform: scale(1.02); }
+
+        hr { margin: 1rem 0 0; border: none; border-top: 1px solid #eef2f8; }
+        .footer-note { text-align: center; margin-top: 1rem; font-size: 0.75rem; color: #7c8b9c; }
+        ::placeholder { color: #b9c3cf; font-weight: 400; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; padding: 80px 20px 40px; }
+            .menu-btn {
+                display: flex; align-items: center; justify-content: center;
+                position: fixed; top: 16px; left: 16px; z-index: 150;
+                background: var(--navy); color: white; border: none;
+                width: 44px; height: 44px; border-radius: 12px;
+                font-size: 1.2rem; cursor: pointer; box-shadow: var(--shadow);
+            }
+            .form-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .full-width { grid-column: span 1; }
+            .section-divider { grid-column: span 1; }
+            .form-body { padding: 1.5rem; }
+            .action-buttons { flex-direction: column; align-items: stretch; }
+            .btn-register { justify-content: center; }
+            .login-link { text-align: center; justify-content: center; }
+        }
+        @media (min-width: 769px) { .menu-btn { display: none; } }
     </style>
 </head>
 <body>
 
-<h2>Register Your Hotel</h2>
+<button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
 
-<form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-
-    <!-- Global Errors -->
-    {% if tenant_form.non_field_errors %}
-        <div class="error">
-            {{ tenant_form.non_field_errors }}
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fas fa-hotel"></i></div>
+        <div class="brand-name">Hotel ERP</div>
+        <div class="brand-sub">Complete Hotel Management</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-label">Navigation</div>
+        <a href="/" class="nav-btn"><i class="fas fa-home"></i> Welcome</a>
+        <div class="nav-label" style="margin-top:16px;">Hotel Access</div>
+        <a href="/register/" class="nav-btn active"><i class="fas fa-building"></i> Register Hotel</a>
+        <a href="/login/" class="nav-btn"><i class="fas fa-sign-in-alt"></i> Hotel Login</a>
+        <div class="nav-label" style="margin-top:16px;">Staff Access</div>
+        <a href="/staff-login/" class="nav-btn"><i class="fas fa-user-clock"></i> Staff Login</a>
+    </nav>
+    <div style="padding:20px;border-top:1px solid rgba(255,255,255,0.1);margin-top:auto;">
+        <div style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-align:center;">
+            <i class="fas fa-shield-alt"></i> Secure Access<br>v2.0
         </div>
-    {% endif %}
+    </div>
+</aside>
 
-    <!-- Hotel Name -->
-    <label>Hotel Name</label>
-    {{ tenant_form.hotel_name }}
-    <div class="error">{{ tenant_form.hotel_name.errors }}</div>
+<!-- Main Content -->
+<main class="main">
+    <div class="register-container">
+        <div class="form-header">
+            <h2><i class="fas fa-hotel"></i> Partner with Us</h2>
+            <p>Join our platform &amp; showcase your property to travelers worldwide</p>
+        </div>
 
-    <!-- Email -->
-    <label>Email</label>
-    {{ tenant_form.email }}
-    <div class="error">{{ tenant_form.email.errors }}</div>
+        <div class="form-body">
+            <form method="POST" enctype="multipart/form-data" id="registerForm">
+                {% csrf_token %}
 
-    <!-- Owner Name -->
-    <label>Owner Name</label>
-    {{ tenant_form.owner_name }}
-    <div class="error">{{ tenant_form.owner_name.errors }}</div>
+                <!-- Global / non-field errors -->
+                {% if tenant_form.non_field_errors %}
+                <div class="global-errors">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>{{ tenant_form.non_field_errors }}</div>
+                </div>
+                {% endif %}
 
-    <!-- Address -->
-    <label>Address</label>
-    {{ tenant_form.address }}
-    <div class="error">{{ tenant_form.address.errors }}</div>
+                <div class="form-grid">
 
-    <!-- City -->
-    <label>City</label>
-    {{ tenant_form.city }}
-    <div class="error">{{ tenant_form.city.errors }}</div>
+                    <!-- ── Hotel Info ── -->
+                    <div class="section-divider"><span>Hotel Info</span></div>
 
-    <!-- Property Type -->
-    <label>Property Type</label>
-    {{ tenant_form.property_type }}
-    <div class="error">{{ tenant_form.property_type.errors }}</div>
+                    <!-- Hotel Name -->
+                    <div class="input-group">
+                        <label><i class="fas fa-building"></i> Hotel name *</label>
+                        {{ tenant_form.hotel_name }}
+                        {% if tenant_form.hotel_name.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.hotel_name.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <!-- Image -->
-    <label>Image</label>
-    {{ tenant_form.image }}
-    <div class="error">{{ tenant_form.image.errors }}</div>
+                    <!-- Subdomain (auto-generated) -->
+                    <div class="input-group">
+                        <label><i class="fas fa-globe"></i> Subdomain *</label>
+                        <div class="subdomain-wrapper">
+                            {{ tenant_form.schema_name }}
+                            <span class="subdomain-status auto" id="subdomainStatus" title="Auto-generated from hotel name">
+                                <i class="fas fa-magic"></i>
+                            </span>
+                        </div>
+                        <div class="subdomain-preview" id="subdomainPreview"></div>
+                        {% if tenant_form.schema_name.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.schema_name.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <!-- Description -->
-    <label>Description</label>
-    {{ tenant_form.description }}
-    <div class="error">{{ tenant_form.description.errors }}</div>
+                    <!-- Email -->
+                    <div class="input-group">
+                        <label><i class="fas fa-envelope"></i> Email *</label>
+                        {{ tenant_form.email }}
+                        {% if tenant_form.email.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.email.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <!-- Amenities -->
-    <label>Amenities</label>
-    {{ tenant_form.amenities }}
-    <div class="error">{{ tenant_form.amenities.errors }}</div>
+                    <!-- Owner Name -->
+                    <div class="input-group">
+                        <label><i class="fas fa-user-tie"></i> Owner / Manager *</label>
+                        {{ tenant_form.owner_name }}
+                        {% if tenant_form.owner_name.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.owner_name.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <!-- Password -->
-    <label>Password</label>
-    {{ tenant_form.password }}
-    <div class="error">{{ tenant_form.password.errors }}</div>
+                    <!-- City -->
+                    <div class="input-group">
+                        <label><i class="fas fa-city"></i> City</label>
+                        {{ tenant_form.city }}
+                        {% if tenant_form.city.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.city.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <!-- Confirm Password -->
-    <label>Confirm Password</label>
-    {{ tenant_form.confirm_password }}
-    <div class="error">{{ tenant_form.confirm_password.errors }}</div>
+                    <!-- Property Type -->
+                    <div class="input-group">
+                        <label><i class="fas fa-tag"></i> Property type</label>
+                        {{ tenant_form.property_type }}
+                        {% if tenant_form.property_type.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.property_type.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-    <button type="submit">Register</button>
+                    <!-- Address -->
+                    <div class="input-group full-width">
+                        <label><i class="fas fa-map-pin"></i> Address</label>
+                        {{ tenant_form.address }}
+                        {% if tenant_form.address.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.address.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
-</form>
+                    <!-- Description -->
+                    <div class="input-group full-width">
+                        <label><i class="fas fa-info-circle"></i> Short description</label>
+                        {{ tenant_form.description }}
+                        {% if tenant_form.description.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.description.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
 
+                    <!-- Amenities -->
+                    <div class="input-group full-width">
+                        <label><i class="fas fa-wifi"></i> Amenities (comma separated)</label>
+                        {{ tenant_form.amenities }}
+                        {% if tenant_form.amenities.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.amenities.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Image -->
+                    <div class="input-group full-width">
+                        <label><i class="fas fa-image"></i> Hotel image</label>
+                        <div class="file-upload">
+                            {{ tenant_form.image }}
+                        </div>
+                        <small style="color:#6c7e91;font-size:0.7rem;">Recommended: JPG or PNG, max 5MB</small>
+                        {% if tenant_form.image.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.image.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ── Account Security ── -->
+                    <div class="section-divider"><span>Account Security</span></div>
+
+                    <!-- Password -->
+                    <div class="input-group">
+                        <label><i class="fas fa-lock"></i> Password *</label>
+                        <div class="password-wrapper">
+                            {{ tenant_form.password }}
+                            <button type="button" class="toggle-pw" data-target="id_password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        {% if tenant_form.password.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.password.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="input-group">
+                        <label><i class="fas fa-lock"></i> Confirm password *</label>
+                        <div class="password-wrapper">
+                            {{ tenant_form.confirm_password }}
+                            <button type="button" class="toggle-pw" data-target="id_confirm_password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        {% if tenant_form.confirm_password.errors %}
+                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.confirm_password.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+
+                </div><!-- /.form-grid -->
+
+                <div class="action-buttons">
+                    <button type="submit" class="btn-register">
+                        <i class="fas fa-pen-alt"></i> Register Hotel
+                    </button>
+                    <a href="{% url 'hotel_login' %}" class="login-link">
+                        <i class="fas fa-sign-in-alt"></i> Already registered? Login
+                    </a>
+                </div>
+            </form>
+
+            <!-- SUCCESS -->
+            {% if success %}
+            <div class="message-card success-msg">
+                <i class="fas fa-check-circle" style="font-size:1.5rem;"></i>
+                <div>
+                    <strong>{{ success }}</strong><br>
+                    <span style="font-size:0.85rem;">We've received your request. Next steps will be sent to your email.</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ERROR -->
+            {% if error %}
+            <div class="message-card error-msg">
+                <i class="fas fa-exclamation-triangle" style="font-size:1.4rem;"></i>
+                <div><strong>Registration Issue</strong><br>{{ error }}</div>
+            </div>
+            {% endif %}
+
+            <!-- APPROVED -->
+            {% if approved %}
+            <div class="message-card approved-msg">
+                <i class="fas fa-star-of-life" style="font-size:1.5rem;"></i>
+                <div>
+                    <strong style="font-size:1rem;">🎉 {{ approved }}</strong>
+                    <p style="font-size:0.85rem;margin-top:6px;">Your hotel account has been verified by our admin team.</p>
+                    <div style="margin-top:10px;">
+                        <a href="{% url 'hotel_login' %}" class="login-now-btn">
+                            <i class="fas fa-arrow-right-to-bracket"></i> Login to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- PENDING -->
+            {% if pending_exists %}
+            <div class="message-card warning-msg">
+                <i class="fas fa-clock" style="font-size:1.4rem;"></i>
+                <div>
+                    <strong>Registration Pending Approval</strong><br>
+                    {{ pending_exists }}
+                    <div style="font-size:0.8rem;margin-top:5px;">Our team will review your application shortly.</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <hr>
+            <div class="footer-note">
+                <i class="fas fa-shield-alt"></i> Your data is secure · Trusted by 5000+ hotels
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+(function () {
+
+    /* ── Subdomain auto-generate ── */
+    const hotelNameInput = document.getElementById('id_hotel_name');
+    const schemaInput    = document.getElementById('id_schema_name');
+    const statusIcon     = document.getElementById('subdomainStatus');
+    const preview        = document.getElementById('subdomainPreview');
+    let userEdited = false;
+
+    function toSlug(value) {
+        return value.toLowerCase().trim()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function updatePreview(slug) {
+        preview.innerHTML = slug
+            ? 'Your URL: <span>' + slug + '.yourdomain.com</span>'
+            : '';
+    }
+
+    if (hotelNameInput && schemaInput) {
+        hotelNameInput.addEventListener('input', function () {
+            if (userEdited) return;
+            const slug = toSlug(this.value);
+            schemaInput.value = slug;
+            statusIcon.className = 'subdomain-status auto';
+            updatePreview(slug);
+        });
+
+        schemaInput.addEventListener('input', function () {
+            userEdited = true;
+            statusIcon.className = 'subdomain-status manual';
+            statusIcon.title = 'Manually entered';
+            updatePreview(toSlug(this.value));
+        });
+
+        schemaInput.addEventListener('blur', function () {
+            const cleaned = toSlug(this.value);
+            this.value = cleaned;
+            if (cleaned === '') {
+                userEdited = false;
+                statusIcon.className = 'subdomain-status auto';
+                const slug = toSlug(hotelNameInput.value);
+                this.value = slug;
+                updatePreview(slug);
+            }
+        });
+
+        // Restore preview on validation error re-render
+        if (schemaInput.value) updatePreview(schemaInput.value);
+    }
+
+    /* ── Password show/hide toggle ── */
+    document.querySelectorAll('.toggle-pw').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const input = document.getElementById(this.getAttribute('data-target'));
+            const icon  = this.querySelector('i');
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    });
+
+    /* ── File name badge ── */
+    const fileInput = document.getElementById('id_image');
+    if (fileInput) {
+        fileInput.addEventListener('change', function (e) {
+            const fileName = e.target.files[0]?.name;
+            const parentDiv = fileInput.closest('.file-upload');
+            let badge = parentDiv.querySelector('.file-name-badge');
+            if (fileName) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'file-name-badge';
+                    badge.style.cssText = 'font-size:0.7rem;margin-left:12px;color:#ff8c42;font-weight:500;';
+                    parentDiv.appendChild(badge);
+                }
+                badge.innerText = '📎 ' + fileName.substring(0, 35);
+            } else if (badge) {
+                badge.remove();
+            }
+        });
+    }
+
+    /* ── Mobile sidebar toggle ── */
+    const menuBtn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+    }
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768 &&
+            !sidebar.contains(e.target) &&
+            !menuBtn.contains(e.target) &&
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+})();
+</script>
 </body>
 </html>
