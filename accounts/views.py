@@ -6,8 +6,11 @@ from django.contrib.auth import authenticate, login
 from hotel.models import Staff,Room
 from django.utils import timezone
 import json
+from django.views.decorators.http import require_POST
+from django.core.mail import send_mail
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from .serializers import StaffSerializer
+
 from pms.models import Booking
 from .models import Hotel, Department, Permission, RolePermission, Amenity, HotelModule
 
@@ -35,10 +38,6 @@ def admin_login(request):
     return render(request, "admin/login.html", {"error": error})
 
 
-from django.db import connection
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from .models import Hotel, Amenity
 
 
 @login_required
@@ -114,98 +113,79 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
-import re
 from django.shortcuts import render, redirect
+from django.conf import settings
 from django.db import transaction
+
+from .forms import HotelForm
+from customers.models import Domain,Client
+
+
+from django.shortcuts import render, redirect
+from django.core.management import call_command
+from django.utils.text import slugify
 from django_tenants.utils import schema_context
-from .models import Hotel
-from customers.models import Client,Domain
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
-
-
-def generate_schema_name(name):
-    name = name.lower().strip()
-    name = re.sub(r'[^a-z0-9]+', '_', name)
-    return name
+from .forms import HotelForm
 
 def hotel_register(request):
-    error = None
-
     if request.method == "POST":
-        email = request.POST.get("email")
+        form = HotelForm(request.POST, request.FILES)
 
-        with schema_context('public'):
-            existing = Hotel.objects.filter(email=email).first()
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    with schema_context('public'):
 
-        if existing:
-            return render(request, "register.html", {
-                "error": "Already registered"
-            })
+                        hotel = form.save(commit=False)
 
-        hotel_name = request.POST.get("hotel_name")
-        password = request.POST.get("password")
-        schema_name = generate_schema_name(hotel_name)
+                        
+                        base_schema = slugify(hotel.hotel_name)
+                        schema_name = base_schema
+                        counter = 1
 
-        try:
-            with transaction.atomic():
-                with schema_context('public'):
+                        while Client.objects.filter(schema_name=schema_name).exists():
+                            schema_name = f"{base_schema}{counter}"
+                            counter += 1
 
-                    base = schema_name
-                    count = 1
-                    while Client.objects.filter(schema_name=schema_name).exists():
-                        schema_name = f"{base}_{count}"
-                        count += 1
+                        
+                        client = Client.objects.create(
+                            schema_name=schema_name,
+                            name=hotel.hotel_name
+                        )
 
-                    tenant = Client.objects.create(
-                        name=hotel_name,
-                        schema_name=schema_name
-                    )
+                        
+                        hotel.schema_name = schema_name
+                        hotel.save()
+
+                        domain = Domain.objects.create(
+                            tenant=client,
+                            domain=f"{schema_name}.{settings.BASE_URL}",
+                            is_primary=True
+                        )
 
                     
-                    current_host = request.get_host()  
-                    
-                    base_host = current_host.split(':')[0]
-                    domain_url = f"{schema_name}.{base_host}"
+                    with schema_context(schema_name):
+                        email = form.cleaned_data.get("email")
+                        password = form.cleaned_data.get("password")  # add to form
 
-                    Domain.objects.create(
-                        domain=domain_url,
-                        tenant=tenant,
-                        is_primary=True
-                    )
+                        user = User.objects.create_user(
+                            username=email,
+                            email=email,
+                            password=password,
+                            hotel=hotel,
+                        )
 
-                    hotel = Hotel.objects.create(
-                        tenant=tenant,
-                        schema_name=schema_name,
-                        hotel_name=hotel_name,
-                        email=email
-                    )
+                return redirect(f"http://{domain.domain}{settings.PORT}")
 
-                    user = User.objects.create_user(
-                        username=email,
-                        email=email,
-                        password=password
-                    )
+            except Exception as e:
+                print("ERROR:", e)
+                form.add_error(None, "Something went wrong")
 
-            return redirect("hotel_login")
-
-        except Exception as e:
-            error = str(e)
-
-    return render(request, "register.html", {"error": error})
+    return render(request, "register.html", {
+        "tenant_form": HotelForm()
+    })
 from django.contrib.auth import update_session_auth_hash
-from django.views.decorators.http import require_POST
-from django.db import connection
-from django_tenants.utils import schema_context
-
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib.auth import update_session_auth_hash
-from django.db import connection
-from django_tenants.utils import schema_context
-from django.shortcuts import get_object_or_404
-import json
 
 @require_POST
 def update_hotel_profile(request):
@@ -218,14 +198,14 @@ def update_hotel_profile(request):
         else:
             data = request.POST
 
-        # -------- GET HOTEL FROM PUBLIC --------
+       
         with schema_context('public'):
             hotel = get_object_or_404(
                 Hotel,
                 schema_name=current_tenant.schema_name
             )
 
-            # -------- UPDATE HOTEL DETAILS --------
+           
             hotel.hotel_name = data.get("hotel_name", hotel.hotel_name)
             hotel.owner_name = data.get("owner_name", hotel.owner_name)
             hotel.address    = data.get("address", hotel.address)
@@ -233,25 +213,24 @@ def update_hotel_profile(request):
             hotel.property_type = data.get("property_type", hotel.property_type)
             hotel.description   = data.get("description", hotel.description)
 
-            # Image upload
+            
             if request.FILES.get("image"):
                 hotel.image = request.FILES["image"]
 
-            # -------- EMAIL UPDATE (SYNC WITH USER) --------
             email = data.get("email")
             if email:
                 hotel.email = email
 
             hotel.save()
 
-        # -------- UPDATE USER --------
+        
         user = request.user
 
         if email:
             user.email = email
             user.username = email
 
-        # -------- PASSWORD CHANGE --------
+        
         current_password = data.get("current_password")
         new_password     = data.get("new_password")
         confirm_password = data.get("confirm_password")
@@ -267,11 +246,11 @@ def update_hotel_profile(request):
             if new_password != confirm_password:
                 return JsonResponse({"error": "Passwords do not match"}, status=400)
 
-            # Set new password
+           
             user.set_password(new_password)
             user.save()
 
-            # Keep user logged in
+          
             update_session_auth_hash(request, user)
 
         user.save()
@@ -285,51 +264,87 @@ def update_hotel_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
+
 def hotel_login(request):
+    error = None
     success_msg = request.GET.get("approved")
 
     if request.method == "POST":
-        email = request.POST.get("email")
-        password = request.POST.get("password")
+        email = request.POST.get("email", "").strip()
+        password = request.POST.get("password", "").strip()
 
-        user = authenticate(request, username=email, password=password)
+        if not email or not password:
+            return render(request, "login.html", {
+                "error": "Enter email and password",
+                "success": success_msg
+            })
+
+        
+        current_tenant = connection.tenant
+
+       
+        with schema_context(current_tenant.schema_name):
+            user = authenticate(request, username=email, password=password)
 
         if user is None:
-            return render(request, "login.html", {"error": "Invalid credentials"})
+            return render(request, "login.html", {
+                "error": "Invalid credentials",
+                "success": success_msg
+            })
+
+        if not user.is_active:
+            return render(request, "login.html", {
+                "error": "Account is disabled",
+                "success": success_msg
+            })
+
+       
+        with schema_context('public'):
+            try:
+                hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+            except Hotel.DoesNotExist:
+                return render(request, "login.html", {
+                    "error": "Hotel not found",
+                    "success": success_msg
+                })
+
+            
+            if not hotel.is_approved:
+                return render(request, "login.html", {
+                    "error": "Your hotel is pending approval by admin",
+                    "success": success_msg
+                })
 
         login(request, user)
 
-        # ✅ Use request.tenant instead of user.hotel
-        tenant = request.tenant
-        with schema_context(tenant.schema_name):
-            hotel = Hotel.objects.filter(schema_name=tenant.schema_name).first()
-            if hotel:
-                request.session["hotel_id"] = hotel.id
+       
+       
+        request.session["hotel_id"] = hotel.id
 
         return redirect("dashboard")
 
-    return render(request, "login.html", {"success": success_msg})
+    return render(request, "login.html", {
+        "error": error,
+        "success": success_msg
+    })
 def amenities_page(request):
     amenities = Amenity.objects.all()
     return render(request, "amenities.html", {"amenities": amenities})
 
 
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django_tenants.utils import schema_context
-import json
-
-from .models import Hotel, Amenity, HotelModule
 
 
-from django.http import JsonResponse
+
+
+
+
+
+
 from django.db import connection
-from django.views.decorators.http import require_POST
+
 from django_tenants.utils import schema_context, get_tenant_model
 
-from accounts.models import Hotel, Amenity, HotelModule
+
 
 
 @require_POST
@@ -369,7 +384,7 @@ def save_selected_amenities(request):
     with schema_context(current_tenant.schema_name):
         
         deleted_count, _ = HotelModule.objects.filter(hotel=hotel).delete()
-        print(f"🗑️ Deleted old modules: {deleted_count}")
+        print(f"Deleted old modules: {deleted_count}")
 
        
         created_count = 0
@@ -460,22 +475,13 @@ def delete_amenity(request, amenity_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-from django_tenants.utils import schema_context
-from django.shortcuts import render
-from django.db import connection
-from django.utils import timezone
-
-from .models import Hotel
 from pms.models import Room, RoomUnit
 
 def dashboard(request):
     current_tenant = connection.tenant
 
     with schema_context('public'):
-        try:
-            hotel = Hotel.objects.get(tenant=current_tenant)
-        except Hotel.DoesNotExist:
-            return redirect('hotel_login')
+        hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
 
     modules = HotelModule.objects.select_related('module')
     amenities = [m.module for m in modules]
@@ -487,12 +493,22 @@ def dashboard(request):
 
     total_staff = Staff.objects.count()
     total_bookings = Booking.objects.count()
-
+    
     today = timezone.now().date()
 
-    today_checkins = Booking.objects.filter(check_in=today, status="confirmed").count()
-    today_checkouts = Booking.objects.filter(check_out=today, status="checked_in").count()
-    reserved_count = Booking.objects.filter(status="confirmed").count()
+    today_checkins = Booking.objects.filter(
+        check_in=today,
+        status="confirmed"
+    ).count()
+
+    today_checkouts = Booking.objects.filter(
+        check_out=today,
+        status="checked_in"
+    ).count()
+
+    reserved_count = Booking.objects.filter(
+        status="confirmed"
+    ).count()
 
     return render(request, "property.html", {
         "hotel": hotel,
@@ -624,8 +640,7 @@ def delete_department(request, dept_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 ##----------------------Staff authentication----------------------
-from django.core.mail import send_mail
-from django.conf import settings
+
 @require_POST
 def staff_register(request):
     try:
@@ -776,7 +791,7 @@ def delete_staff(request):
         if not staff_id:
             return JsonResponse({"error": "Staff ID required"}, status=400)
 
-        # ✅ Don't rely on session hotel_id — use current tenant instead
+        
         tenant = connection.tenant
         with schema_context('public'):
             hotel = Hotel.objects.get(schema_name=tenant.schema_name)
@@ -811,7 +826,7 @@ def update_staff(request):
         if not staff_id:
             return JsonResponse({"error": "Staff ID required"}, status=400)
 
-        # ✅ Use tenant instead of session hotel_id
+        
         tenant = connection.tenant
         with schema_context('public'):
             hotel = Hotel.objects.get(schema_name=tenant.schema_name)
@@ -821,7 +836,7 @@ def update_staff(request):
         if not staff_obj:
             return JsonResponse({"error": "Staff not found"}, status=404)
 
-        # Update staff fields
+       
         staff_obj.name   = request.POST.get("name", staff_obj.name)
         staff_obj.phone  = request.POST.get("phone", staff_obj.phone)
         staff_obj.salary = request.POST.get("salary", staff_obj.salary)
@@ -839,7 +854,7 @@ def update_staff(request):
 
         staff_obj.save()
 
-        # ✅ Also update email on the linked user
+       
         new_email = request.POST.get("email", "").strip()
         if new_email and staff_obj.user:
             staff_obj.user.email    = new_email
@@ -864,15 +879,8 @@ def update_staff(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
-from django_tenants.utils import schema_context
-from django.db import connection
 
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
-from django.db import connection
-from django_tenants.utils import schema_context
+
 
 def staff_login(request):
     if request.method == "POST":
@@ -900,7 +908,7 @@ def staff_login(request):
 
         current_tenant = connection.tenant
 
-        # 🔎 Get staff in current tenant only
+        
         with schema_context(current_tenant.schema_name):
             staff = Staff.objects.select_related("department", "hotel")\
                 .filter(user=user, hotel=user.hotel)\
@@ -911,7 +919,7 @@ def staff_login(request):
                 "error": "Access denied for this hotel"
             })
 
-        # ❗ Staff status checks
+       
         if not staff.is_active:
             return render(request, "staff_login.html", {
                 "error": "Staff account inactive"
@@ -930,7 +938,7 @@ def staff_login(request):
         request.session["hotel_id"] = staff.hotel.id
         request.session["department"] = staff.department.name if staff.department else ""
 
-        # 🚀 Smart redirect (cleaner)
+        
         dept = (staff.department.name.lower() if staff.department else "")
 
         redirect_map = {

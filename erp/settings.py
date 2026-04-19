@@ -27,9 +27,11 @@ SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
-
-
+ALLOWED_HOSTS = [
+    "localhost",
+    ".localhost",
+    "127.0.0.1",
+]
 
 
 
@@ -105,6 +107,10 @@ DATABASES = {
 
 # Override ENGINE after dj_database_url parses the URL
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+BASE_URL = "localhost"
+PORT = ":8000"
+
+
 
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
