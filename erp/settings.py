@@ -97,8 +97,8 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://postgres:vishnu123@localhost:5432/hoterp',
         conn_max_age=600,
+        ssl_require=True
     )
 }
 
