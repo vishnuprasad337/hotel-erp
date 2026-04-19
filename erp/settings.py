@@ -32,7 +32,6 @@ ALLOWED_HOSTS = [
 ]
 
 
-
 SHARED_APPS = (
     'django_tenants',
     'customers',              
@@ -98,15 +97,14 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
+        default='postgresql://postgres:vishnu123@localhost:5432/hoterp',
         conn_max_age=600,
-        ssl_require=True
     )
 }
 
 # Override ENGINE after dj_database_url parses the URL
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-BASE_URL = "hotel-erp-12.onrender.com"
-PORT = ""
+
 
 
 
