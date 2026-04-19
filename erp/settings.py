@@ -28,9 +28,7 @@ SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "localhost",
-    ".localhost",
-    "127.0.0.1",
+  
     "onrender.com"
 ]
 
@@ -108,8 +106,8 @@ DATABASES = {
 
 # Override ENGINE after dj_database_url parses the URL
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-BASE_URL = "localhost"
-PORT = ":8000"
+BASE_URL = "hotel-erp-13.onrender.com"
+PORT = ""
 
 
 
