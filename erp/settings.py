@@ -36,7 +36,10 @@ ALLOWED_HOSTS = [
     
     
 ]
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://hotel-erp-20.onrender.com",
+    "https://*.onrender.com",
+]
 
 
 SHARED_APPS = (
@@ -115,14 +118,6 @@ IS_RENDER = os.environ.get("RENDER") == "True"
 BASE_URL = "hotel-erp-20.onrender.com" if IS_RENDER else "localhost"
 PORT = "" if IS_RENDER else ":8000"
 
-if not IS_RENDER:
-    ALLOWED_HOSTS.append(".localhost")
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://hotel-erp-20.onrender.com",
-    "https://*.onrender.com",
-]
-
 
 
 DATABASE_ROUTERS = (
@@ -163,11 +158,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-if IS_RENDER:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 
 
