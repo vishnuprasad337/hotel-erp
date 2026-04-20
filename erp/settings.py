@@ -115,7 +115,6 @@ DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 IS_RENDER = os.environ.get('RENDER', False)
 BASE_URL = "hotel-erp-20.onrender.com" if IS_RENDER else "localhost"
 PORT = "" if IS_RENDER else ":8000"
-PROTOCOL = "https" if IS_RENDER else "http"
 
 
 
