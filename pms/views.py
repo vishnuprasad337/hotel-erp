@@ -602,7 +602,7 @@ def assign_housekeeping_task(request):
             staff_id = data.get("staff_id")
             room_unit_id = data.get("room_unit_id")
             
-            # Debugging: Print to console to see what the frontend is sending
+            
             print(f"Assigning Staff: {staff_id} to Room Unit: {room_unit_id}")
 
             staff = Staff.objects.get(id=staff_id)
