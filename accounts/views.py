@@ -130,56 +130,59 @@ def hotel_register(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
+                    # 1. Handle Public Schema logic
                     with schema_context('public'):
-
                         hotel = form.save(commit=False)
-
                         
-                        base_schema = slugify(hotel.hotel_name)
+                        # PostgreSQL schemas work best with underscores, not hyphens
+                        base_schema = slugify(hotel.hotel_name).replace('-', '_')
                         schema_name = base_schema
+                        
                         counter = 1
-
                         while Client.objects.filter(schema_name=schema_name).exists():
-                            schema_name = f"{base_schema}{counter}"
+                            schema_name = f"{base_schema}_{counter}"
                             counter += 1
 
-                        
+                        # Create the Tenant (Triggers physical schema creation)
                         client = Client.objects.create(
                             schema_name=schema_name,
                             name=hotel.hotel_name
                         )
 
-                        
                         hotel.schema_name = schema_name
                         hotel.save()
 
+                        # Construct domain based on your settings.py logic
+                        domain_url = f"{schema_name}.{settings.BASE_URL}"
                         domain = Domain.objects.create(
                             tenant=client,
-                            domain=f"{schema_name}.{settings.BASE_URL}",
+                            domain=domain_url,
                             is_primary=True
                         )
 
-                    
+                    # 2. Handle Tenant Schema logic
                     with schema_context(schema_name):
                         email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")  
+                        password = form.cleaned_data.get("password")
 
-                        user = User.objects.create_user(
+                        # Create the user inside the tenant's private table
+                        User.objects.create_superuser(
                             username=email,
                             email=email,
                             password=password,
-                            hotel=hotel,
+                            hotel=hotel, # Shared model reference
                         )
 
-                return redirect(f"http://{domain.domain}{settings.PORT}")
+                # Redirect to the new tenant's specific login page
+                # Uses your settings.PORT (e.g., :8000 for local, empty for Render)
+                protocol = "https" if settings.IS_RENDER else "http"
+                return redirect(f"{protocol}://{domain.domain}{settings.PORT}/login/")
 
             except Exception as e:
-                print("ERROR:", e)
-                form.add_error(None, "Something went wrong")
+                print(f"CRITICAL REGISTRATION ERROR: {e}")
+                form.add_error(None, "Database synchronization failed. Please try a different name.")
 
-    return render(request, "register.html", {
-        "tenant_form": HotelForm()
-    })
+    return render(request, "register.html", {"tenant_form": HotelForm()})
 from django.contrib.auth import update_session_auth_hash
 
 @require_POST
@@ -262,66 +265,41 @@ def update_hotel_profile(request):
 
 def hotel_login(request):
     error = None
-    success_msg = request.GET.get("approved")
+    # If the user is already logged in, send them to dashboard
+    if request.user.is_authenticated:
+        return redirect("dashboard")
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         password = request.POST.get("password", "").strip()
 
-        if not email or not password:
+        # Check if we are on a valid tenant domain
+        current_tenant = request.tenant 
+        if current_tenant.schema_name == 'public':
             return render(request, "login.html", {
-                "error": "Enter email and password",
-                "success": success_msg
+                "error": "Admin portal detected. Please use your hotel-specific URL to login."
             })
 
-        
-        current_tenant = request.tenant
+        # Authenticate against the tenant-specific User table
+        user = authenticate(request, username=email, password=password)
 
-       
-        with schema_context(current_tenant.schema_name):
-            user = authenticate(request, username=email, password=password)
+        if user:
+            # Check global approval status in 'public'
+            with schema_context('public'):
+                hotel = Hotel.objects.filter(schema_name=current_tenant.schema_name).first()
+                if not hotel or not hotel.is_approved:
+                    return render(request, "login.html", {
+                        "error": "Your registration is pending admin approval."
+                    })
 
-        if user is None:
-            return render(request, "login.html", {
-                "error": "Invalid credentials",
-                "success": success_msg
-            })
+            login(request, user)
+            # Store the shared hotel ID in session for easy template access
+            request.session["hotel_id"] = hotel.id
+            return redirect("dashboard")
+        else:
+            error = "Invalid email or password."
 
-        if not user.is_active:
-            return render(request, "login.html", {
-                "error": "Account is disabled",
-                "success": success_msg
-            })
-
-       
-        with schema_context('public'):
-            try:
-                hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
-            except Hotel.DoesNotExist:
-                return render(request, "login.html", {
-                    "error": "Hotel not found",
-                    "success": success_msg
-                })
-
-            
-            if not hotel.is_approved:
-                return render(request, "login.html", {
-                    "error": "Your hotel is pending approval by admin",
-                    "success": success_msg
-                })
-
-        login(request, user)
-
-       
-       
-        request.session["hotel_id"] = hotel.id
-
-        return redirect("dashboard")
-
-    return render(request, "login.html", {
-        "error": error,
-        "success": success_msg
-    })
+    return render(request, "login.html", {"error": error})
 def amenities_page(request):
     amenities = Amenity.objects.all()
     return render(request, "amenities.html", {"amenities": amenities})
