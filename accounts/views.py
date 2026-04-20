@@ -254,6 +254,7 @@ def update_hotel_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 def hotel_login(request):
     error = None
 

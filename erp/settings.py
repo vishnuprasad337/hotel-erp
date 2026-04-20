@@ -29,16 +29,13 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "localhost",
-    ".localhost",
     "127.0.0.1",
-    "onrender.com",
+    "hotel-erp-20.onrender.com",
     ".onrender.com",
-    
-    
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://hotel-erp-20.onrender.com",
-   
+    "https://*.onrender.com",
 ]
 
 
@@ -114,7 +111,7 @@ DATABASES = {
 
 
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-IS_RENDER = os.environ.get('RENDER', False)
+IS_RENDER = os.environ.get("RENDER") == "True"
 BASE_URL = "hotel-erp-20.onrender.com" if IS_RENDER else "localhost"
 PORT = "" if IS_RENDER else ":8000"
 
