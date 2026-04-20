@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
     ".localhost",
     "127.0.0.1",
     "onrender.com",
-    "hotel-erp-19.onrender.com",
+    "hotel-erp-20.onrender.com",
 ]
 
 
@@ -110,7 +110,7 @@ DATABASES = {
 # Override ENGINE after dj_database_url parses the URL
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 IS_RENDER = os.environ.get('RENDER', False)
-BASE_URL = "hotel-erp-19.onrender.com" if IS_RENDER else "localhost"
+BASE_URL = "hotel-erp-20.onrender.com" if IS_RENDER else "localhost"
 PORT = "" if IS_RENDER else ":8000"
 
 
