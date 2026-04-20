@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://hotel-erp-20.onrender.com",
-    ".onrender.com"
+   
 ]
 
 
