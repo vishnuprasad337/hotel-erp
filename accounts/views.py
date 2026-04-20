@@ -130,35 +130,35 @@ def hotel_register(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    with schema_context('public'):
 
-                        hotel = form.save(commit=False)
+                    hotel = form.save(commit=False)
 
-                        base_schema = slugify(hotel.hotel_name)
-                        schema_name = base_schema
-                        counter = 1
+                    base_schema = slugify(hotel.hotel_name)
+                    schema_name = base_schema
+                    counter = 1
 
-                        while Client.objects.filter(schema_name=schema_name).exists():
-                            schema_name = f"{base_schema}{counter}"
-                            counter += 1
+                    while Client.objects.filter(schema_name=schema_name).exists():
+                        schema_name = f"{base_schema}{counter}"
+                        counter += 1
 
-                        client = Client.objects.create(
-                            schema_name=schema_name,
-                            name=hotel.hotel_name
-                        )
+                    client = Client.objects.create(
+                        schema_name=schema_name,
+                        name=hotel.hotel_name
+                    )
 
-                        hotel.schema_name = schema_name
-                        hotel.save()
+                    hotel.schema_name = schema_name
+                    hotel.is_approved = False
+                    hotel.save()
 
-                        Domain.objects.create(
-                            tenant=client,
-                            domain=f"{schema_name}.hotel-erp-20.onrender.com",
-                            is_primary=True
-                        )
+                    Domain.objects.create(
+                        tenant=client,
+                        domain=f"{schema_name}.hotel-erp-20.onrender.com",
+                        is_primary=True
+                    )
 
                     with schema_context(schema_name):
-                        email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")
+                        email = form.cleaned_data["email"]
+                        password = form.cleaned_data["password"]
 
                         User.objects.create_user(
                             username=email,
@@ -167,8 +167,7 @@ def hotel_register(request):
                             hotel=hotel
                         )
 
-                # ✅ FIX: always redirect to main domain (NOT schema URL)
-                return redirect("https://hotel-erp-20.onrender.com/login/")
+                return redirect("https://hotel-erp-20.onrender.com")
 
             except Exception as e:
                 print("ERROR:", e)
@@ -265,44 +264,35 @@ def hotel_login(request):
         password = request.POST.get("password", "").strip()
 
         if not email or not password:
-            return render(request, "login.html", {
-                "error": "Enter email and password"
-            })
+            return render(request, "login.html", {"error": "Enter email and password"})
 
         user = authenticate(request, username=email, password=password)
 
         if user is None:
-            return render(request, "login.html", {
-                "error": "Invalid credentials"
-            })
+            return render(request, "login.html", {"error": "Invalid credentials"})
 
         if not user.is_active:
-            return render(request, "login.html", {
-                "error": "Account is disabled"
-            })
+            return render(request, "login.html", {"error": "Account disabled"})
 
-        try:
-            hotel = user.hotel
-        except:
-            return render(request, "login.html", {
-                "error": "Hotel not found"
-            })
+        tenant = request.tenant
+
+        with schema_context('public'):
+            hotel = Hotel.objects.filter(schema_name=tenant.schema_name).first()
+
+        if not hotel:
+            return render(request, "login.html", {"error": "Hotel not found"})
 
         if not hotel.is_approved:
-            return render(request, "login.html", {
-                "error": "Hotel not approved"
-            })
+            return render(request, "login.html", {"error": "Hotel not approved"})
 
         login(request, user)
 
         request.session["hotel_id"] = hotel.id
-        request.session["schema_name"] = hotel.schema_name
+        request.session["schema"] = hotel.schema_name
 
         return redirect("dashboard")
 
-    return render(request, "login.html", {
-        "error": error
-    })
+    return render(request, "login.html", {"error": error})
 def amenities_page(request):
     amenities = Amenity.objects.all()
     return render(request, "amenities.html", {"amenities": amenities})
@@ -454,74 +444,55 @@ def delete_amenity(request, amenity_id):
 from pms.models import Room, RoomUnit
 
 def dashboard(request):
-    try:
-        current_tenant = connection.tenant
+    if not request.user.is_authenticated:
+        return redirect("hotel_login")
 
-        if not current_tenant:
-            return JsonResponse({"error": "No tenant found"}, status=400)
+    tenant = request.tenant
 
-        # ✅ Get hotel safely from public schema
-        with schema_context('public'):
-            hotel = Hotel.objects.filter(
-                schema_name=current_tenant.schema_name
-            ).first()
+    with schema_context('public'):
+        hotel = Hotel.objects.filter(schema_name=tenant.schema_name).first()
 
-        if not hotel:
-            return JsonResponse({"error": "Hotel not found"}, status=404)
+    if not hotel:
+        return render(request, "error.html", {"error": "Hotel not found"})
 
-        # ✅ Everything inside tenant schema
-        with schema_context(current_tenant.schema_name):
+    modules = HotelModule.objects.filter(hotel=hotel).select_related("module")
+    amenities = [m.module for m in modules]
 
-            # FIX: filter by hotel everywhere
-            modules_qs = HotelModule.objects.select_related('module').filter(hotel=hotel)
-            amenities = [m.module for m in modules_qs]
+    all_units = RoomUnit.objects.all()
 
-            rooms = RoomUnit.objects.all()
+    total_rooms = all_units.count()
+    available_rooms = all_units.filter(status="Available").count()
+    occupied_rooms = all_units.filter(status="Occupied").count()
 
-            total_rooms = rooms.count()
-            available_rooms = rooms.filter(status="Available").count()
-            occupied_rooms = rooms.filter(status="Occupied").count()
+    total_staff = Staff.objects.count()
+    total_bookings = Booking.objects.count()
 
-            total_staff = Staff.objects.filter(hotel=hotel).count()
-            total_bookings = Booking.objects.filter(hotel=hotel).count()
+    today = timezone.now().date()
 
-            today = timezone.now().date()
+    today_checkins = Booking.objects.filter(
+        check_in=today,
+        status="confirmed"
+    ).count()
 
-            today_checkins = Booking.objects.filter(
-                hotel=hotel,
-                check_in=today,
-                status="confirmed"
-            ).count()
+    today_checkouts = Booking.objects.filter(
+        check_out=today,
+        status="checked_in"
+    ).count()
 
-            today_checkouts = Booking.objects.filter(
-                hotel=hotel,
-                check_out=today,
-                status="checked_in"
-            ).count()
+    reserved_count = Booking.objects.filter(status="confirmed").count()
 
-            reserved_count = Booking.objects.filter(
-                hotel=hotel,
-                status="confirmed"
-            ).count()
-
-        return render(request, "property.html", {
-            "hotel": hotel,
-            "amenities": amenities,
-            "total_rooms": total_rooms,
-            "available_rooms": available_rooms,
-            "occupied_rooms": occupied_rooms,
-            "total_staff": total_staff,
-            "total_bookings": total_bookings,
-            "reserved_count": reserved_count,
-            "today_checkins": today_checkins,
-            "today_checkouts": today_checkouts,
-        })
-
-    except Exception as e:
-        return JsonResponse({
-            "error": str(e),
-            "hint": "Dashboard crashed due to tenant or query mismatch"
-        }, status=500)
+    return render(request, "property.html", {
+        "hotel": hotel,
+        "amenities": amenities,
+        "total_rooms": total_rooms,
+        "available_rooms": available_rooms,
+        "occupied_rooms": occupied_rooms,
+        "total_staff": total_staff,
+        "total_bookings": total_bookings,
+        "reserved_count": reserved_count,
+        "today_checkins": today_checkins,
+        "today_checkouts": today_checkouts,
+    })
 ##----------------------Role & permissions----------------------
 def add_department(request):
     if request.method == "POST":
