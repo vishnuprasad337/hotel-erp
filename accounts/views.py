@@ -122,7 +122,6 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
-
 def hotel_register(request):
     if request.method == "POST":
         form = HotelForm(request.POST, request.FILES)
@@ -255,6 +254,7 @@ def update_hotel_profile(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 def hotel_login(request):
     error = None
 
