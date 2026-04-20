@@ -1,13 +1,21 @@
 from django.core.management.base import BaseCommand
-from customers.models import Client, Domain  
+from customers.models import Client, Domain
+
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        tenant, _ = Client.objects.get_or_create(
-            schema_name='public',
-            defaults={'name': 'Public'}
+        domain_name = "hotel-erp-19.onrender.com"
+
+        tenant = Client.objects.get(schema_name="public")
+
+        domain, created = Domain.objects.get_or_create(
+            domain=domain_name,
+            tenant=tenant,
+            defaults={"is_primary": True}
         )
-        Domain.objects.get_or_create(
-            domain='hotel-erp-18.onrender.com',
-            defaults={'tenant': tenant, 'is_primary': True}
-        )
-        self.stdout.write("Tenant created successfully!")
+
+        if not created:
+            domain.tenant = tenant
+            domain.is_primary = True
+            domain.save()
+
+        self.stdout.write(self.style.SUCCESS("Public domain configured successfully"))
