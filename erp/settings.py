@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
     ".localhost",
     "127.0.0.1",
     "onrender.com",
-    "hotel-erp-15.onrender.com",
+    "hotel-erp-17.onrender.com",
 ]
 
 

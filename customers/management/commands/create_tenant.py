@@ -7,7 +7,7 @@ class Command(BaseCommand):
             defaults={'name': 'Public'}
         )
         Domain.objects.get_or_create(
-            domain='hotel-erp-16.onrender.com',
+            domain='hotel-erp-17.onrender.com',
             defaults={'tenant': tenant, 'is_primary': True}
         )
         self.stdout.write("Tenant created successfully!")
