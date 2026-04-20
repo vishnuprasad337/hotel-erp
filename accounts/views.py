@@ -275,7 +275,7 @@ def hotel_login(request):
             })
 
         
-        current_tenant = connection.tenant
+        current_tenant = request.tenant
 
        
         with schema_context(current_tenant.schema_name):
