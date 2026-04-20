@@ -122,6 +122,7 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
+
 def hotel_register(request):
     if request.method == "POST":
         form = HotelForm(request.POST, request.FILES)
@@ -166,7 +167,8 @@ def hotel_register(request):
                             hotel=hotel
                         )
 
-                return redirect("https://hotel-erp-20.onrender.com")
+                # ✅ FIX: always redirect to main domain (NOT schema URL)
+                return redirect("https://hotel-erp-20.onrender.com/login/")
 
             except Exception as e:
                 print("ERROR:", e)
@@ -279,9 +281,9 @@ def hotel_login(request):
                 "error": "Account is disabled"
             })
 
-        hotel = Hotel.objects.filter(id=user.hotel.id).first()
-
-        if not hotel:
+        try:
+            hotel = user.hotel
+        except:
             return render(request, "login.html", {
                 "error": "Hotel not found"
             })
@@ -294,6 +296,7 @@ def hotel_login(request):
         login(request, user)
 
         request.session["hotel_id"] = hotel.id
+        request.session["schema_name"] = hotel.schema_name
 
         return redirect("dashboard")
 
@@ -451,50 +454,74 @@ def delete_amenity(request, amenity_id):
 from pms.models import Room, RoomUnit
 
 def dashboard(request):
-    current_tenant = connection.tenant
+    try:
+        current_tenant = connection.tenant
 
-    with schema_context('public'):
-        hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+        if not current_tenant:
+            return JsonResponse({"error": "No tenant found"}, status=400)
 
-    modules = HotelModule.objects.select_related('module')
-    amenities = [m.module for m in modules]
+        # ✅ Get hotel safely from public schema
+        with schema_context('public'):
+            hotel = Hotel.objects.filter(
+                schema_name=current_tenant.schema_name
+            ).first()
 
-    all_units = RoomUnit.objects.all()
-    total_rooms = all_units.count()
-    available_rooms = all_units.filter(status="Available").count()
-    occupied_rooms = all_units.filter(status="Occupied").count()
+        if not hotel:
+            return JsonResponse({"error": "Hotel not found"}, status=404)
 
-    total_staff = Staff.objects.count()
-    total_bookings = Booking.objects.count()
-    
-    today = timezone.now().date()
+        # ✅ Everything inside tenant schema
+        with schema_context(current_tenant.schema_name):
 
-    today_checkins = Booking.objects.filter(
-        check_in=today,
-        status="confirmed"
-    ).count()
+            # FIX: filter by hotel everywhere
+            modules_qs = HotelModule.objects.select_related('module').filter(hotel=hotel)
+            amenities = [m.module for m in modules_qs]
 
-    today_checkouts = Booking.objects.filter(
-        check_out=today,
-        status="checked_in"
-    ).count()
+            rooms = RoomUnit.objects.all()
 
-    reserved_count = Booking.objects.filter(
-        status="confirmed"
-    ).count()
+            total_rooms = rooms.count()
+            available_rooms = rooms.filter(status="Available").count()
+            occupied_rooms = rooms.filter(status="Occupied").count()
 
-    return render(request, "property.html", {
-        "hotel": hotel,
-        "amenities": amenities,
-        "total_rooms": total_rooms,
-        "available_rooms": available_rooms,
-        "occupied_rooms": occupied_rooms,
-        "total_staff": total_staff,
-        "total_bookings": total_bookings,
-        "reserved_count": reserved_count,
-        "today_checkins": today_checkins,
-        "today_checkouts": today_checkouts,
-    })
+            total_staff = Staff.objects.filter(hotel=hotel).count()
+            total_bookings = Booking.objects.filter(hotel=hotel).count()
+
+            today = timezone.now().date()
+
+            today_checkins = Booking.objects.filter(
+                hotel=hotel,
+                check_in=today,
+                status="confirmed"
+            ).count()
+
+            today_checkouts = Booking.objects.filter(
+                hotel=hotel,
+                check_out=today,
+                status="checked_in"
+            ).count()
+
+            reserved_count = Booking.objects.filter(
+                hotel=hotel,
+                status="confirmed"
+            ).count()
+
+        return render(request, "property.html", {
+            "hotel": hotel,
+            "amenities": amenities,
+            "total_rooms": total_rooms,
+            "available_rooms": available_rooms,
+            "occupied_rooms": occupied_rooms,
+            "total_staff": total_staff,
+            "total_bookings": total_bookings,
+            "reserved_count": reserved_count,
+            "today_checkins": today_checkins,
+            "today_checkouts": today_checkouts,
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "error": str(e),
+            "hint": "Dashboard crashed due to tenant or query mismatch"
+        }, status=500)
 ##----------------------Role & permissions----------------------
 def add_department(request):
     if request.method == "POST":

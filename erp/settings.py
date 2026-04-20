@@ -29,9 +29,12 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "localhost",
+    ".localhost",
     "127.0.0.1",
-    "hotel-erp-20.onrender.com",
+    "onrender.com",
     ".onrender.com",
+    
+    
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://hotel-erp-20.onrender.com",
