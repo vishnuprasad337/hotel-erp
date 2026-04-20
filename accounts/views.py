@@ -171,7 +171,7 @@ def hotel_register(request):
                             hotel=hotel,
                         )
 
-                return redirect(f"http://{domain.domain}{settings.PORT}")
+                return redirect(f"{settings.PROTOCOL}://{domain.domain}{settings.PORT}")
 
             except Exception as e:
                 print("ERROR:", e)
