@@ -25,14 +25,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
     "localhost",
     ".localhost",
     "127.0.0.1",
     "onrender.com",
-    "hotel-erp-20.onrender.com",
+    ".onrender.com",
+    
+    
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
+    "https://hotel-erp-20.onrender.com",
 ]
 
 
@@ -107,7 +113,7 @@ DATABASES = {
     )
 }
 
-# Override ENGINE after dj_database_url parses the URL
+
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
 IS_RENDER = os.environ.get('RENDER', False)
 BASE_URL = "hotel-erp-20.onrender.com" if IS_RENDER else "localhost"

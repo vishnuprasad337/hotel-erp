@@ -14,6 +14,20 @@ from django.views.decorators.csrf import csrf_exempt
 from pms.models import Booking
 from .models import Hotel, Department, Permission, RolePermission, Amenity, HotelModule
 
+from django.db import transaction
+
+from .forms import HotelForm
+from customers.models import Domain,Client
+
+
+from django.shortcuts import render, redirect
+
+from django.utils.text import slugify
+from django_tenants.utils import schema_context
+
+from .forms import HotelForm
+
+
 User = get_user_model()
 
 
@@ -42,22 +56,17 @@ def admin_login(request):
 
 @login_required
 def superuser_dashboard(request):
-
     if not request.user.is_superuser:
         return redirect("admin_login")
 
-    
-    connection.set_schema_to_public()
+    with schema_context('public'): 
+        hotels = Hotel.objects.all().order_by("-id")
 
-    hotels = Hotel.objects.all().order_by("-id")
-
-    total_hotels = hotels.count()
-    active_hotels = hotels.filter(is_approved=True).count()
-    pending_hotels = hotels.filter(is_approved=False).count()
-
-    pending_hotel_list = hotels.filter(is_approved=False)
-
-    amenities = Amenity.objects.all()
+        total_hotels = hotels.count()
+        active_hotels = hotels.filter(is_approved=True).count()
+        pending_hotels = hotels.filter(is_approved=False).count()
+        pending_hotel_list = hotels.filter(is_approved=False)
+        amenities = Amenity.objects.all()
 
     return render(request, "admin/dashboard.html", {
         "hotels": hotels,
@@ -113,20 +122,6 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
-from django.shortcuts import render, redirect
-from django.conf import settings
-from django.db import transaction
-
-from .forms import HotelForm
-from customers.models import Domain,Client
-
-
-from django.shortcuts import render, redirect
-from django.core.management import call_command
-from django.utils.text import slugify
-from django_tenants.utils import schema_context
-
-from .forms import HotelForm
 
 def hotel_register(request):
     if request.method == "POST":
