@@ -3,7 +3,7 @@ from customers.models import Client, Domain
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        domain_name = "hotel-erp-20.onrender.com"
+        domain_name = "hotel-erp-21.onrender.com"
 
         tenant = Client.objects.get(schema_name="public")
 

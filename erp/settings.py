@@ -24,8 +24,8 @@ ALLOWED_HOSTS = [
     "localhost",
     ".localhost",
     "127.0.0.1",
-    "hotel-erp-20.onrender.com",
-    ".hotel-erp-20.onrender.com",   # allows tenant subdomains on Render
+    "hotel-erp-21.onrender.com",
+    ".hotel-erp-21.onrender.com",   # allows tenant subdomains on Render
     ".onrender.com",
 ]
 
@@ -64,7 +64,7 @@ TENANT_DOMAIN_MODEL = "customers.Domain"
 MIDDLEWARE = [
     'django_tenants.middleware.main.TenantMainMiddleware',
     'django.middleware.security.SecurityMiddleware',
-      
+    
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -131,17 +131,18 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# Email
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "msvishnu673@gmail.com")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST_USER = 'msvishnu673@gmail.com'
+EMAIL_HOST_PASSWORD = 'sjcf tyva aldr ashi'
