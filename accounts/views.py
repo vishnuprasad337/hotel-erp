@@ -167,7 +167,7 @@ def hotel_register(request):
                     
                     with schema_context(schema_name):
                         email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")  # add to form
+                        password = form.cleaned_data.get("password")  
 
                         user = User.objects.create_user(
                             username=email,

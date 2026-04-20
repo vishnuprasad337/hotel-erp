@@ -28,8 +28,13 @@ SECRET_KEY = 'django-insecure-gdp^^*e2%+n&zle5_3#(e-w5zorxo+-a2+_4e*yzva^re8-xjc
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    ".onrender.com",
+    "localhost",
+    ".localhost",
+    "127.0.0.1",
+    "onrender.com",
+    "hotel-erp-15.onrender.com",
 ]
+
 
 
 SHARED_APPS = (
@@ -97,14 +102,16 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
+        default='postgresql://postgres:vishnu123@localhost:5432/hoterp',
         conn_max_age=600,
-        ssl_require=True
     )
 }
 
 # Override ENGINE after dj_database_url parses the URL
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-
+IS_RENDER = os.environ.get('RENDER', False)
+BASE_URL = "hotel-erp-16.onrender.com" if IS_RENDER else "localhost"
+PORT = "" if IS_RENDER else ":8000"
 
 
 
