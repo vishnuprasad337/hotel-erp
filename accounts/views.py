@@ -122,56 +122,64 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
+
 def hotel_register(request):
     if request.method == "POST":
         form = HotelForm(request.POST, request.FILES)
+
         if form.is_valid():
             try:
                 with transaction.atomic():
                     with schema_context('public'):
+
                         hotel = form.save(commit=False)
+
+                        
                         base_schema = slugify(hotel.hotel_name)
                         schema_name = base_schema
                         counter = 1
+
                         while Client.objects.filter(schema_name=schema_name).exists():
                             schema_name = f"{base_schema}{counter}"
                             counter += 1
 
+                        
                         client = Client.objects.create(
                             schema_name=schema_name,
                             name=hotel.hotel_name
                         )
+
+                        
                         hotel.schema_name = schema_name
                         hotel.save()
 
-                        # Still save domain for reference but won't use for routing
-                        Domain.objects.create(
+                        domain = Domain.objects.create(
                             tenant=client,
                             domain=f"{schema_name}.{settings.BASE_URL}",
                             is_primary=True
                         )
 
+                    
                     with schema_context(schema_name):
                         email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")
-                        User.objects.create_user(
+                        password = form.cleaned_data.get("password")  
+
+                        user = User.objects.create_user(
                             username=email,
                             email=email,
                             password=password,
                             hotel=hotel,
                         )
 
-                # ✅ Path-based redirect
-                return redirect(
-                    f"{settings.PROTOCOL}://{settings.BASE_URL}/{schema_name}/login/"
-                )
+                return redirect(f"http://{domain.domain}{settings.PORT}")
 
             except Exception as e:
                 print("ERROR:", e)
                 form.add_error(None, "Something went wrong")
 
-    return render(request, "register.html", {"tenant_form": HotelForm()})
-
+    return render(request, "register.html", {
+        "tenant_form": HotelForm()
+    })
 from django.contrib.auth import update_session_auth_hash
 
 @require_POST
@@ -256,12 +264,6 @@ def hotel_login(request):
     error = None
     success_msg = request.GET.get("approved")
 
-    # Get schema from middleware via request
-    schema_name = request.schema_name
-
-    if not schema_name or schema_name == 'public':
-        return render(request, "login.html", {"error": "Invalid hotel URL"})
-
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
         password = request.POST.get("password", "").strip()
@@ -272,7 +274,11 @@ def hotel_login(request):
                 "success": success_msg
             })
 
-        with schema_context(schema_name):
+        
+        current_tenant = connection.tenant
+
+       
+        with schema_context(current_tenant.schema_name):
             user = authenticate(request, username=email, password=password)
 
         if user is None:
@@ -287,12 +293,17 @@ def hotel_login(request):
                 "success": success_msg
             })
 
+       
         with schema_context('public'):
             try:
-                hotel = Hotel.objects.get(schema_name=schema_name)
+                hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
             except Hotel.DoesNotExist:
-                return render(request, "login.html", {"error": "Hotel not found"})
+                return render(request, "login.html", {
+                    "error": "Hotel not found",
+                    "success": success_msg
+                })
 
+            
             if not hotel.is_approved:
                 return render(request, "login.html", {
                     "error": "Your hotel is pending approval by admin",
@@ -300,13 +311,17 @@ def hotel_login(request):
                 })
 
         login(request, user)
+
+       
+       
         request.session["hotel_id"] = hotel.id
-        request.session["schema_name"] = schema_name  # ✅ store for other views
 
         return redirect("dashboard")
 
-    return render(request, "login.html", {"error": error, "success": success_msg})
-
+    return render(request, "login.html", {
+        "error": error,
+        "success": success_msg
+    })
 def amenities_page(request):
     amenities = Amenity.objects.all()
     return render(request, "amenities.html", {"amenities": amenities})
