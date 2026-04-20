@@ -122,7 +122,6 @@ def save_hotel_modules(request, hotel_id):
 
 
 ##----------------------Hotel Authentication----------------------
-
 def hotel_register(request):
     if request.method == "POST":
         form = HotelForm(request.POST, request.FILES)
@@ -134,7 +133,6 @@ def hotel_register(request):
 
                         hotel = form.save(commit=False)
 
-                        
                         base_schema = slugify(hotel.hotel_name)
                         schema_name = base_schema
                         counter = 1
@@ -143,35 +141,32 @@ def hotel_register(request):
                             schema_name = f"{base_schema}{counter}"
                             counter += 1
 
-                        
                         client = Client.objects.create(
                             schema_name=schema_name,
                             name=hotel.hotel_name
                         )
 
-                        
                         hotel.schema_name = schema_name
                         hotel.save()
 
-                        domain = Domain.objects.create(
+                        Domain.objects.create(
                             tenant=client,
-                            domain=f"{schema_name}.{settings.BASE_URL}",
+                            domain=f"{schema_name}.hotel-erp-20.onrender.com",
                             is_primary=True
                         )
 
-                    
                     with schema_context(schema_name):
                         email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")  
+                        password = form.cleaned_data.get("password")
 
-                        user = User.objects.create_user(
+                        User.objects.create_user(
                             username=email,
                             email=email,
                             password=password,
-                            hotel=hotel,
+                            hotel=hotel
                         )
 
-                return redirect(f"http://{domain.domain}{settings.PORT}")
+                return redirect("https://hotel-erp-20.onrender.com")
 
             except Exception as e:
                 print("ERROR:", e)
@@ -262,7 +257,6 @@ def update_hotel_profile(request):
 
 def hotel_login(request):
     error = None
-    success_msg = request.GET.get("approved")
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
@@ -270,57 +264,41 @@ def hotel_login(request):
 
         if not email or not password:
             return render(request, "login.html", {
-                "error": "Enter email and password",
-                "success": success_msg
+                "error": "Enter email and password"
             })
 
-        
-        current_tenant = request.tenant
-
-       
-        with schema_context(current_tenant.schema_name):
-            user = authenticate(request, username=email, password=password)
+        user = authenticate(request, username=email, password=password)
 
         if user is None:
             return render(request, "login.html", {
-                "error": "Invalid credentials",
-                "success": success_msg
+                "error": "Invalid credentials"
             })
 
         if not user.is_active:
             return render(request, "login.html", {
-                "error": "Account is disabled",
-                "success": success_msg
+                "error": "Account is disabled"
             })
 
-       
-        with schema_context('public'):
-            try:
-                hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
-            except Hotel.DoesNotExist:
-                return render(request, "login.html", {
-                    "error": "Hotel not found",
-                    "success": success_msg
-                })
+        hotel = Hotel.objects.filter(id=user.hotel.id).first()
 
-            
-            if not hotel.is_approved:
-                return render(request, "login.html", {
-                    "error": "Your hotel is pending approval by admin",
-                    "success": success_msg
-                })
+        if not hotel:
+            return render(request, "login.html", {
+                "error": "Hotel not found"
+            })
+
+        if not hotel.is_approved:
+            return render(request, "login.html", {
+                "error": "Hotel not approved"
+            })
 
         login(request, user)
 
-       
-       
         request.session["hotel_id"] = hotel.id
 
         return redirect("dashboard")
 
     return render(request, "login.html", {
-        "error": error,
-        "success": success_msg
+        "error": error
     })
 def amenities_page(request):
     amenities = Amenity.objects.all()
