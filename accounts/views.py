@@ -167,7 +167,7 @@ def hotel_register(request):
                             hotel=hotel
                         )
 
-                return redirect("https://hotel-erp-23.onrender.com")
+                return redirect("https://hotel-erp-24.onrender.com")
 
             except Exception as e:
                 print("ERROR:", e)
