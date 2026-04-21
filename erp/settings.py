@@ -70,14 +70,19 @@ TENANT_MODEL = "customers.Client"
 TENANT_DOMAIN_MODEL = "customers.Domain"
 
 MIDDLEWARE = [
-     'django_tenants.middleware.main.TenantMainMiddleware',
+    'django_tenants.middleware.main.TenantMainMiddleware',
 
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -107,10 +112,7 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://postgres:vishnu123@localhost:5432/hoterp',
-        conn_max_age=600,
-    )
+    'default': dj_database_url.config(default='postgres://...')
 }
 
 

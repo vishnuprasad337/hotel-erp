@@ -468,5 +468,25 @@ Hotel Team
         message,
         settings.EMAIL_HOST_USER,
         [guest.email],
-        fail_silently=False,  # set True if you don’t want API to fail on email error
+        fail_silently=False,  
     )
+@csrf_exempt
+def list_invoices(request):
+    
+    if request.method == 'GET':
+        invoices = Invoice.objects.all().order_by('-generated_at')
+        data = {
+            'invoices': [
+                {
+                    'id': inv.id,
+                    'invoice_number': inv.invoice_number,
+                    'guest_name': inv.folio.booking.guest.full_name if inv.folio.booking.guest else 'Unknown',
+                    'status': inv.status,  # 'paid', 'pending', 'partial'
+                    'grand_total': float(inv.grand_total),
+                    'generated_at': inv.generated_at.isoformat(),
+                }
+                for inv in invoices
+            ]
+        }
+        return JsonResponse(data)
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
