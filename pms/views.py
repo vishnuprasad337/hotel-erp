@@ -228,7 +228,7 @@ def get_rooms(request):
             "success": False,
             "error": str(e)
         }, status=500)
-from django.utils import timezone  # Add this import at the top if missing
+from django.utils import timezone  
 
 def frontoffice_dashboard(request):
     staff_id = request.session.get("staff_id")
@@ -237,40 +237,47 @@ def frontoffice_dashboard(request):
 
     staff = Staff.objects.select_related("department").get(id=staff_id)
 
-    # Get rooms with their units for the template
-    rooms = Room.objects.all()
+   
+    rooms = Room.objects.filter(is_active=True)
     room_list = []
 
     for room in rooms:
-        total_units = room.units.count()
-        available_units = room.units.filter(status="Available").count()
-        
-        # Get units with their status for JavaScript
-        units_list = []
-        for unit in room.units.all().order_by('room_number'):
-            units_list.append({
+        units_qs = room.units.all().order_by("room_number")
+        total_units = units_qs.count()
+        available_units = units_qs.filter(status="Available").count()
+
+        units_list = [
+            {
                 "id": unit.id,
                 "number": unit.room_number,
                 "status": unit.status,
-            })
+            }
+            for unit in units_qs
+        ]
 
         price = (
-            getattr(room, "price", None)
-            or getattr(room, "base_price", None)
+            getattr(room, "base_price", None)
+            or getattr(room, "price", None)
             or getattr(room, "rate", None)
             or 0
         )
 
         room_list.append({
+            "id": room.id,
             "room_type": getattr(room, "room_type", "Unknown"),
             "total_rooms": total_units,
             "available_rooms": available_units,
             "price": price,
-            "id": room.id,
             "description": getattr(room, "description", "") or "",
-            "units": units_list  # Add units to each room
+            "units": units_list,
         })
 
+    rooms_json = json.dumps([
+    {**r, "price": float(r["price"]) if r["price"] else 0}
+    for r in room_list
+])
+
+    
     housekeeping_staff = Staff.objects.filter(
         department__name__icontains="housekeeping",
         is_available=True,
@@ -278,42 +285,43 @@ def frontoffice_dashboard(request):
 
     today = timezone.now().date()
 
-    total_bookings = Booking.objects.count()
+    # ── Bookings ──
+    base_bookings = Booking.objects.select_related("guest", "room", "room_unit")
 
-    arrivals = Booking.objects.filter(
-        check_in=today,
-        status="confirmed"
-    ).select_related('guest', 'room', 'room_unit')
-
-    departures = Booking.objects.filter(
-        check_out=today,
-        status="checked_in"
-    ).select_related('guest', 'room', 'room_unit')
-
-    occupied_rooms = Booking.objects.filter(
-        status="checked_in"
-    ).count()
-
-    bookings = Booking.objects.all().select_related(
-        'guest', 'room', 'room_unit'
-    ).order_by('-created_at')
-
+    total_bookings = base_bookings.count()
+    arrivals = base_bookings.filter(check_in=today, status="confirmed")
+    departures = base_bookings.filter(check_out=today, status="checked_in")
+    occupied_rooms = base_bookings.filter(status="checked_in").count()
+    bookings = base_bookings.order_by("-created_at")
     recent_bookings = bookings[:5]
 
+    # ── Tasks ──
     recent_tasks = Task.objects.select_related(
-        'staff', 'room_unit', 'room'
+        "staff", "room_unit", "room"
     ).order_by("-created_at")[:5]
 
     recent_activity = sorted(
         list(recent_bookings) + list(recent_tasks),
         key=lambda x: x.created_at,
-        reverse=True
+        reverse=True,
     )[:10]
 
-    room_units = RoomUnit.objects.select_related('room').all()
+    # ── Room units ──
+    room_units = RoomUnit.objects.select_related("room").all()
+
+    # ── Attendance placeholders ──
+    present_days = 0
+    late_days = 0
+    absent_days = 0
+    overtime_hours = "0.0"
+    attendance_records = []
+    leave_requests = []
+    used_leave_days = 0
+    pending_leaves = 0
 
     return render(request, "frontoffice.html", {
-        "rooms": room_list,  # Now includes units
+        "rooms": room_list,
+        "rooms_json": rooms_json,
         "staff": staff,
         "housekeeping_staff": housekeeping_staff,
         "total_bookings": total_bookings,
@@ -326,6 +334,14 @@ def frontoffice_dashboard(request):
         "recent_activity": recent_activity,
         "recent_tasks": recent_tasks,
         "room_units": room_units,
+        "present_days": present_days,
+        "late_days": late_days,
+        "absent_days": absent_days,
+        "overtime_hours": overtime_hours,
+        "attendance_records": attendance_records,
+        "leave_requests": leave_requests,
+        "used_leave_days": used_leave_days,
+        "pending_leaves": pending_leaves,
     })
 from rest_framework.decorators import api_view
 from rest_framework.response import Response

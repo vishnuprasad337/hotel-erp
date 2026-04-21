@@ -354,40 +354,44 @@ from django.contrib.auth.hashers import check_password, make_password
 @require_POST
 def update_staff_profile(request):
     try:
-        staff_id = request.session.get("staff_id")  
+        staff_id = request.session.get("staff_id")
 
         if not staff_id:
             return JsonResponse({"error": "Login required"}, status=401)
 
         staff = get_object_or_404(Staff, id=staff_id)
 
-        
-        staff.name  = request.POST.get("name", staff.name)
-        staff.email = request.POST.get("email", staff.email)
+        # Staff fields
+        staff.name = request.POST.get("name", staff.name)
         staff.phone = request.POST.get("phone", staff.phone)
 
         
+        user = staff.user
+        user.email = request.POST.get("email", user.email)
+
         current_password = request.POST.get("current_password")
-        new_password     = request.POST.get("new_password")
+        new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
 
         if new_password:
-            if staff.password != current_password:
+            if not check_password(current_password, user.password):
                 return JsonResponse({"error": "Current password is incorrect"}, status=400)
-            if new_password != confirm_password:
-                return JsonResponse({"error": "New passwords do not match"}, status=400)
-            staff.password = new_password
 
-        
+            if new_password != confirm_password:
+                return JsonResponse({"error": "Passwords do not match"}, status=400)
+
+            user.password = make_password(new_password)
+
         if request.FILES.get("photo"):
             staff.photo = request.FILES["photo"]
 
+        user.save()
         staff.save()
 
         return JsonResponse({
             "success": True,
-            "name":  staff.name,
-            "email": staff.email,
+            "name": staff.name,
+            "email": user.email,
             "photo": staff.photo.url if staff.photo else None,
         })
 
