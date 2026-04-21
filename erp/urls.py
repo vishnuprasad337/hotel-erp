@@ -23,6 +23,7 @@ urlpatterns = [
     path('', include('hotel.urls')),
     
      path('', include('pms.urls')),
+     path('billing/',include('billing.urls')),
     
    
 ]

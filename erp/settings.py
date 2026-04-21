@@ -61,6 +61,7 @@ TENANT_APPS = (
     'hotel',
     'pms',
     'housekeeping',
+    'billing',
                          
 )
 

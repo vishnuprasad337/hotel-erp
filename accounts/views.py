@@ -134,6 +134,7 @@ def hotel_register(request):
 
                         hotel = form.save(commit=False)
 
+                        
                         base_schema = slugify(hotel.hotel_name)
                         schema_name = base_schema
                         counter = 1
@@ -142,32 +143,35 @@ def hotel_register(request):
                             schema_name = f"{base_schema}{counter}"
                             counter += 1
 
+                        
                         client = Client.objects.create(
                             schema_name=schema_name,
                             name=hotel.hotel_name
                         )
 
+                        
                         hotel.schema_name = schema_name
                         hotel.save()
 
-                        Domain.objects.create(
+                        domain = Domain.objects.create(
                             tenant=client,
-                            domain=f"{schema_name}.hotel-erp-20.onrender.com",
+                            domain=f"{schema_name}.{settings.BASE_URL}",
                             is_primary=True
                         )
 
+                    
                     with schema_context(schema_name):
                         email = form.cleaned_data.get("email")
-                        password = form.cleaned_data.get("password")
+                        password = form.cleaned_data.get("password")  
 
-                        User.objects.create_user(
+                        user = User.objects.create_user(
                             username=email,
                             email=email,
                             password=password,
-                            hotel=hotel
+                            hotel=hotel,
                         )
 
-                return redirect("https://eerp.onrender.com")
+                return redirect(f"http://{domain.domain}{settings.PORT}")
 
             except Exception as e:
                 print("ERROR:", e)

@@ -229,15 +229,15 @@ def get_rooms(request):
             "error": str(e)
         }, status=500)
 from django.utils import timezone  
-
 def frontoffice_dashboard(request):
     staff_id = request.session.get("staff_id")
     if not staff_id:
         return redirect("staff_login")
 
-    staff = Staff.objects.select_related("department").get(id=staff_id)
+    staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
+    hotel = staff.hotel
 
-   
+    # ── Rooms (no hotel field, load all active) ──
     rooms = Room.objects.filter(is_active=True)
     room_list = []
 
@@ -273,15 +273,19 @@ def frontoffice_dashboard(request):
         })
 
     rooms_json = json.dumps([
-    {**r, "price": float(r["price"]) if r["price"] else 0}
-    for r in room_list
-])
+        {**r, "price": float(r["price"]) if r["price"] else 0}
+        for r in room_list
+    ])
 
-    
-    housekeeping_staff = Staff.objects.filter(
+    # ── Staff filtered by hotel + sorted by department then name ──
+    hotel_staff = Staff.objects.filter(
+        hotel=hotel
+    ).select_related("department").order_by("department__name", "name")
+
+    housekeeping_staff = hotel_staff.filter(
         department__name__icontains="housekeeping",
         is_available=True,
-    ).select_related("department")
+    )
 
     today = timezone.now().date()
 
@@ -320,6 +324,8 @@ def frontoffice_dashboard(request):
     pending_leaves = 0
 
     return render(request, "frontoffice.html", {
+        "hotel": hotel,
+        "hotel_staff": hotel_staff,
         "rooms": room_list,
         "rooms_json": rooms_json,
         "staff": staff,
@@ -586,28 +592,50 @@ def check_out(request):
         "success": True,
         "message": "Check-out completed successfully"
     })
+from datetime import date as date_type
+
 def get_bill(request):
     booking_id = request.GET.get("booking_id")
 
     if not booking_id:
         return JsonResponse({"error": "booking_id required"}, status=400)
 
-    
-
-    booking = Booking.objects.filter(id=booking_id).first()
+    booking = Booking.objects.select_related(
+        "guest", "room", "room_unit", "payment"
+    ).filter(id=booking_id).first()
 
     if not booking:
         return JsonResponse({"error": "Booking not found"}, status=404)
 
-    payment = Payment.objects.filter(booking=booking).first()
+    try:
+        payment = booking.payment
+        room_charges = float(payment.room_charges)
+        tax = float(payment.tax)
+        total_amount = float(payment.total_amount)
+        payment_status = payment.payment_status
+    except Exception:
+        nights = (booking.check_out - booking.check_in).days if booking.check_in and booking.check_out else 1
+        room_charges = float(booking.base_price or 0) * nights
+        tax = round(room_charges * 0.18, 2)
+        total_amount = round(room_charges + tax, 2)
+        payment_status = "pending"
+
+    nights = (booking.check_out - booking.check_in).days if booking.check_in and booking.check_out else 1
 
     return JsonResponse({
         "booking_id": booking.id,
-        "guest": booking.guest.name if booking.guest else None,
-        "room": str(booking.room_unit) if booking.room_unit else None,
+        "booking_code": booking.booking_code or f"BK{booking.id:06d}",
+        "guest": booking.guest.full_name if booking.guest else "N/A",
+        "room_type": booking.room.room_type if booking.room else "N/A",
+        "room_number": booking.room_unit.room_number if booking.room_unit else "N/A",
+        "check_in": booking.check_in.isoformat() if booking.check_in else None,
+        "check_out": booking.check_out.isoformat() if booking.check_out else None,
+        "nights": nights,
+        "room_charges": room_charges,
+        "tax": tax,
+        "total_amount": total_amount,
+        "payment_status": payment_status,
         "status": booking.status,
-        "amount": payment.amount if payment else 0,
-        "payment_status": payment.payment_status if payment else "pending"
     })
 
 @csrf_exempt
