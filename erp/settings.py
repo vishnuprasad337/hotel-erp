@@ -54,7 +54,7 @@ INSTALLED_APPS = SHARED_APPS + TENANT_APPS
 
 TENANT_MODEL = "customers.Client"
 TENANT_DOMAIN_MODEL = "customers.Domain"
-DEBUG=True
+DEBUG=""
 DATABASE_ROUTERS = (
     'django_tenants.routers.TenantSyncRouter',
 )
