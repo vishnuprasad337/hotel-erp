@@ -167,7 +167,7 @@ def hotel_register(request):
                             hotel=hotel
                         )
 
-                return redirect("https://hotel-erp-20.onrender.com")
+                return redirect("https://hotel-erp-23.onrender.com")
 
             except Exception as e:
                 print("ERROR:", e)
@@ -258,6 +258,7 @@ def update_hotel_profile(request):
 
 def hotel_login(request):
     error = None
+    success_msg = request.GET.get("approved")
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip()
@@ -265,41 +266,57 @@ def hotel_login(request):
 
         if not email or not password:
             return render(request, "login.html", {
-                "error": "Enter email and password"
+                "error": "Enter email and password",
+                "success": success_msg
             })
 
-        user = authenticate(request, username=email, password=password)
+        
+        current_tenant = request.tenant
+
+       
+        with schema_context(current_tenant.schema_name):
+            user = authenticate(request, username=email, password=password)
 
         if user is None:
             return render(request, "login.html", {
-                "error": "Invalid credentials"
+                "error": "Invalid credentials",
+                "success": success_msg
             })
 
         if not user.is_active:
             return render(request, "login.html", {
-                "error": "Account is disabled"
+                "error": "Account is disabled",
+                "success": success_msg
             })
 
-        hotel = Hotel.objects.filter(id=user.hotel.id).first()
+       
+        with schema_context('public'):
+            try:
+                hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+            except Hotel.DoesNotExist:
+                return render(request, "login.html", {
+                    "error": "Hotel not found",
+                    "success": success_msg
+                })
 
-        if not hotel:
-            return render(request, "login.html", {
-                "error": "Hotel not found"
-            })
-
-        if not hotel.is_approved:
-            return render(request, "login.html", {
-                "error": "Hotel not approved"
-            })
+            
+            if not hotel.is_approved:
+                return render(request, "login.html", {
+                    "error": "Your hotel is pending approval by admin",
+                    "success": success_msg
+                })
 
         login(request, user)
 
+       
+       
         request.session["hotel_id"] = hotel.id
 
         return redirect("dashboard")
 
     return render(request, "login.html", {
-        "error": error
+        "error": error,
+        "success": success_msg
     })
 def amenities_page(request):
     amenities = Amenity.objects.all()
