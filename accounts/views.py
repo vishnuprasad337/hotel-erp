@@ -27,6 +27,10 @@ from django_tenants.utils import schema_context
 
 from .forms import HotelForm
 
+from django.db import connection
+
+from django_tenants.utils import schema_context, get_tenant_model
+
 
 User = get_user_model()
 
@@ -334,10 +338,6 @@ def amenities_page(request):
 
 
 
-
-from django.db import connection
-
-from django_tenants.utils import schema_context, get_tenant_model
 
 
 
