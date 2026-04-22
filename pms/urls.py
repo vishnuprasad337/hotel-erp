@@ -20,7 +20,7 @@ urlpatterns =[
     path("api/check-out/", check_out, name="check_out"),
 
     
-    path("api/assign-housekeeping-task/", assign_housekeeping_task, name="assign_housekeeping_task"),
+    path("api/housekeeping-assign/", assign_housekeeping_task, name="assign_housekeeping_task"),
     path("api/get-bill/", get_bill, name="get_bill"),
     path("get-bookings/", get_bookings, name="get_bookings"),
      path("add-guest/", add_guest, name="add_guest"),
