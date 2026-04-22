@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hotel ERP | Unified Dashboard</title>
+<title>Hotel ERP | {% block title %}Unified Dashboard{% endblock %}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -224,9 +224,7 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
 .payslip-row:last-child{border-bottom:none}
 .payslip-total{display:flex;justify-content:space-between;padding:10px 0 0;font-weight:800;font-size:.88rem;color:var(--green)}
 
-/* ============================================================
-   UPDATED ROOM DETAIL MODAL
-   ============================================================ */
+/* ROOM DETAIL MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal-box{background:var(--surface);border-radius:16px;width:100%;max-width:520px;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;animation:modalIn .22s cubic-bezier(.34,1.56,.64,1)}
@@ -434,27 +432,20 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
   <nav class="sb-nav">
     <div class="nav-label">Overview</div>
     <button class="nav-btn active" data-panel="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
+    
     <div class="nav-label">Rooms</div>
     <button class="nav-btn" data-panel="room-cards"><i class="fas fa-bed"></i> Room Status</button>
     <button class="nav-btn" data-panel="add-room"><i class="fas fa-plus-circle"></i> Add Room Type</button>
+    
     <div class="nav-label">Bookings</div>
     <button class="dd-btn" id="ddBookings">
       <span class="dd-l"><i class="fas fa-book"></i> Bookings</span>
       <i class="fas fa-chevron-down dd-chev"></i>
     </button>
     <div class="dd-menu" id="ddBookingsMenu">
-      <button class="dd-item" data-panel="all-bookings">All Bookings</button>
-      <button class="dd-item" data-panel="add-booking">New Booking</button>
-      <button class="dd-item" data-panel="checkin-checkout">Check-in / Check-out</button>
-    </div>
-    <div class="nav-label">Billing</div>
-    <button class="dd-btn" id="ddBillgs">
-      <span class="dd-l"><i class="fas fa-book"></i> Billings</span>
-      <i class="fas fa-chevron-down dd-chev"></i>
-    </button>
-    <div class="dd-menu" id="ddBillingsMenu">
-      <button class="dd-item" data-panel="all-bookings">All Invoice</button>
-      
+      <a href="/bookings/" class="dd-item" data-panel="all-bookings">All Bookings</a>
+      <a href="/bookings/new/" class="dd-item" data-panel="add-booking">New Booking</a>
+      <a href="/bookings/checkin-checkout/" class="dd-item" data-panel="checkin-checkout">Check-in / Check-out</a>
     </div>
 
     <div class="nav-label">Staff</div>
@@ -470,6 +461,7 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
       <button class="dd-item" data-panel="leave">Leave Requests</button>
       <button class="dd-item" data-panel="payroll">Payroll</button>
     </div>
+    
     <div class="nav-label">Setup</div>
     <button class="nav-btn" data-panel="departments"><i class="fas fa-building"></i> Departments</button>
     <button class="nav-btn" data-panel="permissions"><i class="fas fa-shield-alt"></i> Permissions</button>
@@ -485,8 +477,8 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
   <div class="topbar">
     <div class="topbar-inner">
       <div class="topbar-left">
-        <h1 id="pageTitle">Dashboard</h1>
-        <p id="pageDesc">Hotel property overview</p>
+        <h1 id="pageTitle">{% block page_title %}Dashboard{% endblock %}</h1>
+        <p id="pageDesc">{% block page_desc %}Hotel property overview{% endblock %}</p>
       </div>
       <div class="topbar-right">
         <div class="top-badge"><i class="fas fa-hotel"></i><span id="topHotelName">Loading…</span></div>
@@ -496,8 +488,8 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
   </div>
 
   <div class="content">
-
-    <!-- DASHBOARD -->
+    {% block content %}
+    <!-- DASHBOARD PANEL (default content) -->
     <div class="panel active" id="panel-dashboard">
       <div class="stats-row" id="dashStats"></div>
       <div class="grid-2" style="margin-bottom:18px;align-items:start">
@@ -561,178 +553,6 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
             <div class="form-group" style="grid-column:1/-1"><label class="form-lbl">Description</label><textarea class="form-ctrl" id="ar-desc" placeholder="Amenities, view, special features…"></textarea></div>
           </div>
           <div style="margin-top:16px"><button class="btn btn-primary btn-full btn-lg" onclick="addRoom()"><i class="fas fa-save"></i> Add Room Type</button><div id="ar-msg" style="margin-top:8px;text-align:center;font-size:.76rem;min-height:18px"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ALL BOOKINGS -->
-    <div class="panel" id="panel-all-bookings">
-      <div class="sec-head">
-        <div class="sec-title"><i class="fas fa-book"></i> All Bookings</div>
-        <button class="btn btn-primary btn-sm" onclick="switchPanel('add-booking')"><i class="fas fa-plus"></i> New Booking</button>
-      </div>
-      <div class="kpi-row" style="margin-bottom:16px" id="bkKpiRow">
-        <div class="kpi"><div class="kpi-n" id="bk-kpi-total" style="color:var(--blue)">0</div><div class="kpi-l">Total</div></div>
-        <div class="kpi"><div class="kpi-n" id="bk-kpi-confirmed" style="color:#0369a1">0</div><div class="kpi-l">Confirmed</div></div>
-        <div class="kpi"><div class="kpi-n" id="bk-kpi-in" style="color:var(--green)">0</div><div class="kpi-l">Checked In</div></div>
-        <div class="kpi"><div class="kpi-n" id="bk-kpi-out" style="color:var(--text-muted)">0</div><div class="kpi-l">Checked Out</div></div>
-        <div class="kpi"><div class="kpi-n" id="bk-kpi-revenue" style="color:var(--green)">₹0</div><div class="kpi-l">Revenue</div></div>
-      </div>
-      <div class="filter-bar">
-        <div class="fg"><label>Search</label>
-          <div class="search-wrap"><i class="fas fa-search"></i>
-            <input class="form-ctrl" id="bkSearch" style="width:210px" placeholder="Guest, phone, booking code…" oninput="debounce(renderBookings,280)()">
-          </div>
-        </div>
-        <div class="fg"><label>Status</label>
-          <select class="form-ctrl" id="bkStatusFilter" style="width:155px" onchange="renderBookings()">
-            <option value="">All Status</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="checked_in">Checked In</option>
-            <option value="checked_out">Checked Out</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="no_show">No Show</option>
-          </select>
-        </div>
-        <div class="fg"><label>Source</label>
-          <select class="form-ctrl" id="bkSourceFilter" style="width:140px" onchange="renderBookings()">
-            <option value="">All Sources</option>
-            <option value="walk-in">Walk-in</option>
-            <option value="online">Online</option>
-            <option value="phone">Phone</option>
-            <option value="booking.com">Booking.com</option>
-          </select>
-        </div>
-        <div class="fg"><label>Payment</label>
-          <select class="form-ctrl" id="bkPayFilter" style="width:130px" onchange="renderBookings()">
-            <option value="">All</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="no_payment">No Record</option>
-          </select>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="bkSearch.value='';bkStatusFilter.value='';bkSourceFilter.value='';bkPayFilter.value='';renderBookings()" style="align-self:flex-end"><i class="fas fa-times"></i> Clear</button>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-list"></i> Bookings</div>
-          <span class="badge b-blue" id="bkCount">0 records</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Code</th><th>Guest</th><th>Phone</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Guests</th><th>Amount</th><th>Payment</th><th>Source</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody id="bkTable"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ADD BOOKING -->
-    <div class="panel" id="panel-add-booking">
-      <div class="sec-head"><div class="sec-title"><i class="fas fa-calendar-plus"></i> New Booking</div></div>
-      <div class="form-wrap" style="max-width:740px">
-        <div class="form-head"><i class="fas fa-book"></i><h3>Booking Details</h3></div>
-        <div class="form-body">
-          <div class="form-section-label">
-            <div class="fs-icon" style="background:#eff6ff;color:var(--blue)"><i class="fas fa-user"></i></div>
-            <span>Guest Information</span>
-            <small>— phone lookup auto-fills returning guests</small>
-          </div>
-          <div class="guest-lookup-badge" id="bk-guest-badge">
-            <i class="fas fa-circle-check"></i>
-            <span id="bk-guest-badge-text"></span>
-          </div>
-          <div class="form-grid">
-            <div class="form-group"><label class="form-lbl">Phone *</label><input class="form-ctrl" id="bk-phone" placeholder="Enter phone to lookup guest" oninput="lookupGuestByPhone()"></div>
-            <div class="form-group"><label class="form-lbl">Full Name *</label><input class="form-ctrl" id="bk-full-name" placeholder="Guest full name"></div>
-            <div class="form-group"><label class="form-lbl">Email</label><input class="form-ctrl" id="bk-email" type="email" placeholder="guest@email.com"></div>
-            <div class="form-group"><label class="form-lbl">Nationality</label><input class="form-ctrl" id="bk-nationality" placeholder="e.g. Indian"></div>
-            <div class="form-group"><label class="form-lbl">ID Type</label>
-              <select class="form-ctrl" id="bk-idtype">
-                <option value="">— Select —</option>
-                <option value="aadhar">Aadhar</option>
-                <option value="passport">Passport</option>
-                <option value="driving">Driving Licence</option>
-                <option value="voter">Voter ID</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-lbl">ID Number</label><input class="form-ctrl" id="bk-idnum" placeholder="ID number"></div>
-          </div>
-          <div class="form-section-label">
-            <div class="fs-icon" style="background:#ecfdf5;color:var(--green)"><i class="fas fa-bed"></i></div>
-            <span>Room & Dates</span>
-          </div>
-          <div class="form-grid">
-            <div class="form-group"><label class="form-lbl">Room Type *</label><select class="form-ctrl" id="bk-room-type" onchange="loadAvailUnits()"><option value="">— Select Room Type —</option></select></div>
-            <div class="form-group"><label class="form-lbl">Room Unit *</label><select class="form-ctrl" id="bk-unit"><option value="">— Select Unit —</option></select></div>
-            <div class="form-group"><label class="form-lbl">Check-in *</label><input class="form-ctrl" type="date" id="bk-checkin" onchange="updateNightCount()"></div>
-            <div class="form-group"><label class="form-lbl">Check-out *</label><input class="form-ctrl" type="date" id="bk-checkout" onchange="updateNightCount()"></div>
-            <div class="form-group"><label class="form-lbl">Adults</label><input class="form-ctrl" type="number" id="bk-adults" value="1" min="1"></div>
-            <div class="form-group"><label class="form-lbl">Children</label><input class="form-ctrl" type="number" id="bk-children" value="0" min="0"></div>
-            <div class="form-group"><label class="form-lbl">Source</label>
-              <select class="form-ctrl" id="bk-source">
-                <option value="walk-in">Walk-in</option>
-                <option value="online">Online</option>
-                <option value="phone">Phone</option>
-                <option value="booking.com">Booking.com</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-lbl">Special Requests</label><input class="form-ctrl" id="bk-requests" placeholder="Any special requirements…"></div>
-          </div>
-          <div id="bk-price-estimate" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:11px 16px;margin-bottom:14px;font-size:.78rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <span style="color:#166534;font-weight:600"><i class="fas fa-calculator" style="margin-right:5px"></i>Estimated Charges</span>
-              <span style="font-family:'DM Mono',monospace;color:#166534">
-                <span id="bk-est-nights">0</span> nights × ₹<span id="bk-est-rate">0</span>
-                = ₹<span id="bk-est-base">0</span>
-                + tax ₹<span id="bk-est-tax">0</span>
-                = <strong>₹<span id="bk-est-total">0</span></strong>
-              </span>
-            </div>
-          </div>
-          <button class="btn btn-primary btn-full btn-lg" onclick="createBooking()">
-            <i class="fas fa-calendar-check"></i> Create Booking
-          </button>
-          <div id="bk-msg" style="margin-top:8px;text-align:center;font-size:.76rem;min-height:18px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CHECK-IN / CHECK-OUT -->
-    <div class="panel" id="panel-checkin-checkout">
-      <div class="sec-head"><div class="sec-title"><i class="fas fa-exchange-alt"></i> Check-in & Check-out</div></div>
-      <div class="grid-2" style="margin-bottom:18px;align-items:start">
-        <div class="card">
-          <div class="card-header"><div class="card-title"><i class="fas fa-sign-in-alt" style="color:var(--green)"></i> Today's Expected Arrivals</div><span class="badge b-green" id="arrivalCount">0</span></div>
-          <div class="table-wrap"><table><thead><tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Booking</th><th>Action</th></tr></thead><tbody id="arrivalsBody"></tbody></table></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title"><i class="fas fa-sign-out-alt" style="color:var(--red)"></i> Today's Expected Departures</div><span class="badge b-red" id="departureCount">0</span></div>
-          <div class="table-wrap"><table><thead><tr><th>Guest</th><th>Room</th><th>Check-out</th><th>Bill</th><th>Action</th></tr></thead><tbody id="departuresBody"></tbody></table></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:start">
-        <div class="cico-card">
-          <div class="cico-header ci-head"><i class="fas fa-sign-in-alt" style="color:#fff"></i><h3>Manual Check-in</h3></div>
-          <div class="form-body">
-            <div class="form-group" style="margin-bottom:11px"><label class="form-lbl">Booking ID</label><input class="form-ctrl" type="number" id="ci-id" placeholder="Enter booking ID"></div>
-            <div class="form-group" style="margin-bottom:11px"><label class="form-lbl">ID Type</label><select class="form-ctrl" id="ci-idtype"><option value="passport">Passport</option><option value="aadhar">Aadhar</option><option value="driving">Driving Licence</option><option value="voter">Voter ID</option></select></div>
-            <div class="form-group" style="margin-bottom:14px"><label class="form-lbl">ID Number</label><input class="form-ctrl" id="ci-idnum" placeholder="ID number"></div>
-            <button class="btn btn-success btn-full btn-lg" onclick="doCheckIn()"><i class="fas fa-sign-in-alt"></i> Check In Guest</button>
-            <div id="ci-msg" style="margin-top:8px;text-align:center;font-size:.76rem;min-height:18px"></div>
-          </div>
-        </div>
-        <div class="cico-card">
-          <div class="cico-header co-head"><i class="fas fa-sign-out-alt" style="color:#fff"></i><h3>Manual Check-out</h3></div>
-          <div class="form-body">
-            <div class="form-group" style="margin-bottom:11px"><label class="form-lbl">Booking ID</label><input class="form-ctrl" type="number" id="co-id" placeholder="Enter booking ID"></div>
-            <div class="form-group" style="margin-bottom:14px"><label class="form-lbl">Payment Method</label><select class="form-ctrl" id="co-method"><option value="cash">Cash</option><option value="card">Card</option><option value="upi">UPI</option><option value="bank_transfer">Bank Transfer</option></select></div>
-            <button class="btn btn-outline btn-full" style="margin-bottom:9px" onclick="getBill()"><i class="fas fa-file-invoice"></i> View Bill</button>
-            <button class="btn btn-danger btn-full btn-lg" onclick="doCheckOut()"><i class="fas fa-sign-out-alt"></i> Check Out Guest</button>
-            <div id="co-msg" style="margin-top:8px;text-align:center;font-size:.76rem;min-height:18px"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -974,55 +794,32 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
         <div id="premiumModulesContainer"></div>
       </div>
     </div>
-
+    {% endblock %}
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- ============================================================
-     ROOM DETAIL MODAL — REDESIGNED WITH TABS
-     ============================================================ -->
+<!-- ROOM DETAIL MODAL -->
 <div class="modal-overlay" id="roomDetailModal">
   <div class="modal-box xl">
-    <!-- Header (set dynamically) -->
     <div class="modal-head" id="rdmHead">
       <strong id="rdmTitle"><i class="fas fa-bed"></i> Room Details</strong>
       <button class="modal-close" onclick="closeModal('roomDetailModal')">✕</button>
     </div>
-
-    <!-- Hero banner -->
     <div class="rm-hero" id="rdmHero"></div>
-
-    <!-- Status bar -->
     <div id="rdmStatusBar"></div>
-
-    <!-- Tabs (shown only when booking exists) -->
     <div class="rm-tabs" id="rdmTabs" style="display:none">
       <button class="rm-tab active" id="rmTabGuest" onclick="switchRmTab('guest')"><i class="fas fa-user"></i> Guest Details</button>
       <button class="rm-tab" id="rmTabBooking" onclick="switchRmTab('booking')"><i class="fas fa-calendar-check"></i> Booking Details</button>
       <button class="rm-tab" id="rmTabBill" onclick="switchRmTab('bill')"><i class="fas fa-file-invoice-dollar"></i> Bill</button>
     </div>
-
-    <!-- Tab: Guest Details -->
-    <div class="rm-tab-pane active" id="rmPaneGuest">
-      <div id="rdmGuestContent"></div>
-    </div>
-
-    <!-- Tab: Booking Details -->
-    <div class="rm-tab-pane" id="rmPaneBooking">
-      <div id="rdmBookingContent"></div>
-    </div>
-
-    <!-- Tab: Bill -->
-    <div class="rm-tab-pane" id="rmPaneBill">
-      <div id="rdmBillContent"></div>
-    </div>
-
-    <!-- Footer (dynamic actions) -->
+    <div class="rm-tab-pane active" id="rmPaneGuest"><div id="rdmGuestContent"></div></div>
+    <div class="rm-tab-pane" id="rmPaneBooking"><div id="rdmBookingContent"></div></div>
+    <div class="rm-tab-pane" id="rmPaneBill"><div id="rdmBillContent"></div></div>
     <div class="modal-footer" id="rdmFooter"></div>
   </div>
 </div>
 
-<!-- Bill standalone modal (for check-out flow) -->
+<!-- Other Modals -->
 <div class="modal-overlay" id="billModal">
   <div class="modal-box">
     <div class="modal-head"><strong><i class="fas fa-receipt"></i> Bill Summary</strong><button class="modal-close" onclick="closeModal('billModal')">✕</button></div>
@@ -1128,15 +925,18 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
 <div class="toast-stack" id="toastStack"></div>
 
 <script>
+// CSRF Token
 const csrf=(document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken='))||'=').split('=')[1]||'';
-let roomData=[],bookings=[],staffData=[],depts=[],shifts=[],payrolls=[],leaves=[],permissions=[],savedModIds=[],allDefMods=[],allPremMods=[];
-let attTab='daily',attCurrentData=[],activeDeptId=null,expandedStaffIds=new Set();
-// State for the room detail modal
-let _rdmCurrentBkId=null,_rdmCurrentRoomId=null,_rdmCurrentUnitId=null;
+
+// Global data variables
+let roomData=[], bookings=[], staffData=[], depts=[], shifts=[], payrolls=[], leaves=[], permissions=[], savedModIds=[], allDefMods=[], allPremMods=[];
+let attTab='daily', attCurrentData=[], activeDeptId=null, expandedStaffIds=new Set();
+let _rdmCurrentBkId=null, _rdmCurrentRoomId=null, _rdmCurrentUnitId=null;
 
 const MONTHS=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function debounce(fn,d){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn(...a),d);}}
+// Helper functions
+function debounce(fn,d){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn(...a),d);};}
 function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
 function ini(n){return (n||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
 function fmtInr(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
@@ -1149,8 +949,9 @@ async function postJSON(url,data){return fetch(url,{method:'POST',headers:{'Cont
 async function postForm(url,fd){return fetch(url,{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});}
 async function deleteReq(url){return fetch(url,{method:'DELETE',headers:{'X-CSRFToken':csrf}});}
 
-const panelTitles={dashboard:'Dashboard','room-cards':'Room Status','add-room':'Add Room Type','all-bookings':'All Bookings','add-booking':'New Booking','checkin-checkout':'Check-in & Check-out','staff-list':'Staff Directory','add-staff':'Add Staff Member',attendance:'Attendance',shifts:'Shift Management',leave:'Leave Requests',payroll:'Payroll',departments:'Departments',permissions:'Permissions',modules:'Hotel Modules'};
-const panelDescs={dashboard:'Hotel property overview','room-cards':'Live room availability & status','all-bookings':'All booking records','checkin-checkout':'Real-world check-in & check-out management','staff-list':'Employee management','attendance':'Daily attendance tracking',shifts:'Work schedule management',payroll:'Salary management',modules:'Feature toggles & add-ons'};
+// Panel management
+const panelTitles={dashboard:'Dashboard','room-cards':'Room Status','add-room':'Add Room Type','staff-list':'Staff Directory','add-staff':'Add Staff Member',attendance:'Attendance',shifts:'Shift Management',leave:'Leave Requests',payroll:'Payroll',departments:'Departments',permissions:'Permissions',modules:'Hotel Modules'};
+const panelDescs={dashboard:'Hotel property overview','room-cards':'Live room availability & status','staff-list':'Employee management','attendance':'Daily attendance tracking',shifts:'Work schedule management',payroll:'Salary management',modules:'Feature toggles & add-ons'};
 
 function switchPanel(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1162,9 +963,6 @@ function switchPanel(name){
   document.getElementById('pageDesc').textContent=panelDescs[name]||'';
   if(name==='dashboard')loadDashboard();
   if(name==='room-cards')loadCardView();
-  if(name==='all-bookings')loadBookings();
-  if(name==='add-booking')loadBookingFormData();
-  if(name==='checkin-checkout')loadCiCo();
   if(name==='staff-list'){expandedStaffIds.clear();renderStaff();}
   if(name==='shifts'){loadShifts();populateSelects();}
   if(name==='attendance'){document.getElementById('attDateFilter').value=new Date().toISOString().split('T')[0];attCurrentData=[];loadAttendance();}
@@ -1189,9 +987,7 @@ async function loadAll(){
 
 async function fetchRooms(){const data=await api('/api/rooms/');if(data&&data.success)roomData=data.rooms||[];return roomData;}
 
-// ============================================================
 // DASHBOARD
-// ============================================================
 async function loadDashboard(){
   await Promise.all([fetchRooms(),loadAll()]);
   const payData=await api('/payroll/dashboard/');
@@ -1227,14 +1023,12 @@ function renderAttMini(){
 
 function renderBookMini(){
   const el=document.getElementById('bookMini');if(!el)return;
-  if(!bookings.length){el.innerHTML='<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text-muted)">No bookings</td></tr>';return;}
+  if(!bookings.length){el.innerHTML='<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text-muted)">No bookings</div></tr>';return;}
   const scls={confirmed:'b-confirmed',checked_in:'b-checked_in',checked_out:'b-checked_out',cancelled:'b-cancelled',pending:'b-pending'};
-  el.innerHTML=bookings.slice(0,6).map(b=>`<tr style="cursor:pointer" onclick="openRoomDetailModal(null,null,${b.id})"><td><strong style="font-size:.77rem">${esc(b.guest||'N/A')}</strong></td><td style="font-size:.72rem">${esc(b.room_type||'—')} <span style="color:var(--text-muted)">${b.room_no||''}</span></td><td style="font-size:.71rem">${b.check_in||'—'}</td><td><span class="badge ${scls[b.status]||'b-gray'}">${b.status||''}</span></td><td><strong>${fmtInr(b.total||0)}</strong></td></tr>`).join('');
+  el.innerHTML=bookings.slice(0,6).map(b=>`<tr style="cursor:pointer" onclick="openRoomDetailModal(null,null,${b.id})"><tr><strong style="font-size:.77rem">${esc(b.guest||'N/A')}</strong></td><td style="font-size:.72rem">${esc(b.room_type||'—')} <span style="color:var(--text-muted)">${b.room_no||''}</span></td><td style="font-size:.71rem">${b.check_in||'—'}</td><td><span class="badge ${scls[b.status]||'b-gray'}">${b.status||''}</span></td><td><strong>${fmtInr(b.total||0)}</strong></td></tr>`).join('');
 }
 
-// ============================================================
 // ROOM CARDS
-// ============================================================
 async function loadCardView(){await fetchRooms();if(!bookings.length)await loadBookings();renderCards(roomData);}
 
 function renderCards(rooms){
@@ -1271,9 +1065,7 @@ function renderCards(rooms){
   }).join('');
 }
 
-// ============================================================
-// NEW ROOM DETAIL MODAL — tabs: Guest / Booking / Bill
-// ============================================================
+// ROOM DETAIL MODAL
 function switchRmTab(tab){
   ['guest','booking','bill'].forEach(t=>{
     document.getElementById('rmTab'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.toggle('active',t===tab);
@@ -1285,7 +1077,6 @@ const STATUS_COLORS={Available:'var(--green)',Occupied:'var(--red)',Dirty:'var(-
 const STATUS_BG={Available:'#ecfdf5',Occupied:'#fef2f2',Dirty:'#fffbeb',Reserved:'#f5f3ff',Cleaning:'#ecfeff',Maintenance:'#f1f5f9'};
 
 async function openRoomDetailModal(rid, uid, bkId){
-  // Find room + unit objects if IDs provided
   let r=null,u=null,bk=null;
   if(rid&&uid){
     r=roomData.find(x=>x.id===rid);
@@ -1293,13 +1084,11 @@ async function openRoomDetailModal(rid, uid, bkId){
   }
   if(bkId){
     bk=bookings.find(x=>x.id===bkId);
-    // If we don't have room info yet, try to find from booking
     if(!r&&bk){
       roomData.forEach(rm=>rm.units.forEach(un=>{if(un.number===bk.room_no){r=rm;u=un;}}));
     }
   }
 
-  // Save context for actions
   _rdmCurrentBkId=bk?bk.id:null;
   _rdmCurrentRoomId=r?r.id:null;
   _rdmCurrentUnitId=u?u.id:null;
@@ -1308,7 +1097,6 @@ async function openRoomDetailModal(rid, uid, bkId){
   const statusColor=STATUS_COLORS[statusLabel]||STATUS_COLORS[bk?.status]||'#6b7280';
   const statusBg=STATUS_BG[statusLabel]||'#f1f5f9';
 
-  // ── Hero ──
   document.getElementById('rdmTitle').innerHTML=`<i class="fas fa-bed"></i> Room ${esc(u?.number||bk?.room_no||'—')} Details`;
   document.getElementById('rdmHero').innerHTML=`
     <div class="rm-hero-icon" style="background:${statusBg};color:${statusColor}"><i class="fas fa-bed"></i></div>
@@ -1322,7 +1110,6 @@ async function openRoomDetailModal(rid, uid, bkId){
     </div>
   `;
 
-  // ── Status bar ──
   const statusCls=bk?bk.status:'';
   const statusLabel2=bk?({confirmed:'Confirmed — Ready for Check-in',checked_in:'Currently Checked In',checked_out:'Checked Out',cancelled:'Booking Cancelled'}[bk.status]||bk.status):statusLabel;
   const statusIcon=bk?({confirmed:'fa-circle-check',checked_in:'fa-sign-in-alt',checked_out:'fa-sign-out-alt',cancelled:'fa-ban'}[bk.status]||'fa-circle'):'fa-circle';
@@ -1336,14 +1123,10 @@ async function openRoomDetailModal(rid, uid, bkId){
     </div>
   `;
 
-  // Show/hide tabs
   const hasBk=!!bk;
   document.getElementById('rdmTabs').style.display=hasBk?'flex':'none';
-
-  // Reset tab to guest
   switchRmTab('guest');
 
-  // ── Guest Details pane ──
   if(bk){
     document.getElementById('rdmGuestContent').innerHTML=`
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
@@ -1368,7 +1151,6 @@ async function openRoomDetailModal(rid, uid, bkId){
       ${bk.special_requests?`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-top:4px"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:4px"><i class="fas fa-comment" style="margin-right:4px"></i>Special Requests</div><div style="font-size:.79rem">${esc(bk.special_requests)}</div></div>`:''}
     `;
   } else {
-    // No booking — show room-only info
     document.getElementById('rdmGuestContent').innerHTML=`
       <div style="text-align:center;padding:28px 0 12px">
         <div style="width:56px;height:56px;border-radius:12px;display:grid;place-items:center;margin:0 auto 12px;font-size:1.6rem;background:${statusBg};color:${statusColor}"><i class="fas fa-bed"></i></div>
@@ -1386,7 +1168,6 @@ async function openRoomDetailModal(rid, uid, bkId){
     `;
   }
 
-  // ── Booking Details pane ──
   if(bk){
     const nights=bk.check_in&&bk.check_out?Math.ceil((new Date(bk.check_out)-new Date(bk.check_in))/86400000):1;
     const srcIconMap={'walk-in':'fa-walking','online':'fa-globe','phone':'fa-phone','booking.com':'fa-bed'};
@@ -1428,9 +1209,7 @@ async function openRoomDetailModal(rid, uid, bkId){
     `;
   }
 
-  // ── Bill pane ──
   if(bk){
-    // Show shimmer first, then load bill async
     document.getElementById('rdmBillContent').innerHTML=`
       <div style="padding:8px 0">
         <div class="shimmer" style="height:16px;width:60%"></div>
@@ -1442,7 +1221,6 @@ async function openRoomDetailModal(rid, uid, bkId){
     loadBillTab(bk);
   }
 
-  // ── Footer actions ──
   let footerBtns=`<button class="btn btn-outline btn-sm" onclick="closeModal('roomDetailModal')">Close</button>`;
   if(!bk){
     if(u?.status==='Available')
@@ -1467,7 +1245,6 @@ async function loadBillTab(bk){
   let html='';
 
   if(!data||data.error){
-    // Fallback: calculate locally
     const nights=bk.check_in&&bk.check_out?Math.ceil((new Date(bk.check_out)-new Date(bk.check_in))/86400000):1;
     const r=roomData.find(x=>x.room_type===bk.room_type);
     const ppn=r?parseFloat(r.price):0;
@@ -1506,7 +1283,6 @@ function buildBillHtml(data,bk,isPaid){
       </div>
     </div>
 
-    <!-- Payment status -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${isPaid?'0':'12px'}">
       <span style="font-size:.78rem;color:var(--text-muted);font-weight:600">Payment Status</span>
       <span class="pay-status-badge ${isPaid?'pay-paid':'pay-unpaid'}">
@@ -1516,7 +1292,6 @@ function buildBillHtml(data,bk,isPaid){
     </div>
 
     ${!isPaid?`
-    <!-- Mark as Paid block -->
     <div class="mark-paid-box">
       <div class="mpb-title"><i class="fas fa-rupee-sign"></i> Collect & Mark as Paid</div>
       <div class="form-grid" style="margin-bottom:12px">
@@ -1557,10 +1332,8 @@ async function markBookingPaid(bkId){
     const data=await r.json();
     if(r.ok&&data.success){
       toast('Payment recorded successfully!','success');
-      // Update local booking record
       const bk=bookings.find(b=>b.id===bkId);
       if(bk)bk.payment_status='paid';
-      // Reload bill tab
       loadBillTab(bookings.find(b=>b.id===bkId)||{id:bkId,payment_status:'paid'});
       updateBookingKPIs();
     } else {
@@ -1568,7 +1341,6 @@ async function markBookingPaid(bkId){
       if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-check-circle"></i> Mark as Paid';}
     }
   }catch(e){
-    // Graceful fallback if endpoint not yet implemented
     toast('Payment recorded (offline mode)','info');
     const bk=bookings.find(b=>b.id===bkId);
     if(bk)bk.payment_status='paid';
@@ -1599,22 +1371,6 @@ async function submitHousekeeping(){
   await fetchRooms();renderCards(roomData);
 }
 
-// ============================================================
-// CHECK-IN / CHECK-OUT
-// ============================================================
-async function loadCiCo(){
-  if(!bookings.length)await loadBookings();
-  const today=new Date().toISOString().split('T')[0];
-  const arrivals=bookings.filter(b=>b.check_in===today&&b.status==='confirmed');
-  const departures=bookings.filter(b=>b.check_out===today&&b.status==='checked_in');
-  document.getElementById('arrivalCount').textContent=arrivals.length;
-  document.getElementById('departureCount').textContent=departures.length;
-  const arrBody=document.getElementById('arrivalsBody');
-  arrBody.innerHTML=arrivals.length?arrivals.map(b=>`<tr><td><div class="staff-cell"><div class="staff-initials" style="background:#dcfce7;color:#166534">${ini(b.guest)}</div><strong style="font-size:.78rem">${esc(b.guest)}</strong></div></td><td style="font-size:.74rem">${esc(b.room_type||'—')} <span style="color:var(--text-muted)">${b.room_no||''}</span></td><td style="font-size:.72rem">${b.check_in||'—'}</td><td><span style="font-family:'DM Mono',monospace;font-size:.68rem;background:var(--surface-2);padding:2px 7px;border-radius:4px;border:1px solid var(--border)">${esc(b.booking_code||'#'+b.id)}</span></td><td><button class="btn btn-success btn-xs" onclick="document.getElementById('ci-id').value=${b.id}"><i class="fas fa-sign-in-alt"></i> Check In</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty" style="padding:20px"><i class="fas fa-check-circle"></i>No arrivals today</div></td></tr>';
-  const depBody=document.getElementById('departuresBody');
-  depBody.innerHTML=departures.length?departures.map(b=>`<tr><td><div class="staff-cell"><div class="staff-initials" style="background:#fee2e2;color:#991b1b">${ini(b.guest)}</div><strong style="font-size:.78rem">${esc(b.guest)}</strong></div></td><td style="font-size:.74rem">${esc(b.room_type||'—')} <span style="color:var(--text-muted)">${b.room_no||''}</span></td><td style="font-size:.72rem">${b.check_out||'—'}</td><td><strong>${fmtInr(b.total||0)}</strong></td><td style="white-space:nowrap"><button class="btn btn-outline btn-xs" onclick="openRoomDetailModal(null,null,${b.id});setTimeout(()=>switchRmTab('bill'),400)" style="margin-right:4px"><i class="fas fa-file-invoice"></i> Bill</button><button class="btn btn-danger btn-xs" onclick="document.getElementById('co-id').value=${b.id}"><i class="fas fa-sign-out-alt"></i> Check Out</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty" style="padding:20px"><i class="fas fa-check-circle"></i>No departures today</div></td></tr>';
-}
-
 // ADD ROOM
 async function addRoom(){
   const type=document.getElementById('ar-type').value,price=document.getElementById('ar-price').value,units=document.getElementById('ar-units').value;
@@ -1626,222 +1382,6 @@ async function addRoom(){
   const data=await r.json();btn.classList.remove('btn-loading');btn.disabled=false;
   if(data.success){msg.textContent='✅ Room type added!';msg.style.color='var(--green)';toast('Room type added!');await fetchRooms();}
   else{msg.textContent='❌ '+(data.error||'Failed');msg.style.color='var(--red)';}
-}
-
-// ============================================================
-// ALL BOOKINGS
-// ============================================================
-async function loadBookings(){
-  const data=await api('/get-bookings/');
-  bookings=Array.isArray(data)?data:[];
-  updateBookingKPIs();renderBookings();
-}
-
-function updateBookingKPIs(){
-  const confirmed=bookings.filter(b=>b.status==='confirmed').length;
-  const checkedIn=bookings.filter(b=>b.status==='checked_in').length;
-  const checkedOut=bookings.filter(b=>b.status==='checked_out').length;
-  const revenue=bookings.filter(b=>b.payment_status==='paid').reduce((s,b)=>s+Number(b.total||0),0);
-  document.getElementById('bk-kpi-total').textContent=bookings.length;
-  document.getElementById('bk-kpi-confirmed').textContent=confirmed;
-  document.getElementById('bk-kpi-in').textContent=checkedIn;
-  document.getElementById('bk-kpi-out').textContent=checkedOut;
-  document.getElementById('bk-kpi-revenue').textContent='₹'+Math.round(revenue).toLocaleString('en-IN');
-}
-
-function renderBookings(){
-  const search=(document.getElementById('bkSearch')?.value||'').toLowerCase().trim();
-  const sf=document.getElementById('bkStatusFilter')?.value||'';
-  const srcf=document.getElementById('bkSourceFilter')?.value||'';
-  const payf=document.getElementById('bkPayFilter')?.value||'';
-  let filtered=bookings;
-  if(search)filtered=filtered.filter(b=>(b.guest||'').toLowerCase().includes(search)||(b.booking_code||'').toLowerCase().includes(search)||(b.phone||'').includes(search));
-  if(sf)filtered=filtered.filter(b=>b.status===sf);
-  if(srcf)filtered=filtered.filter(b=>(b.source||'')===srcf);
-  if(payf)filtered=filtered.filter(b=>(b.payment_status||'no_payment')===payf);
-  const ce=document.getElementById('bkCount');if(ce)ce.textContent=filtered.length+' records';
-  const scls={confirmed:'b-confirmed',checked_in:'b-checked_in',checked_out:'b-checked_out',cancelled:'b-cancelled',no_show:'b-red'};
-  const pcls={paid:'b-paid',pending:'b-pending',no_payment:'b-no_payment'};
-  const srcIcon={'walk-in':'fa-walking','online':'fa-globe','phone':'fa-phone','booking.com':'fa-bed'};
-  const body=document.getElementById('bkTable');if(!body)return;
-  if(!filtered.length){body.innerHTML='<tr><td colspan="13"><div class="empty" style="border:none;padding:22px"><i class="fas fa-calendar-times"></i>No bookings found.</div></td></tr>';return;}
-  body.innerHTML=filtered.map(b=>{
-    const nights=b.check_in&&b.check_out?Math.ceil((new Date(b.check_out)-new Date(b.check_in))/86400000):'—';
-    const guestsLabel=(Number(b.adults||1)+Number(b.children||0));
-    const payStatus=b.payment_status||'no_payment';
-    const srcLabel=b.source||'—';
-    const srcIco=srcIcon[srcLabel]||'fa-question';
-    return `<tr style="cursor:pointer" onclick="openRoomDetailModal(null,null,${b.id})">
-      <td><span style="font-family:'DM Mono',monospace;font-size:.68rem;background:var(--surface-2);padding:2px 7px;border-radius:4px;border:1px solid var(--border)">${esc(b.booking_code||'#'+b.id)}</span></td>
-      <td><strong style="font-size:.79rem">${esc(b.guest||'—')}</strong></td>
-      <td style="font-size:.73rem;color:var(--text-muted)">${esc(b.phone||'—')}</td>
-      <td>${esc(b.room_type||'—')} <span style="color:var(--text-muted);font-size:.69rem;font-family:'DM Mono',monospace">${b.room_no||''}</span></td>
-      <td style="font-size:.73rem;white-space:nowrap">${b.check_in||'—'}</td>
-      <td style="font-size:.73rem;white-space:nowrap">${b.check_out||'—'}</td>
-      <td style="font-weight:700;text-align:center">${nights}</td>
-      <td style="text-align:center;color:var(--text-muted);font-size:.72rem">${guestsLabel}</td>
-      <td><strong>${fmtInr(b.total||0)}</strong></td>
-      <td><span class="badge ${pcls[payStatus]||'b-gray'}">${payStatus.replace('_',' ')}</span></td>
-      <td><span style="font-size:.71rem;color:var(--text-muted);display:flex;align-items:center;gap:4px"><i class="fas ${srcIco}" style="font-size:10px"></i>${esc(srcLabel)}</span></td>
-      <td><span class="badge ${scls[b.status]||'b-gray'}">${(b.status||'').replace('_',' ')}</span></td>
-      <td style="white-space:nowrap" onclick="event.stopPropagation()">
-        ${b.status==='confirmed'
-          ?`<button class="btn btn-success btn-xs" title="Check In" onclick="document.getElementById('ci-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-in-alt"></i></button>`
-          :b.status==='checked_in'
-          ?`<button class="btn btn-outline btn-xs" title="Bill" onclick="openRoomDetailModal(null,null,${b.id});setTimeout(()=>switchRmTab('bill'),300)" style="margin-right:3px"><i class="fas fa-file-invoice"></i></button><button class="btn btn-danger btn-xs" title="Check Out" onclick="document.getElementById('co-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-out-alt"></i></button>`
-          :'<span style="font-size:.65rem;color:var(--text-muted)">—</span>'}
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ADD BOOKING
-let _lookupTimer=null,_currentRoomPrice=0;
-
-async function lookupGuestByPhone(){
-  const phone=(document.getElementById('bk-phone')?.value||'').trim();
-  const badge=document.getElementById('bk-guest-badge');
-  const badgeText=document.getElementById('bk-guest-badge-text');
-  if(!badge||!badgeText)return;
-  badge.className='guest-lookup-badge';
-  if(phone.length<6)return;
-  clearTimeout(_lookupTimer);
-  _lookupTimer=setTimeout(async()=>{
-    const match=bookings.find(b=>b.phone===phone);
-    if(match){
-      const nameEl=document.getElementById('bk-full-name');
-      if(nameEl&&!nameEl.value)nameEl.value=match.guest||'';
-      badge.className='guest-lookup-badge returning';
-      badgeText.textContent=`Returning guest: ${match.guest} — details pre-filled`;
-    } else {
-      badge.className='guest-lookup-badge new';
-      badgeText.textContent='New guest — a guest record will be created on booking';
-    }
-  },500);
-}
-
-function updateNightCount(){
-  const ci=document.getElementById('bk-checkin')?.value;
-  const co=document.getElementById('bk-checkout')?.value;
-  const est=document.getElementById('bk-price-estimate');
-  if(!ci||!co||!est)return;
-  const nights=Math.ceil((new Date(co)-new Date(ci))/86400000);
-  if(nights<=0){est.style.display='none';return;}
-  if(!_currentRoomPrice){est.style.display='none';return;}
-  const base=_currentRoomPrice*nights;
-  const tax=Math.round(base*0.18);
-  const total=base+tax;
-  document.getElementById('bk-est-nights').textContent=nights;
-  document.getElementById('bk-est-rate').textContent=Math.round(_currentRoomPrice).toLocaleString('en-IN');
-  document.getElementById('bk-est-base').textContent=Math.round(base).toLocaleString('en-IN');
-  document.getElementById('bk-est-tax').textContent=tax.toLocaleString('en-IN');
-  document.getElementById('bk-est-total').textContent=total.toLocaleString('en-IN');
-  est.style.display='block';
-}
-
-async function loadBookingFormData(){
-  let rooms=roomData;if(!rooms.length){await fetchRooms();rooms=roomData;}
-  const sel=document.getElementById('bk-room-type');
-  if(sel)sel.innerHTML='<option value="">— Select Room Type —</option>'+rooms.map(r=>`<option value="${r.id}" data-price="${r.price}">${esc(r.room_type)} — ₹${parseInt(r.price).toLocaleString('en-IN')}/night (${r.available_units} avail.)</option>`).join('');
-  _currentRoomPrice=0;
-  const est=document.getElementById('bk-price-estimate');if(est)est.style.display='none';
-  const badge=document.getElementById('bk-guest-badge');if(badge)badge.className='guest-lookup-badge';
-}
-
-async function loadAvailUnits(){
-  const rid=document.getElementById('bk-room-type').value;
-  const us=document.getElementById('bk-unit');if(!us)return;
-  _currentRoomPrice=0;
-  if(!rid){us.innerHTML='<option value="">— Select Unit —</option>';updateNightCount();return;}
-  let rooms=roomData;if(!rooms.length){await fetchRooms();rooms=roomData;}
-  const r=rooms.find(x=>String(x.id)===String(rid));
-  if(!r){us.innerHTML='<option value="">— No units —</option>';return;}
-  _currentRoomPrice=parseFloat(r.price)||0;
-  const avail=r.units.filter(u=>u.status==='Available');
-  us.innerHTML=avail.length
-    ?'<option value="">— Select Unit —</option>'+avail.map(u=>`<option value="${u.id}">${esc(u.number)}</option>`).join('')
-    :'<option value="">— No available units —</option>';
-  updateNightCount();
-}
-
-function quickBook(rid,uid){
-  switchPanel('add-booking');
-  loadBookingFormData().then(()=>{
-    const wait=()=>{
-      const s=document.getElementById('bk-room-type');
-      if(s&&s.options.length>1){s.value=String(rid);loadAvailUnits().then(()=>{setTimeout(()=>{const u=document.getElementById('bk-unit');if(u&&u.options.length>1)u.selectedIndex=1;},100);});}
-      else setTimeout(wait,100);
-    };wait();
-  });
-}
-
-async function createBooking(){
-  const fullName=(document.getElementById('bk-full-name')?.value||'').trim();
-  const phone=(document.getElementById('bk-phone')?.value||'').trim();
-  const rid=document.getElementById('bk-room-type').value;
-  const uid=document.getElementById('bk-unit').value;
-  const ci=document.getElementById('bk-checkin').value;
-  const co=document.getElementById('bk-checkout').value;
-  const msg=document.getElementById('bk-msg');
-  const errs=[];
-  if(!fullName)errs.push('Guest full name');if(!phone)errs.push('Phone number');
-  if(!rid)errs.push('Room type');if(!uid)errs.push('Room unit');
-  if(!ci)errs.push('Check-in date');if(!co)errs.push('Check-out date');
-  if(errs.length){msg.textContent='❌ Required: '+errs.join(', ');msg.style.color='var(--red)';return;}
-  if(co<=ci){msg.textContent='❌ Check-out must be after check-in.';msg.style.color='var(--red)';return;}
-  const btn=document.querySelector('#panel-add-booking .btn-primary');
-  btn.classList.add('btn-loading');btn.disabled=true;
-  const payload={full_name:fullName,phone,email:(document.getElementById('bk-email')?.value||'').trim()||null,nationality:(document.getElementById('bk-nationality')?.value||'').trim()||null,id_type:document.getElementById('bk-idtype')?.value||null,id_number:(document.getElementById('bk-idnum')?.value||'').trim()||null,room:parseInt(rid),room_unit:parseInt(uid),check_in:ci,check_out:co,adults:parseInt(document.getElementById('bk-adults')?.value)||1,children:parseInt(document.getElementById('bk-children')?.value)||0,source:document.getElementById('bk-source')?.value||'walk-in',special_requests:(document.getElementById('bk-requests')?.value||'').trim()};
-  const r=await postJSON('/api/create-booking/',payload);
-  btn.classList.remove('btn-loading');btn.disabled=false;
-  const data=await r.json();
-  if(r.ok&&data.success){
-    const guestLabel=data.guest_created?'New guest created':'Returning guest updated';
-    msg.textContent=`✅ Booking ${data.booking_code} created! ${guestLabel}.`;
-    msg.style.color='var(--green)';toast(`Booking ${data.booking_code} created!`);
-    ['bk-full-name','bk-phone','bk-email','bk-nationality','bk-idnum','bk-requests'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const badge=document.getElementById('bk-guest-badge');if(badge)badge.className='guest-lookup-badge';
-    document.getElementById('bk-price-estimate').style.display='none';
-    await loadBookings();await fetchRooms();
-    setTimeout(()=>switchPanel('all-bookings'),1400);
-  } else {
-    const errMsg=data.errors?Object.entries(data.errors).map(([k,v])=>`${k}: ${v}`).join(', '):(data.error||'Booking failed');
-    msg.textContent='❌ '+errMsg;msg.style.color='var(--red)';
-  }
-}
-
-async function doCheckIn(){
-  const id=document.getElementById('ci-id').value;const msg=document.getElementById('ci-msg');
-  if(!id){msg.textContent='❌ Enter booking ID';msg.style.color='var(--red)';return;}
-  const r=await postJSON('/api/check-in/',{booking_id:id,id_type:document.getElementById('ci-idtype').value,id_number:document.getElementById('ci-idnum').value});
-  const data=await r.json();
-  if(data.success){msg.textContent='✅ Guest checked in!';msg.style.color='var(--green)';toast('Guest checked in!');await loadBookings();await fetchRooms();await loadCiCo();}
-  else{msg.textContent='❌ '+(data.error||'Failed');msg.style.color='var(--red)';}
-}
-
-async function doCheckOut(){
-  const id=document.getElementById('co-id').value;const msg=document.getElementById('co-msg');
-  if(!id){msg.textContent='❌ Enter booking ID';msg.style.color='var(--red)';return;}
-  const r=await postJSON('/api/check-out/',{booking_id:id,method:document.getElementById('co-method').value});
-  const data=await r.json();
-  if(data.success){
-    msg.textContent='✅ Guest checked out!';msg.style.color='var(--green)';toast('Guest checked out!');
-    await loadBookings();await fetchRooms();
-    const bk=bookings.find(b=>b.id===parseInt(id));
-    if(bk){const room=roomData.find(r=>r.units.some(u=>u.number===bk.room_no));if(room){const unit=room.units.find(u=>u.number===bk.room_no);if(unit){setTimeout(()=>openHKModal(room.id,unit.id,unit.number,room.room_type),600);}}}
-    await loadCiCo();
-  }else{msg.textContent='❌ '+(data.error||'Failed');msg.style.color='var(--red)';}
-}
-
-async function getBill(){
-  const id=document.getElementById('co-id').value;if(!id){toast('Enter booking ID first','error');return;}
-  openRoomDetailModal(null,null,parseInt(id));
-  setTimeout(()=>switchRmTab('bill'),350);
-}
-
-async function viewBill(bkId){
-  openRoomDetailModal(null,null,bkId);
-  setTimeout(()=>switchRmTab('bill'),350);
 }
 
 // STAFF
@@ -1984,7 +1524,7 @@ function renderAttendance(data){
     const ci=ciRaw?new Date(ciRaw).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
     const co2=coRaw?new Date(coRaw).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'—';
     let wh='—';if(ciRaw&&coRaw){const diff=(new Date(coRaw)-new Date(ciRaw))/3600000;wh=diff.toFixed(1)+'h';}
-    return `<tr><td><div class="staff-cell"><div class="staff-initials" style="width:26px;height:26px;font-size:.55rem">${ini(name)}</div><strong style="font-size:.78rem">${esc(name)}</strong></div></td><td style="font-size:.73rem">${esc(r['staff__department__name']||r.department||'—')}</td><td style="font-size:.71rem;color:var(--text-muted)">${r.date||''}</td><td style="color:var(--green);font-weight:500">${ci}</td><td style="color:var(--red)">${co2}</td><td style="font-weight:600">${wh}</td><td style="color:var(--blue)">${parseFloat(r.overtime||r.overtime_hours||0).toFixed(1)}h</td><td><span class="badge ${sc}">${statusVal}</span></td></tr>`;
+    return `<tr><td><div class="staff-cell"><div class="staff-initials" style="width:26px;height:26px;font-size:.55rem">${ini(name)}</div><strong style="font-size:.78rem">${esc(name)}</strong></div></td><td style="font-size:.73rem">${esc(r['staff__department__name']||r.department||'—')}</td><td style="font-size:.71rem;color:var(--text-muted)">${r.date||''}</td><td style="color:var(--green);font-weight:500">${ci}</td><td style="color:var(--red)">${co2}</td><td style="font-weight:600">${wh}</td><td style="color:var(--blue)">${parseFloat(r.overtime||r.overtime_hours||0).toFixed(1)}h</div></td><td><span class="badge ${sc}">${statusVal}</span></td></tr>`;
   }).join('');
 }
 
@@ -2063,7 +1603,8 @@ function renderPayroll(){
   const ce=document.getElementById('payrollCount');if(ce)ce.textContent=filtered.length;
   const body=document.getElementById('payrollBody');if(!body)return;
   if(!filtered.length){body.innerHTML='<tr><td colspan="9"><div class="empty"><i class="fas fa-rupee-sign"></i>No payroll records</div></td></tr>';return;}
-  body.innerHTML=filtered.map(p=>{const isPaid=p.paid||p.paid_status===true||p.paid_status==='Paid';const st=staffData.find(s=>s.name===p.staff)||{};return `<tr><td><strong style="font-size:.79rem">${esc(p.staff||'')}</strong></td><td style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text-muted)">${esc(st.employee_id||'—')}</td><td style="font-size:.74rem">${MONTHS[p.month]||p.month} ${p.year}</td><td>₹${Number(p.basic_salary||0).toLocaleString('en-IN')}</td><td style="color:var(--green)">+₹${Number(p.overtime_amount||0).toLocaleString('en-IN')}</td><td style="color:var(--red)">-₹${Number(p.deductions||0).toLocaleString('en-IN')}</td><td><strong>₹${Number(p.net_salary||0).toLocaleString('en-IN')}</strong></td><td><span class="badge ${isPaid?'b-paid':'b-unpaid'}">${isPaid?'Paid':'Unpaid'}</span></td><td><button class="btn btn-outline btn-xs" onclick="viewPayslip(${p.id})"><i class="fas fa-file-invoice"></i></button></td></tr>`;}).join('');
+  body.innerHTML=filtered.map(p=>{const isPaid=p.paid||p.paid_status===true||p.paid_status==='Paid';const st=staffData.find(s=>s.name===p.staff)||{};return `<tr><td><strong style="font-size:.79rem">${esc(p.staff||'')}</strong></td><td style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--text-muted)">${esc(st.employee_id||'—')}</td><td style="font-size:.74rem">${MONTHS[p.month]||p.month} ${p.year}</td><td>₹${Number(p.basic_salary||0).toLocaleString('en-IN')}</td><td style="color:var(--green)">+₹${Number(p.overtime_amount||0).toLocaleString('en-IN')}</td><td style="color:var(--red)">-₹${Number(p.deductions||0).toLocaleString('en-IN')}</div></td><td><strong>₹${Number(p.net_salary||0).toLocaleString('en-IN')}</strong></div></td><td><span class="badge ${isPaid?'b-paid':'b-unpaid'}">${isPaid?'Paid':'Unpaid'}</span></td><td><button class="btn btn-outline btn-xs" onclick="viewPayslip(${p.id})"><i class="fas fa-file-invoice"></i></button></td></tr>`;
+  }).join('');
 }
 async function viewPayslip(id){
   const data=await api('/payroll/payslip/'+id+'/');if(!data||data.error){toast('Not found','error');return;}
@@ -2225,6 +1766,43 @@ async function saveSelectedModules(){
   if(data.status==='success'||data.success)toast('✓ Saved '+savedModIds.length+' module(s)!');else toast(data.error||'Save failed','error');
 }
 
+// BOOKING RELATED FUNCTIONS (placeholder for base)
+async function loadBookings(){
+  const data=await api('/get-bookings/');
+  bookings=Array.isArray(data)?data:[];
+  updateBookingKPIs();
+  if(typeof renderBookings === 'function') renderBookings();
+}
+
+function updateBookingKPIs(){
+  const confirmed=bookings.filter(b=>b.status==='confirmed').length;
+  const checkedIn=bookings.filter(b=>b.status==='checked_in').length;
+  const checkedOut=bookings.filter(b=>b.status==='checked_out').length;
+  const revenue=bookings.filter(b=>b.payment_status==='paid').reduce((s,b)=>s+Number(b.total||0),0);
+  if(document.getElementById('bk-kpi-total'))document.getElementById('bk-kpi-total').textContent=bookings.length;
+  if(document.getElementById('bk-kpi-confirmed'))document.getElementById('bk-kpi-confirmed').textContent=confirmed;
+  if(document.getElementById('bk-kpi-in'))document.getElementById('bk-kpi-in').textContent=checkedIn;
+  if(document.getElementById('bk-kpi-out'))document.getElementById('bk-kpi-out').textContent=checkedOut;
+  if(document.getElementById('bk-kpi-revenue'))document.getElementById('bk-kpi-revenue').textContent='₹'+Math.round(revenue).toLocaleString('en-IN');
+}
+
+function quickBook(rid,uid){
+  window.location.href = '/bookings/new/?room_id='+rid+'&unit_id='+uid;
+}
+
+// Placeholder functions
+function renderBookings(){}
+function loadBookingFormData(){}
+function loadAvailUnits(){}
+function lookupGuestByPhone(){}
+function updateNightCount(){}
+function createBooking(){}
+function doCheckIn(){}
+function doCheckOut(){}
+function getBill(){}
+function viewBill(bkId){ openRoomDetailModal(null,null,bkId); setTimeout(()=>switchRmTab('bill'),350); }
+function loadCiCo(){}
+
 // EVENT LISTENERS
 document.getElementById('menuBtn')?.addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 document.addEventListener('click',e=>{if(window.innerWidth<=900&&document.getElementById('sidebar').classList.contains('open')&&!document.getElementById('sidebar').contains(e.target)&&e.target!==document.getElementById('menuBtn'))document.getElementById('sidebar').classList.remove('open');});
@@ -2301,10 +1879,8 @@ const adf=document.getElementById('attDateFilter');if(adf)adf.value=today_;
 const now=new Date();
 const pm=document.getElementById('payMonth');if(pm)pm.value=now.getMonth()+1;
 const py=document.getElementById('payYear');if(py)py.value=now.getFullYear();
-const bkci=document.getElementById('bk-checkin');if(bkci)bkci.value=today_;
-const bkco=document.getElementById('bk-checkout');if(bkco){const tmr=new Date();tmr.setDate(tmr.getDate()+1);bkco.value=tmr.toISOString().split('T')[0];}
 
-Object.assign(window,{switchPanel,openRoomDetailModal,switchRmTab,markBookingPaid,openHKModal,submitHousekeeping,quickBook,loadAvailUnits,lookupGuestByPhone,updateNightCount,doCheckIn,doCheckOut,getBill,viewBill,renderStaff,editStaff,deleteStaff,toggleStaffExpand,toggleStaffPerm,setAttTab,loadAttendance,renderAttendance,renderLeave,updateLeave,viewPayslip,renderPayroll,renderDeptSummary,deleteDept,loadPermissionsPanel,onAssignDeptChange,quickAddPerm,insertPermSuggest,deletePerm,removePDept,openDeptPermModal,saveDeptPermModal,toggleMod,addCustomModule,saveSelectedModules,openEditShiftModal,confirmEditShift,closeModal,openModal,loadShifts,renderShifts,renderBookings,createBooking,addRoom,renderCards});
+Object.assign(window,{switchPanel,openRoomDetailModal,switchRmTab,markBookingPaid,openHKModal,submitHousekeeping,quickBook,loadAvailUnits,lookupGuestByPhone,updateNightCount,doCheckIn,doCheckOut,getBill,viewBill,renderStaff,editStaff,deleteStaff,toggleStaffExpand,toggleStaffPerm,setAttTab,loadAttendance,renderAttendance,renderLeave,updateLeave,viewPayslip,renderPayroll,renderDeptSummary,deleteDept,loadPermissionsPanel,onAssignDeptChange,quickAddPerm,insertPermSuggest,deletePerm,removePDept,openDeptPermModal,saveDeptPermModal,toggleMod,addCustomModule,saveSelectedModules,openEditShiftModal,confirmEditShift,closeModal,openModal,loadShifts,renderShifts,renderBookings,createBooking,addRoom,renderCards,loadBookings,updateBookingKPIs});
 
 loadDashboard();
 </script>
