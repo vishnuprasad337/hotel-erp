@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
+import uuid
 from django.db import transaction
 import json
 from hotel.models import Task
@@ -310,10 +310,10 @@ def frontoffice_dashboard(request):
         reverse=True,
     )[:10]
 
-    # ── Room units ──
+   
     room_units = RoomUnit.objects.select_related("room").all()
 
-    # ── Attendance placeholders ──
+   
     present_days = 0
     late_days = 0
     absent_days = 0
@@ -548,10 +548,12 @@ def check_in(request):
         booking.actual_check_in = timezone.now()
         booking.save()
 
+
         unit = booking.room_unit
         if unit:
             unit.status = "Occupied"
             unit.save()
+        send_guest_portal_email(request, booking)
 
         return JsonResponse({"success": True})
 @csrf_exempt
@@ -655,7 +657,7 @@ def assign_housekeeping_task(request):
             
             task = Task.objects.create(
                 staff=staff,
-                room=room_unit.room, # Auto-link the parent Room
+                room=room_unit.room, 
                 room_unit=room_unit, 
                 title=data.get("task_type", "Cleaning"),
                 description=data.get("notes", ""),
@@ -693,7 +695,7 @@ def get_guests(request):
 
 def get_bookings(request):
     bookings = Booking.objects.select_related(
-        "guest", "room", "room_unit", "payment"   # include payment in the join
+        "guest", "room", "room_unit", "payment"  
     ).order_by("-created_at")
 
     data = []
@@ -753,4 +755,47 @@ def add_guest(request):
         "success": True,
         "guest_id": guest.id,
         "message": "Guest added successfully"
+ 
     })
+from django.db import connection
+from django_tenants.utils import schema_context
+def send_guest_portal_email(request, booking):
+    from django.core.mail import send_mail
+    from django.conf import settings
+ 
+    guest = booking.guest
+    if not guest or not guest.email:
+        return
+ 
+    if not booking.guest_token:
+        booking.guest_token = str(uuid.uuid4())
+        booking.save()
+ 
+    schema = connection.schema_name
+    link = f"http://localhost:8000/guest-portal/{schema}/{booking.guest_token}/"
+ 
+    send_mail(
+        subject="Welcome to Our Hotel",
+        message=f"Hi {guest.full_name},\n\nYour check-in is successful.\n\nAccess your guest portal:\n{link}\n\nThank you!",
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[guest.email],
+        fail_silently=False,
+    )
+ 
+ 
+def guest_portal(request, schema, token):
+    with schema_context(schema):
+        booking = Booking.objects.select_related(
+            "guest", "room", "room_unit"
+        ).filter(guest_token=token).first()
+ 
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=404)
+ 
+        return render(request, "guest_portal.html", {
+            "booking": booking,
+            "guest":   booking.guest,
+            "room":    booking.room_unit,
+            "token":   token,
+        })
+ 

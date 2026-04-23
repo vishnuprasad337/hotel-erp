@@ -185,7 +185,6 @@ def gets_inventory(request):
 
             "updated_by": item.updated_by.name if item.updated_by else "N/A",
             "assigned_by": item.assigned_by.name if item.assigned_by else "N/A",
-
             "description": item.description,
         }
         for item in items

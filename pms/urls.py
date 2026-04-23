@@ -25,4 +25,5 @@ urlpatterns =[
     path("get-bookings/", get_bookings, name="get_bookings"),
      path("add-guest/", add_guest, name="add_guest"),
     path("get-guests/", get_guests, name="get_guests"),
+    path('guest-portal/<str:schema>/<str:token>/', guest_portal),
 ]

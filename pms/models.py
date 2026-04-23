@@ -109,6 +109,7 @@ class Booking(models.Model):
 
    
     booking_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    guest_token = models.UUIDField(null=True, blank=True)
 
     check_in = models.DateField()
     check_out = models.DateField()

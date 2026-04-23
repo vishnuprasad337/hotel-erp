@@ -103,22 +103,24 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'erp.wsgi.application'
-
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-import dj_database_url
+
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'hoterp',                     # your DB name
-        'USER': 'postgres',                  # your RDS username
-        'PASSWORD': 'vishnu123',       # your RDS password
-        'HOST': 'hoterp.c9eea2yu2rgo.eu-north-1.rds.amazonaws.com',  # RDS endpoint
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL', 'postgresql://postgres:vishnu123@localhost:5432/hoterp'),
+        conn_max_age=600,
+    )
 }
 
+
+DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+IS_RENDER = os.environ.get("RENDER") == "True"
+BASE_URL = ".onrender.com" if IS_RENDER else "localhost"
+PORT = "" if IS_RENDER else ":8000"
 
 
 
