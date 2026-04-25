@@ -60,6 +60,8 @@ TENANT_APPS = (
     'pms',
     'housekeeping',
     'billing',
+    'restaurant',
+    'inventory'
                          
 )
 

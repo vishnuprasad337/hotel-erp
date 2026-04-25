@@ -15,4 +15,5 @@ urlpatterns = [
     path("api/billing/invoice/<int:invoice_id>/send-email/", views.send_invoice_email, name="billing_send_invoice_email"),
 
     path("api/billing/summary/", views.billing_summary, name="billing_summary"),
+    
 ]

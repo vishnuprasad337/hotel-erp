@@ -522,22 +522,37 @@ def create_booking(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
-from django.utils import timezone
 @csrf_exempt
 def check_in(request):
     if request.method == "POST":
         data = json.loads(request.body)
 
-        booking = Booking.objects.get(id=data["booking_id"], status="confirmed")
+        try:
+            booking = Booking.objects.get(
+                id=data["booking_id"],
+                status="confirmed"
+            )
+        except Booking.DoesNotExist:
+            return JsonResponse({
+                "success": False,
+                "message": "Booking not found or not confirmed"
+            }, status=404)
 
-        guest = booking.guest
+        if booking.status == "checked_in":
+            return JsonResponse({
+                "success": False,
+                "message": "Already checked in"
+            }, status=400)
 
-        if not guest:
+        if not booking.guest:
             guest = Guest.objects.create(
                 full_name=data.get("full_name", "Walk-in Guest"),
                 phone=data.get("phone", "")
             )
             booking.guest = guest
+            booking.save()
+        else:
+            guest = booking.guest
 
         guest.id_type = data.get("id_type")
         guest.id_number = data.get("id_number")
@@ -548,11 +563,11 @@ def check_in(request):
         booking.actual_check_in = timezone.now()
         booking.save()
 
-
         unit = booking.room_unit
         if unit:
             unit.status = "Occupied"
             unit.save()
+
         send_guest_portal_email(request, booking)
 
         return JsonResponse({"success": True})
@@ -772,8 +787,7 @@ def send_guest_portal_email(request, booking):
         booking.save()
  
     schema = connection.schema_name
-    link = f"http://localhost:8000/guest-portal/{schema}/{booking.guest_token}/"
- 
+    link = f"http://{schema}.localhost:8000/guest-portal/{schema}/{booking.guest_token}/"
     send_mail(
         subject="Welcome to Our Hotel",
         message=f"Hi {guest.full_name},\n\nYour check-in is successful.\n\nAccess your guest portal:\n{link}\n\nThank you!",
@@ -782,20 +796,50 @@ def send_guest_portal_email(request, booking):
         fail_silently=False,
     )
  
- 
+from restaurant.models import MenuCategory
+from hotel.models import Task
+from django.db.models import Prefetch
+
 def guest_portal(request, schema, token):
     with schema_context(schema):
         booking = Booking.objects.select_related(
             "guest", "room", "room_unit"
         ).filter(guest_token=token).first()
- 
+
         if not booking:
             return JsonResponse({"error": "Invalid link"}, status=404)
- 
+
+        # 🍽️ Menu with items
+        categories = MenuCategory.objects.prefetch_related("items").all()
+
+        menu_data = []
+        for cat in categories:
+            menu_data.append({
+                "id": cat.id,
+                "name": cat.name,
+                "items": [
+                    {
+                        "id": item.id,
+                        "name": item.name,
+                        "price": float(item.price),
+                        "veg": item.is_veg,
+                        "available": item.is_available,
+                        "image": item.image.url if item.image else None
+                    }
+                    for item in cat.items.all()
+                ]
+            })
+
+       
+        tasks = Task.objects.filter(
+            room_unit=booking.room_unit
+        ).order_by("-created_at")
+
         return render(request, "guest_portal.html", {
             "booking": booking,
-            "guest":   booking.guest,
-            "room":    booking.room_unit,
-            "token":   token,
+            "guest": booking.guest,
+            "room": booking.room_unit,
+            "token": token,
+            "menu": menu_data,
+            "tasks": tasks
         })
- 

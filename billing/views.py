@@ -332,7 +332,7 @@ def generate_invoice(request):
     })
 
 @require_GET
-def get_invoice(request):
+def get_invoice(request, invoice_id):
     folio_id = request.GET.get("folio_id")
     invoice_id = request.GET.get("invoice_id")
 
@@ -433,7 +433,7 @@ def send_invoice_email(invoice):
     booking = folio.booking
     guest = booking.guest
 
-    # Safety checks
+    
     if not guest or not guest.email:
         return
 

@@ -24,6 +24,9 @@ urlpatterns = [
     
      path('', include('pms.urls')),
      path('',include('billing.urls')),
+     path('', include('restaurant.urls')),
+     path("", include("inventory.urls")),
+     
     
    
 ]
