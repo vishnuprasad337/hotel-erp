@@ -74,7 +74,7 @@ def list_inventory(request):
             "value": float(i.stock_value)
         })
     return JsonResponse({"items": data})
-
+from decimal import Decimal
 
 @csrf_exempt
 def stock_adjust(request):
@@ -84,7 +84,7 @@ def stock_adjust(request):
     data = json.loads(request.body)
     item = InventoryItem.objects.get(id=data["item_id"])
 
-    qty = float(data["quantity"])
+    qty = Decimal(str(data["quantity"]))  
     typ = data["type"]
 
     if typ == "in":
@@ -99,7 +99,7 @@ def stock_adjust(request):
     StockAdjustment.objects.create(
         item=item,
         adjustment_type=typ,
-        quantity=qty,
+        quantity=qty,   # ✅ keep Decimal
         note=data.get("note", "")
     )
 
@@ -172,6 +172,9 @@ def add_laundry_service(request):
 def list_laundry_services(request):
     return JsonResponse({"services": list(LaundryService.objects.values())})
 
+from decimal import Decimal
+from pms.models import Booking
+from billing.models import GuestFolio, FolioCharge
 
 @csrf_exempt
 def create_laundry_order(request):
@@ -180,19 +183,25 @@ def create_laundry_order(request):
 
     data = json.loads(request.body)
 
+    booking_id = data.get("booking_id")
+    booking = None
+
+    if booking_id:
+        booking = Booking.objects.filter(id=booking_id).first()
+
     order = LaundryOrder.objects.create(
         room_number=data["room_number"],
         guest_name=data.get("guest_name", ""),
+        booking=booking,
         order_type=data.get("order_type", "guest_laundry")
     )
 
-    total = 0
+    total = Decimal("0")
 
     for i in data.get("items", []):
         service = LaundryService.objects.get(id=i["service_id"])
-        qty = float(i["quantity"])
-        price = float(service.price_per_unit)
-
+        qty = Decimal(str(i["quantity"]))
+        price = service.price_per_unit  
         LaundryOrderItem.objects.create(
             order=order,
             service=service,
@@ -206,7 +215,25 @@ def create_laundry_order(request):
     order.total_amount = total
     order.save()
 
-    return JsonResponse({"order_id": order.id, "total": total})
+   
+    if booking:
+        folio, _ = GuestFolio.objects.get_or_create(booking=booking)
+
+        if folio.status == "open":
+            FolioCharge.objects.create(
+                folio=folio,
+                charge_type='laundry',
+                description=f'Laundry Order #{order.id}',
+                amount=total,
+                tax_amount=Decimal("0"),
+                added_by=None 
+            )
+
+    return JsonResponse({
+        "order_id": order.id,
+        "total": float(total),
+        "booking_id": booking.id if booking else None
+    })
 
 
 def list_laundry_orders(request):

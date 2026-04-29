@@ -34,5 +34,6 @@ urlpatterns = [
     path("api/reservations/", views.list_reservations, name="list_reservations"),
     path("api/reservations/<int:reservation_id>/update/", views.update_reservation, name="update_reservation"),
     path("api/reservations/<int:reservation_id>/delete/", views.delete_reservation, name="delete_reservation"),
+    path('restaurant/dashboard/', views.restaurant_dashboard, name='restaurant_dashboard'),
 
 ]

@@ -471,7 +471,9 @@ def delete_amenity(request, amenity_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 from pms.models import Room, RoomUnit
-
+from django.views.decorators.cache import never_cache
+@never_cache
+@login_required
 def dashboard(request):
     current_tenant = connection.tenant
 
@@ -613,17 +615,27 @@ def assign_permission(request):
 
     return JsonResponse({"error": "Invalid method"}, status=405)
 def get_departments(request):
+    hotel_id = request.session.get("hotel_id")  
+
+    if not hotel_id:
+        return JsonResponse({"error": "Hotel not found in session"}, status=400)
+
     result = []
-    for dept in Department.objects.all():
+
+    departments = Department.objects.filter(hotel_id=hotel_id)
+
+    for dept in departments:
         perm_names = list(
             RolePermission.objects.filter(role=dept)
             .values_list("permission__name", flat=True)
         )
+
         result.append({
             "id": dept.id,
             "name": dept.name,
             "permissions": perm_names
         })
+
     return JsonResponse(result, safe=False)
 @require_http_methods(["DELETE"])
 def delete_department(request, dept_id):
@@ -937,13 +949,36 @@ def staff_login(request):
         dept = (staff.department.name.lower() if staff.department else "")
 
         redirect_map = {
-            "housekeeping": "housekeeping_dashboard",
-            "hr": "hr_dashboard",
-            "front desk": "frontoffice_dashboard",
-            "front office": "frontoffice_dashboard",
-            "accountant": "accountant_dashboard",
-        }
+    "housekeeping": "housekeeping_dashboard",
+    "hr": "hr_dashboard",
+    "front desk": "frontoffice_dashboard",
+    "front office": "frontoffice_dashboard",
+    "accountant": "accountant_dashboard",
+    "restaurant": "restaurant_dashboard",   
+}
 
-        return redirect(redirect_map.get(dept, "staff_dashboard"))
+        return redirect(redirect_map.get(dept, "restaurant_dashboard"))
 
     return render(request, "staff_login.html")
+from django.contrib.auth import logout
+@never_cache
+def logout_view(request):
+    logout(request)             
+    request.session.flush()     
+    response = redirect('hotel_login')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
+    return response
+@never_cache
+def staff_logout(request):
+    logout(request)
+    request.session.flush()
+
+    response = redirect('staff_login')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+
+    return response

@@ -83,7 +83,17 @@ class Guest(models.Model):
 
     def __str__(self):
         return self.full_name
+class GuestIDPhoto(models.Model):
+    guest = models.ForeignKey(
+        Guest,
+        on_delete=models.CASCADE,
+        related_name="id_photos"
+    )
+    image = models.ImageField(upload_to="guest_ids/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.guest.full_name} - ID Photo"
 class Booking(models.Model):
 
     STATUS_CHOICES = [

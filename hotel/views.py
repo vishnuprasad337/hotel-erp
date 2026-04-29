@@ -360,7 +360,7 @@ def update_staff_profile(request):
 
         staff = get_object_or_404(Staff, id=staff_id)
 
-        # Staff fields
+        
         staff.name = request.POST.get("name", staff.name)
         staff.phone = request.POST.get("phone", staff.phone)
 
@@ -946,27 +946,29 @@ def apply_leave(request):
         return JsonResponse({"error": "Invalid method"}, status=405)
 
     staff_id = request.session.get("staff_id")
-    tenant = request.tenant  
+    tenant = request.tenant
 
     if not staff_id:
         return JsonResponse({"error": "Unauthorized"}, status=401)
 
-    
     staff = Staff.objects.filter(id=staff_id).first()
-
     if not staff:
         return JsonResponse({"error": "Invalid staff"}, status=401)
 
     from_date = request.POST.get("from_date")
     to_date = request.POST.get("to_date")
     reason = request.POST.get("reason", "")
+    leave_type = request.POST.get("leave_type", "casual")
 
-    from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
-    to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+    try:
+        from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+        to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid date format"}, status=400)
 
     LeaveRequest.objects.create(
         staff=staff,
-        tenant=tenant,   
+        tenant=tenant,
         from_date=from_date,
         to_date=to_date,
         reason=reason,
@@ -974,23 +976,53 @@ def apply_leave(request):
     )
 
     return JsonResponse({"success": True})
+
+
 def leave_requests(request):
     tenant = request.tenant
+    staff_id = request.session.get("staff_id")
 
-    leaves = LeaveRequest.objects.filter(
-        tenant=tenant   
-    ).select_related("staff").order_by("-applied_at")
+    # Determine if current user is HR/admin
+    is_admin = False
+    if staff_id:
+        try:
+            current_staff = Staff.objects.get(id=staff_id)
+            role = (getattr(current_staff, 'role', '') or '').lower()
+            dept_name = (current_staff.department.name if current_staff.department else '').lower()
+            is_admin = any(k in role or k in dept_name for k in ['hr', 'admin', 'manager', 'owner'])
+        except Staff.DoesNotExist:
+            pass
+
+    # Optional month/year filter
+    month = request.GET.get("month")
+    year = request.GET.get("year")
+
+    if is_admin:
+        leaves = LeaveRequest.objects.filter(tenant=tenant).select_related("staff").order_by("-applied_at")
+    else:
+        leaves = LeaveRequest.objects.filter(
+            tenant=tenant,
+            staff_id=staff_id
+        ).select_related("staff").order_by("-applied_at")
+
+    if month:
+        leaves = leaves.filter(from_date__month=month)
+    if year:
+        leaves = leaves.filter(from_date__year=year)
 
     data = []
-
     for l in leaves:
         data.append({
             "id": l.id,
             "staff": getattr(l.staff, "name", "Deleted Staff"),
+            "staff_id": l.staff_id,
             "from_date": l.from_date.strftime("%Y-%m-%d") if l.from_date else None,
             "to_date": l.to_date.strftime("%Y-%m-%d") if l.to_date else None,
             "reason": l.reason or "",
-            "status": l.status
+            "leave_type": l.reason or "",   # adjust if you have a leave_type field
+            "applied_at": l.applied_at.strftime("%Y-%m-%d") if getattr(l, "applied_at", None) else None,
+            "status": l.status,
+            "is_admin_view": is_admin,
         })
 
     return JsonResponse(data, safe=False)

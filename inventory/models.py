@@ -70,7 +70,10 @@ class LaundryService(models.Model):
     turnaround_hours = models.IntegerField(default=24)
 
     def __str__(self):
+
         return self.name
+from pms.models import Booking
+
 class LaundryOrder(models.Model):
 
     ORDER_TYPE = [
@@ -89,7 +92,13 @@ class LaundryOrder(models.Model):
     ]
 
     room_number = models.CharField(max_length=20)
-    
+    booking = models.ForeignKey(
+        Booking,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     order_type = models.CharField(
         max_length=20,
         choices=ORDER_TYPE,

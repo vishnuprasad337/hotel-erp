@@ -17,7 +17,8 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+LOGIN_URL = "hotel_login"
+LOGIN_REDIRECT_URL = "dashboard"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -88,6 +89,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 ROOT_URLCONF = 'erp.urls'
 PUBLIC_SCHEMA_URLCONF = 'erp.urls'
+
 
 TEMPLATES = [
     {

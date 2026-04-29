@@ -181,8 +181,10 @@ def order_list(request):
         guest_name = None
         booking_id = None
 
-        staff_name = o.served_by.name if o.served_by else "Admin"
-
+        staff_name = (
+    o.served_by.get_full_name() or o.served_by.username
+    if o.served_by else "Admin"
+)
         if o.booking:
             booking_id = o.booking.id
 
@@ -552,10 +554,14 @@ def create_reservation(request):
         return JsonResponse({"error": str(e)}, status=500)
 from django.views.decorators.http import require_GET
 from django.utils import timezone
+from django.views.decorators.http import require_GET
+from django.http import JsonResponse
+
 @require_GET
 def list_reservations(request):
 
-    reservations = TableReservation.objects.select_related('table').all().order_by('-created_at')
+    reservations = TableReservation.objects.select_related('table')\
+        .all().order_by('-created_at')
 
     data = []
 
@@ -565,13 +571,18 @@ def list_reservations(request):
             "guest_name": r.guest_name,
             "phone": r.phone,
             "table": r.table.number if r.table else None,
-            "reservation_time": r.reservation_time,
             "guests_count": r.guests_count,
             "status": r.status,
-            "created_at": r.created_at,
+
+           
+            "reservation_time": r.reservation_time.strftime("%Y-%m-%d %H:%M"),
+            "created_at": r.created_at.strftime("%Y-%m-%d %H:%M"),
         })
 
-    return JsonResponse({"reservations": data})
+    return JsonResponse({
+        "count": len(data),
+        "reservations": data
+    })
 @csrf_exempt
 def update_reservation(request, reservation_id):
     if request.method != "POST":
@@ -638,3 +649,152 @@ def delete_reservation(request, reservation_id):
 
     except TableReservation.DoesNotExist:
         return JsonResponse({"error": "Reservation not found"}, status=404)
+
+
+
+
+
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
+from django.db.models import Sum, Count
+from django.db.models.functions import ExtractHour
+
+from accounts.models import Staff
+def restaurant_dashboard(request):
+    today = timezone.now().date()
+
+    staff_id = request.session.get("staff_id")
+    staff = None
+    hotel = None
+
+    if staff_id:
+        staff = Staff.objects.select_related("department", "hotel").filter(id=staff_id).first()
+        hotel = staff.hotel if staff else None
+
+    hotel_staff = Staff.objects.filter(hotel=hotel).select_related("department") if hotel else []
+
+    all_orders = RestaurantOrder.objects.all()
+    today_orders = all_orders.filter(created_at__date=today)
+
+    revenue = today_orders.filter(
+        status='served'
+    ).aggregate(total=Sum('total_amount'))['total'] or 0
+
+    pending_orders_qs = all_orders.filter(status__in=['pending', 'preparing'])
+
+    tables_qs = Table.objects.all()
+
+    reservations_qs = TableReservation.objects.filter(
+        reservation_time__date=today
+    ).select_related('table').order_by('reservation_time')
+
+    stats = {
+        "today_revenue": float(revenue),
+        "total_orders": all_orders.count(),
+        "pending_orders": pending_orders_qs.count(),
+        "completed_orders": all_orders.filter(status='served').count(),
+        "tables_total": tables_qs.count(),
+        "tables_occupied": tables_qs.filter(is_occupied=True).count(),
+        "reservations_today": reservations_qs.count(),
+        "staff_total": hotel_staff.count() if hotel else 0,
+    }
+
+    active_orders = [
+        {
+            "id": o.id,
+            "order_number": o.order_number,
+            "status": o.status,
+            "table": o.table.number if o.table else None,
+            "total": float(o.total_amount),
+            "created_at": o.created_at.strftime("%H:%M"),
+        }
+        for o in pending_orders_qs.select_related('table')
+    ]
+
+    tables = [
+        {
+            "id": t.id,
+            "number": t.number,
+            "capacity": t.capacity,
+            "is_occupied": t.is_occupied
+        }
+        for t in tables_qs
+    ]
+
+    reservations = [
+        {
+            "id": r.id,
+            "guest_name": r.guest_name,
+            "table": r.table.number if r.table else None,
+            "time": r.reservation_time.strftime("%H:%M"),
+            "status": r.status
+        }
+        for r in reservations_qs
+    ]
+
+    recent_orders = list(all_orders.order_by("-created_at")[:5])
+    recent_reservations = list(reservations_qs[:5])
+
+    recent_activity = sorted(
+        list(recent_orders) + list(recent_reservations),
+        key=lambda x: x.created_at if hasattr(x, "created_at") else x.reservation_time,
+        reverse=True,
+    )[:10]
+
+    recent_activity_data = []
+    for item in recent_activity:
+        if isinstance(item, RestaurantOrder):
+            recent_activity_data.append({
+                "type": "order",
+                "id": item.id,
+                "label": f"Order #{item.order_number}",
+                "status": item.status,
+                "time": item.created_at.strftime("%H:%M"),
+            })
+        else:
+            recent_activity_data.append({
+                "type": "reservation",
+                "id": item.id,
+                "label": f"Reservation - {item.guest_name}",
+                "status": item.status,
+                "time": item.reservation_time.strftime("%H:%M"),
+            })
+
+    chart_qs = (
+        TableReservation.objects
+        .filter(reservation_time__date=today)
+        .annotate(hour=ExtractHour('reservation_time'))
+        .values('hour')
+        .annotate(count=Count('id'))
+    )
+
+    hours_map = {c['hour']: c['count'] for c in chart_qs}
+
+    chart_labels = [f"{h}:00" for h in range(24)]
+    chart_data = [hours_map.get(h, 0) for h in range(24)]
+
+    data = {
+        "stats": stats,
+        "active_orders": active_orders,
+        "tables": tables,
+        "reservations": reservations,
+        "recent_activity": recent_activity_data,
+        "staff": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "department": s.department.name if s.department else None,
+            }
+            for s in hotel_staff
+        ] if hotel else [],
+        "chart": {
+            "labels": chart_labels,
+            "data": chart_data
+        }
+    }
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse(data)
+
+    return render(request, 'pos.html', {"dashboard": data})

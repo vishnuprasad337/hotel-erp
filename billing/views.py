@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
-from django.core.mail import send_mail 
+from django.core.mail import send_mail
 from pms.models import Booking, Payment as PmsPayment
 from accounts.models import Staff
 from .models import GuestFolio, FolioCharge, Invoice, BillingPayment
@@ -41,10 +41,14 @@ def _folio_dict(folio):
         for p in folio.payments.all()
     ]
 
+    booking = folio.booking
+    guest = booking.guest if booking else None
+
     return {
         "folio_id": folio.pk,
         "status": folio.status,
         "booking_id": folio.booking_id,
+        "guest_email": guest.email if guest else "",
         "total_charges": float(folio.total_charges),
         "total_paid": float(folio.total_paid),
         "balance_due": float(folio.balance_due),
@@ -107,11 +111,9 @@ def get_or_create_folio(request):
         if room_charges:
             room_label = booking.room.room_type if booking.room else "Room"
             nights_label = ""
-
             if booking.check_in and booking.check_out:
                 n = (booking.check_out - booking.check_in).days
                 nights_label = f" × {n} night{'s' if n != 1 else ''}"
-
             FolioCharge.objects.create(
                 folio=folio,
                 charge_type="room",
@@ -121,10 +123,15 @@ def get_or_create_folio(request):
                 date=booking.check_in or timezone.now().date(),
             )
 
+    folio_data = _folio_dict(folio)
+    # Also attach guest email for the checkout modal
+    if booking.guest and booking.guest.email:
+        folio_data["guest_email"] = booking.guest.email
+
     return JsonResponse({
         "success": True,
         "created": created,
-        "folio": _folio_dict(folio)
+        "folio": folio_data,
     })
 
 
@@ -158,7 +165,6 @@ def add_charge(request):
     folio = GuestFolio.objects.filter(id=folio_id).first()
     if not folio:
         return _json_error(f"Folio {folio_id} not found", 404)
-
     if folio.status == "closed":
         return _json_error("Cannot add charges to a closed folio")
 
@@ -192,20 +198,13 @@ def delete_charge(request, charge_id):
     charge = FolioCharge.objects.select_related("folio").filter(id=charge_id).first()
     if not charge:
         return _json_error("Charge not found", 404)
-
     if charge.charge_type == "room":
         return _json_error("Room charge cannot be deleted")
-
     if charge.folio.status == "closed":
         return _json_error("Cannot delete charges on a closed folio")
-
     folio = charge.folio
     charge.delete()
-
-    return JsonResponse({
-        "success": True,
-        "folio_balance": float(folio.balance_due),
-    })
+    return JsonResponse({"success": True, "folio_balance": float(folio.balance_due)})
 
 
 @csrf_exempt
@@ -271,9 +270,64 @@ def add_payment(request):
         "total_charges": float(folio.total_charges),
     })
 
+
+def _send_invoice_email_helper(invoice):
+    """Internal helper — call this from other views, NOT via URL."""
+    folio = invoice.folio
+    booking = folio.booking
+    guest = booking.guest
+
+    if not guest or not guest.email:
+        return False, "No guest email on file"
+
+    charges_lines = "\n".join(
+        f"  {c.description:<35} ₹{float(c.total):>10.2f}"
+        for c in folio.charges.all()
+    )
+
+    message = f"""Dear {guest.full_name or 'Guest'},
+
+Thank you for staying with us. Please find your invoice details below.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Invoice No : {invoice.invoice_number}
+  Booking ID : {booking.id}
+  Room       : {booking.room_unit.room_number if booking.room_unit else 'N/A'}
+  Check-in   : {booking.check_in}
+  Check-out  : {booking.check_out}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CHARGES:
+{charges_lines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Subtotal   : ₹{float(invoice.subtotal):>10.2f}
+  Tax (GST)  : ₹{float(invoice.tax_total):>10.2f}
+  Discount   : ₹{float(invoice.discount):>10.2f}
+  Grand Total: ₹{float(invoice.grand_total):>10.2f}
+  Status     : {invoice.status.upper()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+We hope you enjoyed your stay and look forward to welcoming you again!
+
+Warm regards,
+Hotel Team
+"""
+
+    send_mail(
+        subject=f"Invoice {invoice.invoice_number} — Thank you for your stay!",
+        message=message,
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[guest.email],
+        fail_silently=False,
+    )
+    return True, guest.email
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def generate_invoice(request):
+    """Generate invoice, close folio, and email guest automatically."""
     try:
         data = json.loads(request.body)
     except Exception:
@@ -281,6 +335,7 @@ def generate_invoice(request):
 
     folio_id = data.get("folio_id")
     discount = Decimal(str(data.get("discount", 0)))
+    send_email = data.get("send_email", True)  # default True
 
     if not folio_id:
         return _json_error("folio_id is required")
@@ -307,15 +362,22 @@ def generate_invoice(request):
         },
     )
 
-    
     folio.status = "closed"
     folio.save()
 
-   
-    try:
-        send_invoice_email(invoice)
-    except Exception as e:
-        print("Email failed:", str(e)) 
+    email_sent = False
+    email_address = ""
+    email_error = ""
+
+    if send_email:
+        try:
+            email_sent, result = _send_invoice_email_helper(invoice)
+            if email_sent:
+                email_address = result
+            else:
+                email_error = result
+        except Exception as e:
+            email_error = str(e)
 
     return JsonResponse({
         "success": True,
@@ -329,51 +391,70 @@ def generate_invoice(request):
             "status": invoice.status,
             "generated_at": invoice.generated_at.isoformat(),
         },
+        "email_sent": email_sent,
+        "email_address": email_address,
+        "email_error": email_error,
     })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_invoice_email(request, invoice_id):
+    """Standalone endpoint to (re)send invoice email for an existing invoice."""
+    invoice = Invoice.objects.select_related(
+        "folio__booking__guest",
+        "folio__booking__room_unit",
+        "folio__booking__room",
+    ).filter(id=invoice_id).first()
+
+    if not invoice:
+        return _json_error("Invoice not found", 404)
+
+    try:
+        sent, result = _send_invoice_email_helper(invoice)
+    except Exception as e:
+        return _json_error(f"Email failed: {str(e)}")
+
+    if not sent:
+        return _json_error(result)
+
+    return JsonResponse({"success": True, "email_sent_to": result})
+
 
 @require_GET
 def get_invoice(request, invoice_id):
-    folio_id = request.GET.get("folio_id")
-    invoice_id = request.GET.get("invoice_id")
-
-    if not folio_id and not invoice_id:
-        return JsonResponse({
-            "success": False,
-            "error": "folio_id or invoice_id is required"
-        }, status=400)
-
-    if invoice_id:
-        invoice = Invoice.objects.filter(id=invoice_id).select_related("folio").first()
-    else:
-        invoice = Invoice.objects.filter(folio_id=folio_id).select_related("folio").first()
+    invoice = Invoice.objects.filter(id=invoice_id).select_related(
+        "folio__booking__guest",
+        "folio__booking__room_unit",
+        "folio__booking__room",
+    ).first()
 
     if not invoice:
-        return JsonResponse({
-            "success": False,
-            "error": "Invoice not found"
-        }, status=404)
+        return JsonResponse({"success": False, "error": "Invoice not found"}, status=404)
 
-    folio = invoice.folio
+    folio   = invoice.folio
+    booking = folio.booking
+    guest   = booking.guest
 
-    
     charges = [
         {
-            "type": c.charge_type,
+            "charge_type": c.charge_type,
             "description": c.description,
-            "amount": float(c.amount),
-            "tax": float(c.tax_amount),
-            "total": float(c.total),
-            "date": c.date
+            "amount":      float(c.amount),
+            "tax_amount":  float(c.tax_amount),
+            "total":       float(c.total),
+            "date":        c.date.isoformat() if c.date else None,
         }
         for c in folio.charges.all()
     ]
 
     payments = [
         {
-            "amount": float(p.amount),
-            "method": p.method,
-            "reference": p.reference_number,
-            "date": p.received_at
+            "amount":           float(p.amount),
+            "method":           p.method,
+            "method_label":     p.get_method_display(),
+            "reference_number": p.reference_number or "",
+            "received_at":      p.received_at.isoformat(),
         }
         for p in folio.payments.all()
     ]
@@ -381,25 +462,34 @@ def get_invoice(request, invoice_id):
     return JsonResponse({
         "success": True,
         "invoice": {
-            "id": invoice.id,
+            "id":             invoice.id,
             "invoice_number": invoice.invoice_number,
-            "status": invoice.status,
-            "subtotal": float(invoice.subtotal),
-            "tax_total": float(invoice.tax_total),
-            "discount": float(invoice.discount),
-            "grand_total": float(invoice.grand_total),
-            "generated_at": invoice.generated_at.isoformat(),
-
+            "status":         invoice.status,
+            "subtotal":       float(invoice.subtotal),
+            "tax":            float(invoice.tax_total),
+            "discount":       float(invoice.discount),
+            "grand_total":    float(invoice.grand_total),
+            "paid":           float(folio.total_paid),
+            "balance":        float(folio.balance_due),
+            "generated_at":   invoice.generated_at.isoformat(),
+            "notes":          invoice.notes or "",
+            "guest_name":     guest.full_name   if guest else "N/A",
+            "guest_email":    guest.email        if guest else "",
+            "guest_phone":    guest.phone        if guest else "",
+            "booking_id":     booking.id,
+            "room_number":    booking.room_unit.room_number if booking.room_unit else "N/A",
+            "room_type":      booking.room.room_type        if booking.room      else "N/A",
+            "check_in":       booking.check_in.isoformat()  if booking.check_in  else "",
+            "check_out":      booking.check_out.isoformat() if booking.check_out else "",
             "folio": {
-                "id": folio.id,
-                "status": folio.status,
+                "id":            folio.id,
+                "status":        folio.status,
                 "total_charges": float(folio.total_charges),
-                "total_paid": float(folio.total_paid),
-                "balance_due": float(folio.balance_due),
+                "total_paid":    float(folio.total_paid),
+                "balance_due":   float(folio.balance_due),
             },
-
-            "charges": charges,
-            "payments": payments
+            "charges":  charges,
+            "payments": payments,
         }
     })
 
@@ -428,65 +518,29 @@ def billing_summary(request):
         "open_folios": open_folios.count(),
         "settled_today": settled_today,
     })
-def send_invoice_email(invoice):
-    folio = invoice.folio
-    booking = folio.booking
-    guest = booking.guest
 
-    
-    if not guest or not guest.email:
-        return
 
-    subject = f"Invoice #{invoice.invoice_number} - Your Stay"
-
-    message = f"""
-Dear {guest.full_name or 'Guest'},
-
-Thank you for staying with us.
-
-Invoice Details:
---------------------------
-Invoice No : {invoice.invoice_number}
-Check-in   : {booking.check_in}
-Check-out  : {booking.check_out}
-
-Subtotal   : ₹{invoice.subtotal}
-Tax        : ₹{invoice.tax_total}
-Discount   : ₹{invoice.discount}
-Grand Total: ₹{invoice.grand_total}
-
-Status     : {invoice.status}
-
-We hope to see you again!
-
-Regards,
-Hotel Team
-"""
-
-    send_mail(
-        subject,
-        message,
-        settings.EMAIL_HOST_USER,
-        [guest.email],
-        fail_silently=False,  
-    )
-@csrf_exempt
+@require_GET
 def list_invoices(request):
-    
-    if request.method == 'GET':
-        invoices = Invoice.objects.all().order_by('-generated_at')
-        data = {
-            'invoices': [
-                {
-                    'id': inv.id,
-                    'invoice_number': inv.invoice_number,
-                    'guest_name': inv.folio.booking.guest.full_name if inv.folio.booking.guest else 'Unknown',
-                    'status': inv.status,  # 'paid', 'pending', 'partial'
-                    'grand_total': float(inv.grand_total),
-                    'generated_at': inv.generated_at.isoformat(),
-                }
-                for inv in invoices
-            ]
-        }
-        return JsonResponse(data)
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+    invoices = Invoice.objects.select_related(
+        "folio__booking__guest",
+        "folio__booking__room_unit",
+    ).order_by("-generated_at")
+
+    return JsonResponse({
+        "invoices": [
+            {
+                "id":             inv.id,
+                "invoice_number": inv.invoice_number,
+                "guest_name":     inv.folio.booking.guest.full_name if inv.folio.booking.guest else "Unknown",
+                "guest_email":    inv.folio.booking.guest.email     if inv.folio.booking.guest else "",
+                "room_number":    inv.folio.booking.room_unit.room_number if inv.folio.booking.room_unit else "—",
+                "check_in":       inv.folio.booking.check_in.isoformat()  if inv.folio.booking.check_in  else "",
+                "check_out":      inv.folio.booking.check_out.isoformat() if inv.folio.booking.check_out else "",
+                "status":         inv.status,
+                "grand_total":    float(inv.grand_total),
+                "generated_at":   inv.generated_at.isoformat(),
+            }
+            for inv in invoices
+        ]
+    })

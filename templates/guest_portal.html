@@ -3,814 +3,1150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
-    <title>Guest Portal | Luxury Stay Experience</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Guest Portal | {{ guest.full_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+        :root {
+            --bg: #F5F2EE;
+            --surface: #FFFFFF;
+            --surface2: #F7F4F0;
+            --border: #E8E2D9;
+            --ink: #1A1410;
+            --muted: #8A7A6A;
+            --green: #1B5E3B;
+            --green-mid: #2E7D52;
+            --green-light: #E8F5EE;
+            --green-pale: #F0FAF4;
+            --gold: #8B6914;
+            --gold-bg: #FDF6E3;
+            --red: #B91C1C;
+            --red-bg: #FEF2F2;
+            --blue: #1E40AF;
+            --blue-bg: #EFF6FF;
+            --radius: 18px;
+            --radius-sm: 12px;
+            --radius-xs: 8px;
+            --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --shadow-md: 0 6px 24px rgba(0,0,0,0.12);
         }
 
-        body {
-            background: #f0f4f8;
-            padding-bottom: 30px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
-        /* Header */
-        .luxury-header {
-            background: linear-gradient(135deg, #0a2a38 0%, #1a5a7a 100%);
-            color: white;
-            padding: 28px 20px;
-            border-radius: 0 0 28px 28px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        /* ─── HEADER ─── */
+        .header {
+            background: var(--green);
+            color: #fff;
+            padding: 32px 20px 80px;
+            position: relative;
+            overflow: hidden;
         }
-
-        .guest-greeting {
-            font-size: 1.6rem;
-            font-weight: 700;
-            letter-spacing: -0.3px;
+        .header-pattern {
+            position: absolute; inset: 0; opacity: 0.06;
+            background-image: radial-gradient(circle, #fff 1px, transparent 1px);
+            background-size: 24px 24px;
         }
-
-        .room-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
+        .header-inner { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+        .hotel-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 40px; padding: 5px 14px;
+            font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: rgba(255,255,255,0.85);
+            margin-bottom: 18px;
         }
-
-        /* Container */
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px 16px;
+        .guest-welcome { font-size: 0.78rem; color: rgba(255,255,255,0.6); font-weight: 400; margin-bottom: 4px; }
+        .guest-name { font-family: 'DM Serif Display', serif; font-size: 2.1rem; font-weight: 400; line-height: 1.15; color: #fff; margin-bottom: 20px; }
+        .stay-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .stay-pill {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 40px; padding: 7px 14px;
+            font-size: 0.75rem; color: rgba(255,255,255,0.92); font-weight: 500;
         }
+        .stay-pill i { font-size: 0.7rem; opacity: 0.7; }
 
-        /* Cards */
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
+        /* ─── STAY CARD ─── */
+        .stay-float-wrap { max-width: 640px; margin: -44px auto 0; padding: 0 16px; position: relative; z-index: 10; }
+        .stay-card {
+            background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow-md); border: 1px solid var(--border);
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            overflow: hidden;
         }
+        .stay-cell { padding: 16px 14px; text-align: center; border-right: 1px solid var(--border); }
+        .stay-cell:last-child { border-right: none; }
+        .stay-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+        .stay-value { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
+        .stay-value small { font-size: 0.68rem; font-weight: 500; color: var(--muted); display: block; margin-top: 2px; }
 
-        .card:hover {
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        /* ─── NAV TABS ─── */
+        .nav-wrap { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+        .nav-tabs { display: flex; max-width: 640px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .nav-tab {
+            flex: 1; min-width: 72px; padding: 12px 6px 11px;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            font-size: 0.62rem; font-weight: 600; color: var(--muted);
+            cursor: pointer; border-bottom: 2px solid transparent;
+            transition: all 0.2s; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
         }
+        .nav-tab i { font-size: 1rem; }
+        .nav-tab.active { color: var(--green-mid); border-bottom-color: var(--green-mid); }
+        .nav-tab.active i { color: var(--green-mid); }
 
-        .card-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #1a2c3f;
+        /* ─── MAIN CONTAINER ─── */
+        .container { max-width: 640px; margin: 0 auto; padding: 20px 16px 100px; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeUp 0.25s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ─── CARDS ─── */
+        .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 14px; overflow: hidden; }
+        .card-head {
+            padding: 16px 18px 0;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--ink);
+            margin-bottom: 14px;
         }
+        .card-head-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--green-light); display: flex; align-items: center; justify-content: center; color: var(--green-mid); font-size: 0.8rem; }
+        .card-body { padding: 0 18px 18px; }
 
-        .card-title i {
-            color: #1e6f5c;
-            font-size: 1.2rem;
+        /* ─── SECTION LABELS ─── */
+        .section-label {
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--gold);
+            padding: 14px 0 8px; display: flex; align-items: center; gap: 8px;
         }
+        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-        /* Stay details row */
-        .stay-grid {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .stay-item {
-            flex: 1;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 16px;
-            text-align: center;
-        }
-
-        .stay-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            color: #5f7d9c;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .stay-value {
-            font-size: 0.9rem;
-            font-weight: 700;
-            margin-top: 4px;
-            color: #1a2c3f;
-        }
-
-        /* Menu Items */
-        .menu-category {
-            margin-bottom: 20px;
-        }
-
-        .category-name {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #e2e8f0;
-            color: #2c5f7a;
-        }
-
+        /* ─── MENU ITEMS ─── */
         .menu-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #edf2f7;
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 0; border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
         }
-
-        .menu-info h4 {
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .menu-info p {
-            font-size: 0.75rem;
-            color: #5f7d9c;
-            margin-top: 2px;
-        }
-
-        .menu-price {
-            font-weight: 700;
-            color: #1e6f5c;
-            margin-right: 12px;
-        }
-
+        .menu-item:last-child { border-bottom: none; }
+        .veg-indicator { width: 10px; height: 10px; border-radius: 2px; border: 1.5px solid; flex-shrink: 0; }
+        .veg-indicator.veg { background: #16A34A; border-color: #16A34A; }
+        .veg-indicator.nonveg { background: var(--red); border-color: var(--red); }
+        .menu-img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+        .menu-img-placeholder { width: 64px; height: 64px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1.3rem; flex-shrink: 0; }
+        .menu-info { flex: 1; min-width: 0; }
+        .menu-name { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
+        .menu-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .menu-price { font-size: 0.82rem; font-weight: 700; color: var(--green-mid); margin-top: 5px; }
         .btn-add {
-            background: #1e6f5c;
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
+            background: var(--green-light); color: var(--green-mid);
+            border: 1.5px solid var(--green-light); border-radius: 40px;
+            padding: 7px 14px; font-size: 0.72rem; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: all 0.18s;
+            display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
         }
+        .btn-add:hover { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
+        .btn-add.in-cart { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
+        .qty-stepper { display: inline-flex; align-items: center; gap: 0; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 40px; overflow: hidden; }
+        .qty-btn { width: 28px; height: 28px; border: none; cursor: pointer; font-size: 1rem; font-weight: 700; background: transparent; color: var(--ink); display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+        .qty-btn:hover { background: var(--border); }
+        .qty-btn.plus { background: var(--green-mid); color: #fff; }
+        .qty-btn.plus:hover { background: var(--green); }
+        .qty-num { font-size: 0.82rem; font-weight: 700; min-width: 22px; text-align: center; }
 
-        .btn-add:hover {
-            background: #0f5847;
-            transform: scale(0.96);
+        /* ─── CART ─── */
+        .cart-empty { text-align: center; padding: 36px 20px; color: var(--muted); }
+        .cart-empty-icon { font-size: 2.4rem; margin-bottom: 10px; opacity: 0.3; }
+        .cart-empty p { font-size: 0.82rem; line-height: 1.6; }
+        .cart-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+        .cart-row:last-of-type { border-bottom: none; }
+        .cart-name { flex: 1; font-size: 0.85rem; font-weight: 600; }
+        .cart-subtotal { font-size: 0.85rem; font-weight: 700; color: var(--green-mid); min-width: 60px; text-align: right; }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+        .summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--muted); padding: 4px 0; }
+        .summary-row.grand-total { font-size: 1rem; font-weight: 700; color: var(--ink); padding-top: 12px; margin-top: 6px; border-top: 2px solid var(--border); }
+        .note-input {
+            width: 100%; margin-top: 12px;
+            border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            padding: 10px 14px; font-size: 0.82rem; font-family: inherit;
+            background: var(--surface2); color: var(--ink); resize: none; outline: none;
+            transition: border-color 0.2s;
         }
-
-        .btn-danger {
-            background: #ef4444;
+        .note-input:focus { border-color: var(--green-mid); }
+        .btn-primary {
+            background: var(--green-mid); color: #fff; border: none;
+            width: 100%; padding: 14px; border-radius: var(--radius-sm);
+            font-size: 0.88rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: all 0.2s; margin-top: 14px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+        .btn-primary:hover:not(:disabled) { background: var(--green); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(30,93,56,0.3); }
+        .btn-primary:active:not(:disabled) { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn-danger:hover {
-            background: #dc2626;
+        /* ─── BADGES ─── */
+        .badge {
+            font-size: 0.62rem; font-weight: 700; padding: 4px 10px;
+            border-radius: 40px; text-transform: capitalize; white-space: nowrap;
         }
+        .badge-pending, .badge-Pending         { background: #FEF3C7; color: #92400E; }
+        .badge-received, .badge-Received        { background: #EDE9FE; color: #5B21B6; }
+        .badge-in_progress, .badge-In_progress  { background: var(--blue-bg); color: var(--blue); }
+        .badge-preparing                        { background: var(--blue-bg); color: var(--blue); }
+        .badge-completed, .badge-Completed      { background: var(--green-light); color: var(--green); }
+        .badge-served, .badge-delivered         { background: var(--green-light); color: var(--green); }
+        .badge-cancelled, .badge-Cancelled      { background: var(--red-bg); color: var(--red); }
 
-        .btn-outline {
-            background: white;
-            border: 1px solid #cbd5e1;
-            color: #334155;
+        /* ─── ORDERS ─── */
+        .order-card {
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px; margin-bottom: 10px; background: var(--surface2);
+            transition: box-shadow 0.2s;
         }
+        .order-card:hover { box-shadow: var(--shadow); }
+        .order-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .order-num { font-weight: 700; font-size: 0.85rem; }
+        .order-items-list { font-size: 0.75rem; color: var(--muted); margin-bottom: 9px; line-height: 1.5; }
+        .order-footer { display: flex; justify-content: space-between; align-items: center; }
+        .order-total { font-weight: 700; color: var(--green-mid); font-size: 0.82rem; }
+        .order-time { color: var(--muted); font-size: 0.72rem; }
 
-        .btn-outline:hover {
-            background: #f1f5f9;
+        /* ─── BILL ─── */
+        .bill-status-pill {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 6px 14px; border-radius: 40px; font-size: 0.72rem; font-weight: 700;
+            margin-bottom: 18px;
         }
-
-        /* Cart Item */
-        .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #edf2f7;
+        .bill-status-open      { background: var(--gold-bg); color: var(--gold); }
+        .bill-status-closed    { background: var(--green-light); color: var(--green); }
+        .bill-status-estimated { background: var(--blue-bg); color: var(--blue); }
+        .bill-section { margin-bottom: 16px; }
+        .bill-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+        .bill-charge-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.82rem;
         }
+        .bill-charge-row:last-child { border-bottom: none; }
+        .bill-charge-desc { flex: 1; color: var(--ink); padding-right: 10px; font-weight: 500; }
+        .bill-charge-tax { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-weight: 400; }
+        .bill-charge-amt { font-weight: 700; color: var(--ink); white-space: nowrap; }
 
-        .cart-item-name {
-            font-weight: 600;
-            font-size: 0.85rem;
-            flex: 2;
+        /* ─── SERVICE ─── */
+        .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .service-btn {
+            background: var(--surface2); border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm); padding: 16px 8px;
+            text-align: center; cursor: pointer;
+            transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;
+            position: relative;
         }
-
-        .cart-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .service-btn:hover { border-color: var(--green-mid); background: var(--green-pale); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .service-btn:active { transform: translateY(0); }
+        .service-btn.sending { opacity: 0.6; pointer-events: none; }
+        .service-btn.sent { border-color: var(--green-mid); background: var(--green-light); }
+        .service-btn.sent i { color: var(--green); }
+        .service-btn i { font-size: 1.5rem; color: var(--green-mid); transition: color 0.2s; }
+        .service-btn span { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .custom-row { display: flex; gap: 8px; }
+        .custom-input {
+            flex: 1; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            padding: 10px 14px; font-size: 0.82rem; font-family: inherit;
+            background: var(--surface2); color: var(--ink); outline: none; transition: border-color 0.2s;
         }
-
-        .qty-input {
-            width: 48px;
-            padding: 4px 6px;
-            text-align: center;
-            border: 1px solid #cbd5e1;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .custom-input:focus { border-color: var(--green-mid); }
+        .btn-send {
+            background: var(--green-mid); color: #fff; border: none;
+            border-radius: var(--radius-sm); padding: 10px 18px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
+            transition: background 0.2s; display: flex; align-items: center; gap: 6px;
         }
+        .btn-send:hover { background: var(--green); }
+        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .cart-price {
-            font-weight: 700;
-            min-width: 60px;
-            text-align: right;
+        /* ─── REQUEST ITEMS ─── */
+        .req-item {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 13px 0; border-bottom: 1px solid var(--border); gap: 10px;
+            animation: fadeUp 0.25s ease;
         }
+        .req-item:last-child { border-bottom: none; }
+        .req-title { font-weight: 600; font-size: 0.82rem; }
+        .req-desc { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+        .req-time { font-size: 0.68rem; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+        .req-assigned { font-size: 0.68rem; color: var(--green-mid); margin-top: 2px; font-weight: 500; }
 
-        /* Row layout */
-        .row-space {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
+        /* ─── SERVICE LOADING SKELETON ─── */
+        .req-skeleton {
+            padding: 13px 0; border-bottom: 1px solid var(--border);
         }
-
-        .total-row {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #1a2c3f;
-            border-top: 2px solid #e2e8f0;
-            margin-top: 8px;
-            padding-top: 12px;
+        .skel-line {
+            background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px; height: 10px; margin-bottom: 6px;
         }
+        .skel-line.short { width: 40%; }
+        .skel-line.mid   { width: 65%; }
+        .skel-line.long  { width: 85%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Order item */
-        .order-item {
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 16px;
-            margin-bottom: 10px;
-            border-left: 4px solid #1e6f5c;
+        /* ─── LAUNDRY ─── */
+        .laundry-svc {
+            border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px; margin-bottom: 10px; background: var(--surface2);
+            display: flex; align-items: flex-start; gap: 14px;
+            cursor: pointer; transition: all 0.2s;
         }
-
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
+        .laundry-svc:hover { border-color: var(--green-mid); background: var(--green-pale); }
+        .laundry-svc.selected { border-color: var(--green-mid); background: var(--green-pale); box-shadow: 0 0 0 3px rgba(46,125,82,0.12); }
+        .laundry-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--green-light); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--green-mid); flex-shrink: 0; }
+        .laundry-info { flex: 1; min-width: 0; }
+        .laundry-name { font-size: 0.88rem; font-weight: 600; }
+        .laundry-meta { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+        .laundry-price { font-size: 0.9rem; font-weight: 700; color: var(--green-mid); flex-shrink: 0; padding-top: 2px; }
+        .laundry-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .laundry-qty-input {
+            width: 64px; border: 1.5px solid var(--border); border-radius: 8px;
+            padding: 6px 10px; font-size: 0.82rem; font-family: inherit;
+            background: var(--surface); color: var(--ink); outline: none; text-align: center;
         }
+        .laundry-qty-input:focus { border-color: var(--green-mid); }
+        .laundry-order-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 14px; margin-bottom: 10px; background: var(--surface2); }
 
-        .status-badge {
-            font-size: 0.65rem;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-weight: 600;
+        /* ─── CART FAB ─── */
+        .cart-fab {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+            background: var(--green-mid); color: #fff; border: none; border-radius: 50px;
+            padding: 14px 24px; font-size: 0.84rem; font-weight: 700;
+            cursor: pointer; box-shadow: var(--shadow-md);
+            display: flex; align-items: center; gap: 10px;
+            z-index: 200; font-family: inherit; transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            opacity: 0; pointer-events: none;
         }
+        .cart-fab.visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+        .cart-fab:hover { background: var(--green); box-shadow: 0 8px 28px rgba(30,93,56,0.35); }
+        .fab-count { background: #fff; color: var(--green-mid); border-radius: 50%; width: 22px; height: 22px; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-preparing { background: #dbeafe; color: #1e40af; }
-        .status-served { background: #dcfce7; color: #166534; }
-        .status-cancelled { background: #fee2e2; color: #991b1b; }
-
-        /* Service chips */
-        .service-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
+        /* ─── TOAST ─── */
+        .toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(16px);
+            background: var(--ink); color: #fff; padding: 11px 22px; border-radius: 40px;
+            font-size: 0.8rem; font-weight: 500; z-index: 9999;
+            opacity: 0; transition: all 0.3s; white-space: nowrap; pointer-events: none;
+            display: flex; align-items: center; gap: 8px;
         }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.success { background: var(--green); }
+        .toast.error   { background: var(--red); }
+        .toast i { font-size: 0.82rem; }
 
-        .service-chip {
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+        /* ─── EMPTY STATES ─── */
+        .empty { text-align: center; padding: 32px 20px; color: var(--muted); }
+        .empty i { font-size: 2.2rem; display: block; margin-bottom: 10px; opacity: 0.25; }
+        .empty p { font-size: 0.82rem; line-height: 1.6; }
 
-        .service-chip:hover {
-            background: #e6f0fa;
-            border-color: #1e6f5c;
-        }
+        /* ─── SPINNER ─── */
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .request-item {
-            background: #fefcf5;
-            padding: 10px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            border: 1px solid #f0e9df;
-        }
-
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .bill-amount {
-            font-weight: 800;
-            color: #1e6f5c;
-        }
-
-        hr {
-            margin: 12px 0;
-            border-color: #edf2f7;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 24px;
-            color: #94a3b8;
-        }
-
-        .toast-notify {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e2f41;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            z-index: 1000;
-            white-space: nowrap;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            animation: fadeUp 0.3s ease;
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (max-width: 400px) {
+            .stay-card { grid-template-columns: repeat(2, 1fr); }
+            .service-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
 
-<div class="luxury-header">
-    <div class="guest-greeting">
-        <i class="fas fa-user-circle"></i> {{ guest.full_name }}
-    </div>
-    <div class="room-badge">
-        <i class="fas fa-door-open"></i> Room {{ room.room_number }} • {{ room.room_type }}
-        <i class="fas fa-calendar-alt" style="margin-left: 12px;"></i> {{ booking.check_in }} → {{ booking.check_out }}
+<!-- ══ HEADER ══ -->
+<div class="header">
+    <div class="header-pattern"></div>
+    <div class="header-inner">
+        <div class="hotel-badge"><i class="fas fa-star"></i> Guest Portal</div>
+        <div class="guest-welcome">Welcome back,</div>
+        <div class="guest-name">{{ guest.full_name }}</div>
+        <div class="stay-pills">
+            <div class="stay-pill"><i class="fas fa-door-open"></i> Room {{ room.room_number }} · {{ room.room.room_type }}</div>
+            <div class="stay-pill"><i class="fas fa-calendar-days"></i> {{ booking.check_in }} → {{ booking.check_out }}</div>
+        </div>
     </div>
 </div>
 
+<!-- ══ STAY FLOAT CARD ══ -->
+<div class="stay-float-wrap">
+    <div class="stay-card">
+        <div class="stay-cell">
+            <span class="stay-label">Check-in</span>
+            <div class="stay-value">{{ booking.check_in }}<small>After 2:00 PM</small></div>
+        </div>
+        <div class="stay-cell">
+            <span class="stay-label">Check-out</span>
+            <div class="stay-value">{{ booking.check_out }}<small>Before 11:00 AM</small></div>
+        </div>
+        <div class="stay-cell">
+            <span class="stay-label">Guests</span>
+            <div class="stay-value">{{ booking.adults }}A / {{ booking.children }}C<small>Room {{ room.room_number }}</small></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ NAV TABS ══ -->
+<div class="nav-wrap">
+    <nav class="nav-tabs">
+        <div class="nav-tab active" data-tab="menu"><i class="fas fa-utensils"></i>Menu</div>
+        <div class="nav-tab" data-tab="cart"><i class="fas fa-shopping-bag"></i>Cart</div>
+        <div class="nav-tab" data-tab="orders"><i class="fas fa-receipt"></i>Orders</div>
+        <div class="nav-tab" data-tab="laundry"><i class="fas fa-shirt"></i>Laundry</div>
+        <div class="nav-tab" data-tab="bill"><i class="fas fa-file-invoice-dollar"></i>Bill</div>
+        <div class="nav-tab" data-tab="service"><i class="fas fa-bell-concierge"></i>Service</div>
+    </nav>
+</div>
+
 <div class="container">
-    <!-- Stay Summary Card -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-hotel"></i> Your Stay</div>
-        <div class="stay-grid">
-            <div class="stay-item"><div class="stay-label">Check-in</div><div class="stay-value">{{ booking.check_in }}</div></div>
-            <div class="stay-item"><div class="stay-label">Check-out</div><div class="stay-value">{{ booking.check_out }}</div></div>
-            <div class="stay-item"><div class="stay-label">Adults/Children</div><div class="stay-value">{{ booking.adults }} / {{ booking.children }}</div></div>
+
+    <!-- ══ TAB: MENU ══ -->
+    <div class="tab-panel active" id="tab-menu">
+        <div class="card">
+            <div class="card-body" style="padding-top: 18px;">
+                {% for cat in menu %}
+                <div class="section-label">{{ cat.name }}</div>
+                {% for item in cat.items %}
+                <div class="menu-item"
+                     data-id="{{ item.id }}"
+                     data-name="{{ item.name }}"
+                     data-price="{{ item.price }}"
+                     data-tax="{{ item.tax_percent }}">
+                    <span class="veg-indicator {% if item.veg %}veg{% else %}nonveg{% endif %}"></span>
+                    {% if item.image %}
+                    <img class="menu-img" src="{{ item.image }}" alt="{{ item.name }}" loading="lazy">
+                    {% else %}
+                    <div class="menu-img-placeholder"><i class="fas fa-bowl-food"></i></div>
+                    {% endif %}
+                    <div class="menu-info">
+                        <div class="menu-name">{{ item.name }}</div>
+                        {% if item.description %}<div class="menu-desc">{{ item.description }}</div>{% endif %}
+                        <div class="menu-price">₹{{ item.price }}</div>
+                    </div>
+                    <div class="menu-actions">
+                        <button class="btn-add add-btn"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% empty %}
+                <div class="empty"><i class="fas fa-bowl-food"></i><p>Menu not available right now.</p></div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <!-- MENU CARD -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-utensils"></i> 🍽️ Restaurant Menu</div>
-        <div id="menuContainer">
-            {% for cat in menu %}
-            <div class="menu-category">
-                <div class="category-name">{{ cat.name }}</div>
-                {% for item in cat.items %}
-                <div class="menu-item" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
-                    <div class="menu-info">
-                        <h4>{{ item.name }}</h4>
-                        <p>{{ item.description|default:"Freshly prepared" }}</p>
+    <!-- ══ TAB: CART ══ -->
+    <div class="tab-panel" id="tab-cart">
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-shopping-bag"></i></div>Your Cart</div>
+            <div class="card-body">
+                <div id="cartList">
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon"><i class="fas fa-bag-shopping"></i></div>
+                        <p>Your cart is empty.<br>Browse the menu and add items.</p>
                     </div>
-                    <div class="flex-between" style="gap: 12px;">
-                        <span class="menu-price">₹{{ item.price }}</span>
-                        <button class="btn-add add-to-cart-btn">Add to Cart</button>
+                </div>
+                <hr class="divider">
+                <div class="summary-row"><span>Subtotal</span><span id="cartSubtotal">₹0.00</span></div>
+                <div class="summary-row"><span>GST</span><span id="cartTax">₹0.00</span></div>
+                <div class="summary-row grand-total"><span>Total</span><span id="cartTotal">₹0.00</span></div>
+                <textarea class="note-input" id="orderNote" rows="2" placeholder="Any special instructions? (optional)"></textarea>
+                <button class="btn-primary" id="placeOrderBtn" disabled>
+                    <i class="fas fa-check-circle"></i> Place Room Service Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: ORDERS ══ -->
+    <div class="tab-panel" id="tab-orders">
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-receipt"></i></div>My Orders</div>
+            <div class="card-body">
+                <div id="ordersList">
+                    {% if existing_orders %}
+                        {% for o in existing_orders %}
+                        <div class="order-card">
+                            <div class="order-header-row">
+                                <span class="order-num">#{{ o.order_number }}</span>
+                                <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
+                            </div>
+                            <div class="order-items-list">
+                                {% for item in o.items %}{{ item.qty }}&times; {{ item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </div>
+                            <div class="order-footer">
+                                <span class="order-total">₹{{ o.total }}</span>
+                                <span class="order-time">{{ o.created_at|slice:":16" }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty"><i class="fas fa-mug-hot"></i><p>No orders yet.<br>Browse the menu and order something!</p></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ TAB: LAUNDRY ══ -->
+    <div class="tab-panel" id="tab-laundry">
+
+        {% if laundry_orders %}
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>Laundry Orders</div>
+            <div class="card-body">
+                {% for lo in laundry_orders %}
+                <div class="laundry-order-card">
+                    <div class="order-header-row">
+                        <span class="order-num">Order #{{ lo.id }}</span>
+                        <span class="badge badge-{{ lo.status }}">{{ lo.status }}</span>
+                    </div>
+                    <div class="order-footer">
+                        <span class="order-total">₹{{ lo.total }}</span>
+                        <span class="order-time">{{ lo.created_at|slice:":16" }}</span>
                     </div>
                 </div>
                 {% endfor %}
             </div>
-            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-shirt"></i></div>Request Laundry</div>
+            <div class="card-body">
+                {% for svc in laundry_services %}
+                <div class="laundry-svc" data-id="{{ svc.id }}" data-price="{{ svc.price_per_unit }}">
+                    <div class="laundry-icon">
+                        {% if svc.service_type == "wash" %}<i class="fas fa-water"></i>
+                        {% elif svc.service_type == "dry_clean" %}<i class="fas fa-wind"></i>
+                        {% elif svc.service_type == "iron" %}<i class="fas fa-fire-flame-curved"></i>
+                        {% else %}<i class="fas fa-shirt"></i>{% endif %}
+                    </div>
+                    <div class="laundry-info">
+                        <div class="laundry-name">{{ svc.name }}</div>
+                        <div class="laundry-meta">{{ svc.service_type|title }}{% if svc.turnaround_hours %} · Ready in {{ svc.turnaround_hours }}h{% endif %}</div>
+                        <div class="laundry-qty-row" style="display:none;">
+                            <span style="font-size:0.75rem;color:var(--muted);">Qty:</span>
+                            <input type="number" class="laundry-qty-input" value="1" min="1" max="20">
+                        </div>
+                    </div>
+                    <div class="laundry-price">₹{{ svc.price_per_unit }}</div>
+                </div>
+                {% empty %}
+                <div class="empty"><i class="fas fa-shirt"></i><p>Laundry services not available right now.</p></div>
+                {% endfor %}
+                {% if laundry_services %}
+                <textarea class="note-input" id="laundryNote" rows="2" placeholder="Special instructions (e.g. stain on shirt, delicate fabric)…" style="margin-top:14px;"></textarea>
+                <button class="btn-primary" id="laundryOrderBtn">
+                    <i class="fas fa-paper-plane"></i> Request Laundry Pickup
+                </button>
+                {% endif %}
+            </div>
         </div>
     </div>
 
-    <!-- CART CARD -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-shopping-cart"></i> Your Cart</div>
-        <div id="cartItemsList">
-            <div class="empty-state"><i class="fas fa-cart-plus"></i> Cart is empty</div>
+    <!-- ══ TAB: BILL ══ -->
+    <div class="tab-panel" id="tab-bill">
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-file-invoice-dollar"></i></div>Bill Summary</div>
+            <div class="card-body">
+
+                {% if folio %}
+
+                <div class="bill-status-pill {% if folio.status == 'open' %}bill-status-open{% else %}bill-status-closed{% endif %}">
+                    <i class="fas {% if folio.status == 'open' %}fa-clock{% else %}fa-check-circle{% endif %}"></i>
+                    Folio {{ folio.status|title }}
+                </div>
+
+                {% regroup folio_charges by charge_type as charge_groups %}
+                {% for group in charge_groups %}
+                <div class="bill-section">
+                    <div class="bill-label">
+                        {% if group.grouper == "room" %}Room Charges
+                        {% elif group.grouper == "restaurant" %}Food &amp; Beverage
+                        {% elif group.grouper == "laundry" %}Laundry
+                        {% else %}Other Charges{% endif %}
+                    </div>
+                    {% for charge in group.list %}
+                    <div class="bill-charge-row">
+                        <div>
+                            <div class="bill-charge-desc">{{ charge.description }}</div>
+                            <div class="bill-charge-tax">Tax: ₹{{ charge.tax_amount }}</div>
+                        </div>
+                        <div class="bill-charge-amt">₹{{ charge.total }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% empty %}
+                <div class="bill-section">
+                    <div class="bill-label">Room Charges</div>
+                    <div class="bill-charge-row">
+                        <div class="bill-charge-desc">{{ room.room.room_type }} Room</div>
+                        <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if folio_payments %}
+                <div class="bill-section">
+                    <div class="bill-label">Payments Received</div>
+                    {% for p in folio_payments %}
+                    <div class="bill-charge-row">
+                        <div class="bill-charge-desc">{{ p.method|default:"Payment" }}</div>
+                        <div class="bill-charge-amt" style="color:var(--green-mid);">−₹{{ p.amount }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <hr class="divider">
+                <div class="summary-row"><span>Subtotal</span><span>₹{{ folio.total_charges }}</span></div>
+                {% if folio.total_paid %}
+                <div class="summary-row"><span>Paid</span><span style="color:var(--green-mid);">₹{{ folio.total_paid }}</span></div>
+                {% endif %}
+                <div class="summary-row grand-total"><span>Balance Due</span><span></span></div>
+
+                {% else %}
+
+                <div class="bill-status-pill bill-status-estimated">
+                    <i class="fas fa-calculator"></i> Estimated Bill
+                </div>
+                <div class="bill-section">
+                    <div class="bill-label">Room Charges</div>
+                    <div class="bill-charge-row">
+                        <div>
+                            <div class="bill-charge-desc">{{ room.room.room_type }} — {{ booking.check_in }} to {{ booking.check_out }}</div>
+                            <div class="bill-charge-tax">18% GST included</div>
+                        </div>
+                        <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
+                    </div>
+                </div>
+                {% if existing_orders %}
+                <div class="bill-section">
+                    <div class="bill-label">Food &amp; Beverage</div>
+                    {% for o in existing_orders %}{% if o.status != "cancelled" %}
+                    <div class="bill-charge-row">
+                        <div class="bill-charge-desc">Room Service #{{ o.order_number }}</div>
+                        <div class="bill-charge-amt">₹{{ o.total }}</div>
+                    </div>
+                    {% endif %}{% endfor %}
+                </div>
+                {% endif %}
+                <hr class="divider">
+                <div class="summary-row grand-total"><span>Estimated Total</span><span>₹{{ booking.total_amount }}</span></div>
+
+                {% endif %}
+
+                <p style="font-size:0.72rem;color:var(--muted);margin-top:14px;line-height:1.6;">
+                    <i class="fas fa-info-circle"></i> Final bill presented at checkout. All applicable taxes are included.
+                </p>
+            </div>
         </div>
-        <hr>
-        <div class="row-space">
-            <span>Subtotal</span>
-            <span id="cartSubtotal">₹0</span>
-        </div>
-        <div class="row-space">
-            <span>GST (18%)</span>
-            <span id="cartTax">₹0</span>
-        </div>
-        <div class="row-space total-row">
-            <span>Total</span>
-            <span id="cartTotalAmount">₹0</span>
-        </div>
-        <button class="btn-add" id="placeOrderBtn" style="width: 100%; margin-top: 12px; padding: 12px;">
-            <i class="fas fa-check-circle"></i> Place Order (Room Service)
-        </button>
     </div>
 
-    <!-- MY ORDERS CARD -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-receipt"></i> 📦 My Orders</div>
-        <div id="ordersList">
-            <div class="empty-state"><i class="fas fa-spinner fa-pulse"></i> Loading orders...</div>
+    <!-- ══ TAB: SERVICE ══ -->
+    <div class="tab-panel" id="tab-service">
+        <div class="card">
+            <div class="card-head"><div class="card-head-icon"><i class="fas fa-bell-concierge"></i></div>Room Requests</div>
+            <div class="card-body">
+                <div class="service-grid">
+                    <div class="service-btn" data-service="water" data-msg="Extra water bottles requested">
+                        <i class="fas fa-bottle-water"></i><span>Water</span>
+                    </div>
+                    <div class="service-btn" data-service="towel" data-msg="Fresh towels requested">
+                        <i class="fas fa-scroll"></i><span>Towels</span>
+                    </div>
+                    <div class="service-btn" data-service="cleaning" data-msg="Room cleaning requested">
+                        <i class="fas fa-broom"></i><span>Housekeeping</span>
+                    </div>
+                    <div class="service-btn" data-service="maintenance" data-msg="Maintenance assistance needed">
+                        <i class="fas fa-tools"></i><span>Maintenance</span>
+                    </div>
+                    <div class="service-btn" data-service="pillow" data-msg="Extra pillows requested">
+                        <i class="fas fa-bed"></i><span>Pillows</span>
+                    </div>
+                    <div class="service-btn" data-service="dnd" data-msg="Do not disturb">
+                        <i class="fas fa-moon"></i><span>DND</span>
+                    </div>
+                </div>
+                <div class="custom-row">
+                    <input type="text" class="custom-input" id="customReqInput" placeholder="Custom request…">
+                    <button class="btn-send" id="sendCustomBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>
+                Recent Requests
+                <button id="refreshRequestsBtn"
+                    onclick="refreshServiceList()"
+                    style="margin-left:auto; background:none; border:none; cursor:pointer;
+                           color:var(--muted); font-size:0.8rem; padding:4px 8px;
+                           border-radius:6px; transition:all 0.2s; display:flex; align-items:center; gap:5px;">
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="serviceList">
+                    {% if tasks %}
+                        {% for task in tasks %}
+                        <div class="req-item" data-request-id="{{ task.id }}">
+                            <div style="flex:1;min-width:0;">
+                                <div class="req-title">{{ task.title }}</div>
+                                {% if task.description %}
+                                <div class="req-desc">{{ task.description }}</div>
+                                {% endif %}
+                                {% if task.staff %}
+                                <div class="req-assigned"><i class="fas fa-user-check" style="font-size:0.6rem;"></i> {{ task.staff.name }}</div>
+                                {% endif %}
+                                <div class="req-time">
+                                    <i class="fas fa-clock" style="font-size:0.6rem;"></i>
+                                    {{ task.created_at|date:"d M Y, H:i" }}
+                                </div>
+                            </div>
+                            <span class="badge badge-{{ task.status }}">{{ task.status }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="empty"><i class="fas fa-bell-slash"></i><p>No requests yet.<br>Use the buttons above to request something.</p></div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- BILL SUMMARY CARD -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-file-invoice-dollar"></i> 💰 Bill Summary</div>
-        <div class="row-space"><span>Room Charges</span><span id="billRoom">₹{{ booking.base_price|default:"0" }} / night</span></div>
-        <div class="row-space"><span>Food Charges</span><span id="billFood">₹0</span></div>
-        <div class="row-space"><span>Service Charges</span><span id="billService">₹0</span></div>
-        <hr>
-        <div class="row-space total-row"><span>Total Due</span><span id="billTotalDue">₹0</span></div>
-        <div class="row-space"><span class="status-badge status-pending" style="margin-top: 8px;"><i class="fas fa-credit-card"></i> Pay at checkout</span></div>
-    </div>
-
-    <!-- SERVICE REQUESTS CARD -->
-    <div class="card">
-        <div class="card-title"><i class="fas fa-bell-concierge"></i> 🛎️ Room Service Requests</div>
-        <div class="service-chips">
-            <div class="service-chip" data-service="water"><i class="fas fa-tint"></i> Extra Water</div>
-            <div class="service-chip" data-service="towel"><i class="fas fa-towel"></i> Fresh Towels</div>
-            <div class="service-chip" data-service="cleaning"><i class="fas fa-broom"></i> Housekeeping</div>
-            <div class="service-chip" data-service="maintenance"><i class="fas fa-tools"></i> Maintenance</div>
-            <div class="service-chip" data-service="pillow"><i class="fas fa-bed"></i> Extra Pillow</div>
-        </div>
-        <div class="flex-between" style="gap: 8px; margin: 12px 0;">
-            <input type="text" id="customRequestInput" class="qty-input" style="flex: 1; padding: 10px;" placeholder="Custom request...">
-            <button class="btn-add" id="sendCustomReqBtn" style="padding: 10px 16px;">Send</button>
-        </div>
-        <hr>
-        <h4 style="font-size: 0.8rem; margin-bottom: 8px;">Recent Requests</h4>
-        <div id="serviceRequestsList">
-            <div class="empty-state">No requests yet</div>
-        </div>
-    </div>
 </div>
 
+<!-- ══ CART FAB ══ -->
+<button class="cart-fab" id="cartFab">
+    <i class="fas fa-shopping-bag"></i>
+    <span id="fabLabel">View Cart</span>
+    <div class="fab-count" id="fabCount">0</div>
+</button>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
 <script>
-    // ==================== STATE ====================
-    let cart = [];  // { id, name, price, quantity }
-    let currentOrders = [];
-    let serviceRequests = [];
+// ── URL CONSTANTS ─────────────────────────────────────────────────────────────
+const ORDER_URL    = '/guest/{{ schema }}/{{ token }}/order/';
+const ORDERS_URL   = '/guest/{{ schema }}/{{ token }}/orders/';
+const LAUNDRY_URL  = '/guest/{{ schema }}/{{ token }}/laundry/';
+const SERVICE_URL  = '/guest/request/{{ schema }}/{{ token }}/';   // POST — create request
+const REQUESTS_URL = '/guest/requests/{{ schema }}/{{ token }}/';  // GET  — list requests
 
-    // ==================== HELPER FUNCTIONS ====================
-    function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = 'toast-notify';
-        toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${message}`;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }, 3000);
-    }
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+let cart = [];
 
-    // Update cart UI and totals
-    function renderCart() {
-        const container = document.getElementById('cartItemsList');
-        if (!container) return;
+function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+function fmt(n) { return '₹' + parseFloat(n || 0).toFixed(2); }
 
-        if (cart.length === 0) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-cart-plus"></i> Cart is empty</div>';
-            document.getElementById('cartSubtotal').innerText = '₹0';
-            document.getElementById('cartTax').innerText = '₹0';
-            document.getElementById('cartTotalAmount').innerText = '₹0';
-            return;
-        }
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation';
+    t.innerHTML = '<i class="fas ' + icon + '"></i> ' + msg;
+    t.className = 'toast ' + type + ' show';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
 
-        let subtotal = 0;
-        let html = '';
-        cart.forEach((item, idx) => {
-            const itemTotal = item.price * item.quantity;
-            subtotal += itemTotal;
-            html += `
-                <div class="cart-item">
-                    <div class="cart-item-name">${escapeHtml(item.name)}</div>
-                    <div class="cart-controls">
-                        <button class="btn-add btn-outline" style="padding: 4px 10px;" onclick="updateQuantity(${item.id}, -1)">-</button>
-                        <span style="min-width: 30px; text-align: center;">${item.quantity}</span>
-                        <button class="btn-add btn-outline" style="padding: 4px 10px;" onclick="updateQuantity(${item.id}, 1)">+</button>
-                        <button class="btn-add btn-danger" style="padding: 4px 10px;" onclick="removeFromCart(${item.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <div class="cart-price">₹${itemTotal}</div>
-                </div>
-            `;
-        });
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+    document.querySelectorAll('.nav-tab').forEach(el =>
+        el.classList.toggle('active', el.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(el =>
+        el.classList.toggle('active', el.id === 'tab-' + name));
+    if (name === 'orders')  refreshOrders();
+    if (name === 'service') refreshServiceList();
+}
+document.querySelectorAll('.nav-tab').forEach(tab =>
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
 
-        const tax = subtotal * 0.18;
-        const total = subtotal + tax;
+// ── CART ──────────────────────────────────────────────────────────────────────
+function findItem(id) { return cart.find(i => i.id === id); }
 
-        container.innerHTML = html;
-        document.getElementById('cartSubtotal').innerText = `₹${subtotal.toFixed(2)}`;
-        document.getElementById('cartTax').innerText = `₹${tax.toFixed(2)}`;
-        document.getElementById('cartTotalAmount').innerText = `₹${total.toFixed(2)}`;
-        
-        // Update bill preview
-        updateBillPreview();
-    }
+function addToCart(id, name, price, taxPct) {
+    const ex = findItem(id);
+    if (ex) ex.qty++; else cart.push({ id, name, price, taxPct, qty: 1 });
+    renderCart(); syncMenuBtns(); updateFab();
+    showToast(name + ' added to cart');
+}
 
-    function updateQuantity(id, delta) {
-        const index = cart.findIndex(i => i.id === id);
-        if (index !== -1) {
-            cart[index].quantity += delta;
-            if (cart[index].quantity <= 0) {
-                cart.splice(index, 1);
-            }
-            renderCart();
-        }
-    }
+function changeQty(id, delta) {
+    const item = findItem(id);
+    if (!item) return;
+    item.qty += delta;
+    if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+    renderCart(); syncMenuBtns(); updateFab();
+}
 
-    function removeFromCart(id) {
-        cart = cart.filter(i => i.id !== id);
-        renderCart();
-    }
+function totals() {
+    let sub = 0, tax = 0;
+    cart.forEach(i => { const s = i.price * i.qty; sub += s; tax += s * (i.taxPct || 5) / 100; });
+    return { sub, tax, total: sub + tax };
+}
 
-    function addToCart(itemId, itemName, itemPrice) {
-        const existing = cart.find(i => i.id === itemId);
-        if (existing) {
-            existing.quantity += 1;
-        } else {
-            cart.push({ id: itemId, name: itemName, price: itemPrice, quantity: 1 });
-        }
-        renderCart();
-        showToast(`Added ${itemName} to cart`, 'success');
-    }
-
-    // Escape HTML to prevent injection
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    // ==================== ORDERS API ====================
-    async function loadOrders() {
-        try {
-            const response = await fetch('/orders/active/');
-            const data = await response.json();
-            currentOrders = data.orders || [];
-            renderOrders();
-        } catch (error) {
-            console.error('Error loading orders:', error);
-            document.getElementById('ordersList').innerHTML = '<div class="empty-state">Unable to load orders</div>';
-        }
-    }
-
-    function renderOrders() {
-        const container = document.getElementById('ordersList');
-        if (!container) return;
-
-        if (!currentOrders.length) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-mug-hot"></i> No orders yet</div>';
-            return;
-        }
-
-        let html = '';
-        currentOrders.forEach(order => {
-            const statusClass = `status-${order.status}`;
-            html += `
-                <div class="order-item">
-                    <div class="order-header">
-                        <strong>#${order.order_number}</strong>
-                        <span class="status-badge ${statusClass}">${order.status || 'Pending'}</span>
-                    </div>
-                    <div class="order-header" style="margin-top: 4px;">
-                        <span><i class="fas fa-rupee-sign"></i> ${order.total || order.total_amount || '0'}</span>
-                        <span style="font-size: 0.7rem;">${order.created_at ? new Date(order.created_at).toLocaleTimeString() : ''}</span>
-                    </div>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }
-
-    async function placeOrder() {
-        if (cart.length === 0) {
-            showToast('Cart is empty! Add items first.', 'error');
-            return;
-        }
-
-        const items = cart.map(i => ({ id: i.id, qty: i.quantity, name: i.name, price: i.price }));
-
-        const btn = document.getElementById('placeOrderBtn');
+function renderCart() {
+    const list = document.getElementById('cartList');
+    const btn  = document.getElementById('placeOrderBtn');
+    const t    = totals();
+    if (!cart.length) {
+        list.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon"><i class="fas fa-bag-shopping"></i></div><p>Your cart is empty.<br>Browse the menu and add items.</p></div>';
+        document.getElementById('cartSubtotal').textContent = '₹0.00';
+        document.getElementById('cartTax').textContent      = '₹0.00';
+        document.getElementById('cartTotal').textContent    = '₹0.00';
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Placing Order...';
+        return;
+    }
+    list.innerHTML = cart.map(item =>
+        '<div class="cart-row">' +
+        '<div class="cart-name">' + esc(item.name) + '</div>' +
+        '<div class="qty-stepper">' +
+        '<button class="qty-btn" onclick="changeQty(' + item.id + ',-1)">−</button>' +
+        '<span class="qty-num">' + item.qty + '</span>' +
+        '<button class="qty-btn plus" onclick="changeQty(' + item.id + ',1)">+</button>' +
+        '</div>' +
+        '<div class="cart-subtotal">' + fmt(item.price * item.qty) + '</div>' +
+        '</div>'
+    ).join('');
+    document.getElementById('cartSubtotal').textContent = fmt(t.sub);
+    document.getElementById('cartTax').textContent      = fmt(t.tax);
+    document.getElementById('cartTotal').textContent    = fmt(t.total);
+    btn.disabled = false;
+}
 
-        try {
-            const response = await fetch('/orders/create/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    order_type: 'room_service',
-                    room_id: '{{ room.id }}',
-                    charge_to_room: true,
-                    items: items
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                showToast(`Order #${data.order_number} placed successfully!`, 'success');
-                cart = [];
-                renderCart();
-                loadOrders();
-                updateBillPreview(); // refresh food total
-            } else {
-                showToast(data.error || 'Failed to place order', 'error');
-            }
-        } catch (err) {
-            showToast('Network error. Please try again.', 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Place Order (Room Service)';
+function updateFab() {
+    const qty = cart.reduce((s, i) => s + i.qty, 0);
+    document.getElementById('fabCount').textContent = qty;
+    document.getElementById('fabLabel').textContent = qty ? 'Cart · ' + fmt(totals().total) : 'View Cart';
+    document.getElementById('cartFab').classList.toggle('visible', qty > 0);
+}
+
+function syncMenuBtns() {
+    document.querySelectorAll('.menu-item[data-id]').forEach(row => {
+        const item = findItem(parseInt(row.dataset.id));
+        const btn  = row.querySelector('.add-btn');
+        if (!btn) return;
+        if (item) {
+            btn.innerHTML = '<i class="fas fa-check"></i> ' + item.qty + ' added';
+            btn.classList.add('in-cart');
+        } else {
+            btn.innerHTML = '<i class="fas fa-plus"></i> Add';
+            btn.classList.remove('in-cart');
         }
-    }
-
-    // ==================== SERVICE REQUESTS ====================
-    async function sendServiceRequest(type, message) {
-        try {
-            const response = await fetch('/guest/service/request/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: type, message: message })
-            });
-            const data = await response.json();
-            if (data.success || response.ok) {
-                showToast(`Request sent: ${message}`, 'success');
-                loadServiceRequests();
-            } else {
-                showToast('Failed to send request', 'error');
-            }
-        } catch (err) {
-            console.error(err);
-            // Demo fallback
-            serviceRequests.unshift({ type: type, message: message, status: 'pending', created_at: new Date().toLocaleString() });
-            renderServiceRequests();
-            showToast(`Request sent (demo): ${message}`, 'success');
-        }
-    }
-
-    async function loadServiceRequests() {
-        try {
-            const response = await fetch('/guest/service/list/');
-            const data = await response.json();
-            serviceRequests = data.requests || [];
-            renderServiceRequests();
-        } catch (err) {
-            // Demo mock data if backend not ready
-            if (serviceRequests.length === 0) {
-                serviceRequests = [{ type: 'system', message: 'Your requests will appear here', status: 'completed', created_at: new Date().toLocaleString() }];
-            }
-            renderServiceRequests();
-        }
-    }
-
-    function renderServiceRequests() {
-        const container = document.getElementById('serviceRequestsList');
-        if (!container) return;
-        if (!serviceRequests.length) {
-            container.innerHTML = '<div class="empty-state">No requests yet</div>';
-            return;
-        }
-        let html = '';
-        serviceRequests.slice(0, 5).forEach(req => {
-            html += `
-                <div class="request-item">
-                    <div class="flex-between">
-                        <strong><i class="fas fa-concierge-bell"></i> ${escapeHtml(req.type || 'Request')}</strong>
-                        <span class="status-badge status-pending" style="font-size: 0.6rem;">${req.status || 'pending'}</span>
-                    </div>
-                    <div style="font-size: 0.75rem; margin-top: 4px;">${escapeHtml(req.message)}</div>
-                    <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 4px;">${req.created_at || 'Just now'}</div>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-    }
-
-    // ==================== BILL PREVIEW (Food Total) ====================
-    async function updateBillPreview() {
-        // Calculate total food charges from orders
-        let foodTotal = 0;
-        if (currentOrders.length) {
-            currentOrders.forEach(order => {
-                if (order.status !== 'cancelled') {
-                    foodTotal += parseFloat(order.total || order.total_amount || 0);
-                }
-            });
-        }
-        // Also add current cart pending amount (if not yet ordered)
-        let subtotal = 0;
-        cart.forEach(item => { subtotal += item.price * item.quantity; });
-        const tax = subtotal * 0.18;
-        const pendingCartTotal = subtotal + tax;
-        
-        const totalFood = foodTotal + pendingCartTotal;
-        document.getElementById('billFood').innerHTML = `₹${totalFood.toFixed(2)}`;
-        
-        const roomRate = parseFloat("{{ booking.base_price|default:'0' }}") || 0;
-        const nights = 1; // simplified, can be calculated from dates
-        const roomTotal = roomRate * nights;
-        const serviceTotal = 0; // placeholder
-        const grandTotal = roomTotal + totalFood + serviceTotal;
-        document.getElementById('billTotalDue').innerHTML = `₹${grandTotal.toFixed(2)}`;
-    }
-
-    // ==================== EVENT LISTENERS ====================
-    function attachMenuListeners() {
-        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-            btn.removeEventListener('click', handleAddToCart);
-            btn.addEventListener('click', handleAddToCart);
-        });
-    }
-
-    function handleAddToCart(e) {
-        e.stopPropagation();
-        const menuDiv = e.target.closest('.menu-item');
-        if (menuDiv) {
-            const id = parseInt(menuDiv.dataset.id);
-            const name = menuDiv.dataset.name;
-            const price = parseFloat(menuDiv.dataset.price);
-            addToCart(id, name, price);
-        }
-    }
-
-    // Service chips
-    function attachServiceListeners() {
-        document.querySelectorAll('.service-chip').forEach(chip => {
-            chip.removeEventListener('click', handleServiceChip);
-            chip.addEventListener('click', handleServiceChip);
-        });
-    }
-
-    function handleServiceChip(e) {
-        const chip = e.currentTarget;
-        const serviceType = chip.dataset.service;
-        let message = '';
-        switch (serviceType) {
-            case 'water': message = 'Extra water bottles requested'; break;
-            case 'towel': message = 'Fresh towels requested'; break;
-            case 'cleaning': message = 'Room cleaning requested'; break;
-            case 'maintenance': message = 'Maintenance assistance requested'; break;
-            case 'pillow': message = 'Extra pillows requested'; break;
-            default: message = serviceType + ' requested';
-        }
-        sendServiceRequest(serviceType, message);
-    }
-
-    // Custom request
-    document.getElementById('sendCustomReqBtn')?.addEventListener('click', () => {
-        const msg = document.getElementById('customRequestInput').value.trim();
-        if (!msg) {
-            showToast('Please enter a request', 'error');
-            return;
-        }
-        sendServiceRequest('custom', msg);
-        document.getElementById('customRequestInput').value = '';
     });
+}
 
-    document.getElementById('placeOrderBtn')?.addEventListener('click', placeOrder);
+// ── PLACE ORDER ───────────────────────────────────────────────────────────────
+document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+    if (!cart.length) return;
+    const btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Placing order…';
+    const note = document.getElementById('orderNote').value.trim();
+    try {
+        const res  = await fetch(ORDER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                order_type: 'room_service',
+                charge_to_room: true,
+                items: cart.map(i => ({ id: i.id, qty: i.qty, note }))
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Order #' + data.order_number + ' placed!');
+            cart = [];
+            document.getElementById('orderNote').value = '';
+            renderCart(); syncMenuBtns(); updateFab();
+            await refreshOrders();
+            switchTab('orders');
+        } else {
+            showToast(data.error || 'Order failed.', 'error');
+        }
+    } catch { showToast('Network error. Please try again.', 'error'); }
+    finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Place Room Service Order';
+    }
+});
 
-    // ==================== INITIALIZATION ====================
-    function init() {
-        attachMenuListeners();
-        attachServiceListeners();
-        loadOrders();
-        loadServiceRequests();
-        renderCart();
-        setInterval(() => {
-            loadOrders();
-            updateBillPreview();
-        }, 30000); // refresh every 30 sec
+// ── REFRESH ORDERS ────────────────────────────────────────────────────────────
+async function refreshOrders() {
+    try {
+        const res    = await fetch(ORDERS_URL);
+        const data   = await res.json();
+        const orders = data.orders || [];
+        const el     = document.getElementById('ordersList');
+        if (!orders.length) {
+            el.innerHTML = '<div class="empty"><i class="fas fa-mug-hot"></i><p>No orders yet.</p></div>';
+            return;
+        }
+        el.innerHTML = orders.map(o => {
+            const items = o.items.map(i => i.qty + '× ' + esc(i.name)).join(', ');
+            const time  = new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return '<div class="order-card">' +
+                '<div class="order-header-row">' +
+                '<span class="order-num">#' + esc(o.order_number) + '</span>' +
+                '<span class="badge badge-' + o.status + '">' + esc(o.status) + '</span>' +
+                '</div>' +
+                '<div class="order-items-list">' + items + '</div>' +
+                '<div class="order-footer">' +
+                '<span class="order-total">' + fmt(o.total) + '</span>' +
+                '<span class="order-time">' + time + '</span>' +
+                '</div></div>';
+        }).join('');
+    } catch {}
+}
+
+// ── LAUNDRY ───────────────────────────────────────────────────────────────────
+const laundrySelected = {};
+document.querySelectorAll('.laundry-svc').forEach(card => {
+    card.addEventListener('click', e => {
+        if (e.target.classList.contains('laundry-qty-input') ||
+            e.target.closest('.laundry-qty-input')) return;
+        const id     = card.dataset.id;
+        const qtyRow = card.querySelector('.laundry-qty-row');
+        const active = card.classList.contains('selected');
+        card.classList.toggle('selected', !active);
+        qtyRow.style.display = active ? 'none' : 'flex';
+        if (active) delete laundrySelected[id]; else laundrySelected[id] = 1;
+    });
+    const inp = card.querySelector('.laundry-qty-input');
+    if (inp) inp.addEventListener('change', () => {
+        if (laundrySelected[card.dataset.id] !== undefined)
+            laundrySelected[card.dataset.id] = parseInt(inp.value) || 1;
+    });
+});
+
+const laundryBtn = document.getElementById('laundryOrderBtn');
+if (laundryBtn) {
+    laundryBtn.addEventListener('click', async () => {
+        const ids = Object.keys(laundrySelected);
+        if (!ids.length) { showToast('Please select at least one service.', 'error'); return; }
+        laundryBtn.disabled = true;
+        laundryBtn.innerHTML = '<span class="spinner"></span> Requesting…';
+        const items = ids.map(id => {
+            const card = document.querySelector('.laundry-svc[data-id="' + id + '"]');
+            const qty  = parseInt(card?.querySelector('.laundry-qty-input')?.value || 1);
+            return { service_id: parseInt(id), quantity: qty };
+        });
+        const note = document.getElementById('laundryNote').value.trim();
+        try {
+            const res  = await fetch(LAUNDRY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items, note })
+            });
+            const data = await res.json();
+            if (res.ok && (data.success || data.id)) {
+                showToast("Laundry pickup requested! We'll collect shortly.");
+                document.querySelectorAll('.laundry-svc.selected').forEach(c => {
+                    c.classList.remove('selected');
+                    c.querySelector('.laundry-qty-row').style.display = 'none';
+                });
+                Object.keys(laundrySelected).forEach(k => delete laundrySelected[k]);
+                document.getElementById('laundryNote').value = '';
+            } else {
+                showToast(data.error || 'Request failed. Please try again.', 'error');
+            }
+        } catch { showToast('Network error. Please try again.', 'error'); }
+        finally {
+            laundryBtn.disabled = false;
+            laundryBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Request Laundry Pickup';
+        }
+    });
+}
+
+// ── SERVICE REQUESTS ──────────────────────────────────────────────────────────
+
+/**
+ * Prepend a new request row to the list immediately (optimistic UI).
+ * requestId: DB id returned from server (or null if offline fallback).
+ * title: human-readable label (e.g. "Extra Water Bottles")
+ * desc: the raw description string
+ */
+function prependServiceRequest(title, desc, requestId) {
+    const el    = document.getElementById('serviceList');
+    const empty = el.querySelector('.empty');
+    if (empty) empty.remove();
+
+    const div = document.createElement('div');
+    div.className = 'req-item';
+    if (requestId) div.dataset.requestId = requestId;
+
+    div.innerHTML =
+        '<div style="flex:1;min-width:0;">' +
+        '<div class="req-title">' + esc(title) + '</div>' +
+        (desc ? '<div class="req-desc">' + esc(desc) + '</div>' : '') +
+        '<div class="req-time"><i class="fas fa-clock" style="font-size:0.6rem;"></i> Just now</div>' +
+        '</div>' +
+        '<span class="badge badge-Pending">Pending</span>';
+
+    el.insertBefore(div, el.firstChild);
+}
+
+/**
+ * POST a service request to the backend.
+ * type: one of water | towel | cleaning | maintenance | pillow | dnd | custom
+ * desc: description / message string
+ */
+async function sendServiceRequest(type, desc) {
+    try {
+        const res  = await fetch(SERVICE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: type, description: desc })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast('Request sent!');
+            // Use the title returned by the server for consistency with the backend labels
+            prependServiceRequest(data.title || type, desc, data.request_id);
+        } else {
+            // Surface specific error (e.g. "Please describe your request" for custom)
+            showToast(data.error || 'Could not send request.', 'error');
+            if (!data.error) {
+                // Still show in list as offline fallback
+                prependServiceRequest(type, desc, null);
+            }
+        }
+    } catch {
+        // Network offline — show optimistically
+        prependServiceRequest(type, desc, null);
+        showToast('Request sent (offline fallback)');
+    }
+}
+
+/**
+ * GET all requests for this booking from the server and re-render the list.
+ * Called automatically when the service tab is opened, and on manual refresh.
+ */
+async function refreshServiceList() {
+    const el  = document.getElementById('serviceList');
+    const btn = document.getElementById('refreshRequestsBtn');
+
+    // Skeleton loading state
+    el.innerHTML =
+        '<div class="req-skeleton"><div class="skel-line long"></div><div class="skel-line mid"></div><div class="skel-line short"></div></div>' +
+        '<div class="req-skeleton"><div class="skel-line mid"></div><div class="skel-line short"></div></div>';
+
+    if (btn) {
+        btn.querySelector('i').classList.add('fa-spin');
+        btn.disabled = true;
     }
 
-    // Expose functions globally for inline callbacks
-    window.updateQuantity = updateQuantity;
-    window.removeFromCart = removeFromCart;
-    window.addToCart = addToCart;
-    window.placeOrder = placeOrder;
-    window.sendServiceRequest = sendServiceRequest;
-    window.showToast = showToast;
+    try {
+        const res  = await fetch(REQUESTS_URL);
+        const data = await res.json();
 
-    init();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load');
+
+        const requests = data.requests || [];
+
+        if (!requests.length) {
+            el.innerHTML = '<div class="empty"><i class="fas fa-bell-slash"></i><p>No requests yet.<br>Use the buttons above to request something.</p></div>';
+            return;
+        }
+
+        el.innerHTML = requests.map(r => {
+            const statusClass = r.status.toLowerCase().replace(' ', '_');
+            const time = new Date(r.created_at).toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const assignedHTML = (r.assigned_to && r.assigned_to !== 'Not assigned')
+                ? '<div class="req-assigned"><i class="fas fa-user-check" style="font-size:0.6rem;"></i> ' + esc(r.assigned_to) + '</div>'
+                : '';
+            return '<div class="req-item" data-request-id="' + r.id + '">' +
+                '<div style="flex:1;min-width:0;">' +
+                '<div class="req-title">' + esc(r.title) + '</div>' +
+                (r.description ? '<div class="req-desc">' + esc(r.description) + '</div>' : '') +
+                assignedHTML +
+                '<div class="req-time"><i class="fas fa-clock" style="font-size:0.6rem;"></i> ' + time + '</div>' +
+                '</div>' +
+                '<span class="badge badge-' + statusClass + '">' + esc(r.status) + '</span>' +
+                '</div>';
+        }).join('');
+
+    } catch (err) {
+        el.innerHTML = '<div class="empty"><i class="fas fa-exclamation-circle"></i><p>Could not load requests.<br>Tap the refresh button to try again.</p></div>';
+    } finally {
+        if (btn) {
+            btn.querySelector('i').classList.remove('fa-spin');
+            btn.disabled = false;
+        }
+    }
+}
+
+// ── EVENT WIRING ──────────────────────────────────────────────────────────────
+
+// Menu add buttons
+document.querySelectorAll('.menu-item[data-id]').forEach(row => {
+    row.querySelector('.add-btn')?.addEventListener('click', () =>
+        addToCart(
+            parseInt(row.dataset.id),
+            row.dataset.name,
+            parseFloat(row.dataset.price),
+            parseFloat(row.dataset.tax) || 5
+        ));
+});
+
+// Quick-service buttons — send immediately on click
+document.querySelectorAll('.service-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const type = btn.dataset.service;
+        const desc = btn.dataset.msg;
+
+        // Visual feedback while sending
+        btn.classList.add('sending');
+        const origIcon = btn.querySelector('i').className;
+        btn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+        await sendServiceRequest(type, desc);
+
+        // Restore button
+        btn.querySelector('i').className = origIcon;
+        btn.classList.remove('sending');
+        btn.classList.add('sent');
+        setTimeout(() => btn.classList.remove('sent'), 2500);
+    });
+});
+
+// Custom request send
+document.getElementById('sendCustomBtn').addEventListener('click', async () => {
+    const input = document.getElementById('customReqInput');
+    const msg   = input.value.trim();
+    if (!msg) { showToast('Enter a request first.', 'error'); return; }
+
+    const sendBtn = document.getElementById('sendCustomBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner"></span>';
+
+    await sendServiceRequest('custom', msg);
+
+    input.value = '';
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+});
+
+// Cart FAB
+document.getElementById('cartFab').addEventListener('click', () => switchTab('cart'));
+
+// Expose changeQty globally for inline onclick handlers in cart HTML
+window.changeQty = changeQty;
 </script>
-
 </body>
 </html>

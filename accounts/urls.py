@@ -32,6 +32,8 @@ urlpatterns =[
      path('delete-staff/', delete_staff, name='delete_staff'),
      
       path("staff-login/", staff_login, name="staff_login"),
+      path('logout/', logout_view, name='logout'),
+        path('staff-logout/', staff_logout, name='staff_logout'),
 
     
     
