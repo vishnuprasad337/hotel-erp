@@ -25,6 +25,8 @@ class Hotel(models.Model):
 
     is_approved = models.BooleanField(default=False)
     is_subscribed = models.BooleanField(default=False)
+    is_setup_complete = models.BooleanField(default=False)
+    logo = models.ImageField(upload_to='hotel_logos/', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

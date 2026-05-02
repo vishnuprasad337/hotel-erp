@@ -265,6 +265,12 @@ def get_rooms(request):
 from django.utils import timezone  
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum, Q
+from datetime import datetime
+from hotel.models import Attendance,LeaveRequest
+
+
+
 @never_cache
 @login_required
 def frontoffice_dashboard(request):
@@ -275,7 +281,6 @@ def frontoffice_dashboard(request):
     staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
     hotel = staff.hotel
 
-   
     rooms = Room.objects.filter(is_active=True)
     room_list = []
 
@@ -315,7 +320,6 @@ def frontoffice_dashboard(request):
         for r in room_list
     ])
 
-    
     hotel_staff = Staff.objects.filter(
         hotel=hotel
     ).select_related("department").order_by("department__name", "name")
@@ -327,7 +331,6 @@ def frontoffice_dashboard(request):
 
     today = timezone.now().date()
 
-    # ── Bookings ──
     base_bookings = Booking.objects.select_related("guest", "room", "room_unit")
 
     total_bookings = base_bookings.count()
@@ -337,7 +340,6 @@ def frontoffice_dashboard(request):
     bookings = base_bookings.order_by("-created_at")
     recent_bookings = bookings[:5]
 
-    # ── Tasks ──
     recent_tasks = Task.objects.select_related(
         "staff", "room_unit", "room"
     ).order_by("-created_at")[:5]
@@ -348,18 +350,30 @@ def frontoffice_dashboard(request):
         reverse=True,
     )[:10]
 
-   
     room_units = RoomUnit.objects.select_related("room").all()
 
-   
-    present_days = 0
-    late_days = 0
-    absent_days = 0
-    overtime_hours = "0.0"
-    attendance_records = []
-    leave_requests = []
-    used_leave_days = 0
-    pending_leaves = 0
+    month = today.month
+    year = today.year
+
+    attendance_qs = Attendance.objects.filter(
+        staff=staff,
+        date__month=month,
+        date__year=year
+    )
+
+    present_days = attendance_qs.filter(status="Present").count()
+    late_days = attendance_qs.filter(status="Late").count()
+    absent_days = attendance_qs.filter(status="Absent").count()
+
+    overtime_hours = attendance_qs.aggregate(
+        total=Sum("overtime_hours")
+    )["total"] or 0
+
+    attendance_records = attendance_qs.order_by("-date")
+
+    leave_requests = LeaveRequest.objects.filter(staff=staff).order_by("-applied_at")
+    used_leave_days = leave_requests.filter(status="Approved").count()
+    pending_leaves = leave_requests.filter(status="Pending").count()
 
     return render(request, "frontoffice.html", {
         "hotel": hotel,
@@ -387,7 +401,6 @@ def frontoffice_dashboard(request):
         "used_leave_days": used_leave_days,
         "pending_leaves": pending_leaves,
     })
-
 from django.db.models import Count
 
 
@@ -919,7 +932,7 @@ def guest_portal(request, schema, token):
         if not booking:
             return JsonResponse({"error": "Invalid link"}, status=404)
 
-        # ── Menu ──
+        
         categories = MenuCategory.objects.prefetch_related("items").all()
         menu_data = []
         for cat in categories:
@@ -939,12 +952,12 @@ def guest_portal(request, schema, token):
             if items:
                 menu_data.append({"id": cat.id, "name": cat.name, "items": items})
 
-        # ── Tasks ──
+      
         tasks = Task.objects.filter(
             room_unit=booking.room_unit
         ).order_by("-created_at")
 
-        # ── Existing food orders ──
+       
         existing_orders = RestaurantOrder.objects.prefetch_related(
             "items__item"
         ).filter(booking=booking, order_type="room_service").order_by("-created_at")
@@ -1410,11 +1423,22 @@ def update_room_status(request):
         return JsonResponse({"error": str(e)}, status=500)
 def get_guest_photos(request, guest_id):
     from pms.models import GuestIDPhoto
-    photos = GuestIDPhoto.objects.filter(guest_id=guest_id).order_by('id')
-    data = []
-    for p in photos:
-        data.append({
-            "url": p.image.url,
-            "uploaded_at": p.created_at.strftime("%d %b %Y, %H:%M") if hasattr(p, 'created_at') else "ID Photo",
-        })
-    return JsonResponse({"photos": data})
+    try:
+        photos = GuestIDPhoto.objects.filter(guest_id=guest_id).order_by('id')
+        data = []
+        for p in photos:
+            
+            uploaded = "ID Photo"
+            for field in ['uploaded_at', 'created_at', 'timestamp']:
+                val = getattr(p, field, None)
+                if val:
+                    uploaded = val.strftime("%d %b %Y, %H:%M")
+                    break
+            data.append({
+                "url": request.build_absolute_uri(p.image.url),
+                "uploaded_at": uploaded,
+            })
+        return JsonResponse({"photos": data})
+    except Exception as e:
+        import traceback
+        return JsonResponse({"photos": [], "error": str(e), "trace": traceback.format_exc()})

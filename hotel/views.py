@@ -49,15 +49,15 @@ def staff_page(request):
         start_date = today
 
     departments = Department.objects.annotate(staff_count=Count("staff"))
+
     staff_members = Staff.objects.select_related("department").all()
-    
     if sel_dept_id:
         staff_members = staff_members.filter(department_id=sel_dept_id)
-    
+
     total_staff = staff_members.count()
 
     attendance_qs = Attendance.objects.filter(date=today).select_related("staff__department")
-    
+
     stats = attendance_qs.aggregate(
         present=Count("id", filter=Q(status__in=["Present", "Late", "Half Day"])),
         late=Count("id", filter=Q(status="Late")),
@@ -75,6 +75,7 @@ def staff_page(request):
 
         attendance_records.append({
             "staff_name": att.staff.name,
+            "department": att.staff.department.name if att.staff and att.staff.department else "N/A",
             "date": att.date,
             "check_in": att.check_in,
             "check_out": att.check_out,
@@ -134,7 +135,7 @@ def staff_page(request):
         "present_count": stats["present"],
         "late_count": stats["late"],
         "half_day_count": stats["half_day"],
-        "absent_count": total_staff - stats["present"],
+        "absent_count": total_staff - (stats["present"] or 0),
         "attendance_records": attendance_records,
         "monthly_summary": monthly_summary,
         "shift_assignments": shift_assignments,
@@ -224,14 +225,24 @@ def get_tasks(request):
         })
     
     return JsonResponse({"tasks": task_list, "count": tasks.count()})
+from datetime import datetime
+from django.http import JsonResponse
+
 def get_shifts(request):
     hotel_id = request.session.get("hotel_id")
-    date = request.GET.get("date") 
+    date_str = request.GET.get("date")
+
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
 
     shifts = Shift.objects.filter(hotel_id=hotel_id)
 
-    if date:
-        shifts = shifts.filter(date=date)
+    if date_str:
+        try:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            shifts = shifts.filter(date=date_obj)
+        except ValueError:
+            return JsonResponse({"error": "Invalid date format"}, status=400)
 
     shifts = shifts.select_related("staff", "department")
 
@@ -247,6 +258,10 @@ def get_shifts(request):
     return JsonResponse(data, safe=False)
 from datetime import datetime
 
+from datetime import datetime, timedelta
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 
 @require_POST
 def assign_shift(request):
@@ -255,90 +270,209 @@ def assign_shift(request):
         staff_id = request.POST.get("staff")
         department_id = request.POST.get("department")
         shift_value = request.POST.get("shift")
-        date = request.POST.get("date")
+        from_date = request.POST.get("from_date")
+        to_date = request.POST.get("to_date")
 
-       
         if not hotel_id:
             return JsonResponse({"error": "Login required"}, status=401)
 
-        if not all([staff_id, shift_value, date]):
+        if not all([staff_id, shift_value, from_date, to_date]):
             return JsonResponse({"error": "Missing required fields"}, status=400)
 
-        date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+        start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
 
-       
+        if start_date > end_date:
+            return JsonResponse({"error": "Invalid date range"}, status=400)
+
         if not department_id:
             staff = get_object_or_404(Staff, id=staff_id)
             department_id = staff.department_id
 
-        
         if not department_id:
             return JsonResponse({"error": "Department is required"}, status=400)
 
-        shift_obj, created = Shift.objects.update_or_create(
-            hotel_id=hotel_id,
-            staff_id=staff_id,
-            date=date_obj,
-            defaults={
-                "department_id": department_id,
-                "shift": shift_value
-            }
-        )
+        current_date = start_date
+        created_count = 0
+        updated_count = 0
+
+        while current_date <= end_date:
+            _, created = Shift.objects.update_or_create(
+                hotel_id=hotel_id,
+                staff_id=staff_id,
+                date=current_date,
+                defaults={
+                    "department_id": department_id,
+                    "shift": shift_value
+                }
+            )
+
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+
+            current_date += timedelta(days=1)
 
         return JsonResponse({
             "success": True,
-            "message": "Shift assigned" if created else "Shift updated"
+            "message": f"{created_count} shifts created, {updated_count} updated"
         })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
 def weekly_schedule(request):
-    staff_id = request.session.get("staff_id")   
+    staff_id = request.session.get("staff_id")
+    hotel_id = request.session.get("hotel_id")
     start_date = request.GET.get("start_date")
 
-    start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end_date = start_date + timedelta(days=6)
+    if not staff_id:
+        return JsonResponse({"error": "Login required"}, status=401)
 
+    # Ensure hotel_id exists
+    if not hotel_id:
+        try:
+            current = Staff.objects.select_related("hotel").get(id=staff_id)
+            hotel_id = current.hotel_id
+            request.session["hotel_id"] = hotel_id
+        except Staff.DoesNotExist:
+            return JsonResponse({"error": "Staff not found"}, status=404)
+
+    # Default to today if not provided
+    if not start_date:
+        start_date_obj = datetime.today().date()
+    else:
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"error": "Invalid start_date"}, status=400)
+
+    end_date = start_date_obj + timedelta(days=6)
+
+    # Fetch shifts
     shifts = Shift.objects.filter(
-        staff_id=staff_id,                       
-        date__range=[start_date, end_date]
+        hotel_id=hotel_id,
+        date__range=[start_date_obj, end_date]
     ).select_related("staff", "department")
 
-    data = {}
+    # Prepare empty week structure
+    data = {
+        (start_date_obj + timedelta(days=i)).strftime("%Y-%m-%d"): []
+        for i in range(7)
+    }
+
     for s in shifts:
         day = s.date.strftime("%Y-%m-%d")
-        if day not in data:
-            data[day] = []
         data[day].append({
-            "staff": s.staff.name,
+            "staff": s.staff.name if s.staff else "N/A",
             "shift": s.shift,
-            "department": s.department.name
+            "department": s.department.name if s.department else "N/A",
         })
 
-    return JsonResponse(data)
-def update_shift(request):
-    if request.method == "POST":
-        shift_id = request.POST.get("shift_id")
-        new_shift = request.POST.get("shift")
-        
+    return JsonResponse({
+        "schedule": data,
+        "debug": {
+            "hotel_id": hotel_id,
+            "total_shifts": shifts.count()
+        }
+    })
+from django.views.decorators.http import require_GET
+from django.contrib.auth.decorators import login_required
+
+@require_GET
+def get_weekly_schedule(request):
+    staff_id = request.session.get("staff_id")
+    start_date = request.GET.get("start_date")
+
+    if not staff_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    # Validate staff — ensure the session staff_id matches a real staff record
+    try:
+        staff = Staff.objects.select_related("hotel").get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    # Handle start date
+    if not start_date:
+        start_date_obj = datetime.today().date()
+    else:
         try:
-            shift = Shift.objects.get(id=shift_id)
-            shift.shift = new_shift
-            shift.save()
-            return JsonResponse({"success": True})
-        except Shift.DoesNotExist:
-            return JsonResponse({"error": "Shift not found"}, status=404)
-    
-    return JsonResponse({"error": "Method not allowed"}, status=405)
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"error": "Invalid start_date format. Use YYYY-MM-DD"}, status=400)
+
+    end_date = start_date_obj + timedelta(days=6)
+
+    # ✅ Strictly filter shifts assigned to the logged-in staff only
+    shifts = Shift.objects.filter(
+        staff=staff,           # use the object, not raw ID — prevents ID spoofing via GET params
+        date__range=[start_date_obj, end_date]
+    ).select_related("department").order_by("date", "shift")
+
+    # Prepare week structure
+    schedule = {
+        (start_date_obj + timedelta(days=i)).strftime("%Y-%m-%d"): []
+        for i in range(7)
+    }
+
+    for s in shifts:
+        day = s.date.strftime("%Y-%m-%d")
+        schedule[day].append({
+            "shift": s.shift,
+            "department": s.department.name if s.department else "N/A",
+        })
+
+    return JsonResponse({
+        "staff_id": staff.id,
+        "staff": staff.name,
+        "week_start": start_date_obj.strftime("%Y-%m-%d"),
+        "week_end": end_date.strftime("%Y-%m-%d"),
+        "schedule": schedule,
+        "total_shifts": shifts.count()
+    })
+def update_shift(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    hotel_id = request.session.get("hotel_id")
+    shift_id = request.POST.get("shift_id")
+    new_shift = request.POST.get("shift")
+
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    try:
+        shift = Shift.objects.get(id=shift_id, hotel_id=hotel_id)
+        shift.shift = new_shift
+        shift.save()
+        return JsonResponse({"success": True})
+    except Shift.DoesNotExist:
+        return JsonResponse({"error": "Shift not found"}, status=404)
+
+
 def staff_by_shift(request):
     hotel_id = request.session.get("hotel_id")
     shift = request.GET.get("shift")
-    date = request.GET.get("date")
+    date_str = request.GET.get("date")
+
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    if not all([shift, date_str]):
+        return JsonResponse({"error": "Missing parameters"}, status=400)
+
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
 
     staff = Shift.objects.filter(
         hotel_id=hotel_id,
         shift=shift,
-        date=date
+        date=date_obj
     ).select_related("staff")
 
     data = [{
@@ -690,56 +824,131 @@ def delete_inventory(request, item_id):
             return JsonResponse({"error": str(e)}, status=500)
     
     return JsonResponse({"error": "Method not allowed"}, status=405)
+import json
+from django.shortcuts import render, redirect
+from django.utils import timezone
+
+import json
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.db.models import Prefetch, Count
 def hr_dashboard(request):
     staff_id = request.session.get("staff_id")
-
     if not staff_id:
         return redirect("staff_login")
 
-    staff = Staff.objects.select_related("hotel").get(id=staff_id)
+    try:
+        staff = Staff.objects.select_related("hotel", "department").get(id=staff_id)
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
     hotel = staff.hotel
+    today = timezone.now().date()
 
-    employees = Staff.objects.filter(hotel=hotel).select_related("department")
+    hotel_staff_ids = Staff.objects.filter(hotel=hotel).values_list("id", flat=True)
 
-    total_staff = employees.count()
-    total_departments = Department.objects.filter(hotel=hotel).count()
+    bookings = Booking.objects.filter(
+        created_by_id__in=hotel_staff_ids
+    ).select_related("guest", "room", "room_unit").order_by("-id")
 
-    tasks = Task.objects.filter(staff__hotel=hotel)
-    shifts = Shift.objects.filter(hotel=hotel).select_related("staff", "department")
+    if not bookings.exists():
+        bookings = Booking.objects.all().select_related(
+            "guest", "room", "room_unit"
+        ).order_by("-id")
 
-    payroll_data = []
+    arrivals = bookings.filter(check_in=today, status="confirmed")
+    departures = bookings.filter(check_out=today, status="checked_in")
 
-    for emp in employees:
-        salary = getattr(emp, "salary", 0) or 0
-        bonus = getattr(emp, "bonus", 0) or 0
-        deduction = getattr(emp, "deduction", 0) or 0
+    rooms_qs = Room.objects.filter(is_active=True).prefetch_related("units")
 
-        # FIX: role field safe handling
-        role = (
-            getattr(emp, "role", None)
-            or getattr(emp, "designation", None)
-            or getattr(emp, "position", None)
-            or "N/A"
+    rooms_json = json.dumps([
+        {
+            "id": r.id,
+            "room_type": r.room_type,
+            "price": float(r.base_price or 0),
+            "max_adults": r.max_adults,
+            "max_children": r.max_children,
+            "description": r.description or "",
+            "units": [
+                {
+                    "id": u.id,
+                    "room_number": u.room_number,
+                    "number": u.room_number,
+                    "status": u.status,
+                }
+                for u in r.units.all()
+            ],
+            "images": [],
+        }
+        for r in rooms_qs
+    ])
+
+    room_units = RoomUnit.objects.select_related("room").order_by("room_number")
+
+    hk_dept = Department.objects.filter(
+        hotel=hotel, name__icontains="housekeeping"
+    ).first()
+
+    if hk_dept:
+        housekeeping_staff = Staff.objects.filter(
+            hotel=hotel, department=hk_dept
+        ).select_related("department")
+    else:
+        housekeeping_staff = Staff.objects.filter(
+            hotel=hotel
+        ).select_related("department")
+
+    hotel_staff = Staff.objects.filter(hotel=hotel).select_related("department")
+
+    departments = Department.objects.filter(hotel=hotel).prefetch_related(
+        Prefetch(
+            "staff_set",
+            queryset=Staff.objects.filter(hotel=hotel).select_related("department"),
+            to_attr="employees"
         )
+    ).annotate(staff_count=Count("staff"))
 
-        payroll_data.append({
-            "name": emp.name,
-            "role": role,
-            "salary": salary,
-            "bonus": bonus,
-            "deduction": deduction,
-            "net": salary + bonus - deduction
-        })
+    recent_tasks = (
+        Task.objects.filter(staff__hotel=hotel)
+        .select_related("staff", "room_unit", "room_unit__room")
+        .order_by("-created_at")[:30]
+    )
+
+    shifts = Shift.objects.filter(
+        hotel=hotel
+    ).select_related("staff", "department")
+
+    total_bookings = bookings.count()
+    arrivals_count = arrivals.count()
+    departures_count = departures.count()
+    occupied_rooms = bookings.filter(status="checked_in").count()
+    total_staff = hotel_staff.count()
+    total_departments = departments.count()
+
+    schema = getattr(hotel, "schema_name", "") or getattr(hotel, "slug", "") or str(hotel.id)
 
     return render(request, "hr.html", {
-        "staff": staff,
-        "hotel": hotel,
-        "employees": employees,
-        "total_staff": total_staff,
-        "total_departments": total_departments,
-        "tasks": tasks,
-        "shifts": shifts,
-        "payroll": payroll_data
+        "staff":              staff,
+        "hotel":              hotel,
+        "bookings":           bookings,
+        "arrivals":           arrivals,
+        "departures":         departures,
+        "arrivals_count":     arrivals_count,
+        "departures_count":   departures_count,
+        "total_bookings":     total_bookings,
+        "occupied_rooms":     occupied_rooms,
+        "rooms":              rooms_qs,
+        "rooms_json":         rooms_json,
+        "room_units":         room_units,
+        "housekeeping_staff": housekeeping_staff,
+        "hotel_staff":        hotel_staff,
+        "departments":        departments,
+        "recent_tasks":       recent_tasks,
+        "shifts":             shifts,
+        "total_staff":        total_staff,
+        "total_departments":  total_departments,
+        "schema":             schema,
+        "token":              "",
     })
 from datetime import time
 
@@ -779,7 +988,7 @@ def mark_attendance(request):
     if shift_name in SHIFT_TIMINGS:
         shift_start, shift_end = SHIFT_TIMINGS[shift_name]
 
-    if not attendance.check_in:
+    if attendance.check_in is None:
         attendance.check_in = now
 
         if shift_start and now.time() > shift_start:
@@ -797,7 +1006,7 @@ def mark_attendance(request):
             "status": attendance.status
         })
 
-    elif not attendance.check_out:
+    elif attendance.check_out is None:
         attendance.check_out = now
 
         working_hours = (attendance.check_out - attendance.check_in).total_seconds() / 3600
@@ -837,8 +1046,9 @@ def mark_attendance(request):
 
     return JsonResponse({
         "success": False,
-        "message": "Already checked in and out"
+        "message": "Attendance already completed"
     })
+    
 def live_attendance(request):
     hotel_id = request.session.get("hotel_id")
 
@@ -870,19 +1080,24 @@ def live_attendance(request):
         })
 
     return JsonResponse(data, safe=False)
+
 def daily_report(request):
     hotel_id = request.session.get("hotel_id")
     if not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
 
-    date = request.GET.get("date")
-    if not date:
+    date_str = request.GET.get("date")
+    if not date_str:
         return JsonResponse({"error": "Date parameter required"}, status=400)
 
-   
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+
     shift_staff_ids = Shift.objects.filter(
         hotel_id=hotel_id,
-        date=date
+        date=date_obj
     ).values_list("staff_id", flat=True)
 
     all_staff = Staff.objects.filter(
@@ -892,7 +1107,7 @@ def daily_report(request):
 
     att_map = {
         a.staff_id: a
-        for a in Attendance.objects.filter(hotel_id=hotel_id, date=date)
+        for a in Attendance.objects.filter(hotel_id=hotel_id, date=date_obj)
     }
 
     data = []
@@ -901,7 +1116,7 @@ def daily_report(request):
         data.append({
             "name": s.name,
             "department": s.department.name if s.department else "—",
-            "date": date,
+            "date": date_str,
             "check_in": a.check_in.isoformat() if a and a.check_in else None,
             "check_out": a.check_out.isoformat() if a and a.check_out else None,
             "status": a.status if a else "Absent",
@@ -939,7 +1154,7 @@ def monthly_report(request):
             "late": r["late"],
             "overtime": round(float(r["overtime"] or 0), 2)
         })
-
+    return JsonResponse(data, safe=False)
 @csrf_exempt
 def apply_leave(request):
     if request.method != "POST":
@@ -1158,3 +1373,407 @@ def accountant_dashboard(request):
     return render(request, "accountant.html")
 #----------------------FRONTDESK MODULE----------------------
 
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from accounts.models import Staff
+from hotel.models import Task
+from pms.models import Booking
+from django.db.models import Q
+
+@login_required
+def staff_tasks(request):
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return JsonResponse({"error": "Not logged in"}, status=401)
+
+    try:
+        staff = Staff.objects.get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    tasks = Task.objects.filter(staff=staff).select_related(
+        "room_unit", "room"
+    ).order_by("-created_at")
+
+    data = []
+
+    for t in tasks:
+        guest_name = "N/A"
+        booking_id = None
+
+        if t.room_unit:
+            booking = Booking.objects.filter(
+                room_unit=t.room_unit
+            ).filter(
+                Q(status="checked_in") | Q(status="confirmed")
+            ).select_related("guest").order_by("-created_at").first()
+
+            if booking and booking.guest:
+                guest_name = booking.guest.full_name
+                booking_id = booking.id
+
+        data.append({
+            "id": t.id,
+            "room_number": t.room_unit.room_number if t.room_unit else "N/A",
+            "room_type": t.room.room_type if t.room else "N/A",
+            "guest_name": guest_name,
+            "booking_id": booking_id,
+            "task": t.title,
+            "description": t.description or "",
+            "status": t.status,
+            "created_at": t.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        "success": True,
+        "tasks": data
+    })
+@login_required
+def update_task_status(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"error": "Not logged in"}, status=401)
+
+    task_id = request.POST.get("task_id")
+    new_status = request.POST.get("status")
+    note = request.POST.get("note", "")
+
+    valid_statuses = ["Pending", "In Progress", "Completed"]
+    if new_status not in valid_statuses:
+        return JsonResponse({"error": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"}, status=400)
+
+    try:
+        task = Task.objects.get(id=task_id, staff__id=staff_id)
+    except Task.DoesNotExist:
+        return JsonResponse({"error": "Task not found or not assigned to you"}, status=404)
+
+    task.status = new_status
+    
+    task.save()
+
+    return JsonResponse({
+        "success": True,
+        "task_id": task.id,
+        "new_status": task.status,
+    })
+
+
+
+
+
+
+
+FRONT_DESK_KEYWORDS  = ["front desk", "front office", "reception", "fd"]
+HOUSEKEEPING_KEYWORDS = ["housekeeping", "hk", "cleaning"]
+
+
+def _dept_type(staff):
+   
+    dept = (staff.department.name.lower() if staff.department else "")
+    role = (getattr(staff, "role", "") or "").lower()
+    combined = dept + " " + role
+
+    if any(k in combined for k in FRONT_DESK_KEYWORDS):
+        return "frontdesk"
+    if any(k in combined for k in HOUSEKEEPING_KEYWORDS):
+        return "housekeeping"
+    
+    return "general"
+
+
+def _attendance_for(staff, date_obj):
+    att = Attendance.objects.filter(staff=staff, date=date_obj).first()
+    if not att:
+        return None
+    working_hours = 0.0
+    if att.check_in and att.check_out:
+        working_hours = round(
+            (att.check_out - att.check_in).total_seconds() / 3600, 2
+        )
+    return {
+        "check_in":  att.check_in.strftime("%H:%M") if att.check_in  else None,
+        "check_out": att.check_out.strftime("%H:%M") if att.check_out else None,
+        "status":    att.status,
+        "working_hours": working_hours,
+        "overtime_hours": float(att.overtime_hours or 0),
+    }
+
+
+def _shift_for(staff, date_obj):
+    shift = Shift.objects.filter(staff=staff, date=date_obj).first()
+    return shift.shift if shift else None
+
+
+
+def _frontdesk_report(staff, date_obj):
+    
+    checkins = Booking.objects.filter(
+        actual_check_in__date=date_obj,
+        status__in=["checked_in", "checked_out"]
+    ).select_related("guest", "room", "room_unit")
+
+   
+    checkouts = Booking.objects.filter(
+        actual_check_out__date=date_obj,
+        status="checked_out"
+    ).select_related("guest", "room", "room_unit")
+
+    # New bookings created on this date
+    new_bookings = Booking.objects.filter(
+        created_at__date=date_obj
+    ).select_related("guest", "room", "room_unit")
+
+    def serialize_booking(b, event_type):
+        try:
+            total = float(b.payment.total_amount)
+            payment_status = b.payment.payment_status
+        except Exception:
+            total = 0.0
+            payment_status = "unknown"
+        return {
+            "booking_id":     b.id,
+            "booking_code":   getattr(b, "booking_code", None) or f"BK{b.id:06d}",
+            "event":          event_type,
+            "guest_name":     b.guest.full_name if b.guest else "N/A",
+            "guest_phone":    b.guest.phone     if b.guest else "",
+            "room_type":      b.room.room_type  if b.room  else "N/A",
+            "room_number":    b.room_unit.room_number if b.room_unit else "N/A",
+            "check_in":       b.check_in.isoformat()  if b.check_in  else None,
+            "check_out":      b.check_out.isoformat() if b.check_out else None,
+            "nights":         getattr(b, "nights", None),
+            "adults":         b.adults,
+            "children":       b.children,
+            "source":         b.source or "",
+            "status":         b.status,
+            "total_amount":   total,
+            "payment_status": payment_status,
+        }
+
+    activity = []
+    seen_ids = set()
+
+    for b in checkins:
+        if b.id not in seen_ids:
+            activity.append(serialize_booking(b, "check_in"))
+            seen_ids.add(b.id)
+
+    for b in checkouts:
+        if b.id not in seen_ids:
+            activity.append(serialize_booking(b, "check_out"))
+            seen_ids.add(b.id)
+
+    for b in new_bookings:
+        if b.id not in seen_ids:
+            activity.append(serialize_booking(b, "new_booking"))
+            seen_ids.add(b.id)
+
+    revenue_today = sum(
+        item["total_amount"] for item in activity if item["payment_status"] == "paid"
+    )
+
+    return {
+        "type": "frontdesk",
+        "summary": {
+            "check_ins":    checkins.count(),
+            "check_outs":   checkouts.count(),
+            "new_bookings": new_bookings.count(),
+            "total_actions": len(activity),
+            "revenue_collected": round(revenue_today, 2),
+        },
+        "activity": activity,
+    }
+
+
+def _housekeeping_report(staff, date_obj):
+    
+    tasks = Task.objects.filter(
+        staff=staff,
+        created_at__date=date_obj
+    ).select_related("room_unit", "room").order_by("created_at")
+
+    task_list = []
+    for t in tasks:
+       
+        guest_name = "N/A"
+        if t.room_unit:
+            booking = Booking.objects.filter(
+                room_unit=t.room_unit,
+                status__in=["checked_in", "checked_out"]
+            ).select_related("guest").order_by("-actual_check_in").first()
+            if booking and booking.guest:
+                guest_name = booking.guest.full_name
+
+        task_list.append({
+            "task_id":      t.id,
+            "title":        t.title,
+            "description":  t.description or "",
+            "status":       t.status,
+            "room_number":  t.room_unit.room_number if t.room_unit else "N/A",
+            "room_status":  t.room_unit.status      if t.room_unit else "N/A",
+            "room_type":    t.room.room_type         if t.room     else "N/A",
+            "guest_name":   guest_name,
+            "created_at":   t.created_at.strftime("%H:%M"),
+        })
+
+    status_counts = {
+        "Pending":     sum(1 for t in task_list if t["status"] == "Pending"),
+        "In Progress": sum(1 for t in task_list if t["status"] == "In Progress"),
+        "Completed":   sum(1 for t in task_list if t["status"] == "Completed"),
+    }
+
+    # Rooms cleaned (task completed → room became Available)
+    rooms_cleaned = [t for t in task_list if t["status"] == "Completed"]
+
+    return {
+        "type": "housekeeping",
+        "summary": {
+            "total_tasks":     len(task_list),
+            "pending":         status_counts["Pending"],
+            "in_progress":     status_counts["In Progress"],
+            "completed":       status_counts["Completed"],
+            "rooms_cleaned":   len(rooms_cleaned),
+        },
+        "activity": task_list,
+    }
+
+
+def _general_report(staff, date_obj):
+  
+    tasks = Task.objects.filter(
+        staff=staff,
+        created_at__date=date_obj
+    ).select_related("room_unit", "room")
+
+    task_list = [{
+        "task_id":     t.id,
+        "title":       t.title,
+        "description": t.description or "",
+        "status":      t.status,
+        "room_number": t.room_unit.room_number if t.room_unit else "N/A",
+        "created_at":  t.created_at.strftime("%H:%M"),
+    } for t in tasks]
+
+    return {
+        "type": "general",
+        "summary": {
+            "total_tasks": len(task_list),
+            "completed":   sum(1 for t in task_list if t["status"] == "Completed"),
+        },
+        "activity": task_list,
+    }
+
+
+
+def work_report(request):
+   
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    staff_id = request.GET.get("staff_id")
+    date_str  = request.GET.get("date", timezone.now().date().isoformat())
+
+    if not staff_id:
+        return JsonResponse({"error": "staff_id is required"}, status=400)
+
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+    try:
+        staff = Staff.objects.select_related("department", "hotel").get(
+            id=staff_id, hotel_id=hotel_id
+        )
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    dept_type  = _dept_type(staff)
+    attendance = _attendance_for(staff, date_obj)
+    shift      = _shift_for(staff, date_obj)
+
+   
+    if dept_type == "frontdesk":
+        dept_report = _frontdesk_report(staff, date_obj)
+    elif dept_type == "housekeeping":
+        dept_report = _housekeeping_report(staff, date_obj)
+    else:
+        dept_report = _general_report(staff, date_obj)
+
+    return JsonResponse({
+        "success": True,
+        "staff": {
+            "id":         staff.id,
+            "name":       staff.name,
+            "employee_id": getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department": staff.department.name if staff.department else "N/A",
+            "role":       getattr(staff, "role", "Staff") or "Staff",
+            "dept_type":  dept_type,
+        },
+        "date":       date_str,
+        "shift":      shift,
+        "attendance": attendance,
+        "report":     dept_report,
+    })
+
+
+
+def work_report_all(request):
+  
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    date_str = request.GET.get("date", timezone.now().date().isoformat())
+    try:
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+
+    dept_filter = request.GET.get("department", "")  # optional filter
+
+    staffs_qs = Staff.objects.filter(hotel_id=hotel_id).select_related("department")
+    if dept_filter:
+        staffs_qs = staffs_qs.filter(department__name__icontains=dept_filter)
+
+    results = []
+    for staff in staffs_qs:
+        dept_type  = _dept_type(staff)
+        attendance = _attendance_for(staff, date_obj)
+        shift      = _shift_for(staff, date_obj)
+
+        if dept_type == "frontdesk":
+            rep = _frontdesk_report(staff, date_obj)
+        elif dept_type == "housekeeping":
+            rep = _housekeeping_report(staff, date_obj)
+        else:
+            rep = _general_report(staff, date_obj)
+
+        results.append({
+            "staff_id":    staff.id,
+            "name":        staff.name,
+            "employee_id": getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department":  staff.department.name if staff.department else "N/A",
+            "dept_type":   dept_type,
+            "shift":       shift,
+            "attendance":  attendance,
+            "summary":     rep["summary"],
+            "dept_type_label": {
+                "frontdesk":    "Front Desk",
+                "housekeeping": "Housekeeping",
+                "hr":           "HR",
+                "restaurant":   "Restaurant",
+                "general":      "General",
+            }.get(dept_type, dept_type.title()),
+        })
+
+    return JsonResponse({
+        "success": True,
+        "date":    date_str,
+        "count":   len(results),
+        "staff":   results,
+    })

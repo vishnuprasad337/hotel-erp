@@ -90,7 +90,8 @@ AUTH_USER_MODEL = 'accounts.User'
 ROOT_URLCONF = 'erp.urls'
 PUBLIC_SCHEMA_URLCONF = 'erp.urls'
 
-
+USE_TZ = True
+TIME_ZONE = "Asia/Kolkata"
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -166,7 +167,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

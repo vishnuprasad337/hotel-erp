@@ -57,53 +57,103 @@ def admin_login(request):
 
 
 
-
 @login_required
 def superuser_dashboard(request):
     if not request.user.is_superuser:
         return redirect("admin_login")
 
-    with schema_context('public'): 
-        hotels = Hotel.objects.all().order_by("-id")
+    with schema_context('public'):
+        all_hotels = Hotel.objects.all().order_by("-id")
+        approved_hotels = all_hotels.filter(is_approved=True)
+        pending_hotels_qs = all_hotels.filter(is_approved=False)
 
-        total_hotels = hotels.count()
-        active_hotels = hotels.filter(is_approved=True).count()
-        pending_hotels = hotels.filter(is_approved=False).count()
-        pending_hotel_list = hotels.filter(is_approved=False)
+        total_hotels = all_hotels.count()
+        active_hotels = approved_hotels.count()
+        pending_hotels = pending_hotels_qs.count()
         amenities = Amenity.objects.all()
 
     return render(request, "admin/dashboard.html", {
-        "hotels": hotels,
+        "hotels": all_hotels,           
+        "approved_hotels": approved_hotels,
+        "pending_hotel_list": pending_hotels_qs,
         "total_hotels": total_hotels,
         "active_hotels": active_hotels,
         "pending_hotels": pending_hotels,
-        "pending_hotel_list": pending_hotel_list,
         "amenities": amenities,
     })
-
+from django.core.mail import send_mail
 @login_required
 def approve_hotel(request, id):
     if not request.user.is_superuser:
         return redirect("admin_login")
 
     hotel = get_object_or_404(Hotel, id=id)
+
     hotel.is_approved = True
     hotel.save()
 
+   
+    send_mail(
+        subject="Hotel Approved ✅",
+        message=f"""
+Hello {hotel.hotel_name},
+
+Your hotel registration has been APPROVED.
+
+You can now login and use the system.
+
+Regards,
+Admin Team
+""",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[hotel.email],
+        fail_silently=True
+    )
+
     return redirect("superuser_dashboard")
+from django.contrib import messages
 
 
 @login_required
 def reject_hotel(request, id):
     if not request.user.is_superuser:
         return redirect("admin_login")
-
+    
     hotel = get_object_or_404(Hotel, id=id)
-    hotel.delete()
+
+    
+    reason = request.GET.get("reason", "Not meeting requirements")
+
+    
+    send_mail(
+        subject="Hotel Rejected ❌",
+        message=f"""
+Hello {hotel.hotel_name},
+
+Your hotel registration has been REJECTED.
+
+Reason:
+{reason}
+
+You can update details and register again.
+
+Regards,
+Admin Team
+""",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[hotel.email],
+        fail_silently=True
+    )
+
+    
+    try:
+        client = Client.objects.get(schema_name=hotel.schema_name)
+        with schema_context(client.schema_name):
+            Hotel.objects.filter(id=id).delete()
+    except Client.DoesNotExist:
+        hotel.delete()
 
     return redirect("superuser_dashboard")
-
-
 def save_hotel_modules(request, hotel_id):
     if request.method == "POST":
         try:
@@ -278,10 +328,8 @@ def hotel_login(request):
                 "success": success_msg
             })
 
-        
         current_tenant = request.tenant
 
-       
         with schema_context(current_tenant.schema_name):
             user = authenticate(request, username=email, password=password)
 
@@ -297,7 +345,6 @@ def hotel_login(request):
                 "success": success_msg
             })
 
-       
         with schema_context('public'):
             try:
                 hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
@@ -307,7 +354,6 @@ def hotel_login(request):
                     "success": success_msg
                 })
 
-            
             if not hotel.is_approved:
                 return render(request, "login.html", {
                     "error": "Your hotel is pending approval by admin",
@@ -316,9 +362,14 @@ def hotel_login(request):
 
         login(request, user)
 
-       
-       
         request.session["hotel_id"] = hotel.id
+
+        
+        if not hotel.is_setup_complete:
+            return redirect("hotel_setup")
+        if request.GET.get("edit")=="true":
+             return redirect("hotel_setup")
+
 
         return redirect("dashboard")
 
@@ -746,7 +797,6 @@ def get_staff(request):
             hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
 
         with schema_context(current_tenant.schema_name):
-
             staffs = Staff.objects.filter(hotel=hotel).select_related('department', 'user')
 
             role_permissions = RolePermission.objects.select_related('permission', 'role')
@@ -766,12 +816,16 @@ def get_staff(request):
                     "name": s.name,
                     "email": s.user.email if s.user else "",
                     "phone": s.phone or "",
-                    "department": {
+                    "department_id": dept.id if dept else None,
+                    "department_name": dept.name if dept else "N/A",  # flat field for JS
+                    "department": {                                     # keep nested for other uses
                         "id": dept.id if dept else None,
-                        "name": dept.name if dept else None,
+                        "name": dept.name if dept else "N/A",
                         "permissions": dept_permissions_map.get(dept.id, []) if dept else []
                     },
+                    "role": s.user.role.name if s.user and s.user.role else "Staff",
                     "salary": str(s.salary),
+                    "joining_date": s.joining_date.strftime("%Y-%m-%d") if s.joining_date else "",
                     "photo": s.photo.url if s.photo else None,
                     "is_active": s.is_active,
                 })
@@ -808,7 +862,7 @@ def delete_staff(request):
         if not staff_obj:
             return JsonResponse({"error": "Staff not found"}, status=404)
 
-        # Also delete the associated user
+       
         user = staff_obj.user
         staff_obj.delete()
         if user:
@@ -982,3 +1036,108 @@ def staff_logout(request):
     response['Expires'] = '0'
 
     return response
+@login_required
+def hotel_setup(request):
+    from pms.models import Room, RoomUnit, RoomImage
+
+    current_tenant = connection.tenant
+
+    # Only fetch hotel info in public schema
+    with schema_context('public'):
+        hotel = get_object_or_404(Hotel, schema_name=current_tenant.schema_name)
+
+        if hotel.is_setup_complete and request.GET.get("edit") != "true":
+            return redirect('dashboard')
+
+        if request.GET.get('skip') == 'true':
+            hotel.is_setup_complete = True
+            hotel.save()
+            return redirect('dashboard')
+
+    # Handle POST outside public schema context
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+
+        if form_type == 'hotel_details':
+            with schema_context('public'):
+                hotel.hotel_name = request.POST.get('hotel_name', hotel.hotel_name)
+                hotel.owner_name = request.POST.get('owner_name', hotel.owner_name)
+                hotel.address = request.POST.get('address', hotel.address)
+                hotel.city = request.POST.get('city', hotel.city)
+                hotel.description = request.POST.get('description', hotel.description)
+                hotel.property_type = request.POST.get('property_type', hotel.property_type)
+
+                if request.FILES.get('logo'):
+                    hotel.logo = request.FILES['logo']
+                if request.FILES.get('image'):
+                    hotel.image = request.FILES['image']
+
+                hotel.save()
+            return JsonResponse({'success': True})
+
+        elif form_type == 'room_details':
+           
+            try:
+                with transaction.atomic():
+                    room = Room.objects.create(
+                        room_type=request.POST.get('room_type'),
+                        base_price=request.POST.get('base_price') or 0,
+                        max_adults=request.POST.get('max_adults') or 2,
+                        max_children=request.POST.get('max_children') or 0,
+                        description=request.POST.get('description') or '',
+                        extra_adult_price=request.POST.get('extra_adult_price') or 0,
+                        extra_child_price=request.POST.get('extra_child_price') or 0,
+                    )
+
+                    amenity_ids = request.POST.getlist('amenities')
+                    if amenity_ids:
+                        room.amenities.set(amenity_ids)
+
+                    total_units = int(request.POST.get('total_units') or 1)
+
+                    prefix_map = {
+                        'Single': 'S',
+                        'Double': 'D',
+                        'Deluxe': 'DL',
+                        'Suite': 'SU'
+                    }
+
+                    prefix = prefix_map.get(room.room_type, 'R')
+
+                    existing_numbers = set(
+                        RoomUnit.objects.values_list('room_number', flat=True)
+                    )
+
+                    units = []
+                    counter = 1
+
+                    while len(units) < total_units:
+                        number = f'{prefix}{counter}'
+                        if number not in existing_numbers:
+                            units.append(RoomUnit(room=room, room_number=number))
+                        counter += 1
+
+                    RoomUnit.objects.bulk_create(units)
+
+                    images = request.FILES.getlist('images')
+                    for i, img in enumerate(images):
+                        RoomImage.objects.create(
+                            room=room,
+                            image=img,
+                            is_primary=(i == 0)
+                        )
+
+                return JsonResponse({'success': True, 'room_id': room.id})
+
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+        elif form_type == 'finish':
+            with schema_context('public'):
+                hotel.is_setup_complete = True
+                hotel.save()
+            return JsonResponse({'success': True})
+
+        return JsonResponse({'success': False, 'error': 'Invalid form type'}, status=400)
+
+    return render(request, 'setup.html', {'hotel': hotel})

@@ -271,59 +271,418 @@ def add_payment(request):
     })
 
 
+from io import BytesIO
+from django.conf import settings
+from django.core.mail import EmailMessage
+from django.db import connection
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Image,
+    Table, TableStyle, HRFlowable, KeepTogether, Flowable
+)
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# ── Fonts ─────────────────────────────────────────────────────────────────────
+_FONTS_REGISTERED = False
+
+def _register_fonts():
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
+    try:
+        pdfmetrics.registerFont(TTFont("Poppins-Bold",
+            "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf"))
+        pdfmetrics.registerFont(TTFont("Poppins",
+            "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf"))
+        pdfmetrics.registerFont(TTFont("Poppins-Italic",
+            "/usr/share/fonts/truetype/google-fonts/Poppins-Italic.ttf"))
+        pdfmetrics.registerFont(TTFont("DejaVu",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+        pdfmetrics.registerFont(TTFont("DejaVu-Bold",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+        _FONTS_REGISTERED = True
+    except Exception:
+        pass
+
+# ── Palette ───────────────────────────────────────────────────────────────────
+NAVY      = colors.HexColor("#0D1B2A")
+GOLD      = colors.HexColor("#B8952A")
+GOLD_LT   = colors.HexColor("#FDF6E3")
+CREAM     = colors.HexColor("#FAFAF7")
+GREY      = colors.HexColor("#E0E0DA")
+DARK      = colors.HexColor("#1A1A1A")
+MUTED     = colors.HexColor("#888888")
+WHITE     = colors.white
+
+W, H  = A4
+MX    = 20 * mm
+MY    = 16 * mm
+CW    = W - 2 * MX   # ~170mm
+
+
+def _styles(p=True):
+    B  = "Poppins-Bold"   if p else "Helvetica-Bold"
+    R  = "Poppins"        if p else "Helvetica"
+    I  = "Poppins-Italic" if p else "Helvetica-Oblique"
+    DV = "DejaVu"         if p else "Helvetica"
+    DB = "DejaVu-Bold"    if p else "Helvetica-Bold"
+
+    def S(n, **k): return ParagraphStyle(n, **k)
+    return {
+        "hotel_name":   S("hn",  fontName=B,  fontSize=22, leading=26, textColor=NAVY),
+        "tagline":      S("tl",  fontName=I,  fontSize=9,  leading=12, textColor=GOLD, spaceBefore=2),
+        "contact":      S("co",  fontName=R,  fontSize=8,  leading=12, textColor=MUTED),
+        "badge":        S("ba",  fontName=B,  fontSize=11, leading=14, textColor=WHITE, alignment=TA_CENTER),
+        "sec_head":     S("sh",  fontName=B,  fontSize=7.5,leading=10, textColor=GOLD),
+        "lbl":          S("lb",  fontName=R,  fontSize=8.5,leading=12, textColor=MUTED),
+        "val":          S("vl",  fontName=B,  fontSize=8.5,leading=13, textColor=DARK),
+        "col_head":     S("ch",  fontName=B,  fontSize=8.5,leading=12, textColor=WHITE),
+        "cell":         S("ce",  fontName=R,  fontSize=8.5,leading=12, textColor=DARK),
+        "cell_r":       S("cr",  fontName=DV, fontSize=8.5,leading=12, textColor=DARK,  alignment=TA_RIGHT),
+        "total_lbl":    S("tl2", fontName=R,  fontSize=9,  leading=13, textColor=DARK,  alignment=TA_RIGHT),
+        "total_val":    S("tv",  fontName=DV, fontSize=9,  leading=13, textColor=DARK,  alignment=TA_RIGHT),
+        "grand_lbl":    S("gl",  fontName=B,  fontSize=11, leading=14, textColor=NAVY,  alignment=TA_RIGHT),
+        "grand_val":    S("gv",  fontName=DB, fontSize=11, leading=14, textColor=NAVY,  alignment=TA_RIGHT),
+        "status":       S("st",  fontName=B,  fontSize=9,  leading=12, textColor=WHITE, alignment=TA_CENTER),
+        "footer":       S("ft",  fontName=I,  fontSize=7.5,leading=11, textColor=MUTED, alignment=TA_CENTER),
+        "meta_lbl":     S("ml",  fontName=R,  fontSize=8.5,leading=12, textColor=MUTED, alignment=TA_RIGHT),
+        "meta_val":     S("mv",  fontName=B,  fontSize=8.5,leading=13, textColor=DARK,  alignment=TA_RIGHT),
+    }
+
+
+def _kv(label, value, s):
+    return [Paragraph(label, s["lbl"]), Paragraph(str(value), s["val"])]
+
+
+def _info_box(title, rows, s):
+    t = Table([[Paragraph(title, s["sec_head"]), ""]] + rows,
+              colWidths=[28*mm, 52*mm])
+    t.setStyle(TableStyle([
+        ("SPAN",          (0,0),(1,0)),
+        ("BACKGROUND",    (0,0),(1,0),  GOLD_LT),
+        ("LINEBELOW",     (0,0),(1,0),  1, GOLD),
+        ("TOPPADDING",    (0,0),(-1,-1), 4),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 4),
+        ("LEFTPADDING",   (0,0),(-1,-1), 6),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 6),
+        ("GRID",          (0,1),(-1,-1), 0.3, GREY),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1), [WHITE, CREAM]),
+    ]))
+    return t
+
+
+class _LogoPlaceholder(Flowable):
+    """Shown only when hotel has no logo uploaded."""
+    def __init__(self, w, h):
+        self.width, self.height = w, h
+    def draw(self):
+        c = self.canv
+        c.setFillColor(NAVY)
+        c.roundRect(0, 0, self.width, self.height, 4, fill=1, stroke=0)
+        c.setFillColor(GOLD)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawCentredString(self.width/2, self.height/2 - 4, "NO LOGO")
+
+
+def _get_hotel():
+    """
+    Fetch the Hotel object from the public schema using the current tenant.
+    This is needed because Hotel lives in public schema, not the tenant schema.
+    """
+    try:
+        from django_tenants.utils import schema_context
+        from accounts.models import Hotel   # adjust import to your actual model path
+
+        tenant_schema = connection.tenant.schema_name
+        with schema_context('public'):
+            return Hotel.objects.filter(schema_name=tenant_schema).first()
+    except Exception:
+        return None
+
+
 def _send_invoice_email_helper(invoice):
-    """Internal helper — call this from other views, NOT via URL."""
-    folio = invoice.folio
+    folio   = invoice.folio
     booking = folio.booking
-    guest = booking.guest
+    guest   = booking.guest
 
     if not guest or not guest.email:
         return False, "No guest email on file"
 
-    charges_lines = "\n".join(
-        f"  {c.description:<35} ₹{float(c.total):>10.2f}"
-        for c in folio.charges.all()
-    )
+    _register_fonts()
+    s = _styles(_FONTS_REGISTERED)
 
-    message = f"""Dear {guest.full_name or 'Guest'},
+    # ── Fetch hotel from public schema ────────────────────────────────────────
+    hotel = _get_hotel()
 
-Thank you for staying with us. Please find your invoice details below.
+    hotel_name    = (getattr(hotel, "hotel_name", None) or
+                     getattr(hotel, "name", None) or "Hotel")
+    hotel_addr    = getattr(hotel, "address",  "") or ""
+    hotel_city    = getattr(hotel, "city",     "") or ""
+    hotel_phone   = getattr(hotel, "phone",    "") or ""
+    hotel_email_s = getattr(hotel, "email",    "") or ""
+    hotel_gstin   = getattr(hotel, "gstin",    "") or ""
+    hotel_tagline = getattr(hotel, "tagline",  "") or ""
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Invoice No : {invoice.invoice_number}
-  Booking ID : {booking.id}
-  Room       : {booking.room_unit.room_number if booking.room_unit else 'N/A'}
-  Check-in   : {booking.check_in}
-  Check-out  : {booking.check_out}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ── Logo ──────────────────────────────────────────────────────────────────
+    LOGO_W, LOGO_H = 40*mm, 40*mm
+    logo_cell = _LogoPlaceholder(LOGO_W, LOGO_H)
+    if hotel and hotel.logo:
+        try:
+            logo_cell = Image(
+                hotel.logo.path,
+                width=LOGO_W, height=LOGO_H,
+                kind="proportional",
+            )
+        except Exception:
+            pass
 
-CHARGES:
-{charges_lines}
+    # ── PDF ───────────────────────────────────────────────────────────────────
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+        leftMargin=MX, rightMargin=MX,
+        topMargin=MY,  bottomMargin=MY)
+    el = []
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Subtotal   : ₹{float(invoice.subtotal):>10.2f}
-  Tax (GST)  : ₹{float(invoice.tax_total):>10.2f}
-  Discount   : ₹{float(invoice.discount):>10.2f}
-  Grand Total: ₹{float(invoice.grand_total):>10.2f}
-  Status     : {invoice.status.upper()}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 1 — LETTERHEAD
+    # Logo on the LEFT, hotel name + tagline + contacts on the RIGHT
+    # VALIGN MIDDLE so logo is vertically centred with the text block
+    # ══════════════════════════════════════════════════════════════════════════
+    name_block = [
+        Paragraph(hotel_name.upper(), s["hotel_name"]),
+    ]
+    if hotel_tagline:
+        name_block.append(Paragraph(hotel_tagline, s["tagline"]))
+    name_block.append(Spacer(1, 3*mm))
 
-We hope you enjoyed your stay and look forward to welcoming you again!
+    loc = "  ·  ".join(x for x in [hotel_addr, hotel_city] if x)
+    if loc:
+        name_block.append(Paragraph(loc, s["contact"]))
 
-Warm regards,
-Hotel Team
-"""
+    phone_email = "  ·  ".join(x for x in [hotel_phone, hotel_email_s] if x)
+    if phone_email:
+        name_block.append(Paragraph(phone_email, s["contact"]))
 
-    send_mail(
-        subject=f"Invoice {invoice.invoice_number} — Thank you for your stay!",
-        message=message,
+    if hotel_gstin:
+        name_block.append(Paragraph(f"GSTIN: {hotel_gstin}", s["contact"]))
+
+    lh = Table([[logo_cell, name_block]],
+               colWidths=[48*mm, CW - 48*mm])
+    lh.setStyle(TableStyle([
+        ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",  (0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(-1,-1), 0),
+        ("TOPPADDING",   (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(0,0),   10),
+    ]))
+    el.append(lh)
+    el.append(Spacer(1, 5*mm))
+    el.append(HRFlowable(width="100%", thickness=2.5, color=GOLD,
+                         spaceAfter=1.5, spaceBefore=0))
+    el.append(HRFlowable(width="100%", thickness=0.6, color=NAVY,
+                         spaceAfter=7,  spaceBefore=0))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 2 — TAX INVOICE badge + invoice meta
+    # ══════════════════════════════════════════════════════════════════════════
+    inv_date = str(getattr(invoice, "created_at", None) or
+                   getattr(invoice, "date", "") or "")
+    due_date = str(getattr(invoice, "due_date", None) or "On Arrival")
+
+    badge = Table([[Paragraph("TAX INVOICE", s["badge"])]],
+                  colWidths=[44*mm], rowHeights=[11*mm])
+    badge.setStyle(TableStyle([
+        ("BACKGROUND",   (0,0),(-1,-1), NAVY),
+        ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
+        ("TOPPADDING",   (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+        ("LEFTPADDING",  (0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(-1,-1), 0),
+    ]))
+
+    meta = Table([
+        [Paragraph("Invoice No.",  s["meta_lbl"]), Paragraph(invoice.invoice_number, s["meta_val"])],
+        [Paragraph("Date",         s["meta_lbl"]), Paragraph(inv_date,               s["meta_val"])],
+        [Paragraph("Due",          s["meta_lbl"]), Paragraph(due_date,               s["meta_val"])],
+    ], colWidths=[28*mm, 50*mm])
+    meta.setStyle(TableStyle([
+        ("TOPPADDING",   (0,0),(-1,-1), 3),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 3),
+        ("LEFTPADDING",  (0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(-1,-1), 0),
+        ("ALIGN",        (0,0),(-1,-1), "RIGHT"),
+    ]))
+
+    banner = Table([[badge, "", meta]],
+                   colWidths=[44*mm, CW-122*mm, 78*mm])
+    banner.setStyle(TableStyle([
+        ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
+        ("LEFTPADDING",  (0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(-1,-1), 0),
+        ("TOPPADDING",   (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+    ]))
+    el.append(banner)
+    el.append(Spacer(1, 6*mm))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 3 — BILLED TO | STAY DETAILS
+    # ══════════════════════════════════════════════════════════════════════════
+    room_no = booking.room_unit.room_number if booking.room_unit else "N/A"
+    try:
+        nights = str((booking.check_out - booking.check_in).days)
+    except Exception:
+        nights = "—"
+
+    guest_box = _info_box("BILLED TO", [
+        _kv("Guest Name", guest.full_name or "Guest", s),
+        _kv("Booking ID", str(booking.id),            s),
+        _kv("Email",      guest.email or "—",         s),
+        _kv("Phone",      getattr(guest, "phone", "") or "—", s),
+    ], s)
+
+    stay_box = _info_box("STAY DETAILS", [
+        _kv("Room No.",  room_no,                s),
+        _kv("Check-In",  str(booking.check_in),  s),
+        _kv("Check-Out", str(booking.check_out), s),
+        _kv("Nights",    nights,                 s),
+    ], s)
+
+    el.append(Table([[guest_box, Spacer(6*mm,1), stay_box]],
+                    colWidths=[80*mm, 6*mm, 80*mm]))
+    el.append(Spacer(1, 6*mm))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 4 — CHARGES TABLE
+    # ══════════════════════════════════════════════════════════════════════════
+    col_w = [82*mm, 18*mm, 32*mm, 32*mm]
+    rows = [[
+        Paragraph("DESCRIPTION", s["col_head"]),
+        Paragraph("QTY",         s["col_head"]),
+        Paragraph("RATE",        s["col_head"]),
+        Paragraph("AMOUNT",      s["col_head"]),
+    ]]
+    for c in folio.charges.all():
+        qty  = getattr(c, "quantity", 1) or 1
+        rate = getattr(c, "unit_price", None)
+        rate = float(rate) if rate is not None else float(c.total) / qty
+        rows.append([
+            Paragraph(c.description,              s["cell"]),
+            Paragraph(str(qty),                   s["cell_r"]),
+            Paragraph(f"Rs.{rate:,.2f}",           s["cell_r"]),
+            Paragraph(f"Rs.{float(c.total):,.2f}", s["cell_r"]),
+        ])
+
+    ct = Table(rows, colWidths=col_w, repeatRows=1)
+    ct.setStyle(TableStyle([
+        ("BACKGROUND",     (0,0),(-1,0),  NAVY),
+        ("TOPPADDING",     (0,0),(-1,0),  7),
+        ("BOTTOMPADDING",  (0,0),(-1,0),  7),
+        ("ROWBACKGROUNDS", (0,1),(-1,-1), [WHITE, CREAM]),
+        ("TOPPADDING",     (0,1),(-1,-1), 5),
+        ("BOTTOMPADDING",  (0,1),(-1,-1), 5),
+        ("ALIGN",          (0,0),(0,-1),  "LEFT"),
+        ("ALIGN",          (1,0),(-1,-1), "RIGHT"),
+        ("LINEBELOW",      (0,0),(-1,-1), 0.3, GREY),
+        ("LINEAFTER",      (0,0),(-2,-1), 0.3, GREY),
+        ("LEFTPADDING",    (0,0),(-1,-1), 6),
+        ("RIGHTPADDING",   (0,0),(-1,-1), 6),
+        ("VALIGN",         (0,0),(-1,-1), "MIDDLE"),
+    ]))
+    el.append(ct)
+    el.append(Spacer(1, 5*mm))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 5 — STATUS PILL + TOTALS
+    # ══════════════════════════════════════════════════════════════════════════
+    sub   = float(invoice.subtotal)
+    tax   = float(invoice.tax_total)
+    disc  = float(invoice.discount)
+    grand = float(invoice.grand_total)
+
+    totals = Table([
+        [Paragraph("Subtotal",    s["total_lbl"]), Paragraph(f"Rs.{sub:,.2f}",    s["total_val"])],
+        [Paragraph("Tax / GST",   s["total_lbl"]), Paragraph(f"Rs.{tax:,.2f}",    s["total_val"])],
+        [Paragraph("Discount",    s["total_lbl"]), Paragraph(f"- Rs.{disc:,.2f}", s["total_val"])],
+        [Paragraph("GRAND TOTAL", s["grand_lbl"]), Paragraph(f"Rs.{grand:,.2f}",  s["grand_val"])],
+    ], colWidths=[40*mm, 36*mm], hAlign="RIGHT")
+    totals.setStyle(TableStyle([
+        ("TOPPADDING",    (0,0),(-1,-1), 4),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 4),
+        ("LEFTPADDING",   (0,0),(-1,-1), 6),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+        ("ALIGN",         (0,0),(-1,-1), "RIGHT"),
+        ("LINEABOVE",     (0,-1),(-1,-1), 1.5, NAVY),
+        ("LINEBELOW",     (0,-1),(-1,-1), 2,   GOLD),
+        ("BACKGROUND",    (0,-1),(-1,-1), GOLD_LT),
+        ("LINEBELOW",     (0,0),(-1,-2),  0.3, GREY),
+    ]))
+
+    status_str = invoice.status.upper()
+    pill_bg    = colors.HexColor("#1B6B36") if status_str == "PAID" else colors.HexColor("#A52B2B")
+    pill_text  = "✓  PAID" if status_str == "PAID" else status_str
+
+    pill = Table([[Paragraph(pill_text, s["status"])]],
+                 colWidths=[30*mm], rowHeights=[10*mm])
+    pill.setStyle(TableStyle([
+        ("BACKGROUND",   (0,0),(-1,-1), pill_bg),
+        ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
+        ("TOPPADDING",   (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+        ("LEFTPADDING",  (0,0),(-1,-1), 0),
+        ("RIGHTPADDING", (0,0),(-1,-1), 0),
+    ]))
+
+    el.append(KeepTogether(
+        Table([[pill, "", totals]],
+              colWidths=[32*mm, CW-108*mm, 76*mm],
+              style=[
+                  ("VALIGN",       (0,0),(-1,-1), "BOTTOM"),
+                  ("LEFTPADDING",  (0,0),(-1,-1), 0),
+                  ("RIGHTPADDING", (0,0),(-1,-1), 0),
+                  ("TOPPADDING",   (0,0),(-1,-1), 0),
+                  ("BOTTOMPADDING",(0,0),(-1,-1), 0),
+              ])
+    ))
+    el.append(Spacer(1, 12*mm))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # SECTION 6 — FOOTER
+    # ══════════════════════════════════════════════════════════════════════════
+    el.append(HRFlowable(width="100%", thickness=2, color=GOLD,
+                         spaceBefore=0, spaceAfter=4))
+    footer = f"Thank you for staying at <b>{hotel_name}</b>. We look forward to welcoming you again."
+    if hotel_email_s:
+        footer += f"   ·   {hotel_email_s}"
+    el.append(Paragraph(footer, s["footer"]))
+
+    doc.build(el)
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # ── Email ─────────────────────────────────────────────────────────────────
+    msg = EmailMessage(
+        subject=f"Your Invoice – {invoice.invoice_number} | {hotel_name}",
+        body=(
+            f"Dear {guest.full_name or 'Valued Guest'},\n\n"
+            f"Please find your invoice ({invoice.invoice_number}) attached.\n\n"
+            f"We appreciate your stay at {hotel_name} and hope you had a wonderful experience.\n\n"
+            "Warm regards,\n"
+            f"The {hotel_name} Team"
+        ),
         from_email=settings.EMAIL_HOST_USER,
-        recipient_list=[guest.email],
-        fail_silently=False,
+        to=[guest.email],
     )
+    msg.attach(f"Invoice_{invoice.invoice_number}.pdf", pdf, "application/pdf")
+    msg.send()
+
     return True, guest.email
-
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def generate_invoice(request):
@@ -539,6 +898,7 @@ def list_invoices(request):
                 "check_out":      inv.folio.booking.check_out.isoformat() if inv.folio.booking.check_out else "",
                 "status":         inv.status,
                 "grand_total":    float(inv.grand_total),
+                
                 "generated_at":   inv.generated_at.isoformat(),
             }
             for inv in invoices

@@ -35,7 +35,7 @@ urlpatterns =[
 path("fd/requests/", fd_view_requests, name="fd_view_requests"),
 path("fd/requests/update/", fd_update_request, name="fd_update_request"),
 path("api/update-room-status/", update_room_status),
-path('api/guests/<int:guest_id>/photos/', get_guest_photos),
+path('api/guest/<int:guest_id>/photos/', get_guest_photos, name='guest_photos'),
 ]
     
     

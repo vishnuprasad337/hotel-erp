@@ -50,5 +50,11 @@ urlpatterns =[
     path("payroll/generate/", generate_payroll),
    path("payroll/dashboard/",payroll_dashboard),
    path("payroll/payslip/<int:payroll_id>/",payslip),
-
+    path("staff/tasks/", staff_tasks, name="staff_tasks"),
+    path("update-task-status/", update_task_status, name="update_task_status"),
+     path("work-report/",     work_report,     name="work_report"),
+ 
+   
+    path("work-report/all/", work_report_all, name="work_report_all"),
+    path("get-weekly-schedule/", get_weekly_schedule, name="get_weekly_schedule")
 ]

@@ -34,6 +34,7 @@ urlpatterns =[
       path("staff-login/", staff_login, name="staff_login"),
       path('logout/', logout_view, name='logout'),
         path('staff-logout/', staff_logout, name='staff_logout'),
+        path('setup/', hotel_setup, name='hotel_setup'),
 
     
     

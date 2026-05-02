@@ -287,6 +287,7 @@ def create_order(request):
 
     try:
         staff = getattr(request.user, 'staff_profile', None)
+        user = request.user
         data = json.loads(request.body)
 
         order_type = data.get('order_type', 'dine_in')
@@ -331,15 +332,15 @@ def create_order(request):
             if not booking:
                 return JsonResponse({'error': 'No active booking for this room'}, status=400)
 
-        if order_type == 'dine_in':
-            if reservation_id:
-                from .models import TableReservation
-                reservation = TableReservation.objects.filter(id=reservation_id).first()
+        if order_type == 'dine_in' and reservation_id:
+            from .models import TableReservation
 
-                if not reservation:
-                    return JsonResponse({'error': 'Invalid reservation'}, status=400)
+            reservation = TableReservation.objects.filter(id=reservation_id).first()
 
-                table_id = reservation.table_id
+            if not reservation:
+                return JsonResponse({'error': 'Invalid reservation'}, status=400)
+
+            table_id = reservation.table_id
 
         order = RestaurantOrder.objects.create(
             order_type=order_type,
@@ -348,7 +349,7 @@ def create_order(request):
             booking=booking,
             reservation=reservation,
             charge_to_room=charge_to_room,
-            served_by=staff,
+            served_by=user,  # ✅ FIXED
         )
 
         total = Decimal('0')
@@ -392,7 +393,7 @@ def create_order(request):
                         description=f'Restaurant Order #{order.order_number}',
                         amount=total,
                         tax_amount=tax_total,
-                        added_by=staff
+                        added_by=staff if staff else None  # ✅ SAFE
                     )
 
             except Exception as e:
@@ -661,140 +662,333 @@ from django.db.models import Sum, Count
 from django.db.models.functions import ExtractHour
 
 from accounts.models import Staff
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.db.models import Sum, Count, Q
+from django.db.models.functions import ExtractHour
+from django.views.decorators.cache import never_cache
+from django.contrib.auth.decorators import login_required
+
+from accounts.models import Staff, Department
+from hotel.models import Task, Shift, Attendance, LeaveRequest, RoomUnit
+from pms.models import Booking, Room
+from .models import (
+    RestaurantOrder, Table, TableReservation,
+    MenuCategory, MenuItem
+)
+
+
+@never_cache
+@login_required
+@never_cache
+@login_required
 def restaurant_dashboard(request):
-    today = timezone.now().date()
-
     staff_id = request.session.get("staff_id")
-    staff = None
-    hotel = None
+    if not staff_id:
+        return redirect("staff_login")
 
-    if staff_id:
-        staff = Staff.objects.select_related("department", "hotel").filter(id=staff_id).first()
-        hotel = staff.hotel if staff else None
+    try:
+        staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
 
-    hotel_staff = Staff.objects.filter(hotel=hotel).select_related("department") if hotel else []
+    hotel = staff.hotel
+    today = timezone.now().date()
+    month = today.month
+    year  = today.year
 
-    all_orders = RestaurantOrder.objects.all()
+    hotel_staff = Staff.objects.filter(
+        hotel=hotel
+    ).select_related("department").order_by("department__name", "name")
+
+    departments = Department.objects.filter(hotel=hotel)
+
+    occupied_bookings = Booking.objects.filter(
+        status="checked_in",
+        room_unit__isnull=False
+    ).select_related("guest", "room_unit", "room")
+
+    occupied_rooms = occupied_bookings.count()
+
+    rooms_qs   = Room.objects.filter(is_active=True).prefetch_related("units")
+    room_units = RoomUnit.objects.select_related("room").all()
+
+    room_list = []
+    for room in rooms_qs:
+        units_qs        = room.units.all().order_by("room_number")
+        available_units = units_qs.filter(status="Available").count()
+        price = (
+            getattr(room, "base_price", None)
+            or getattr(room, "price", None)
+            or 0
+        )
+        room_list.append({
+            "id":              room.id,
+            "room_type":       getattr(room, "room_type", "Unknown"),
+            "total_rooms":     units_qs.count(),
+            "available_rooms": available_units,
+            "price":           float(price) if price else 0,
+            "description":     getattr(room, "description", "") or "",
+            "units": [
+                {"id": u.id, "number": u.room_number, "status": u.status}
+                for u in units_qs
+            ],
+        })
+
+    rooms_json = json.dumps(room_list)
+
+    recent_tasks = Task.objects.select_related(
+        "staff", "room_unit", "room"
+    ).order_by("-created_at")[:10]
+
+    my_tasks = Task.objects.filter(staff=staff).order_by("-created_at")
+
+    shifts = Shift.objects.filter(
+        hotel=hotel
+    ).select_related("staff", "department").order_by("date", "shift")
+
+    my_shift_today = Shift.objects.filter(staff=staff, date=today).first()
+
+    attendance_qs = Attendance.objects.filter(
+        staff=staff, date__month=month, date__year=year
+    )
+    present_days   = attendance_qs.filter(status="Present").count()
+    late_days      = attendance_qs.filter(status="Late").count()
+    absent_days    = attendance_qs.filter(status="Absent").count()
+    overtime_hours = attendance_qs.aggregate(
+        total=Sum("overtime_hours")
+    )["total"] or 0
+    attendance_records = attendance_qs.order_by("-date")
+
+    today_attendance = Attendance.objects.filter(
+        hotel=hotel, date=today
+    ).select_related("staff").order_by("-check_in")
+
+    leave_requests  = LeaveRequest.objects.filter(staff=staff).order_by("-applied_at")
+    used_leave_days = leave_requests.filter(status="Approved").count()
+    pending_leaves  = leave_requests.filter(status="Pending").count()
+
+    all_leave_requests = LeaveRequest.objects.filter(
+        staff__hotel=hotel
+    ).select_related("staff").order_by("-applied_at")
+
+    all_orders = RestaurantOrder.objects.select_related("table", "room", "booking__guest")
     today_orders = all_orders.filter(created_at__date=today)
+    pending_orders = all_orders.filter(
+        status__in=["pending", "preparing"]
+    ).prefetch_related("items__item").select_related("table")
 
-    revenue = today_orders.filter(
-        status='served'
-    ).aggregate(total=Sum('total_amount'))['total'] or 0
+    today_revenue = today_orders.filter(
+        status="served"
+    ).aggregate(total=Sum("total_amount"))["total"] or 0
 
-    pending_orders_qs = all_orders.filter(status__in=['pending', 'preparing'])
+    total_revenue = all_orders.filter(
+        status="served"
+    ).aggregate(total=Sum("total_amount"))["total"] or 0
 
-    tables_qs = Table.objects.all()
+    order_status_counts = all_orders.aggregate(
+        pending   = Count("id", filter=Q(status="pending")),
+        preparing = Count("id", filter=Q(status="preparing")),
+        served    = Count("id", filter=Q(status="served")),
+        cancelled = Count("id", filter=Q(status="cancelled")),
+    )
 
-    reservations_qs = TableReservation.objects.filter(
-        reservation_time__date=today
-    ).select_related('table').order_by('reservation_time')
+    recent_orders = all_orders.order_by("-created_at")[:20]
 
-    stats = {
-        "today_revenue": float(revenue),
-        "total_orders": all_orders.count(),
-        "pending_orders": pending_orders_qs.count(),
-        "completed_orders": all_orders.filter(status='served').count(),
-        "tables_total": tables_qs.count(),
-        "tables_occupied": tables_qs.filter(is_occupied=True).count(),
-        "reservations_today": reservations_qs.count(),
-        "staff_total": hotel_staff.count() if hotel else 0,
-    }
-
-    active_orders = [
-        {
-            "id": o.id,
-            "order_number": o.order_number,
-            "status": o.status,
-            "table": o.table.number if o.table else None,
-            "total": float(o.total_amount),
-            "created_at": o.created_at.strftime("%H:%M"),
-        }
-        for o in pending_orders_qs.select_related('table')
-    ]
+    tables_qs        = Table.objects.all()
+    tables_occupied  = tables_qs.filter(is_occupied=True).count()
+    tables_available = tables_qs.count() - tables_occupied
 
     tables = [
         {
-            "id": t.id,
-            "number": t.number,
-            "capacity": t.capacity,
-            "is_occupied": t.is_occupied
+            "id":          t.id,
+            "number":      t.number,
+            "capacity":    t.capacity,
+            "is_occupied": t.is_occupied,
         }
         for t in tables_qs
     ]
 
+    reservations_today = TableReservation.objects.filter(
+        reservation_time__date=today
+    ).select_related("table").order_by("reservation_time")
+
+    all_reservations = TableReservation.objects.select_related(
+        "table"
+    ).order_by("-created_at")[:50]
+
     reservations = [
         {
-            "id": r.id,
-            "guest_name": r.guest_name,
-            "table": r.table.number if r.table else None,
-            "time": r.reservation_time.strftime("%H:%M"),
-            "status": r.status
+            "id":               r.id,
+            "guest_name":       r.guest_name,
+            "phone":            r.phone,
+            "table":            r.table.number if r.table else None,
+            "table_id":         r.table.id     if r.table else None,
+            "guests_count":     r.guests_count,
+            "status":           r.status,
+            "reservation_time": r.reservation_time.strftime("%Y-%m-%d %H:%M"),
+            "created_at":       r.created_at.strftime("%Y-%m-%d %H:%M"),
         }
-        for r in reservations_qs
+        for r in all_reservations
     ]
 
-    recent_orders = list(all_orders.order_by("-created_at")[:5])
-    recent_reservations = list(reservations_qs[:5])
+    menu_categories      = MenuCategory.objects.prefetch_related("items").all()
+    total_menu_items     = MenuItem.objects.count()
+    available_menu_items = MenuItem.objects.filter(is_available=True).count()
 
-    recent_activity = sorted(
-        list(recent_orders) + list(recent_reservations),
+    hourly_orders = (
+        today_orders
+        .annotate(hour=ExtractHour("created_at"))
+        .values("hour")
+        .annotate(count=Count("id"), revenue=Sum("total_amount"))
+        .order_by("hour")
+    )
+    hours_map     = {c["hour"]: {"count": c["count"], "revenue": float(c["revenue"] or 0)} for c in hourly_orders}
+    chart_labels  = [f"{h}:00" for h in range(24)]
+    chart_counts  = [hours_map.get(h, {}).get("count",   0) for h in range(24)]
+    chart_revenue = [hours_map.get(h, {}).get("revenue", 0) for h in range(24)]
+
+    recent_orders_list       = list(all_orders.order_by("-created_at")[:5])
+    recent_reservations_list = list(reservations_today[:5])
+    recent_tasks_list        = list(recent_tasks[:5])
+
+    combined_activity = sorted(
+        recent_orders_list + recent_reservations_list + recent_tasks_list,
         key=lambda x: x.created_at if hasattr(x, "created_at") else x.reservation_time,
         reverse=True,
-    )[:10]
+    )[:15]
 
     recent_activity_data = []
-    for item in recent_activity:
+    for item in combined_activity:
         if isinstance(item, RestaurantOrder):
             recent_activity_data.append({
-                "type": "order",
-                "id": item.id,
-                "label": f"Order #{item.order_number}",
+                "type":   "order",
+                "id":     item.id,
+                "label":  f"Order #{item.order_number}",
                 "status": item.status,
-                "time": item.created_at.strftime("%H:%M"),
+                "amount": float(item.total_amount),
+                "time":   item.created_at.strftime("%H:%M"),
             })
-        else:
+        elif isinstance(item, TableReservation):
             recent_activity_data.append({
-                "type": "reservation",
-                "id": item.id,
-                "label": f"Reservation - {item.guest_name}",
+                "type":   "reservation",
+                "id":     item.id,
+                "label":  f"Reservation — {item.guest_name}",
                 "status": item.status,
-                "time": item.reservation_time.strftime("%H:%M"),
+                "amount": 0,
+                "time":   item.reservation_time.strftime("%H:%M"),
+            })
+        elif isinstance(item, Task):
+            recent_activity_data.append({
+                "type":   "task",
+                "id":     item.id,
+                "label":  item.title,
+                "status": item.status,
+                "amount": 0,
+                "time":   item.created_at.strftime("%H:%M"),
             })
 
-    chart_qs = (
-        TableReservation.objects
-        .filter(reservation_time__date=today)
-        .annotate(hour=ExtractHour('reservation_time'))
-        .values('hour')
-        .annotate(count=Count('id'))
-    )
-
-    hours_map = {c['hour']: c['count'] for c in chart_qs}
-
-    chart_labels = [f"{h}:00" for h in range(24)]
-    chart_data = [hours_map.get(h, 0) for h in range(24)]
-
-    data = {
-        "stats": stats,
-        "active_orders": active_orders,
-        "tables": tables,
-        "reservations": reservations,
-        "recent_activity": recent_activity_data,
-        "staff": [
-            {
-                "id": s.id,
-                "name": s.name,
-                "department": s.department.name if s.department else None,
-            }
-            for s in hotel_staff
-        ] if hotel else [],
-        "chart": {
-            "labels": chart_labels,
-            "data": chart_data
+    active_orders_data = [
+        {
+            "id":           o.id,
+            "order_number": o.order_number,
+            "status":       o.status,
+            "order_type":   o.order_type,
+            "table":        o.table.number if o.table else None,
+            "room":         o.room.room_type if o.room else None,
+            "guest":        o.booking.guest.full_name if o.booking and o.booking.guest else None,
+            "total":        float(o.total_amount),
+            "tax":          float(o.tax_amount),
+            "created_at":   o.created_at.strftime("%H:%M"),
+            "items": [
+                {
+                    "name":       oi.item.name,
+                    "qty":        oi.quantity,
+                    "unit_price": float(oi.unit_price),
+                    "subtotal":   float(oi.subtotal),
+                }
+                for oi in o.items.all()
+            ],
         }
+        for o in pending_orders
+    ]
+
+    stats = {
+        "today_revenue":        float(today_revenue),
+        "total_revenue":        float(total_revenue),
+        "total_orders":         all_orders.count(),
+        "pending_orders":       order_status_counts["pending"] + order_status_counts["preparing"],
+        "completed_orders":     order_status_counts["served"],
+        "cancelled_orders":     order_status_counts["cancelled"],
+        "served_today":         today_orders.filter(status="served").count(),
+        "tables_total":         tables_qs.count(),
+        "tables_occupied":      tables_occupied,
+        "tables_available":     tables_available,
+        "reservations_today":   reservations_today.count(),
+        "total_menu_items":     total_menu_items,
+        "available_menu_items": available_menu_items,
+        "occupied_rooms":       occupied_rooms,
+        "total_staff":          hotel_staff.count(),
+        "total_departments":    departments.count(),
+        "present_days":         present_days,
+        "late_days":            late_days,
+        "absent_days":          absent_days,
+        "overtime_hours":       float(overtime_hours),
+        "pending_leaves":       pending_leaves,
+        "used_leave_days":      used_leave_days,
     }
 
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse(data)
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "stats":           stats,
+            "active_orders":   active_orders_data,
+            "tables":          tables,
+            "reservations":    reservations,
+            "recent_activity": recent_activity_data,
+            "chart": {
+                "labels":  chart_labels,
+                "counts":  chart_counts,
+                "revenue": chart_revenue,
+            },
+        })
 
-    return render(request, 'pos.html', {"dashboard": data})
+    return render(request, "pos.html", {
+        "staff":               staff,
+        "hotel":               hotel,
+        "hotel_staff":         hotel_staff,
+        "departments":         departments,
+        "occupied_bookings":   occupied_bookings,
+        "occupied_rooms":      occupied_rooms,
+        "rooms":               room_list,
+        "rooms_json":          rooms_json,
+        "room_units":          room_units,
+        "recent_tasks":        recent_tasks,
+        "my_tasks":            my_tasks,
+        "shifts":              shifts,
+        "my_shift_today":      my_shift_today,
+        "attendance_records":  attendance_records,
+        "today_attendance":    today_attendance,
+        "present_days":        present_days,
+        "late_days":           late_days,
+        "absent_days":         absent_days,
+        "overtime_hours":      overtime_hours,
+        "leave_requests":      leave_requests,
+        "all_leave_requests":  all_leave_requests,
+        "used_leave_days":     used_leave_days,
+        "pending_leaves":      pending_leaves,
+        "stats":               stats,
+        "active_orders":       active_orders_data,
+        "pending_orders":      pending_orders,
+        "recent_orders":       recent_orders,
+        "tables":              tables,
+        "tables_qs":           tables_qs,
+        "reservations":        reservations,
+        "reservations_today":  reservations_today,
+        "menu_categories":     menu_categories,
+        "recent_activity":     recent_activity_data,
+        "chart_labels":        json.dumps(chart_labels),
+        "chart_counts":        json.dumps(chart_counts),
+        "chart_revenue":       json.dumps(chart_revenue),
+        "today":               today,
+    })

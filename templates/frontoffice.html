@@ -781,11 +781,11 @@
                 </div>
                 <div class="stat-card" onclick="switchPanel('checkin')">
                     <div class="stat-icon si-green"><i class="fas fa-sign-in-alt"></i></div>
-                    <div><div class="stat-num green">{{ arrivals_count }}</div><div class="stat-label">Today's Arrivals</div></div>
+                    <div><div class="stat-num green">{{ arrivals_count }}</div><div class="stat-label">Today's Check in</div></div>
                 </div>
                 <div class="stat-card" onclick="switchPanel('checkout')">
                     <div class="stat-icon si-amber"><i class="fas fa-sign-out-alt"></i></div>
-                    <div><div class="stat-num amber">{{ departures_count }}</div><div class="stat-label">Today's Departures</div></div>
+                    <div><div class="stat-num amber">{{ departures_count }}</div><div class="stat-label">Today's Check out</div></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon si-purple"><i class="fas fa-bed"></i></div>
@@ -815,7 +815,7 @@
             <div class="two-col">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i class="fas fa-sign-in-alt" style="color:var(--green)"></i> Today's Arrivals</div>
+                        <div class="card-title"><i class="fas fa-sign-in-alt" style="color:var(--green)"></i> Today's Check in</div>
                         <button class="btn btn-outline btn-sm" onclick="switchPanel('checkin')">View All</button>
                     </div>
                     {% for booking in arrivals %}
@@ -836,7 +836,7 @@
 
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><i class="fas fa-sign-out-alt" style="color:var(--amber)"></i> Today's Departures</div>
+                        <div class="card-title"><i class="fas fa-sign-out-alt" style="color:var(--amber)"></i> Today's Checkout</div>
                         <button class="btn btn-outline btn-sm" onclick="switchPanel('checkout')">View All</button>
                     </div>
                     {% for booking in departures %}
@@ -1270,8 +1270,7 @@
                     <span id="todayStatusPill" class="pill pill-gray">Not clocked in</span>
                 </div>
                 <div class="clock-wrap">
-                    <div class="clock-time" id="liveClock">--:--:--</div>
-                    <div class="clock-date" id="liveDate">Loading...</div>
+                    
                     <div class="clock-btns">
                         <button class="ck-btn in" id="btnClockIn" onclick="clockIn()"><i class="fas fa-sign-in-alt"></i> Clock In</button>
                         <button class="ck-btn out" id="btnClockOut" onclick="clockOut()" disabled><i class="fas fa-sign-out-alt"></i> Clock Out</button>
@@ -1969,12 +1968,26 @@
             </div>
             <div class="form-group">
                 <label class="form-label">ID Photo <span style="font-weight:400; color:var(--text-3);">(optional — JPG/PNG)</span></label>
-                <label for="checkinIdPhoto" class="id-photo-upload-wrap" id="idPhotoWrap">
-                    <i class="fas fa-camera" style="font-size:22px; color:var(--text-3); margin-bottom:6px; display:block;"></i>
-                    <div style="font-size:12px; font-weight:600; color:var(--text-3);" id="idPhotoLabel">Click to upload ID photo</div>
-                    <img id="idPhotoPreview" class="id-photo-preview" alt="ID preview">
-                </label>
-                <input type="file" id="checkinIdPhoto" accept="image/*" style="display:none;" onchange="previewIdPhoto(this)">
+        <label for="checkinIdPhotos"
+       class="id-photo-upload-wrap"
+       id="idPhotoWrap"
+       ondragover="event.preventDefault(); this.style.borderColor='var(--blue)';"
+       ondragleave="this.style.borderColor='';"
+       ondrop="handleIdPhotoDrop(event)">
+    <i class="fas fa-images" style="font-size:22px; color:var(--text-3); margin-bottom:6px; display:block;"></i>
+    <div style="font-size:12px; font-weight:600; color:var(--text-3);" id="idPhotoLabel">
+        Click to upload or drag & drop (multiple allowed)
+    </div>
+</label>
+<input type="file" id="checkinIdPhotos" accept="image/*" multiple
+       style="display:none;" onchange="handleIdPhotoSelect(this)">
+
+<!-- thumbnail preview grid -->
+<div id="idPhotoPreviewGrid" style="display:none; margin-top:10px;">
+    <div id="idPhotoThumbGrid"
+         style="display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px;">
+    </div>
+</div>
             </div>
         </div>
         <div class="modal-footer">
@@ -2163,9 +2176,10 @@
 <div class="toast-stack" id="toastStack"></div>
 
 
-javascript
 
 <script>
+
+
 // ═══════════════════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════════════════
@@ -2250,6 +2264,7 @@ function searchGuests() {
 
 // ═══════════════════════════════════════════════════════
 // CHECK-IN — multi-photo version
+// FIX 1: Removed ID number requirement — only photo required
 // ═══════════════════════════════════════════════════════
 let _checkinPhotoFiles = [];
 
@@ -2337,22 +2352,21 @@ function checkInGuest(id, name, roomType, roomNumber) {
     document.getElementById('checkinBookingId').value          = id;
     document.getElementById('checkinGuestDisplay').textContent = name;
     document.getElementById('checkinRoomDisplay').textContent  = roomNumber ? `${roomType} — Room ${roomNumber}` : roomType;
-    document.getElementById('checkinIdNumber').value           = '';
-    document.getElementById('checkinIdType').value             = 'Aadhaar';
+    // FIX 1: Only reset photo fields — id number field kept but not required
+    const idNumEl = document.getElementById('checkinIdNumber');
+    if (idNumEl) idNumEl.value = '';
+    const idTypeEl = document.getElementById('checkinIdType');
+    if (idTypeEl) idTypeEl.value = 'Aadhaar';
     checkinPhotoReset();
     openModal('checkinModal');
 }
 
 async function confirmCheckIn() {
     const bid    = document.getElementById('checkinBookingId').value;
-    const idNum  = document.getElementById('checkinIdNumber').value.trim();
-    const idType = document.getElementById('checkinIdType').value;
+    const idNum  = document.getElementById('checkinIdNumber') ? document.getElementById('checkinIdNumber').value.trim() : '';
+    const idType = document.getElementById('checkinIdType') ? document.getElementById('checkinIdType').value : 'Aadhaar';
 
-    if (!idNum) {
-        toast('Please enter ID number', 'error');
-        document.getElementById('checkinIdNumber').focus();
-        return;
-    }
+    // FIX 1: Only require photo — id number is optional
     if (!_checkinPhotoFiles.length) {
         toast('Please upload at least one ID photo', 'error');
         return;
@@ -2366,7 +2380,7 @@ async function confirmCheckIn() {
         fd.append('csrfmiddlewaretoken', getCsrf());
         fd.append('booking_id', bid);
         fd.append('id_type', idType);
-        fd.append('id_number', idNum);
+        if (idNum) fd.append('id_number', idNum);
         _checkinPhotoFiles.forEach(f => fd.append('id_photos', f));
 
         const res  = await fetch('/api/check-in/', { method: 'POST', body: fd });
@@ -2427,6 +2441,7 @@ function liveSearchCheckin(query) {
 
 // ═══════════════════════════════════════════════════════
 // GUEST DETAIL MODAL
+// FIX 2: Invoice button opens sidebar modal, not redirect
 // ═══════════════════════════════════════════════════════
 function openGuestDetailFromRow(row) {
     const d = row.dataset;
@@ -2474,6 +2489,7 @@ async function openGuestDetail(info) {
     const stPill  = statusPillMap[info.status] || 'pill-gray';
     const stLabel = { confirmed: 'Confirmed', checked_in: 'In-House', checked_out: 'Checked Out', cancelled: 'Cancelled' }[info.status] || info.status;
 
+    // FIX 2: Photos section — shown directly from GuestIDPhoto (uploaded at check-in)
     const photosHtml = photos.length
         ? `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px;">
                ${photos.map(p => `
@@ -2556,12 +2572,11 @@ async function openGuestDetail(info) {
                 </button>` : ''}
             ${info.status === 'checked_in' ? `
                 <button class="btn btn-sm btn-warning"
-                        onclick="closeModal('guestDetailModal'); switchPanel('checkout')">
-                    <i class="fas fa-sign-out-alt"></i> Go to Check-Out
+                        
                 </button>` : ''}
-            <button class="btn btn-sm btn-outline"
-                    onclick="closeModal('guestDetailModal'); switchPanel('billing')">
-                <i class="fas fa-receipt"></i> View Invoices
+            
+                    
+               
             </button>
         </div>
     `;
@@ -2569,6 +2584,8 @@ async function openGuestDetail(info) {
 
 // ═══════════════════════════════════════════════════════
 // ROOM CARDS
+// FIX 3: Book button passes room_type AND pre-selects room unit
+// FIX 4: Invoice button in room card opens sidebar
 // ═══════════════════════════════════════════════════════
 let _allRoomUnits = [];
 
@@ -2691,10 +2708,10 @@ function renderRoomCards() {
                 </div>`;
         }
 
-        // ── FIXED: pass room_type + always show status update btn ──
+        // FIX 3: Book button passes room_type AND unit id so modal pre-selects it
         let actions = '';
         if (st === 'available') {
-            actions = `<button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openNewBookingModal('${escapeHtml(unit.room_type)}')"><i class="fas fa-calendar-plus"></i> Book</button>`;
+            actions = `<button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openNewBookingModal('${escapeHtml(unit.room_type)}','${unit.id}')"><i class="fas fa-calendar-plus"></i> Book</button>`;
         } else if (st === 'occupied' && bk) {
             actions = `<button class="btn btn-sm btn-warning" onclick="event.stopPropagation(); startCheckout('${bk.booking_id}','${escapeHtml(bk.guest_name)}','${unit.room_type}','${num}','${unit.id}')"><i class="fas fa-sign-out-alt"></i> Check Out</button>`;
         } else if (st === 'reserved' && bk) {
@@ -2703,6 +2720,8 @@ function renderRoomCards() {
             actions = `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation(); openHKFromCard('${unit.id}','${num}','${unit.room_type}')"><i class="fas fa-broom"></i> HK Task</button>`;
         }
         actions += ` <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openRoomStatusModal('${unit.id}','${num}','${unit.status}')" title="Update Status"><i class="fas fa-exchange-alt"></i></button>`;
+        // FIX 4: Invoice button opens sidebar instead of redirecting to billing panel
+        actions += ` <button class="btn btn-sm btn-outline" onclick="event.stopPropagation(); openInvoiceSidebar();" title="View Invoices"><i class="fas fa-receipt"></i></button>`;
 
         const imgHTML = unit.images && unit.images.length
             ? `<img src="${unit.images[0]}" alt="Room ${num}" loading="lazy">`
@@ -2758,6 +2777,8 @@ function resetRoomFilters() {
 }
 
 // ─── Room Card Detail Modal ───────────────────────────
+// FIX 3: Book button in detail modal also passes unit id
+// FIX 4: Invoice button in detail modal opens sidebar
 function openRoomCardDetail(encodedData) {
     let unit;
     try { unit = JSON.parse(decodeURIComponent(encodedData)); }
@@ -2806,7 +2827,7 @@ function openRoomCardDetail(encodedData) {
                         ? `<button class="btn btn-sm btn-warning" onclick="closeModal('roomDetailModal');startCheckout('${bk.booking_id}','${escapeHtml(bk.guest_name)}','${unit.room_type}','${num}','${unit.id}')"><i class="fas fa-sign-out-alt"></i> Check Out</button>`
                         : `<button class="btn btn-sm btn-success" onclick="closeModal('roomDetailModal');checkInGuest('${bk.booking_id}','${escapeHtml(bk.guest_name)}','${unit.room_type}','${num}')"><i class="fas fa-sign-in-alt"></i> Check In</button>`
                     }
-                    <button class="btn btn-sm btn-outline" onclick="closeModal('roomDetailModal');switchPanel('billing')"><i class="fas fa-receipt"></i> View Invoices</button>
+                    <button class="btn btn-sm btn-outline" onclick="closeModal('roomDetailModal'); openInvoiceSidebar();"><i class="fas fa-receipt"></i> View Invoices</button>
                 </div>
             </div>`;
     } else if (unit.upcoming_guest) {
@@ -2837,14 +2858,14 @@ function openRoomCardDetail(encodedData) {
                 </div>
             </div>`;
     } else {
-        // ── FIXED: pass room_type ──
+        // FIX 3: Available room — pass both room_type AND unit.id
         guestSection = `
             <div style="background:var(--green-dim);border:1px solid #86efac;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;text-align:center;">
                 <i class="fas fa-check-circle" style="color:var(--green);font-size:22px;display:block;margin-bottom:6px;"></i>
                 <div style="font-weight:700;font-size:13px;color:var(--green);">Room is Available</div>
                 <div style="font-size:12px;color:#15803d;margin-top:4px;">No active or upcoming bookings</div>
                 <button class="btn btn-sm btn-success" style="margin-top:10px;"
-                        onclick="closeModal('roomDetailModal'); openNewBookingModal('${escapeHtml(unit.room_type)}')">
+                        onclick="closeModal('roomDetailModal'); openNewBookingModal('${escapeHtml(unit.room_type)}','${unit.id}')">
                     <i class="fas fa-calendar-plus"></i> Book This Room
                 </button>
             </div>`;
@@ -3857,10 +3878,11 @@ async function assignManualTask() {
 
 // ═══════════════════════════════════════════════════════
 // NEW BOOKING
+// FIX 3: Accept optional unitId param to pre-select room unit
 // ═══════════════════════════════════════════════════════
 let currentBkStep = 1;
 
-function openNewBookingModal(rt) {
+function openNewBookingModal(rt, unitId) {
     ['bookingGuestName', 'bookingPhone', 'bookingEmail', 'bookingNationality', 'bookingIdNumber', 'bookingRequests']
         .forEach(id => { const el = document.getElementById(id); if (el) { el.value = ''; el.classList.remove('is-invalid'); } });
     document.getElementById('bookingIdType').value               = '';
@@ -3880,7 +3902,19 @@ function openNewBookingModal(rt) {
         for (let i = 0; i < sel.options.length; i++) {
             if (sel.options[i].value === rt) { sel.selectedIndex = i; break; }
         }
-        setTimeout(onRoomTypeChange, 50);
+        // FIX 3: After setting room type, trigger onRoomTypeChange then pre-select unit
+        setTimeout(() => {
+            onRoomTypeChange();
+            if (unitId) {
+                // Wait for units to render then auto-select the specific unit
+                setTimeout(() => {
+                    const btn = document.querySelector(`#roomUnitGrid .ru-btn[data-unit-id="${unitId}"]`);
+                    if (btn) {
+                        selectRoomUnit(btn, unitId);
+                    }
+                }, 300);
+            }
+        }, 50);
     } else {
         document.getElementById('bookingRoomType').selectedIndex = 0;
     }
@@ -4043,16 +4077,7 @@ async function saveBooking() {
 // ═══════════════════════════════════════════════════════
 // ATTENDANCE
 // ═══════════════════════════════════════════════════════
-function updateClock() {
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    document.getElementById('liveClock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const days   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    document.getElementById('liveDate').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-}
-setInterval(updateClock, 1000);
-updateClock();
+
 
 function clockIn() {
     const fd = new FormData();
@@ -4105,25 +4130,36 @@ function loadWeeklyShifts() {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     document.getElementById('weekLabel').textContent = `${start.getDate()} ${months[start.getMonth()]} – ${end.getDate()} ${months[end.getMonth()]}`;
     document.getElementById('shiftTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
-    fetch(`/weekly-schedule/?start_date=${fmtDate(start)}`).then(r => r.json()).then(data => renderShiftTable(data, start)).catch(() => {
+    fetch(`/get-weekly-schedule/?start_date=${fmtDate(start)}`).then(r => r.json()).then(data => renderShiftTable(data, start)).catch(() => {
         document.getElementById('shiftTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)">Could not load shifts.</td></tr>';
     });
 }
 
 function renderShiftTable(data, weekStart) {
-    const days   = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    // ✅ Use data.schedule if present, otherwise fall back to data directly
+    const schedule = data.schedule || data;
+    
+    const days   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const today  = fmtDate(new Date());
     let m = 0, ev = 0, n = 0, html = '';
+
     for (let i = 0; i < 7; i++) {
         const d  = new Date(weekStart);
         d.setDate(d.getDate() + i);
         const ds = fmtDate(d);
         const dl = `${months[d.getMonth()]} ${d.getDate()}`;
-        const dayShifts = data[ds] || [];
+        const dayShifts = schedule[ds] || [];   // ← use schedule, not data
         const isToday   = ds === today;
+
         if (!dayShifts.length) {
-            html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}><td>${days[i]}</td><td style="font-family:'DM Mono',monospace; font-size:12px;">${dl}</td><td><span class="pill pill-gray">Off</span></td><td>—</td><td>—</td><td>${isToday ? '<span class="pill pill-blue">Today</span>' : '<span class="pill pill-gray">Day off</span>'}</td></tr>`;
+            html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}>
+                <td>${days[i]}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                <td><span class="pill pill-gray">Off</span></td>
+                <td>—</td><td>—</td>
+                <td>${isToday ? '<span class="pill pill-blue">Today</span>' : '<span class="pill pill-gray">Day off</span>'}</td>
+            </tr>`;
         } else {
             dayShifts.forEach(s => {
                 const times = { Morning: '09:00–17:00', Evening: '14:00–22:00', Night: '22:00–06:00' };
@@ -4132,10 +4168,18 @@ function renderShiftTable(data, weekStart) {
                 else if (s.shift === 'Night') { pill = 'pill-amber'; n++; }
                 else m++;
                 const isPast = d < new Date() && !isToday;
-                html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}><td>${days[i]}</td><td style="font-family:'DM Mono',monospace; font-size:12px;">${dl}</td><td><span class="pill ${pill}">${s.shift}</span></td><td style="font-family:'DM Mono',monospace; font-size:12px;">${times[s.shift] || '—'}</td><td>${s.department || '—'}</td><td>${isToday ? '<span class="pill pill-blue">Today</span>' : isPast ? '<span class="pill pill-green">Done</span>' : '<span class="pill pill-gray">Upcoming</span>'}</td></tr>`;
+                html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}>
+                    <td>${days[i]}</td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                    <td><span class="pill ${pill}">${s.shift}</span></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${times[s.shift] || '—'}</td>
+                    <td>${s.department || '—'}</td>
+                    <td>${isToday ? '<span class="pill pill-blue">Today</span>' : isPast ? '<span class="pill pill-green">Done</span>' : '<span class="pill pill-gray">Upcoming</span>'}</td>
+                </tr>`;
             });
         }
     }
+
     document.getElementById('shiftTableBody').innerHTML = html;
     document.getElementById('morningCount').textContent = m;
     document.getElementById('eveningCount').textContent = ev;
