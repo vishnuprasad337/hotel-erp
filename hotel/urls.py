@@ -26,6 +26,9 @@ urlpatterns =[
      path('weekly-schedule/', weekly_schedule, name='weekly_schedule'),
     path("get-shifts/", get_shifts, name="get_shifts"),
     path("staff-by-shift/", staff_by_shift, name="staff_by_shift"),
+    path("shift-templates/",      get_shift_templates, name="get_shift_templates"),
+    path("shift-templates/save/", save_shift_template, name="save_shift_template"),
+    path("delete-shift/",         delete_shift,        name="delete_shift"),
     # STAFF LOGIN
    
     # DASHBOARDS
@@ -47,14 +50,24 @@ urlpatterns =[
     path("leave/update/<int:leave_id>/", update_leave_status, name="update_leave_status"),
     path("leave/requests/", leave_requests, name="leave_requests"),
     path("leave/apply/", apply_leave, name="apply_leave"),
-    path("payroll/generate/", generate_payroll),
-   path("payroll/dashboard/",payroll_dashboard),
-   path("payroll/payslip/<int:payroll_id>/",payslip),
+   path('payroll/generate/',                     generate_payroll),
+     path('payroll/dashboard/',                    payroll_dashboard),
+     path('payroll/update/<int:payroll_id>/',      update_payroll),
+     path('payroll/mark-paid/<int:payroll_id>/',   mark_payroll_paid),
+     path('payroll/payslip/<int:payroll_id>/',     payslip),
+     path('payroll/payslip/<int:payroll_id>/pdf/', download_payslip_pdf),
+    
+
+
     path("staff/tasks/", staff_tasks, name="staff_tasks"),
     path("update-task-status/", update_task_status, name="update_task_status"),
      path("work-report/",     work_report,     name="work_report"),
  
    
     path("work-report/all/", work_report_all, name="work_report_all"),
-    path("get-weekly-schedule/", get_weekly_schedule, name="get_weekly_schedule")
+    path("get-weekly-schedule/", get_weekly_schedule, name="get_weekly_schedule"),
+    path('accountant/dashboard/', accountant_dashboard, name='accountant_dashboard'),
+    path('accountant/revenue-api/', accountant_revenue_api, name='accountant_revenue_api'),
+     path('api/accountant/collections/',                      accountant_collections_api,       name='accountant_collections_api'),
+    path('api/accountant/collections/export/',               accountant_collections_export,    name='accountant_collections_export'),
 ]

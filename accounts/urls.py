@@ -35,6 +35,22 @@ urlpatterns =[
       path('logout/', logout_view, name='logout'),
         path('staff-logout/', staff_logout, name='staff_logout'),
         path('setup/', hotel_setup, name='hotel_setup'),
+        
+   
+    path('add-amenity/',                        add_amenity,            name='add_amenity'),
+    path('delete-amenity/<int:amenity_id>/',    delete_amenity,         name='delete_amenity'),
+
+    # Plans
+    path('get-plans/',                          get_plans,              name='get_plans'),
+    path('create-plan/',                        create_plan,            name='create_plan'),
+    path('delete-plan/<int:plan_id>/',          delete_plan,            name='delete_plan'),
+    path('update-plan-modules/<int:plan_id>/',  update_plan_modules,    name='update_plan_modules'),
+
+    # Payments
+    path('get-payments/',                       get_payments,           name='get_payments'),
+    path('create-payment/',                     create_payment,         name='create_payment'),
+    path('mark-payment-paid/<int:payment_id>/', mark_payment_paid,      name='mark_payment_paid'),
+    path('cancel-payment/<int:payment_id>/',    cancel_payment,         name='cancel_payment'),
 
     
     

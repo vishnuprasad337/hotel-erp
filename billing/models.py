@@ -62,7 +62,7 @@ class FolioCharge(models.Model):
     tax_amount  = models.DecimalField(max_digits=8,  decimal_places=2, default=0)
     date        = models.DateField(default=timezone.now)
  
-    # The staff member who posted this charge
+  
     added_by = models.ForeignKey(
         "accounts.Staff",
         on_delete=models.SET_NULL,
@@ -115,7 +115,7 @@ class Invoice(models.Model):
     def __str__(self):
         return self.invoice_number
 class BillingPayment(models.Model):
- 
+
     METHOD_CHOICES = [
         ("cash",     "Cash"),
         ("card",     "Credit / Debit Card"),
@@ -125,24 +125,58 @@ class BillingPayment(models.Model):
         ("cheque",   "Cheque"),
         ("razorpay", "Razorpay"),
     ]
- 
-    folio            = models.ForeignKey(GuestFolio, on_delete=models.CASCADE, related_name="payments")
+
+    STATUS_CHOICES = [
+        ("pending",  "Pending"),
+        ("paid",     "Paid"),
+        ("refunded", "Refunded"),
+    ]
+
+    # ── payment source: one must be set, not both ──
+    folio = models.ForeignKey(
+        GuestFolio,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True, blank=True       
+    )
+    order = models.OneToOneField(
+        "restaurant.RestaurantOrder",
+        on_delete=models.CASCADE,
+        related_name="payment",
+        null=True, blank=True       
+    )
+
     amount           = models.DecimalField(max_digits=10, decimal_places=2)
-    method           = models.CharField(max_length=20, choices=METHOD_CHOICES)
+    tax_amount       = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount     = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    method           = models.CharField(max_length=20, choices=METHOD_CHOICES, null=True, blank=True)
+    payment_status   = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     reference_number = models.CharField(max_length=100, blank=True)
     note             = models.CharField(max_length=200, blank=True)
     received_at      = models.DateTimeField(default=timezone.now)
- 
+    paid_at          = models.DateTimeField(null=True, blank=True)
+
     received_by = models.ForeignKey(
         "accounts.Staff",
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name="received_payments",
     )
- 
+
     class Meta:
         ordering = ["received_at"]
         verbose_name = "Billing Payment"
- 
+
     def __str__(self):
+        if self.folio:
+            return f"{self.get_method_display()}: ₹{self.amount} (Folio #{self.folio.pk})"
+        if self.order:
+            return f"{self.get_method_display()}: ₹{self.amount} (Order #{self.order.order_number})"
         return f"{self.get_method_display()}: ₹{self.amount}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.folio and not self.order:
+            raise ValidationError("Payment must be linked to either a folio or an order.")
+        if self.folio and self.order:
+            raise ValidationError("Payment cannot be linked to both a folio and an order.")

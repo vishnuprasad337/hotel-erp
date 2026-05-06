@@ -70,17 +70,45 @@ class RolePermission(models.Model):
 
 
 class Amenity(models.Model):
-    AMENITY_TYPE = (
-        ("default", "Default"),
-        ("premium", "Premium"),
-    )
-
-    name = models.CharField(max_length=100)
+    name        = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
-    amenity_type = models.CharField(max_length=10, choices=AMENITY_TYPE, default="default")
+    is_core     = models.BooleanField(default=False)  # locked, always on for every hotel
 
     def __str__(self):
         return self.name
+
+
+class SubscriptionPlan(models.Model):
+    name    = models.CharField(max_length=50, unique=True)
+    price   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    modules = models.ManyToManyField(Amenity, blank=True, related_name='plans')
+
+    def __str__(self):
+        return self.name
+
+
+class PlanPayment(models.Model):
+    STATUS_CHOICES = (
+        ('pending',   'Pending'),
+        ('paid',      'Paid'),
+        ('overdue',   'Overdue'),
+        ('cancelled', 'Cancelled'),
+    )
+    hotel          = models.ForeignKey('Hotel', on_delete=models.CASCADE, related_name='payments')
+    plan           = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True)
+    amount         = models.DecimalField(max_digits=10, decimal_places=2)
+    status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    due_date       = models.DateField()
+    paid_date      = models.DateField(null=True, blank=True)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    notes          = models.TextField(blank=True, null=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.hotel} — {self.plan} — {self.status}"
 
 
 class HotelModule(models.Model):

@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from pms.models import Booking
 from .models import Hotel, Department, Permission, RolePermission, Amenity, HotelModule
+from .models import SubscriptionPlan,PlanPayment
 
 from django.db import transaction
 
@@ -73,7 +74,7 @@ def superuser_dashboard(request):
         amenities = Amenity.objects.all()
 
     return render(request, "admin/dashboard.html", {
-        "hotels": all_hotels,           
+        "hotels": all_hotels,
         "approved_hotels": approved_hotels,
         "pending_hotel_list": pending_hotels_qs,
         "total_hotels": total_hotels,
@@ -451,76 +452,266 @@ def save_selected_amenities(request):
 @require_POST
 def add_amenity(request):
     try:
-        data = json.loads(request.body)
+        data        = json.loads(request.body)
+        name        = data.get("name", "").strip()
+        description = data.get("description", "").strip()
 
-        name = data.get("name")
-        description = data.get("description", "")
-        amenity_type = data.get("amenity_type", "default")
-
-        
         if not name:
-            return JsonResponse({"error": "Name is required"}, status=400)
+            return JsonResponse({"error": "Module name is required."}, status=400)
 
-        if amenity_type not in ["default", "premium"]:
-            return JsonResponse({"error": "Invalid amenity_type"}, status=400)
-
-        
         amenity, created = Amenity.objects.get_or_create(
             name=name,
-            defaults={
-                "description": description,
-                "amenity_type": amenity_type
-            }
+            defaults={"description": description, "is_core": False}
         )
-
         if not created:
-            amenity.description = description
-            amenity.amenity_type = amenity_type
-            amenity.save()
+            return JsonResponse({"error": "A module with this name already exists."}, status=400)
 
         return JsonResponse({
-            "id": amenity.id,
-            "name": amenity.name,
+            "id":          amenity.id,
+            "name":        amenity.name,
             "description": amenity.description,
-            "amenity_type": amenity.amenity_type,
-            "created": created
+            "is_core":     amenity.is_core,
+            "created":     True,
         })
-
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 def get_amenities(request):
     try:
-        default_amenities = Amenity.objects.filter(
-            amenity_type="default"
-        ).values("id", "name", "description")
-
-        premium_amenities = Amenity.objects.filter(
-            amenity_type="premium"
-        ).values("id", "name", "description")
-
-        return JsonResponse({
-            "default": list(default_amenities),
-            "premium": list(premium_amenities)
-        }, status=200)
-
+        with schema_context('public'):
+            data = list(
+                Amenity.objects.all().values("id", "name", "description", "is_core")
+            )
+        return JsonResponse({"modules": data})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-from django.views.decorators.http import require_http_methods
+    
+from django.views.decorators.http import require_POST, require_http_methods
+from dateutil.relativedelta import relativedelta
+from datetime import datetime, date, timedelta
 @require_http_methods(["DELETE"])
 def delete_amenity(request, amenity_id):
     try:
         amenity = get_object_or_404(Amenity, id=amenity_id)
-
+        if amenity.is_core:
+            return JsonResponse({"error": "Core modules cannot be deleted."}, status=403)
         amenity.delete()
-
-        return JsonResponse({
-            "message": "Amenity deleted successfully",
-            "id": amenity_id
-        }, status=200)
-
+        return JsonResponse({"success": True, "id": amenity_id})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+def get_plans(request):
+    try:
+        plans = SubscriptionPlan.objects.prefetch_related('modules').all()
+        data  = [
+            {
+                "id":           p.id,
+                "name":         p.name,
+                "price":        str(p.price),
+                "module_ids":   list(p.modules.values_list("id", flat=True)),
+                "module_names": list(p.modules.values_list("name", flat=True)),
+            }
+            for p in plans
+        ]
+        return JsonResponse({"plans": data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def create_plan(request):
+    try:
+        data  = json.loads(request.body)
+        name  = data.get("name", "").strip()
+        price = data.get("price", 0)
+
+        if not name:
+            return JsonResponse({"error": "Plan name is required."}, status=400)
+        if SubscriptionPlan.objects.filter(name__iexact=name).exists():
+            return JsonResponse({"error": "A plan with this name already exists."}, status=400)
+
+        plan = SubscriptionPlan.objects.create(name=name, price=price)
+        return JsonResponse({"success": True, "id": plan.id, "name": plan.name, "price": str(plan.price)})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["DELETE"])
+def delete_plan(request, plan_id):
+    try:
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        plan.delete()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def update_plan_modules(request, plan_id):
+    """Assign which modules are included in a plan (non-core only)."""
+    try:
+        data       = json.loads(request.body)
+        module_ids = data.get("module_ids", [])
+        plan       = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+       
+        amenities = Amenity.objects.filter(id__in=module_ids, is_core=False)
+        plan.modules.set(amenities)
+
+        return JsonResponse({"success": True, "plan": plan.name})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+def save_hotel_modules(request, hotel_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method."}, status=400)
+    try:
+        data       = json.loads(request.body)
+        module_ids = data.get("modules", [])
+
+        with schema_context('public'):
+            hotel     = get_object_or_404(Hotel, id=hotel_id)
+            amenities = Amenity.objects.filter(id__in=module_ids)
+            hotel.properties.set(amenities)
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_POST
+def upgrade_hotel_plan(request, hotel_id):
+    try:
+        data      = json.loads(request.body)
+        plan_name = data.get("plan", "").strip()
+
+        with schema_context('public'):
+            hotel = get_object_or_404(Hotel, id=hotel_id)
+            plan  = get_object_or_404(SubscriptionPlan, name=plan_name)
+
+            hotel.subscription_plan = plan_name
+            hotel.save()
+
+            # sync hotel modules: core + plan modules
+            core_ids = list(Amenity.objects.filter(is_core=True).values_list("id", flat=True))
+            plan_ids = list(plan.modules.values_list("id", flat=True))
+            hotel.properties.set(Amenity.objects.filter(id__in=list(set(core_ids + plan_ids))))
+
+            # create first payment record
+            PlanPayment.objects.create(
+                hotel    = hotel,
+                plan     = plan,
+                amount   = plan.price,
+                status   = 'pending',
+                due_date = timezone.now().date() + datetime.timedelta(days=30),
+            )
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+def get_payments(request):
+    
+    try:
+        with schema_context('public'):
+            PlanPayment.objects.filter(
+                status='pending',
+                due_date__lt=timezone.now().date()
+            ).update(status='overdue')
+
+            qs = PlanPayment.objects.select_related('hotel', 'plan').all()
+
+            status_f = request.GET.get('status')
+            hotel_f  = request.GET.get('hotel_id')
+            if status_f:
+                qs = qs.filter(status=status_f)
+            if hotel_f:
+                qs = qs.filter(hotel_id=hotel_f)
+
+            data = [
+                {
+                    "id":             p.id,
+                    "hotel_id":       p.hotel.id,
+                    "hotel_name":     p.hotel.hotel_name,
+                    "plan_name":      p.plan.name if p.plan else "—",
+                    "amount":         str(p.amount),
+                    "status":         p.status,
+                    "due_date":       str(p.due_date),
+                    "paid_date":      str(p.paid_date) if p.paid_date else None,
+                    "transaction_id": p.transaction_id or "",
+                    "notes":          p.notes or "",
+                    "created_at":     p.created_at.strftime("%d %b %Y"),
+                }
+                for p in qs
+            ]
+        return JsonResponse({"payments": data})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def mark_payment_paid(request, payment_id):
+    
+    try:
+        data    = json.loads(request.body)
+        payment = get_object_or_404(PlanPayment, id=payment_id)
+
+        payment.status         = 'paid'
+        payment.paid_date      = timezone.now().date()
+        payment.transaction_id = data.get('transaction_id', '').strip()
+        payment.notes          = data.get('notes', '').strip()
+        payment.save()
+
+        
+       
+        PlanPayment.objects.create(
+            hotel    = payment.hotel,
+            plan     = payment.plan,
+            amount   = payment.amount,
+            status   = 'pending',
+            due_date = payment.due_date + relativedelta(months=1),
+        )
+
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def cancel_payment(request, payment_id):
+    try:
+        payment        = get_object_or_404(PlanPayment, id=payment_id)
+        payment.status = 'cancelled'
+        payment.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+def create_payment(request):
+    
+    try:
+        data    = json.loads(request.body)
+        hotel   = get_object_or_404(Hotel, id=data.get('hotel_id'))
+        plan    = SubscriptionPlan.objects.filter(id=data.get('plan_id')).first()
+
+        due_date_str = data.get('due_date')
+        if not due_date_str:
+            return JsonResponse({"error": "Due date is required."}, status=400)
+
+        payment = PlanPayment.objects.create(
+            hotel          = hotel,
+            plan           = plan,
+            amount         = data.get('amount', 0),
+            status         = data.get('status', 'pending'),
+            due_date       = due_date_str,
+            transaction_id = data.get('transaction_id', '').strip(),
+            notes          = data.get('notes', '').strip(),
+        )
+        return JsonResponse({"success": True, "id": payment.id})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 from pms.models import Room, RoomUnit
 from django.views.decorators.cache import never_cache
 @never_cache

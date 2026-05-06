@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accountant Dashboard | Hotel ERP</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --ink: #0d1117; --ink-2: #1c2333; --ink-3: #2d3748;
+            --surface: #ffffff; --surface-2: #f6f8fa; --surface-3: #edf0f5;
+            --border: #d8dde6; --border-2: #c5ccd8;
+            --text: #0d1117; --text-2: #3d4a5c; --text-3: #6b7888; --text-4: #9ba8b8;
+            --blue: #1a65f5; --blue-dim: #e8f0fe;
+            --green: #16a34a; --green-dim: #dcfce7;
+            --amber: #d97706; --amber-dim: #fef3c7;
+            --red: #dc2626; --red-dim: #fee2e2;
+            --purple: #7c3aed; --purple-dim: #ede9fe;
+            --teal: #0891b2; --teal-dim: #e0f7fa;
+            --orange: #ea580c; --orange-dim: #fff7ed;
+            --sidebar-w: 252px;
+            --radius-sm: 6px; --radius: 10px; --radius-lg: 14px; --radius-xl: 20px;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-sm: 0 1px 4px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04);
+            --shadow: 0 4px 12px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);
+            --shadow-xl: 0 24px 48px rgba(0,0,0,0.16);
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'DM Sans',sans-serif;background:var(--surface-2);color:var(--text);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+
+        .sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+        .sb-brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
+        .sb-brand-icon{width:34px;height:34px;background:var(--blue);border-radius:9px;display:grid;place-items:center;color:white;font-size:15px;flex-shrink:0;}
+        .sb-brand-name{font-size:14px;font-weight:700;color:white;letter-spacing:-0.02em;}
+        .sb-brand-sub{font-size:11px;color:rgba(255,255,255,0.38);margin-top:1px;}
+        .sb-profile{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;}
+        .sb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#5b21b6);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;flex-shrink:0;}
+        .sb-name{font-size:13px;font-weight:600;color:white;}
+        .sb-role{font-size:11px;color:rgba(255,255,255,0.4);margin-top:1px;}
+        .sb-nav{flex:1;padding:10px 8px;}
+        .sb-section-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.25);padding:12px 10px 5px;}
+        .sb-btn{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;color:rgba(255,255,255,0.55);font-size:13px;font-weight:500;transition:all 0.15s;border:none;background:transparent;width:100%;text-align:left;font-family:inherit;}
+        .sb-btn i{width:16px;font-size:13px;text-align:center;}
+        .sb-btn:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);}
+        .sb-btn.active{background:rgba(26,101,245,0.2);color:white;}
+        .sb-btn.active i{color:#60a5fa;}
+        .sb-footer{padding:12px 8px;border-top:1px solid rgba(255,255,255,0.07);}
+        .sb-logout{width:100%;padding:8px 10px;border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);background:transparent;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;text-decoration:none;}
+        .sb-logout:hover{background:rgba(220,38,38,0.15);color:#fca5a5;border-color:rgba(220,38,38,0.3);}
+
+        .main{margin-left:var(--sidebar-w);min-height:100vh;}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
+        .topbar-left h1{font-size:17px;font-weight:700;letter-spacing:-0.02em;}
+        .topbar-left p{font-size:12px;color:var(--text-3);}
+        .topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+        .content{padding:24px 28px;}
+
+        .panel{display:none;}
+        .panel.active{display:block;}
+
+        .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+        .stat-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+        .stat-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px;}
+        .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;transition:all 0.18s;}
+        .stat-card:hover{box-shadow:var(--shadow);transform:translateY(-1px);}
+        .stat-icon{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-size:17px;flex-shrink:0;}
+        .si-blue{background:var(--blue-dim);color:var(--blue);}
+        .si-green{background:var(--green-dim);color:var(--green);}
+        .si-amber{background:var(--amber-dim);color:var(--amber);}
+        .si-purple{background:var(--purple-dim);color:var(--purple);}
+        .si-red{background:var(--red-dim);color:var(--red);}
+        .si-teal{background:var(--teal-dim);color:var(--teal);}
+        .si-orange{background:var(--orange-dim);color:var(--orange);}
+        .stat-num{font-size:24px;font-weight:700;letter-spacing:-0.03em;line-height:1;}
+        .stat-label{font-size:12px;color:var(--text-3);margin-top:3px;font-weight:500;}
+        .stat-sub{font-size:11px;color:var(--text-4);margin-top:2px;}
+
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:18px;}
+        .card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+        .card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;color:var(--text-2);}
+        .card-title i{color:var(--blue);font-size:12px;}
+        .card-body{padding:20px;}
+
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+        .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+
+        .table-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        thead th{background:var(--surface-2);color:var(--text-3);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:0.05em;padding:10px 16px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+        tbody td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+        tbody tr:last-child td{border-bottom:none;}
+        tbody tr:hover{background:var(--surface-2);}
+
+        .pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:600;}
+        .pill-blue{background:var(--blue-dim);color:#1d4ed8;}
+        .pill-green{background:var(--green-dim);color:#15803d;}
+        .pill-amber{background:var(--amber-dim);color:#b45309;}
+        .pill-red{background:var(--red-dim);color:var(--red);}
+        .pill-purple{background:var(--purple-dim);color:#6d28d9;}
+        .pill-gray{background:var(--surface-3);color:var(--text-3);}
+        .pill-teal{background:var(--teal-dim);color:#0e7490;}
+        .pill-orange{background:var(--orange-dim);color:var(--orange);}
+
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;font-family:inherit;}
+        .btn-primary{background:var(--blue);color:white;}
+        .btn-primary:hover{background:#1555d4;}
+        .btn-success{background:var(--green);color:white;}
+        .btn-danger{background:var(--red);color:white;}
+        .btn-danger:hover{background:#b91c1c;}
+        .btn-outline{background:var(--surface);color:var(--text-2);border:1px solid var(--border);}
+        .btn-outline:hover{background:var(--surface-2);}
+        .btn-sm{padding:5px 11px;font-size:12px;}
+        .btn-xs{padding:3px 8px;font-size:11px;}
+
+        .form-control{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);}
+        .form-control:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,101,245,0.1);}
+        .form-label{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:var(--text-2);}
+        .form-group{margin-bottom:14px;}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+        .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+        .modal-backdrop{position:fixed;inset:0;background:rgba(13,17,23,0.6);backdrop-filter:blur(4px);z-index:200;display:none;place-items:center;overflow-y:auto;padding:20px;}
+        .modal-backdrop.open{display:grid;}
+        .modal{background:var(--surface);border-radius:var(--radius-xl);width:100%;max-width:540px;box-shadow:var(--shadow-xl);animation:modalIn 0.2s cubic-bezier(0.4,0,0.2,1);border:1px solid var(--border);}
+        .modal-lg{max-width:720px;}
+        @keyframes modalIn{from{opacity:0;transform:scale(0.96) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
+        .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+        .modal-header-title{font-size:15px;font-weight:700;}
+        .modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;color:var(--text-3);}
+        .modal-close:hover{background:var(--red-dim);color:var(--red);}
+        .modal-body{padding:20px;max-height:72vh;overflow-y:auto;}
+        .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--surface-2);border-radius:0 0 var(--radius-xl) var(--radius-xl);}
+
+        .rev-hero{background:linear-gradient(135deg,var(--ink) 0%,#1c2a3a 100%);border-radius:var(--radius-lg);padding:24px 28px;color:white;margin-bottom:20px;position:relative;overflow:hidden;}
+        .rev-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(26,101,245,0.15);border-radius:50%;}
+        .rev-hero::after{content:'';position:absolute;bottom:-60px;right:60px;width:150px;height:150px;background:rgba(184,149,42,0.1);border-radius:50%;}
+        .rev-hero-label{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;opacity:0.5;margin-bottom:6px;}
+        .rev-hero-amount{font-size:38px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-0.02em;line-height:1;}
+        .rev-hero-sub{font-size:12px;opacity:0.5;margin-top:6px;}
+        .rev-hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;position:relative;z-index:1;}
+        .rev-mini{background:rgba(255,255,255,0.06);border-radius:var(--radius);padding:12px 14px;}
+        .rev-mini-label{font-size:10px;opacity:0.5;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
+        .rev-mini-val{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;}
+        .rev-mini-val.green{color:#4ade80;}
+        .rev-mini-val.amber{color:#fbbf24;}
+        .rev-mini-val.red{color:#f87171;}
+        .rev-mini-val.blue{color:#60a5fa;}
+
+        .dept-bar-item{margin-bottom:12px;}
+        .dept-bar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+        .dept-bar-label{font-size:12px;font-weight:600;color:var(--text-2);}
+        .dept-bar-val{font-size:12px;font-weight:700;font-family:'DM Mono',monospace;}
+        .dept-bar-track{height:8px;background:var(--surface-3);border-radius:100px;overflow:hidden;}
+        .dept-bar-fill{height:100%;border-radius:100px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1);}
+
+        .method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+        .method-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+        .method-icon{font-size:18px;margin-bottom:6px;}
+        .method-name{font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:3px;}
+        .method-val{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;}
+
+        .tax-card{background:linear-gradient(135deg,var(--purple-dim),var(--blue-dim));border:1px solid #c4b5fd;border-radius:var(--radius-lg);padding:18px 20px;}
+        .tax-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06);}
+        .tax-row:last-child{border-bottom:none;padding-top:10px;margin-top:4px;font-weight:700;}
+
+        .toast-stack{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px;}
+        .toast{padding:10px 14px;border-radius:var(--radius);font-size:12.5px;font-weight:500;box-shadow:var(--shadow-lg);animation:toastIn 0.25s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:9px;min-width:220px;}
+        .toast.success{background:var(--green-dim);color:#15803d;border:1px solid #86efac;}
+        .toast.error{background:var(--red-dim);color:var(--red);border:1px solid #fca5a5;}
+        .toast.info{background:var(--blue-dim);color:#1d4ed8;border:1px solid #93c5fd;}
+        @keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+        .chart-box{position:relative;height:220px;}
+        .chart-box-sm{position:relative;height:160px;}
+
+        .section-heading{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+        .section-heading::after{content:'';flex:1;height:1px;background:var(--border);}
+
+        .empty{text-align:center;padding:36px 20px;color:var(--text-3);}
+        .empty i{font-size:28px;margin-bottom:10px;display:block;opacity:0.3;}
+        .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;}
+        .spinner-dark{width:14px;height:14px;border:2px solid rgba(0,0,0,0.1);border-top-color:var(--blue);border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .tab-bar{display:flex;gap:1px;background:var(--surface-3);border-radius:var(--radius-sm);padding:3px;}
+        .tab-btn{padding:5px 13px;border-radius:5px;border:none;background:transparent;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-3);font-family:inherit;transition:all 0.15s;}
+        .tab-btn.active{background:var(--surface);color:var(--blue);box-shadow:var(--shadow-xs);}
+        .menu-btn{display:none;position:fixed;top:14px;left:14px;z-index:150;background:var(--ink);color:white;border:none;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:15px;}
+
+        .dept-collection-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;transition:all .18s;}
+        .dept-collection-card:hover{box-shadow:var(--shadow);}
+        .dept-col-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+        .dept-col-header:hover{background:var(--surface-2);}
+        .dept-col-left{display:flex;align-items:center;gap:12px;}
+        .dept-col-icon{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex-shrink:0;}
+        .dept-col-name{font-size:13px;font-weight:700;}
+        .dept-col-sub{font-size:11px;color:var(--text-3);margin-top:1px;}
+        .dept-col-right{display:flex;align-items:center;gap:14px;}
+        .dept-col-amount{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;}
+        .dept-col-pct{font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;}
+        .dept-col-chevron{color:var(--text-4);font-size:11px;transition:transform .2s;}
+        .dept-col-chevron.open{transform:rotate(180deg);}
+        .dept-col-body{display:none;border-top:1px solid var(--border);padding:0;}
+        .dept-col-body.open{display:block;}
+
+        .filter-bar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+        .exp-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+        .exp-summary-row:last-child{border-bottom:none;font-weight:700;padding-top:14px;margin-top:4px;}
+
+        .avatar-upload{display:flex;align-items:center;gap:18px;margin-bottom:18px;}
+        .avatar-lg{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:white;overflow:hidden;flex-shrink:0;}
+        .avatar-lg img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+        .pw-strength-bar{height:4px;border-radius:2px;background:var(--surface-3);margin-top:6px;overflow:hidden;}
+        .pw-strength-fill{height:100%;border-radius:2px;transition:width 0.3s,background 0.3s;width:0%;}
+        .field-error{font-size:11px;color:var(--red);margin-top:3px;display:none;}
+        .field-error.show{display:block;}
+        .divider{height:1px;background:var(--border);margin:14px 0;}
+
+        .week-nav{display:flex;align-items:center;gap:8px;}
+        .week-nav span{font-size:12.5px;font-weight:600;min-width:170px;text-align:center;}
+        .wn-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;background:var(--surface);cursor:pointer;display:grid;place-items:center;font-size:12px;color:var(--text-2);}
+
+        .clock-wrap{display:flex;flex-direction:column;align-items:center;padding:28px;gap:14px;}
+        .ck-btn{padding:10px 26px;border-radius:var(--radius-sm);border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+        .ck-btn.in{background:var(--green-dim);color:#15803d;border:1px solid #86efac;}
+        .ck-btn.out{background:var(--red-dim);color:var(--red);border:1px solid #fca5a5;}
+        .att-log{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 14px;font-size:12.5px;color:var(--text-3);display:flex;align-items:center;gap:8px;}
+
+        @media(max-width:900px){
+            .sidebar{transform:translateX(-100%);}
+            .sidebar.open{transform:translateX(0);}
+            .main{margin-left:0;}
+            .content{padding:16px;padding-top:60px;}
+            .topbar{padding:12px 16px;padding-top:60px;}
+            .stat-grid,.stat-grid-3{grid-template-columns:repeat(2,1fr);}
+            .two-col,.three-col,.form-row,.form-row-3{grid-template-columns:1fr;}
+            .menu-btn{display:grid;place-items:center;}
+            .rev-hero-grid{grid-template-columns:1fr;}
+            .method-grid{grid-template-columns:1fr;}
+            .filter-bar-card{flex-direction:column;align-items:flex-start;}
+        }
+    </style>
+</head>
+<body>
+{% csrf_token %}
+
+<button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+        <div class="sb-brand-icon"><i class="fas fa-hotel"></i></div>
+        <div>
+            <div class="sb-brand-name">Hotel ERP</div>
+            <div class="sb-brand-sub">Accountant Suite</div>
+        </div>
+    </div>
+    <div class="sb-profile">
+      {% if staff.photo %}
+    <img src="{{ staff.photo.url }}" class="sb-avatar" alt="{{ staff.name }}">
+{% else %}
+    <div class="sb-avatar">
+        {{ staff.name|slice:":1"|upper }}
+    </div>
+{% endif %}
+        <div>
+            <div class="sb-name">{{ staff.name }}</div>
+            <div class="sb-role">Accountant &mdash; {{ staff.employee_id|default:"ACC-001" }}</div>
+        </div>
+    </div>
+    <nav class="sb-nav">
+        <div class="sb-section-label">Finance</div>
+        <button class="sb-btn active" data-panel="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
+        <button class="sb-btn" data-panel="invoices"><i class="fas fa-file-invoice-dollar"></i> Invoices</button>
+        <button class="sb-btn" data-panel="payments"><i class="fas fa-money-bill-wave"></i> Payments</button>
+        <button class="sb-btn" data-panel="collections"><i class="fas fa-layer-group"></i> Collections</button>
+        <button class="sb-btn" data-panel="expenses"><i class="fas fa-receipt"></i> Expenses</button>
+        <button class="sb-btn" data-panel="reports"><i class="fas fa-chart-bar"></i> Reports</button>
+        <button class="sb-btn" data-panel="tax"><i class="fas fa-percent"></i> Tax Summary</button>
+
+        <div class="sb-section-label">HR</div>
+        <button class="sb-btn" data-panel="attendance"><i class="fas fa-clock"></i> Attendance</button>
+        <button class="sb-btn" data-panel="shift"><i class="fas fa-calendar-alt"></i> My Shifts</button>
+        <button class="sb-btn" data-panel="leave"><i class="fas fa-plane-departure"></i> Leave</button>
+
+        <div class="sb-section-label">Account</div>
+        <button class="sb-btn" data-panel="profile"><i class="fas fa-user-circle"></i> Profile</button>
+    </nav>
+    <div class="sb-footer">
+        <a href="/staff-logout/" class="sb-logout"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+    </div>
+</aside>
+
+<main class="main">
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div class="panel active" id="panel-dashboard">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Financial Dashboard</h1>
+            <p>{{ today|date:"l, d F Y" }} &mdash; Live revenue overview</p>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="refreshRevenue()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button class="btn btn-primary btn-sm" onclick="switchPanel('reports')"><i class="fas fa-chart-bar"></i> Reports</button>
+        </div>
+    </div>
+    <div class="content">
+        <div class="rev-hero">
+            <div style="position:relative;z-index:1;">
+                <div class="rev-hero-label">Today's Total Revenue</div>
+                <div class="rev-hero-amount" id="heroRevenue">₹{{ today_revenue|floatformat:2 }}</div>
+                <div class="rev-hero-sub">{{ today|date:"d M Y" }} &bull; All departments combined</div>
+                <div class="rev-hero-grid">
+                    <div class="rev-mini">
+                        <div class="rev-mini-label">Room Revenue</div>
+                        <div class="rev-mini-val green" id="heroRoom">₹{{ room_charges_today|floatformat:2 }}</div>
+                    </div>
+                    <div class="rev-mini">
+                        <div class="rev-mini-label">Restaurant</div>
+                        <div class="rev-mini-val amber" id="heroRestaurant">₹{{ restaurant_today|floatformat:2 }}</div>
+                    </div>
+                    <div class="rev-mini">
+                        <div class="rev-mini-label">Tax Collected</div>
+                        <div class="rev-mini-val" id="heroTax">₹{{ tax_collected_today|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon si-blue"><i class="fas fa-calendar-day"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--blue);">₹{{ monthly_revenue|floatformat:0 }}</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                    <div class="stat-sub">{{ today|date:"F Y" }}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-red"><i class="fas fa-hourglass-half"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--red);">₹{{ pending_balance|floatformat:0 }}</div>
+                    <div class="stat-label">Pending Balance</div>
+                    <div class="stat-sub">Open folios</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-file-invoice"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--green);">{{ paid_invoices }}</div>
+                    <div class="stat-label">Paid Invoices</div>
+                    <div class="stat-sub">of {{ total_invoices }} total</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-amber"><i class="fas fa-percent"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--amber);">₹{{ tax_collected_month|floatformat:0 }}</div>
+                    <div class="stat-label">Tax This Month</div>
+                    <div class="stat-sub">GST collected</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div>
+                <div><div class="stat-num" style="color:var(--green);">{{ paid_invoices }}</div><div class="stat-label">Paid</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-amber"><i class="fas fa-clock"></i></div>
+                <div><div class="stat-num" style="color:var(--amber);">{{ partial_invoices }}</div><div class="stat-label">Partial</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-red"><i class="fas fa-exclamation-circle"></i></div>
+                <div><div class="stat-num" style="color:var(--red);">{{ pending_invoices }}</div><div class="stat-label">Pending</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-purple"><i class="fas fa-bed"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--purple);">{{ occupancy_rate }}%</div>
+                    <div class="stat-label">Occupancy</div>
+                    <div class="stat-sub">{{ occupied_rooms }}/{{ total_rooms }} rooms</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-chart-area"></i> Revenue — Last 30 Days</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-building"></i> Department Revenue (This Month)</div>
+                </div>
+                <div class="card-body" id="deptBarsContainer">
+                    <div class="empty"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-credit-card"></i> Today's Payment Methods</div>
+                </div>
+                <div class="card-body">
+                    <div class="method-grid" id="methodGrid">
+                        <div class="empty"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-chart-bar"></i> Monthly Trend ({{ today|date:"Y" }})</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-box-sm"><canvas id="monthlyChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ INVOICES ══════════ -->
+<div class="panel" id="panel-invoices">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Invoices</h1><p>All billing records</p></div>
+        <div class="topbar-actions">
+            <input type="text" class="form-control btn-sm" id="invSearch" placeholder="Search..." style="max-width:200px;" onkeyup="filterInvTable()">
+            <div class="tab-bar" id="invStatusBar">
+                <button class="tab-btn active" onclick="filterInvByStatus('all',this)">All</button>
+                <button class="tab-btn" onclick="filterInvByStatus('paid',this)">Paid</button>
+                <button class="tab-btn" onclick="filterInvByStatus('partial',this)">Partial</button>
+                <button class="tab-btn" onclick="filterInvByStatus('pending',this)">Pending</button>
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-file-invoice-dollar"></i></div><div><div class="stat-num" style="color:var(--blue);">{{ total_invoices }}</div><div class="stat-label">Total Invoices</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div><div><div class="stat-num" style="color:var(--green);">{{ paid_invoices }}</div><div class="stat-label">Paid</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-adjust"></i></div><div><div class="stat-num" style="color:var(--amber);">{{ partial_invoices }}</div><div class="stat-label">Partial</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-red"><i class="fas fa-clock"></i></div><div><div class="stat-num" style="color:var(--red);">{{ pending_invoices }}</div><div class="stat-label">Pending</div></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-list"></i> Invoice Records</div></div>
+            <div class="table-wrap">
+                <table id="invTable">
+                    <thead><tr><th>Invoice #</th><th>Guest</th><th>Room</th><th>Check-In</th><th>Check-Out</th><th>Subtotal</th><th>Tax</th><th>Discount</th><th>Grand Total</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody>
+                    {% for inv in recent_invoices %}
+                    <tr data-status="{{ inv.status }}" data-search="{{ inv.invoice_number|lower }} {{ inv.guest_name|lower }}">
+                        <td><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue);font-size:12px;">{{ inv.invoice_number }}</span></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--blue),var(--purple));color:white;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0;">{{ inv.guest_name|first|upper }}</div>
+                                <div>
+                                    <div style="font-weight:600;font-size:13px;">{{ inv.guest_name }}</div>
+                                    <div style="font-size:11px;color:var(--text-3);">{{ inv.guest_email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="background:var(--blue-dim);color:var(--blue);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;">{{ inv.room_number }}</span></td>
+                        <td style="font-family:'DM Mono',monospace;font-size:12px;">{{ inv.check_in }}</td>
+                        <td style="font-family:'DM Mono',monospace;font-size:12px;">{{ inv.check_out }}</td>
+                        <td style="font-family:'DM Mono',monospace;">₹{{ inv.subtotal|floatformat:2 }}</td>
+                        <td style="font-family:'DM Mono',monospace;color:var(--purple);">₹{{ inv.tax_total|floatformat:2 }}</td>
+                        <td style="font-family:'DM Mono',monospace;color:var(--green);">-₹{{ inv.discount|floatformat:2 }}</td>
+                        <td style="font-family:'DM Mono',monospace;font-weight:700;">₹{{ inv.grand_total|floatformat:2 }}</td>
+                        <td><span class="pill pill-{% if inv.status == 'paid' %}green{% elif inv.status == 'partial' %}amber{% else %}red{% endif %}">{{ inv.status }}</span></td>
+                        <td style="font-size:12px;color:var(--text-3);">{{ inv.generated_at }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="11"><div class="empty"><i class="fas fa-receipt"></i><p>No invoices found</p></div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ PAYMENTS ══════════ -->
+<div class="panel" id="panel-payments">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Payments</h1><p>All payment transactions</p></div>
+        <div class="topbar-actions">
+            <input type="text" class="form-control btn-sm" id="paySearch" placeholder="Search..." style="max-width:200px;" onkeyup="filterPayTable()">
+        </div>
+    </div>
+    <div class="content">
+        <div class="stat-grid-3">
+            <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-coins"></i></div><div><div class="stat-num" style="color:var(--green);">₹{{ today_revenue|floatformat:0 }}</div><div class="stat-label">Collected Today</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-calendar"></i></div><div><div class="stat-num" style="color:var(--blue);">₹{{ monthly_revenue|floatformat:0 }}</div><div class="stat-label">This Month</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-check-double"></i></div><div><div class="stat-num" style="color:var(--amber);">{{ settled_today }}</div><div class="stat-label">Folios Settled Today</div></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-money-bill-wave"></i> Recent Payments</div></div>
+            <div class="table-wrap">
+                <table id="payTable">
+                    <thead><tr><th>#</th><th>Guest</th><th>Booking</th><th>Amount</th><th>Method</th><th>Reference</th><th>Received By</th><th>Date &amp; Time</th><th>Note</th></tr></thead>
+                    <tbody>
+                    {% for pay in recent_payments %}
+                    <tr data-search="{{ pay.guest_name|lower }} {{ pay.reference_number|lower }}">
+                        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-3);">#{{ pay.id }}</td>
+                        <td><div style="font-weight:600;font-size:13px;">{{ pay.guest_name }}</div></td>
+                        <td style="font-family:'DM Mono',monospace;font-size:12px;">#{{ pay.booking_id }}</td>
+                        <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green);">₹{{ pay.amount|floatformat:2 }}</td>
+                        <td>
+                            <span class="pill {% if pay.method == 'cash' %}pill-green{% elif pay.method == 'card' %}pill-blue{% elif pay.method == 'upi' %}pill-purple{% else %}pill-teal{% endif %}">
+                                <i class="fas {% if pay.method == 'cash' %}fa-money-bill{% elif pay.method == 'card' %}fa-credit-card{% elif pay.method == 'upi' %}fa-mobile-alt{% else %}fa-university{% endif %}" style="font-size:9px;margin-right:3px;"></i>
+                                {{ pay.method_label }}
+                            </span>
+                        </td>
+                        <td style="font-family:'DM Mono',monospace;font-size:12px;">{{ pay.reference_number }}</td>
+                        <td style="font-size:12px;">{{ pay.received_by }}</td>
+                        <td style="font-size:12px;color:var(--text-3);">{{ pay.received_at }}</td>
+                        <td style="font-size:12px;color:var(--text-3);">{{ pay.note|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9"><div class="empty"><i class="fas fa-money-bill-wave"></i><p>No payments recorded</p></div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ COLLECTIONS ══════════ -->
+<div class="panel" id="panel-collections">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Collections</h1>
+            <p>Department-wise breakdown — filter by date, month or staff</p>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="exportCollections()"><i class="fas fa-download"></i> Export CSV</button>
+        </div>
+    </div>
+    <div class="content">
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar-card">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">View By</span>
+                <div class="tab-bar" id="colViewBar">
+                    <button class="tab-btn active" onclick="setColView('date',this)">Date</button>
+                    <button class="tab-btn" onclick="setColView('month',this)">Month</button>
+                </div>
+            </div>
+            <div id="colDateWrap" style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Date</label>
+                <input type="date" id="colDate" class="form-control" style="max-width:160px;padding:6px 10px;">
+            </div>
+            <div id="colMonthWrap" style="display:none;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Month</label>
+                <input type="month" id="colMonth" class="form-control" style="max-width:160px;padding:6px 10px;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Staff</label>
+                <select id="colStaff" class="form-control" style="max-width:180px;padding:6px 10px;">
+                    <option value="">All Staff</option>
+                    {% for s in hotel_staff %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="loadCollections()"><i class="fas fa-search"></i> Fetch</button>
+            <button class="btn btn-outline btn-sm" onclick="resetColFilters()"><i class="fas fa-undo"></i> Today</button>
+        </div>
+
+        <!-- HERO TOTALS -->
+        <div id="colHero" style="display:none;">
+            <div class="rev-hero" style="margin-bottom:18px;">
+                <div style="position:relative;z-index:1;">
+                    <div class="rev-hero-label" id="colHeroLabel">Collection Summary</div>
+                    <div class="rev-hero-amount" id="colHeroTotal">₹0.00</div>
+                    <div class="rev-hero-sub" id="colHeroSub"></div>
+                    <div class="rev-hero-grid" id="colHeroMinis"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI STRIP -->
+        <div class="stat-grid" id="colKpiStrip" style="display:none;"></div>
+
+        <!-- DEPT EXPANDABLE CARDS -->
+        <div class="section-heading"><i class="fas fa-layer-group"></i> Department Breakdown</div>
+        <div id="colDeptCards">
+            <div class="empty"><i class="fas fa-layer-group"></i><p>Select filters and click Fetch to load collections</p></div>
+        </div>
+
+        <!-- PAYMENT METHOD BREAKDOWN -->
+        <div id="colMethodSection" style="display:none;">
+            <div class="section-heading" style="margin-top:8px;"><i class="fas fa-credit-card"></i> Payment Method Breakdown</div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="method-grid" id="colMethodGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STAFF COLLECTION TABLE -->
+        <div id="colStaffSection" style="display:none;">
+            <div class="section-heading"><i class="fas fa-users"></i> Staff-wise Collections</div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Staff</th><th>Department</th><th>Cash</th><th>Card</th><th>UPI</th><th>Bank Transfer</th><th>Total</th><th>Transactions</th></tr></thead>
+                        <tbody id="colStaffTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════ EXPENSES ══════════ -->
+<div class="panel" id="panel-expenses">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Expenses</h1>
+            <p>Track &amp; manage hotel expenses by department, date, month or staff</p>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn btn-primary btn-sm" onclick="openAddExpense()"><i class="fas fa-plus"></i> Add Expense</button>
+            <button class="btn btn-outline btn-sm" onclick="exportExpenses()"><i class="fas fa-download"></i> Export CSV</button>
+        </div>
+    </div>
+    <div class="content">
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar-card">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">View By</span>
+                <div class="tab-bar" id="expViewBar">
+                    <button class="tab-btn active" onclick="setExpView('date',this)">Date</button>
+                    <button class="tab-btn" onclick="setExpView('month',this)">Month</button>
+                </div>
+            </div>
+            <div id="expDateWrap" style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Date</label>
+                <input type="date" id="expDate" class="form-control" style="max-width:160px;padding:6px 10px;">
+            </div>
+            <div id="expMonthWrap" style="display:none;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Month</label>
+                <input type="month" id="expMonth" class="form-control" style="max-width:160px;padding:6px 10px;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Department</label>
+                <select id="expDept" class="form-control" style="max-width:160px;padding:6px 10px;">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-3);white-space:nowrap;">Staff</label>
+                <select id="expStaff" class="form-control" style="max-width:180px;padding:6px 10px;">
+                    <option value="">All Staff</option>
+                    {% for s in hotel_staff %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="loadExpenses()"><i class="fas fa-search"></i> Fetch</button>
+            <button class="btn btn-outline btn-sm" onclick="resetExpFilters()"><i class="fas fa-undo"></i> Today</button>
+        </div>
+
+        <!-- KPI STRIP -->
+        <div class="stat-grid" id="expKpiStrip" style="display:none;"></div>
+
+        <!-- DEPT EXPENSE BREAKDOWN -->
+        <div class="section-heading"><i class="fas fa-building"></i> Department-wise Expenses</div>
+        <div id="expDeptCards">
+            <div class="empty"><i class="fas fa-receipt"></i><p>Select filters and click Fetch to load expenses</p></div>
+        </div>
+
+        <!-- EXPENSE TABLE -->
+        <div id="expTableSection" style="display:none;">
+            <div class="section-heading" style="margin-top:8px;"><i class="fas fa-list"></i> Expense Records</div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fas fa-table"></i> All Expenses</div>
+                    <input type="text" class="form-control btn-sm" id="expSearch" placeholder="Search..." style="max-width:200px;" onkeyup="filterExpTable()">
+                </div>
+                <div class="table-wrap">
+                    <table id="expTable">
+                        <thead><tr><th>#</th><th>Date</th><th>Department</th><th>Category</th><th>Description</th><th>Amount</th><th>Payment Method</th><th>Added By</th><th>Reference</th><th>Actions</th></tr></thead>
+                        <tbody id="expTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════ REPORTS ══════════ -->
+<div class="panel" id="panel-reports">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Financial Reports</h1><p>Revenue analysis &amp; trends</p></div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+        </div>
+    </div>
+    <div class="content">
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-chart-line"></i></div><div><div class="stat-num" style="color:var(--blue);">₹{{ month_grand_total|floatformat:0 }}</div><div class="stat-label">Billed This Month</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-receipt"></i></div><div><div class="stat-num" style="color:var(--green);">₹{{ monthly_revenue|floatformat:0 }}</div><div class="stat-label">Collected This Month</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-utensils"></i></div><div><div class="stat-num" style="color:var(--amber);">₹{{ restaurant_month|floatformat:0 }}</div><div class="stat-label">Restaurant Month</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-purple"><i class="fas fa-percent"></i></div><div><div class="stat-num" style="color:var(--purple);">₹{{ tax_invoices_month|floatformat:0 }}</div><div class="stat-label">Tax Invoiced (Month)</div></div></div>
+        </div>
+        <div class="two-col">
+            <div class="card">
+                <div class="card-header"><div class="card-title"><i class="fas fa-chart-area"></i> 30-Day Revenue Trend</div></div>
+                <div class="card-body"><div class="chart-box"><canvas id="revenueChart2"></canvas></div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Monthly Breakdown ({{ today|date:"Y" }})</div></div>
+                <div class="card-body"><div class="chart-box"><canvas id="monthlyChart2"></canvas></div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-building"></i> Revenue by Department (This Month)</div></div>
+            <div class="card-body">
+                <div class="three-col">
+                    <div style="background:var(--green-dim);border:1px solid #86efac;border-radius:var(--radius);padding:16px;text-align:center;">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--green);font-weight:700;margin-bottom:6px;"><i class="fas fa-bed"></i> Rooms</div>
+                        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:#15803d;">₹{{ room_charges_today|floatformat:0 }}</div>
+                        <div style="font-size:11px;color:var(--green);margin-top:4px;">Today</div>
+                    </div>
+                    <div style="background:var(--amber-dim);border:1px solid #fcd34d;border-radius:var(--radius);padding:16px;text-align:center;">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--amber);font-weight:700;margin-bottom:6px;"><i class="fas fa-utensils"></i> Restaurant</div>
+                        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:#b45309;">₹{{ restaurant_today|floatformat:0 }}</div>
+                        <div style="font-size:11px;color:var(--amber);margin-top:4px;">Today</div>
+                    </div>
+                    <div style="background:var(--purple-dim);border:1px solid #c4b5fd;border-radius:var(--radius);padding:16px;text-align:center;">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--purple);font-weight:700;margin-bottom:6px;"><i class="fas fa-percent"></i> Tax</div>
+                        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:#6d28d9;">₹{{ tax_collected_today|floatformat:0 }}</div>
+                        <div style="font-size:11px;color:var(--purple);margin-top:4px;">Today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ TAX SUMMARY ══════════ -->
+<div class="panel" id="panel-tax">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Tax Summary</h1><p>GST &amp; tax calculations</p></div>
+    </div>
+    <div class="content">
+        <div class="stat-grid-2" style="max-width:700px;">
+            <div class="tax-card">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--purple);margin-bottom:12px;"><i class="fas fa-calendar-day"></i> Today's Tax</div>
+                <div class="tax-row"><span style="font-size:13px;">Tax from Charges</span><span style="font-family:'DM Mono',monospace;font-weight:700;">₹{{ tax_collected_today|floatformat:2 }}</span></div>
+                <div class="tax-row"><span style="font-size:13px;font-weight:700;">Total Tax Today</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--purple);font-size:16px;">₹{{ tax_collected_today|floatformat:2 }}</span></div>
+            </div>
+            <div class="tax-card">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--blue);margin-bottom:12px;"><i class="fas fa-calendar"></i> This Month's Tax</div>
+                <div class="tax-row"><span style="font-size:13px;">Tax from Charges</span><span style="font-family:'DM Mono',monospace;font-weight:700;">₹{{ tax_collected_month|floatformat:2 }}</span></div>
+                <div class="tax-row"><span style="font-size:13px;">Tax from Invoices</span><span style="font-family:'DM Mono',monospace;font-weight:700;">₹{{ tax_invoices_month|floatformat:2 }}</span></div>
+                <div class="tax-row"><span style="font-size:13px;font-weight:700;">Total Tax Month</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--blue);font-size:16px;">₹{{ tax_invoices_month|floatformat:2 }}</span></div>
+            </div>
+        </div>
+        <div class="card" style="max-width:700px;">
+            <div class="card-header"><div class="card-title"><i class="fas fa-info-circle"></i> GST Breakdown (18% Standard Rate)</div></div>
+            <div class="card-body">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Description</th><th>Base Amount</th><th>GST Rate</th><th>Tax Amount</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td>Room Charges (Today)</td>
+                                <td style="font-family:'DM Mono',monospace;">₹{{ room_charges_today|floatformat:2 }}</td>
+                                <td><span class="pill pill-purple">18%</span></td>
+                                <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--purple);">₹{{ tax_collected_today|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td>Restaurant (Today)</td>
+                                <td style="font-family:'DM Mono',monospace;">₹{{ restaurant_today|floatformat:2 }}</td>
+                                <td><span class="pill pill-amber">5%</span></td>
+                                <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--amber);">₹{{ restaurant_today|floatformat:2|add:"0" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ ATTENDANCE ══════════ -->
+<div class="panel" id="panel-attendance">
+    <div class="topbar"><div class="topbar-left"><h1>Attendance</h1><p>Clock in and out</p></div></div>
+    <div class="content">
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div><div><div class="stat-num" style="color:var(--green);">{{ present_days }}</div><div class="stat-label">Present this month</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-clock"></i></div><div><div class="stat-num" style="color:var(--amber);">{{ late_days }}</div><div class="stat-label">Late arrivals</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-red"><i class="fas fa-times-circle"></i></div><div><div class="stat-num" style="color:var(--red);">{{ absent_days }}</div><div class="stat-label">Absent days</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-business-time"></i></div><div><div class="stat-num" style="color:var(--blue);">{{ overtime_hours }}</div><div class="stat-label">Overtime hours</div></div></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="fas fa-stopwatch"></i> Today's Clock</div><span id="todayStatusPill" class="pill pill-gray">Not clocked in</span></div>
+            <div class="clock-wrap">
+                <div style="display:flex;gap:12px;">
+                    <button class="ck-btn in" id="btnClockIn" onclick="clockIn()"><i class="fas fa-sign-in-alt"></i> Clock In</button>
+                    <button class="ck-btn out" id="btnClockOut" onclick="clockOut()" disabled><i class="fas fa-sign-out-alt"></i> Clock Out</button>
+                </div>
+                <div class="att-log"><i class="fas fa-info-circle" style="color:var(--blue)"></i><span id="attLogMsg">You have not clocked in today.</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ SHIFTS ══════════ -->
+<div class="panel" id="panel-shift">
+    <div class="topbar"><div class="topbar-left"><h1>My Shifts</h1><p>Weekly schedule</p></div></div>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-calendar-week"></i> Weekly Schedule</div>
+                <div class="week-nav">
+                    <button class="wn-btn" onclick="changeWeek(-1)"><i class="fas fa-chevron-left"></i></button>
+                    <span id="weekLabel">Loading...</span>
+                    <button class="wn-btn" onclick="changeWeek(1)"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Day</th><th>Date</th><th>Shift</th><th>Time</th><th>Department</th><th>Status</th></tr></thead>
+                    <tbody id="shiftTableBody"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3);"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ LEAVE ══════════ -->
+<div class="panel" id="panel-leave">
+    <div class="topbar"><div class="topbar-left"><h1>Leave</h1><p>Apply and track leave</p></div></div>
+    <div class="content">
+        <div class="two-col">
+            <div class="card">
+                <div class="card-header"><div class="card-title"><i class="fas fa-plus-circle"></i> Apply for Leave</div></div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">From Date *</label><input type="date" id="leaveFrom" class="form-control"></div>
+                        <div class="form-group"><label class="form-label">To Date *</label><input type="date" id="leaveTo" class="form-control"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Leave Type</label>
+                        <select id="leaveType" class="form-control">
+                            <option value="sick">Sick Leave</option>
+                            <option value="casual">Casual Leave</option>
+                            <option value="annual">Annual Leave</option>
+                            <option value="emergency">Emergency Leave</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label class="form-label">Reason *</label><textarea id="leaveReason" class="form-control" rows="3" placeholder="Brief reason..."></textarea></div>
+                    <button class="btn btn-primary" onclick="submitLeave()"><i class="fas fa-paper-plane"></i> Submit Request</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><div class="card-title"><i class="fas fa-history"></i> My Leave Requests</div></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Applied</th><th>From</th><th>To</th><th>Type</th><th>Status</th></tr></thead>
+                        <tbody>
+                        {% for lr in leave_requests %}
+                        <tr>
+                            <td style="font-size:12px;">{{ lr.applied_at|date:"d M Y" }}</td>
+                            <td style="font-family:'DM Mono',monospace;font-size:12px;">{{ lr.from_date }}</td>
+                            <td style="font-family:'DM Mono',monospace;font-size:12px;">{{ lr.to_date }}</td>
+                            <td><span class="pill pill-gray">{{ lr.leave_type }}</span></td>
+                            <td><span class="pill {% if lr.status == 'Approved' %}pill-green{% elif lr.status == 'Rejected' %}pill-red{% else %}pill-amber{% endif %}">{{ lr.status }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5"><div class="empty"><i class="fas fa-plane-departure"></i><p>No leave requests</p></div></td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ PROFILE ══════════ -->
+<div class="panel" id="panel-profile">
+    <div class="topbar"><div class="topbar-left"><h1>Edit Profile</h1></div><button class="btn btn-outline btn-sm" onclick="switchPanel('dashboard')"><i class="fas fa-arrow-left"></i> Back</button></div>
+    <div class="content">
+        <div class="card" style="max-width:640px;">
+            <div class="card-header"><div class="card-title"><i class="fas fa-id-card"></i> Personal Information</div></div>
+            <div class="card-body">
+                <div class="avatar-upload">
+                    <div class="avatar-lg" id="profileAvatarLarge">
+                        {% if staff.photo %}<img src="{{ staff.photo.url }}">{% else %}<span>{{ staff.name|slice:":1"|upper }}</span>{% endif %}
+                    </div>
+                    <div>
+                        <label for="photoInput" class="btn btn-outline" style="cursor:pointer;"><i class="fas fa-upload"></i> Upload Photo</label>
+                        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="previewPhoto(this)">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="pfName" class="form-control" value="{{ staff.name }}"><div class="field-error" id="err-pfName">Required</div></div>
+                    <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="pfPhone" class="form-control" value="{{ staff.phone|default:'' }}"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Email</label><input type="email" id="pfEmail" class="form-control" value="{{ staff.user.email }}"></div>
+                <div class="divider"></div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="pfCurrentPw" class="form-control"></div>
+                    <div class="form-group"><label class="form-label">New Password</label><input type="password" id="pfNewPw" class="form-control" oninput="checkPwStrength(this.value)">
+                        <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
+                    </div>
+                </div>
+                <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" id="pfConfirmPw" class="form-control"></div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn btn-outline" onclick="switchPanel('dashboard')">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</main>
+
+<!-- ══════════ ADD EXPENSE MODAL ══════════ -->
+<div class="modal-backdrop" id="addExpenseModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-header-title"><i class="fas fa-plus-circle" style="color:var(--blue);margin-right:6px;"></i> Add Expense</div>
+            <button class="modal-close" onclick="closeModal('addExpenseModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Date *</label>
+                    <input type="date" id="expAddDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    <select id="expAddDept" class="form-control">
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select id="expAddCategory" class="form-control">
+                        <option value="supplies">Supplies & Materials</option>
+                        <option value="maintenance">Maintenance & Repairs</option>
+                        <option value="utilities">Utilities</option>
+                        <option value="salary">Salary & Wages</option>
+                        <option value="food">Food & Beverages</option>
+                        <option value="marketing">Marketing & Advertising</option>
+                        <option value="transport">Transport & Travel</option>
+                        <option value="equipment">Equipment & Tools</option>
+                        <option value="cleaning">Cleaning & Housekeeping</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount (₹) *</label>
+                    <input type="number" id="expAddAmount" class="form-control" placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea id="expAddDesc" class="form-control" rows="2" placeholder="Brief description of the expense..."></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Payment Method</label>
+                    <select id="expAddMethod" class="form-control">
+                        <option value="cash">Cash</option>
+                        <option value="card">Card</option>
+                        <option value="upi">UPI</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reference / Invoice No.</label>
+                    <input type="text" id="expAddRef" class="form-control" placeholder="Optional reference number">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea id="expAddNotes" class="form-control" rows="2" placeholder="Additional notes..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('addExpenseModal')">Cancel</button>
+            <button class="btn btn-primary" id="saveExpenseBtn" onclick="saveExpense()"><i class="fas fa-save"></i> Save Expense</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+const CHART_LABELS   = {{ chart_labels|safe }};
+const CHART_REVENUE  = {{ chart_revenue|safe }};
+const MONTHLY_LABELS = {{ monthly_labels|safe }};
+const MONTHLY_AMT    = {{ monthly_amounts|safe }};
+const METHOD_REVENUE = {{ method_revenue|safe }};
+const DEPT_REVENUE   = {{ dept_revenue|safe }};
+
+const DEPT_CONFIG = {
+    room:       { icon: 'fa-bed',         color: '#1a65f5', label: 'Room Charges'  },
+    restaurant: { icon: 'fa-utensils',    color: '#d97706', label: 'Restaurant'    },
+    laundry:    { icon: 'fa-tshirt',      color: '#16a34a', label: 'Laundry'       },
+    minibar:    { icon: 'fa-wine-glass',  color: '#dc2626', label: 'Minibar'       },
+    spa:        { icon: 'fa-spa',         color: '#7c3aed', label: 'Spa'           },
+    transport:  { icon: 'fa-car',         color: '#0891b2', label: 'Transport'     },
+    other:      { icon: 'fa-tag',         color: '#9ba8b8', label: 'Other'         },
+};
+
+function getCsrf() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+           document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+function toast(msg, type='success') {
+    const s = document.getElementById('toastStack');
+    const el = document.createElement('div');
+    const icons = {success:'fa-check-circle', error:'fa-exclamation-circle', info:'fa-info-circle'};
+    el.className = `toast ${type}`;
+    el.innerHTML = `<i class="fas ${icons[type]||'fa-circle'}"></i>${msg}`;
+    s.appendChild(el);
+    setTimeout(()=>el.remove(), 3800);
+}
+function fmt(n) {
+    return '₹'+parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtNum(n) { return parseFloat(n||0).toLocaleString('en-IN'); }
+function setLoading(btn,on,orig){btn.disabled=on;btn.innerHTML=on?'<span class="spinner"></span> Please wait...':orig;}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function switchPanel(p) {
+    document.querySelectorAll('.panel').forEach(pan=>pan.classList.remove('active'));
+    document.getElementById(`panel-${p}`)?.classList.add('active');
+    document.querySelectorAll('.sb-btn[data-panel]').forEach(b=>b.classList.remove('active'));
+    document.querySelector(`.sb-btn[data-panel="${p}"]`)?.classList.add('active');
+    if (p === 'shift') loadWeeklyShifts();
+    if (p === 'reports') initReportCharts();
+    if (p === 'collections') { resetColFilters(); loadCollections(); }
+    if (p === 'expenses') { resetExpFilters(); loadExpenses(); }
+    if (window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+    window.scrollTo(0, 0);
+}
+document.querySelectorAll('.sb-btn[data-panel]').forEach(btn=>{
+    btn.addEventListener('click',()=>{const p=btn.getAttribute('data-panel');if(p)switchPanel(p);});
+});
+document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+
+let revenueChartInst = null;
+let monthlyChartInst = null;
+
+function initDashboardCharts() {
+    const ctx1 = document.getElementById('revenueChart');
+    if (ctx1 && !revenueChartInst) {
+        revenueChartInst = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: CHART_LABELS,
+                datasets: [{label:'Revenue',data:CHART_REVENUE,borderColor:'#1a65f5',backgroundColor:'rgba(26,101,245,0.08)',borderWidth:2,pointRadius:2,fill:true,tension:0.4}]
+            },
+            options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10},maxTicksLimit:8}},y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10},callback:v=>'₹'+v.toLocaleString('en-IN')}}}}
+        });
+    }
+    const ctx2 = document.getElementById('monthlyChart');
+    if (ctx2 && !monthlyChartInst) {
+        monthlyChartInst = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: MONTHLY_LABELS,
+                datasets: [{label:'Revenue',data:MONTHLY_AMT,backgroundColor:'rgba(26,101,245,0.75)',borderRadius:5}]
+            },
+            options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10},callback:v=>'₹'+v.toLocaleString('en-IN')}}}}
+        });
+    }
+}
+
+function initReportCharts() {
+    const ctx3 = document.getElementById('revenueChart2');
+    if (ctx3 && !ctx3._chartInst) {
+        ctx3._chartInst = new Chart(ctx3, {
+            type:'line',data:{labels:CHART_LABELS,datasets:[{label:'Revenue',data:CHART_REVENUE,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,0.08)',borderWidth:2,fill:true,tension:0.4}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:8}},y:{ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:10}}}}}
+        });
+    }
+    const ctx4 = document.getElementById('monthlyChart2');
+    if (ctx4 && !ctx4._chartInst) {
+        ctx4._chartInst = new Chart(ctx4, {
+            type:'bar',data:{labels:MONTHLY_LABELS,datasets:[{label:'Revenue',data:MONTHLY_AMT,backgroundColor:'rgba(124,58,237,0.75)',borderRadius:5}]},
+            options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{callback:v=>'₹'+v.toLocaleString('en-IN'),font:{size:10}}}}}
+        });
+    }
+}
+
+function renderDeptBars() {
+    const container = document.getElementById('deptBarsContainer');
+    if (!container) return;
+    if (!DEPT_REVENUE || !DEPT_REVENUE.length) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-chart-bar"></i><p>No department data</p></div>';
+        return;
+    }
+    const max = Math.max(...DEPT_REVENUE.map(d=>d.total));
+    container.innerHTML = DEPT_REVENUE.map(d => {
+        const pct = max > 0 ? ((d.total/max)*100).toFixed(1) : 0;
+        const cfg = DEPT_CONFIG[d.type] || DEPT_CONFIG.other;
+        return `<div class="dept-bar-item">
+            <div class="dept-bar-top">
+                <div class="dept-bar-label"><i class="fas ${cfg.icon}" style="color:${cfg.color};margin-right:5px;font-size:11px;"></i>${cfg.label}</div>
+                <div class="dept-bar-val" style="color:${cfg.color};">${fmt(d.total)}</div>
+            </div>
+            <div class="dept-bar-track"><div class="dept-bar-fill" style="width:${pct}%;background:${cfg.color};"></div></div>
+        </div>`;
+    }).join('');
+}
+
+function renderMethodGrid() {
+    const grid = document.getElementById('methodGrid');
+    if (!grid) return;
+    const MM = {
+        cash:          {icon:'fa-money-bill-wave',color:'#16a34a',label:'Cash'},
+        card:          {icon:'fa-credit-card',color:'#1a65f5',label:'Card'},
+        upi:           {icon:'fa-mobile-alt',color:'#7c3aed',label:'UPI'},
+        bank_transfer: {icon:'fa-university',color:'#0891b2',label:'Bank Transfer'},
+    };
+    const hasData = Object.keys(MM).some(k=>METHOD_REVENUE[k]);
+    if (!hasData) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-3);font-size:13px;"><i class="fas fa-info-circle"></i> No payments collected today</div>';
+        return;
+    }
+    grid.innerHTML = Object.keys(MM).map(k => {
+        const m = MM[k]; const val = METHOD_REVENUE[k]||0;
+        return `<div class="method-card">
+            <div class="method-icon"><i class="fas ${m.icon}" style="color:${m.color};"></i></div>
+            <div class="method-name">${m.label}</div>
+            <div class="method-val" style="color:${m.color};">${fmt(val)}</div>
+        </div>`;
+    }).join('');
+}
+
+async function refreshRevenue() {
+    try {
+        const res = await fetch('/api/accountant/revenue/', {headers:{'X-CSRFToken':getCsrf()}});
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('heroRevenue').textContent    = fmt(data.today_revenue);
+            document.getElementById('heroRestaurant').textContent = fmt(data.restaurant_today);
+            toast('Revenue data refreshed');
+        }
+    } catch(e) { toast('Could not refresh data','error'); }
+}
+
+let invStatusFilter = 'all';
+function filterInvByStatus(status, btn) {
+    invStatusFilter = status;
+    document.querySelectorAll('#invStatusBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    filterInvTable();
+}
+function filterInvTable() {
+    const q = (document.getElementById('invSearch')?.value||'').toLowerCase();
+    document.querySelectorAll('#invTable tbody tr').forEach(row => {
+        const statusOk = invStatusFilter==='all' || row.dataset.status===invStatusFilter;
+        const searchOk = !q || (row.dataset.search||'').includes(q);
+        row.style.display = (statusOk && searchOk) ? '' : 'none';
+    });
+}
+function filterPayTable() {
+    const q = (document.getElementById('paySearch')?.value||'').toLowerCase();
+    document.querySelectorAll('#payTable tbody tr').forEach(row => {
+        row.style.display = !q || (row.dataset.search||'').includes(q) ? '' : 'none';
+    });
+}
+
+// ────────────────────────────────────────
+//  COLLECTIONS
+// ────────────────────────────────────────
+let colView = 'date';
+
+function setColView(v, btn) {
+    colView = v;
+    document.querySelectorAll('#colViewBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('colDateWrap').style.display = v==='date' ? 'flex' : 'none';
+    document.getElementById('colMonthWrap').style.display = v==='month' ? 'flex' : 'none';
+}
+
+function resetColFilters() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('colDate').value  = today;
+    document.getElementById('colMonth').value = today.slice(0,7);
+    document.getElementById('colStaff').value = '';
+    colView = 'date';
+    document.querySelectorAll('#colViewBar .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+    document.getElementById('colDateWrap').style.display  = 'flex';
+    document.getElementById('colMonthWrap').style.display = 'none';
+}
+
+async function loadCollections() {
+    const staffId = document.getElementById('colStaff').value;
+    let url = '/api/accountant/collections/?';
+    if (colView === 'date') {
+        const d = document.getElementById('colDate').value;
+        if (!d) { toast('Please select a date','error'); return; }
+        url += `date=${d}`;
+    } else {
+        const m = document.getElementById('colMonth').value;
+        if (!m) { toast('Please select a month','error'); return; }
+        url += `month=${m}`;
+    }
+    if (staffId) url += `&staff_id=${staffId}`;
+
+    document.getElementById('colDeptCards').innerHTML = '<div class="empty"><span class="spinner-dark"></span><p style="margin-top:8px;">Loading...</p></div>';
+    document.getElementById('colHero').style.display      = 'none';
+    document.getElementById('colKpiStrip').style.display  = 'none';
+    document.getElementById('colMethodSection').style.display = 'none';
+    document.getElementById('colStaffSection').style.display  = 'none';
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success) { toast(data.error||'Failed to load','error'); return; }
+        renderCollections(data);
+    } catch(e) { toast('Network error','error'); }
+}
+
+function renderCollections(data) {
+    const totalAll = data.dept_breakdown.reduce((s,d)=>s+d.total,0);
+    const maxDept  = Math.max(...data.dept_breakdown.map(d=>d.total),1);
+
+    // Hero
+    const hero = document.getElementById('colHero');
+    hero.style.display = 'block';
+    document.getElementById('colHeroLabel').textContent = colView==='date' ? `Collections — ${document.getElementById('colDate').value}` : `Collections — ${document.getElementById('colMonth').value}`;
+    document.getElementById('colHeroTotal').textContent = fmt(data.total_collection||totalAll);
+    document.getElementById('colHeroSub').textContent   = `${data.transaction_count||0} transactions across all departments`;
+    const minis = [
+        {label:'Cash',     val:data.method_breakdown?.cash||0,         cls:'green'},
+        {label:'Card',     val:data.method_breakdown?.card||0,         cls:'blue'},
+        {label:'UPI',      val:data.method_breakdown?.upi||0,          cls:'amber'},
+        {label:'Bank Txn', val:data.method_breakdown?.bank_transfer||0, cls:''},
+    ];
+    document.getElementById('colHeroMinis').innerHTML = minis.map(m =>
+        `<div class="rev-mini"><div class="rev-mini-label">${m.label}</div><div class="rev-mini-val ${m.cls}">${fmt(m.val)}</div></div>`
+    ).join('');
+
+    // KPI strip
+    const kpi = document.getElementById('colKpiStrip');
+    kpi.style.display = 'grid';
+    kpi.innerHTML = [
+        {icon:'fa-layer-group',color:'--blue',  label:'Total Collected', val:fmt(data.total_collection||totalAll)},
+        {icon:'fa-exchange-alt',color:'--green', label:'Transactions',    val:fmtNum(data.transaction_count||0)},
+        {icon:'fa-percent',    color:'--purple', label:'Tax Collected',    val:fmt(data.tax_collected||0)},
+        {icon:'fa-building',   color:'--amber',  label:'Active Depts',    val:data.dept_breakdown.filter(d=>d.total>0).length},
+    ].map(k => `<div class="stat-card">
+        <div class="stat-icon" style="background:var(${k.color}-dim);color:var(${k.color});"><i class="fas ${k.icon}"></i></div>
+        <div><div class="stat-num" style="color:var(${k.color});">${k.val}</div><div class="stat-label">${k.label}</div></div>
+    </div>`).join('');
+
+    // Dept expandable cards
+    const deptContainer = document.getElementById('colDeptCards');
+    if (!data.dept_breakdown || !data.dept_breakdown.length) {
+        deptContainer.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>No collection data found for the selected period</p></div>';
+    } else {
+        deptContainer.innerHTML = data.dept_breakdown.map((d,i) => {
+            const cfg = DEPT_CONFIG[d.type] || DEPT_CONFIG.other;
+            const pct = totalAll > 0 ? ((d.total/totalAll)*100).toFixed(1) : 0;
+            const barPct = maxDept > 0 ? ((d.total/maxDept)*100).toFixed(1) : 0;
+            const txRows = (d.transactions||[]).map(t => `
+                <tr>
+                    <td style="font-size:12px;color:var(--text-3);">${t.time||'—'}</td>
+                    <td style="font-weight:600;font-size:13px;">${t.guest||'—'}</td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${t.booking||'—'}</td>
+                    <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green);">${fmt(t.amount)}</td>
+                    <td><span class="pill ${t.method==='cash'?'pill-green':t.method==='card'?'pill-blue':t.method==='upi'?'pill-purple':'pill-teal'}">${t.method_label||t.method||'—'}</span></td>
+                    <td style="font-size:12px;color:var(--text-3);">${t.staff||'—'}</td>
+                    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-4);">${t.reference||'—'}</td>
+                </tr>`).join('');
+            return `
+            <div class="dept-collection-card">
+                <div class="dept-col-header" onclick="toggleDeptCard(${i})">
+                    <div class="dept-col-left">
+                        <div class="dept-col-icon" style="background:${cfg.color}18;color:${cfg.color};"><i class="fas ${cfg.icon}"></i></div>
+                        <div>
+                            <div class="dept-col-name">${cfg.label}</div>
+                            <div class="dept-col-sub">${d.transaction_count||0} transactions &bull; ${pct}% of total</div>
+                        </div>
+                    </div>
+                    <div class="dept-col-right">
+                        <div>
+                            <div class="dept-bar-track" style="width:120px;margin-bottom:4px;"><div class="dept-bar-fill" style="width:${barPct}%;background:${cfg.color};"></div></div>
+                        </div>
+                        <div class="dept-col-amount" style="color:${cfg.color};">${fmt(d.total)}</div>
+                        <span class="dept-col-pct" style="background:${cfg.color}18;color:${cfg.color};">${pct}%</span>
+                        <i class="fas fa-chevron-down dept-col-chevron" id="colChevron${i}"></i>
+                    </div>
+                </div>
+                <div class="dept-col-body" id="colDeptBody${i}">
+                    ${d.transactions && d.transactions.length ? `
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Time</th><th>Guest</th><th>Booking</th><th>Amount</th><th>Method</th><th>Staff</th><th>Reference</th></tr></thead>
+                            <tbody>${txRows}</tbody>
+                        </table>
+                    </div>` : `<div class="empty" style="padding:20px;"><i class="fas fa-info-circle"></i><p>No transaction details available</p></div>`}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Method grid
+    if (data.method_breakdown) {
+        const mg = document.getElementById('colMethodSection');
+        mg.style.display = 'block';
+        const MM = {cash:{icon:'fa-money-bill-wave',color:'#16a34a',label:'Cash'},card:{icon:'fa-credit-card',color:'#1a65f5',label:'Card'},upi:{icon:'fa-mobile-alt',color:'#7c3aed',label:'UPI'},bank_transfer:{icon:'fa-university',color:'#0891b2',label:'Bank Transfer'}};
+        document.getElementById('colMethodGrid').innerHTML = Object.keys(MM).map(k => {
+            const m=MM[k]; const val=data.method_breakdown[k]||0;
+            return `<div class="method-card"><div class="method-icon"><i class="fas ${m.icon}" style="color:${m.color};"></i></div><div class="method-name">${m.label}</div><div class="method-val" style="color:${m.color};">${fmt(val)}</div></div>`;
+        }).join('');
+    }
+
+    // Staff table
+    if (data.staff_breakdown && data.staff_breakdown.length) {
+        document.getElementById('colStaffSection').style.display = 'block';
+        document.getElementById('colStaffTableBody').innerHTML = data.staff_breakdown.map(s => `
+            <tr>
+                <td><div style="font-weight:600;">${s.name}</div></td>
+                <td style="font-size:12px;color:var(--text-3);">${s.department||'—'}</td>
+                <td style="font-family:'DM Mono',monospace;color:#16a34a;">${fmt(s.cash||0)}</td>
+                <td style="font-family:'DM Mono',monospace;color:#1a65f5;">${fmt(s.card||0)}</td>
+                <td style="font-family:'DM Mono',monospace;color:#7c3aed;">${fmt(s.upi||0)}</td>
+                <td style="font-family:'DM Mono',monospace;color:#0891b2;">${fmt(s.bank_transfer||0)}</td>
+                <td style="font-family:'DM Mono',monospace;font-weight:700;">${fmt(s.total||0)}</td>
+                <td><span class="pill pill-blue">${s.count||0}</span></td>
+            </tr>`).join('');
+    }
+}
+
+function toggleDeptCard(i) {
+    const body = document.getElementById(`colDeptBody${i}`);
+    const chev = document.getElementById(`colChevron${i}`);
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+}
+
+function exportCollections() {
+    let url = '/api/accountant/collections/export/?';
+    if (colView==='date') url += `date=${document.getElementById('colDate').value}`;
+    else url += `month=${document.getElementById('colMonth').value}`;
+    const s = document.getElementById('colStaff').value;
+    if (s) url += `&staff_id=${s}`;
+    window.open(url,'_blank');
+}
+
+// ────────────────────────────────────────
+//  EXPENSES
+// ────────────────────────────────────────
+let expView = 'date';
+let expData = [];
+
+function setExpView(v, btn) {
+    expView = v;
+    document.querySelectorAll('#expViewBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('expDateWrap').style.display  = v==='date' ? 'flex' : 'none';
+    document.getElementById('expMonthWrap').style.display = v==='month' ? 'flex' : 'none';
+}
+
+function resetExpFilters() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('expDate').value  = today;
+    document.getElementById('expMonth').value = today.slice(0,7);
+    document.getElementById('expDept').value  = '';
+    document.getElementById('expStaff').value = '';
+    expView = 'date';
+    document.querySelectorAll('#expViewBar .tab-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+    document.getElementById('expDateWrap').style.display  = 'flex';
+    document.getElementById('expMonthWrap').style.display = 'none';
+}
+
+async function loadExpenses() {
+    const deptId  = document.getElementById('expDept').value;
+    const staffId = document.getElementById('expStaff').value;
+    let url = '/api/accountant/expenses/?';
+    if (expView === 'date') {
+        const d = document.getElementById('expDate').value;
+        if (!d) { toast('Please select a date','error'); return; }
+        url += `date=${d}`;
+    } else {
+        const m = document.getElementById('expMonth').value;
+        if (!m) { toast('Please select a month','error'); return; }
+        url += `month=${m}`;
+    }
+    if (deptId)  url += `&dept_id=${deptId}`;
+    if (staffId) url += `&staff_id=${staffId}`;
+
+    document.getElementById('expDeptCards').innerHTML   = '<div class="empty"><span class="spinner-dark"></span><p style="margin-top:8px;">Loading...</p></div>';
+    document.getElementById('expKpiStrip').style.display    = 'none';
+    document.getElementById('expTableSection').style.display = 'none';
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success) { toast(data.error||'Failed to load','error'); return; }
+        expData = data.expenses || [];
+        renderExpenses(data);
+    } catch(e) { toast('Network error','error'); }
+}
+
+function renderExpenses(data) {
+    const total = data.total_expenses || 0;
+
+    // KPI strip
+    const kpi = document.getElementById('expKpiStrip');
+    kpi.style.display = 'grid';
+    kpi.innerHTML = [
+        {icon:'fa-receipt',    color:'--red',    label:'Total Expenses',  val:fmt(total)},
+        {icon:'fa-list',       color:'--blue',   label:'Records',         val:fmtNum(data.record_count||0)},
+        {icon:'fa-building',   color:'--purple', label:'Departments',     val:fmtNum((data.dept_summary||[]).length)},
+        {icon:'fa-money-bill', color:'--amber',  label:'Top Category',    val:data.top_category||'—'},
+    ].map(k => `<div class="stat-card">
+        <div class="stat-icon" style="background:var(${k.color}-dim);color:var(${k.color});"><i class="fas ${k.icon}"></i></div>
+        <div><div class="stat-num" style="color:var(${k.color});font-size:${typeof k.val==='string'&&k.val.length>10?'16px':'24px'};">${k.val}</div><div class="stat-label">${k.label}</div></div>
+    </div>`).join('');
+
+    // Dept cards
+    const dc = document.getElementById('expDeptCards');
+    if (!data.dept_summary || !data.dept_summary.length) {
+        dc.innerHTML = '<div class="empty"><i class="fas fa-inbox"></i><p>No expense records found for the selected period</p></div>';
+    } else {
+        const maxAmt = Math.max(...data.dept_summary.map(d=>d.total),1);
+        dc.innerHTML = data.dept_summary.map((d,i) => {
+            const pct    = total > 0 ? ((d.total/total)*100).toFixed(1) : 0;
+            const barPct = ((d.total/maxAmt)*100).toFixed(1);
+            const catColors = {supplies:'#16a34a',maintenance:'#d97706',utilities:'#0891b2',salary:'#1a65f5',food:'#ea580c',marketing:'#7c3aed',transport:'#0891b2',equipment:'#dc2626',cleaning:'#16a34a',other:'#9ba8b8'};
+            const catRows = (d.categories||[]).map(c => `
+                <tr>
+                    <td><span class="pill pill-gray" style="background:${catColors[c.name]||'#e5e7eb'}18;color:${catColors[c.name]||'#6b7280'};">${c.label||c.name}</span></td>
+                    <td style="font-family:'DM Mono',monospace;font-weight:700;">${fmt(c.total)}</td>
+                    <td><span class="pill pill-blue">${c.count}</span></td>
+                    <td style="font-size:12px;color:var(--text-3);">${((c.total/d.total)*100).toFixed(1)}%</td>
+                </tr>`).join('');
+            return `
+            <div class="dept-collection-card">
+                <div class="dept-col-header" onclick="toggleExpCard(${i})">
+                    <div class="dept-col-left">
+                        <div class="dept-col-icon" style="background:var(--red-dim);color:var(--red);"><i class="fas fa-receipt"></i></div>
+                        <div>
+                            <div class="dept-col-name">${d.dept_name||'Unknown'}</div>
+                            <div class="dept-col-sub">${d.record_count||0} expenses &bull; ${pct}% of total</div>
+                        </div>
+                    </div>
+                    <div class="dept-col-right">
+                        <div><div class="dept-bar-track" style="width:120px;margin-bottom:4px;"><div class="dept-bar-fill" style="width:${barPct}%;background:var(--red);"></div></div></div>
+                        <div class="dept-col-amount" style="color:var(--red);">${fmt(d.total)}</div>
+                        <span class="dept-col-pct" style="background:var(--red-dim);color:var(--red);">${pct}%</span>
+                        <i class="fas fa-chevron-down dept-col-chevron" id="expChevron${i}"></i>
+                    </div>
+                </div>
+                <div class="dept-col-body" id="expDeptBody${i}">
+                    ${d.categories && d.categories.length ? `
+                    <div style="padding:16px 20px;">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:10px;">Category Breakdown</div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Category</th><th>Amount</th><th>Records</th><th>Share</th></tr></thead>
+                                <tbody>${catRows}</tbody>
+                            </table>
+                        </div>
+                    </div>` : `<div class="empty" style="padding:16px;"><i class="fas fa-info-circle"></i><p>No category details</p></div>`}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Expense records table
+    if (expData.length) {
+        document.getElementById('expTableSection').style.display = 'block';
+        renderExpTable(expData);
+    }
+}
+
+function renderExpTable(rows) {
+    const CAT_LABELS = {supplies:'Supplies',maintenance:'Maintenance',utilities:'Utilities',salary:'Salary',food:'Food & Bev',marketing:'Marketing',transport:'Transport',equipment:'Equipment',cleaning:'Cleaning',other:'Other'};
+    const MTH_LABELS = {cash:'Cash',card:'Card',upi:'UPI',bank_transfer:'Bank Transfer'};
+    document.getElementById('expTableBody').innerHTML = rows.map(e => `
+        <tr data-search="${(e.description||'').toLowerCase()} ${(e.dept_name||'').toLowerCase()} ${(e.category||'').toLowerCase()}">
+            <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-3);">#${e.id}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;">${e.date||'—'}</td>
+            <td><span class="pill pill-blue" style="font-size:11px;">${e.dept_name||'—'}</span></td>
+            <td><span class="pill pill-gray">${CAT_LABELS[e.category]||e.category||'—'}</span></td>
+            <td style="font-size:13px;">${e.description||'—'}</td>
+            <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red);">${fmt(e.amount)}</td>
+            <td><span class="pill ${e.payment_method==='cash'?'pill-green':e.payment_method==='card'?'pill-blue':e.payment_method==='upi'?'pill-purple':'pill-teal'}">${MTH_LABELS[e.payment_method]||e.payment_method||'—'}</span></td>
+            <td style="font-size:12px;">${e.added_by||'—'}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-3);">${e.reference||'—'}</td>
+            <td>
+                <div style="display:flex;gap:4px;">
+                    <button class="btn btn-outline btn-xs" onclick="editExpense(${e.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-xs" style="background:var(--red-dim);color:var(--red);border:1px solid #fca5a5;" onclick="deleteExpense(${e.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>`).join('') || '<tr><td colspan="10"><div class="empty"><i class="fas fa-receipt"></i><p>No expenses found</p></div></td></tr>';
+}
+
+function filterExpTable() {
+    const q = (document.getElementById('expSearch')?.value||'').toLowerCase();
+    document.querySelectorAll('#expTable tbody tr').forEach(row => {
+        row.style.display = !q || (row.dataset.search||'').includes(q) ? '' : 'none';
+    });
+}
+
+function toggleExpCard(i) {
+    const body = document.getElementById(`expDeptBody${i}`);
+    const chev = document.getElementById(`expChevron${i}`);
+    body.classList.toggle('open');
+    chev.classList.toggle('open');
+}
+
+function openAddExpense() {
+    document.getElementById('expAddDate').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('expAddDept').value     = '';
+    document.getElementById('expAddCategory').value = 'supplies';
+    document.getElementById('expAddAmount').value   = '';
+    document.getElementById('expAddDesc').value     = '';
+    document.getElementById('expAddMethod').value   = 'cash';
+    document.getElementById('expAddRef').value      = '';
+    document.getElementById('expAddNotes').value    = '';
+    openModal('addExpenseModal');
+}
+
+async function saveExpense() {
+    const date   = document.getElementById('expAddDate').value;
+    const dept   = document.getElementById('expAddDept').value;
+    const cat    = document.getElementById('expAddCategory').value;
+    const amt    = document.getElementById('expAddAmount').value;
+    const desc   = document.getElementById('expAddDesc').value.trim();
+    const method = document.getElementById('expAddMethod').value;
+    const ref    = document.getElementById('expAddRef').value.trim();
+    const notes  = document.getElementById('expAddNotes').value.trim();
+
+    if (!date || !dept || !amt || !desc) { toast('Please fill all required fields','error'); return; }
+    if (parseFloat(amt) <= 0) { toast('Amount must be greater than 0','error'); return; }
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    fd.append('date', date); fd.append('department_id', dept);
+    fd.append('category', cat); fd.append('amount', amt);
+    fd.append('description', desc); fd.append('payment_method', method);
+    fd.append('reference', ref); fd.append('notes', notes);
+
+    const btn = document.getElementById('saveExpenseBtn');
+    const orig = btn.innerHTML;
+    setLoading(btn, true, orig);
+    try {
+        const res = await fetch('/api/accountant/expenses/add/', {method:'POST', body:fd, headers:{'X-CSRFToken':getCsrf()}});
+        const data = await res.json();
+        if (data.success) {
+            toast('Expense saved successfully');
+            closeModal('addExpenseModal');
+            loadExpenses();
+        } else {
+            toast(data.error||'Failed to save','error');
+        }
+    } catch(e) { toast('Network error','error'); }
+    finally { setLoading(btn, false, orig); }
+}
+
+async function deleteExpense(id) {
+    if (!confirm('Delete this expense record?')) return;
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    try {
+        const res = await fetch(`/api/accountant/expenses/delete/${id}/`, {method:'POST', body:fd, headers:{'X-CSRFToken':getCsrf()}});
+        const data = await res.json();
+        if (data.success) { toast('Expense deleted'); loadExpenses(); }
+        else toast(data.error||'Delete failed','error');
+    } catch(e) { toast('Network error','error'); }
+}
+
+function editExpense(id) {
+    const exp = expData.find(e=>e.id===id);
+    if (!exp) return;
+    document.getElementById('expAddDate').value     = exp.date||'';
+    document.getElementById('expAddDept').value     = exp.dept_id||'';
+    document.getElementById('expAddCategory').value = exp.category||'other';
+    document.getElementById('expAddAmount').value   = exp.amount||'';
+    document.getElementById('expAddDesc').value     = exp.description||'';
+    document.getElementById('expAddMethod').value   = exp.payment_method||'cash';
+    document.getElementById('expAddRef').value      = exp.reference||'';
+    document.getElementById('expAddNotes').value    = exp.notes||'';
+    const btn = document.getElementById('saveExpenseBtn');
+    btn.innerHTML = '<i class="fas fa-save"></i> Update Expense';
+    btn.onclick = async () => {
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', getCsrf());
+        ['date','department_id','category','amount','description','payment_method','reference','notes'].forEach(f => {
+            const el = document.getElementById(`expAdd${f.split('_').map((w,i)=>i===0?w:w[0].toUpperCase()+w.slice(1)).join('')}`);
+            if (el) fd.append(f === 'department_id' ? 'department_id' : f, el.value);
+        });
+        fd.set('department_id', document.getElementById('expAddDept').value);
+        const orig = btn.innerHTML;
+        setLoading(btn, true, orig);
+        try {
+            const res = await fetch(`/api/accountant/expenses/update/${id}/`, {method:'POST', body:fd, headers:{'X-CSRFToken':getCsrf()}});
+            const data = await res.json();
+            if (data.success) {
+                toast('Expense updated');
+                closeModal('addExpenseModal');
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Expense';
+                btn.onclick = saveExpense;
+                loadExpenses();
+            } else toast(data.error||'Update failed','error');
+        } catch(e) { toast('Network error','error'); }
+        finally { setLoading(btn, false, orig); }
+    };
+    openModal('addExpenseModal');
+}
+
+function exportExpenses() {
+    let url = '/api/accountant/expenses/export/?';
+    if (expView==='date') url += `date=${document.getElementById('expDate').value}`;
+    else url += `month=${document.getElementById('expMonth').value}`;
+    const d = document.getElementById('expDept').value;
+    const s = document.getElementById('expStaff').value;
+    if (d) url += `&dept_id=${d}`;
+    if (s) url += `&staff_id=${s}`;
+    window.open(url,'_blank');
+}
+
+// ────────────────────────────────────────
+//  ATTENDANCE
+// ────────────────────────────────────────
+function clockIn() {
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    fetch('/attendance/mark/', {method:'POST',body:fd}).then(r=>r.json()).then(data=>{
+        if (data.success) {
+            document.getElementById('btnClockIn').disabled  = true;
+            document.getElementById('btnClockOut').disabled = false;
+            const p = document.getElementById('todayStatusPill');
+            p.className   = `pill ${data.status==='Late'?'pill-amber':'pill-green'}`;
+            p.textContent = data.status||'Present';
+            document.getElementById('attLogMsg').textContent = `Clocked in at ${data.check_in?new Date(data.check_in).toLocaleTimeString():'just now'}`;
+            toast(`Clocked in · ${data.status||'Present'}`);
+        } else toast(data.message||'Already clocked in.','error');
+    }).catch(()=>toast('Network error','error'));
+}
+function clockOut() {
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    fetch('/attendance/mark/', {method:'POST',body:fd}).then(r=>r.json()).then(data=>{
+        if (data.success) {
+            document.getElementById('btnClockOut').disabled = true;
+            document.getElementById('attLogMsg').textContent = `Clocked out · ${data.working_hours||'—'} hrs`;
+            toast(`Clocked out · ${data.working_hours||'—'} hrs`);
+        } else toast(data.message||'Error','error');
+    }).catch(()=>toast('Network error','error'));
+}
+
+// ────────────────────────────────────────
+//  SHIFTS
+// ────────────────────────────────────────
+let currentWeekOffset = 0;
+function getWeekStart(offset) {
+    const d = new Date(); const day = d.getDay();
+    const diff = d.getDate()-day+(day===0?-6:1);
+    d.setDate(diff+offset*7); d.setHours(0,0,0,0); return d;
+}
+function fmtDate(d){return d.toISOString().split('T')[0];}
+function changeWeek(dir){currentWeekOffset+=dir;loadWeeklyShifts();}
+function loadWeeklyShifts(){
+    const start=getWeekStart(currentWeekOffset);
+    const end=new Date(start);end.setDate(end.getDate()+6);
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('weekLabel').textContent=`${start.getDate()} ${months[start.getMonth()]} – ${end.getDate()} ${months[end.getMonth()]}`;
+    document.getElementById('shiftTableBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+    fetch(`/get-weekly-schedule/?start_date=${fmtDate(start)}`).then(r=>r.json()).then(data=>renderShiftTable(data,start)).catch(()=>{
+        document.getElementById('shiftTableBody').innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)">Could not load shifts.</td></tr>';
+    });
+}
+function renderShiftTable(data,weekStart){
+    const schedule=data.schedule||data;
+    const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const today=fmtDate(new Date());
+    let html='';
+    for(let i=0;i<7;i++){
+        const d=new Date(weekStart);d.setDate(d.getDate()+i);
+        const ds=fmtDate(d);const dl=`${months[d.getMonth()]} ${d.getDate()}`;
+        const dayShifts=schedule[ds]||[];const isToday=ds===today;
+        if(!dayShifts.length){
+            html+=`<tr ${isToday?'style="background:var(--blue-dim)"':''}>
+                <td>${days[i]}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                <td><span class="pill pill-gray">Off</span></td><td>—</td><td>—</td>
+                <td>${isToday?'<span class="pill pill-blue">Today</span>':'<span class="pill pill-gray">Day off</span>'}</td></tr>`;
+        } else {
+            dayShifts.forEach(s=>{
+                const times={Morning:'09:00–17:00',Evening:'14:00–22:00',Night:'22:00–06:00'};
+                let pill='pill-blue';
+                if(s.shift==='Evening')pill='pill-purple';
+                if(s.shift==='Night')pill='pill-amber';
+                const isPast=d<new Date()&&!isToday;
+                html+=`<tr ${isToday?'style="background:var(--blue-dim)"':''}>
+                    <td>${days[i]}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                    <td><span class="pill ${pill}">${s.shift}</span></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${times[s.shift]||'—'}</td>
+                    <td>${s.department||'—'}</td>
+                    <td>${isToday?'<span class="pill pill-blue">Today</span>':isPast?'<span class="pill pill-green">Done</span>':'<span class="pill pill-gray">Upcoming</span>'}</td></tr>`;
+            });
+        }
+    }
+    document.getElementById('shiftTableBody').innerHTML=html;
+}
+
+// ────────────────────────────────────────
+//  LEAVE
+// ────────────────────────────────────────
+async function submitLeave(){
+    const from=document.getElementById('leaveFrom').value;
+    const to=document.getElementById('leaveTo').value;
+    const type=document.getElementById('leaveType').value;
+    const reason=document.getElementById('leaveReason').value.trim();
+    if(!from||!to){toast('Select from and to dates','error');return;}
+    if(!reason){toast('Reason is required','error');return;}
+    if(new Date(to)<new Date(from)){toast('To date must be after From date','error');return;}
+    const fd=new FormData();
+    fd.append('csrfmiddlewaretoken',getCsrf());
+    fd.append('from_date',from);fd.append('to_date',to);
+    fd.append('leave_type',type);fd.append('reason',reason);
+    const btn=document.querySelector('#panel-leave .btn-primary');
+    const orig=btn?.innerHTML;if(btn)setLoading(btn,true,orig);
+    try{
+        const res=await fetch('/leave/apply/',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
+        const data=await res.json();
+        if(data.success){toast('Leave request submitted successfully');document.getElementById('leaveFrom').value='';document.getElementById('leaveTo').value='';document.getElementById('leaveReason').value='';}
+        else toast(data.error||'Submission failed','error');
+    }catch{toast('Network error','error');}
+    finally{if(btn)setLoading(btn,false,orig);}
+}
+
+// ────────────────────────────────────────
+//  PROFILE
+// ────────────────────────────────────────
+function previewPhoto(input){
+    if(!input.files?.[0])return;
+    const reader=new FileReader();
+    reader.onload=e=>{document.getElementById('profileAvatarLarge').innerHTML=`<img src="${e.target.result}">`;};
+    reader.readAsDataURL(input.files[0]);
+}
+function checkPwStrength(pw){
+    const fill=document.getElementById('pwStrengthFill');
+    let score=0;
+    if(pw.length>=8)score++;if(pw.length>=12)score++;
+    if(/[A-Z]/.test(pw))score++;if(/[0-9]/.test(pw))score++;if(/[^A-Za-z0-9]/.test(pw))score++;
+    const levels=[{w:'20%',bg:'var(--red)'},{w:'40%',bg:'var(--orange)'},{w:'60%',bg:'var(--amber)'},{w:'80%',bg:'var(--blue)'},{w:'100%',bg:'var(--green)'}];
+    const lvl=levels[Math.min(score,4)];
+    fill.style.width=lvl.w;fill.style.background=lvl.bg;
+}
+async function saveProfile(){
+    const name=document.getElementById('pfName').value.trim();
+    const phone=document.getElementById('pfPhone').value.trim();
+    const email=document.getElementById('pfEmail').value.trim();
+    const currentPw=document.getElementById('pfCurrentPw').value;
+    const newPw=document.getElementById('pfNewPw').value;
+    const confirmPw=document.getElementById('pfConfirmPw').value;
+    if(!name){toast('Full name is required','error');return;}
+    if(newPw&&newPw!==confirmPw){toast('Passwords do not match','error');return;}
+    const fd=new FormData();
+    fd.append('name',name);fd.append('phone',phone);fd.append('email',email);
+    if(newPw){fd.append('current_password',currentPw);fd.append('new_password',newPw);fd.append('confirm_password',confirmPw);}
+    const photoFile=document.getElementById('photoInput').files?.[0];
+    if(photoFile)fd.append('photo',photoFile);
+    const btn=document.querySelector('#panel-profile .btn-primary');
+    const orig=btn.innerHTML;setLoading(btn,true,orig);
+    try{
+        const res=await fetch('/update-staff-profile/',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
+        const data=await res.json();
+        if(!res.ok||!data.success)throw new Error(data.error||'Update failed');
+        toast('Profile updated successfully!');
+        setTimeout(()=>switchPanel('dashboard'),700);
+    }catch(err){toast(err.message||'Network error','error');}
+    finally{setLoading(btn,false,orig);}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    initDashboardCharts();
+    renderDeptBars();
+    renderMethodGrid();
+    resetColFilters();
+    resetExpFilters();
+});
+</script>
+</body>
+</html>

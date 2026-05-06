@@ -206,7 +206,6 @@ def delete_charge(request, charge_id):
     charge.delete()
     return JsonResponse({"success": True, "folio_balance": float(folio.balance_due)})
 
-
 @csrf_exempt
 @require_http_methods(["POST"])
 def add_payment(request):
@@ -215,11 +214,11 @@ def add_payment(request):
     except Exception:
         return _json_error("Invalid JSON")
 
-    folio_id = data.get("folio_id")
-    amount = data.get("amount")
-    method = data.get("method", "cash")
+    folio_id         = data.get("folio_id")
+    amount           = data.get("amount")
+    method           = data.get("method", "cash")
     reference_number = (data.get("reference_number") or "").strip()
-    note = (data.get("note") or "").strip()
+    note             = (data.get("note") or "").strip()
 
     if not folio_id:
         return _json_error("folio_id is required")
@@ -251,23 +250,39 @@ def add_payment(request):
     if pms_pay:
         pms_pay.payment_method = method
         pms_pay.payment_status = "paid" if folio.is_settled else "partial"
-        pms_pay.paid_at = timezone.now()
+        pms_pay.paid_at        = timezone.now()
         pms_pay.save()
 
+    # ── Send payment confirmation email ──────────────────
+    email_sent    = False
+    email_address = ""
+    email_error   = ""
+    try:
+        email_sent, result = _send_payment_confirmation_email(folio, payment)
+        if email_sent:
+            email_address = result
+        else:
+            email_error = result
+    except Exception as e:
+        email_error = str(e)
+
     return JsonResponse({
-        "success": True,
+        "success":       True,
         "payment": {
-            "id": payment.pk,
-            "amount": float(payment.amount),
-            "method": payment.method,
-            "method_label": payment.get_method_display(),
+            "id":               payment.pk,
+            "amount":           float(payment.amount),
+            "method":           payment.method,
+            "method_label":     payment.get_method_display(),
             "reference_number": payment.reference_number,
-            "received_at": payment.received_at.isoformat(),
+            "received_at":      payment.received_at.isoformat(),
         },
-        "folio_balance": float(folio.balance_due),
-        "is_settled": folio.is_settled,
-        "total_paid": float(folio.total_paid),
-        "total_charges": float(folio.total_charges),
+        "folio_balance":  float(folio.balance_due),
+        "is_settled":     folio.is_settled,
+        "total_paid":     float(folio.total_paid),
+        "total_charges":  float(folio.total_charges),
+        "email_sent":     email_sent,
+        "email_address":  email_address,
+        "email_error":    email_error,
     })
 
 
@@ -904,3 +919,215 @@ def list_invoices(request):
             for inv in invoices
         ]
     })
+def _send_payment_confirmation_email(folio, payment):
+   
+   
+    booking = folio.booking
+    guest   = booking.guest
+
+    if not guest or not guest.email:
+        return False, "No guest email on file"
+
+    _register_fonts()
+    p  = _FONTS_REGISTERED
+    B  = "Poppins-Bold"   if p else "Helvetica-Bold"
+    R  = "Poppins"        if p else "Helvetica"
+    I  = "Poppins-Italic" if p else "Helvetica-Oblique"
+    DV = "DejaVu"         if p else "Helvetica"
+
+    hotel         = _get_hotel()
+    hotel_name    = getattr(hotel, "hotel_name", None) or getattr(hotel, "name", None) or "Hotel"
+    hotel_addr    = getattr(hotel, "address",  "") or ""
+    hotel_city    = getattr(hotel, "city",     "") or ""
+    hotel_phone   = getattr(hotel, "phone",    "") or ""
+    hotel_email_s = getattr(hotel, "email",    "") or ""
+
+    method_labels = {
+        "cash":          "Cash",
+        "card":          "Credit / Debit Card",
+        "upi":           "UPI",
+        "bank_transfer": "Bank Transfer",
+    }
+    method_label = method_labels.get(payment.method, payment.method.title())
+
+    
+    def S(name, **kw): return ParagraphStyle(name, **kw)
+
+    BLACK  = colors.HexColor("#1A1A1A")
+    GRAY   = colors.HexColor("#888888")
+    LGRAY  = colors.HexColor("#EEEEEE")
+    WHITE  = colors.white
+
+    sHotel  = S("h",  fontName=B,  fontSize=13, leading=17, textColor=BLACK,  alignment=TA_CENTER)
+    sSub    = S("s",  fontName=I,  fontSize=8,  leading=11, textColor=GRAY,   alignment=TA_CENTER)
+    sTitle  = S("t",  fontName=B,  fontSize=10, leading=13, textColor=BLACK,  alignment=TA_CENTER)
+    sLbl    = S("l",  fontName=R,  fontSize=8,  leading=12, textColor=GRAY,   alignment=TA_LEFT)
+    sVal    = S("v",  fontName=B,  fontSize=8,  leading=12, textColor=BLACK,  alignment=TA_RIGHT)
+    sMono   = S("m",  fontName=DV, fontSize=8,  leading=12, textColor=BLACK,  alignment=TA_RIGHT)
+    sAmt    = S("a",  fontName=B,  fontSize=16, leading=20, textColor=BLACK,  alignment=TA_CENTER)
+    sAmtLbl = S("al", fontName=R,  fontSize=8,  leading=11, textColor=GRAY,   alignment=TA_CENTER)
+    sFoot   = S("f",  fontName=I,  fontSize=8,  leading=12, textColor=GRAY,   alignment=TA_CENTER)
+    sStatus = S("st", fontName=B,  fontSize=9,  leading=12, textColor=colors.HexColor("#166534"), alignment=TA_CENTER)
+
+    # ── Page setup (A6 = receipt width) ───────────────────
+    W, H = A6          # 105mm × 148mm
+    MX   = 8 * mm
+    MY   = 10 * mm
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A6,
+        leftMargin=MX, rightMargin=MX,
+        topMargin=MY,  bottomMargin=MY,
+    )
+
+    el = []
+
+   
+    el.append(Paragraph(hotel_name.upper(), sHotel))
+    if hotel_addr or hotel_city:
+        loc = ", ".join(x for x in [hotel_addr, hotel_city] if x)
+        el.append(Paragraph(loc, sSub))
+    if hotel_phone:
+        el.append(Paragraph(f"Tel: {hotel_phone}", sSub))
+    if hotel_email_s:
+        el.append(Paragraph(hotel_email_s, sSub))
+
+    el.append(Spacer(1, 3*mm))
+    el.append(HRFlowable(width="100%", thickness=1, color=BLACK, dash=(2,2)))
+    el.append(Spacer(1, 3*mm))
+
+    
+    el.append(Paragraph("PAYMENT RECEIPT", sTitle))
+    el.append(Spacer(1, 3*mm))
+    el.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
+    el.append(Spacer(1, 3*mm))
+
+    
+    CW = W - 2 * MX  # content width
+
+    def row(label, value, mono=False):
+        vs = sMono if mono else sVal
+        return [Paragraph(label, sLbl), Paragraph(str(value), vs)]
+
+    room_no = booking.room_unit.room_number if booking.room_unit else "N/A"
+    try:
+        nights = str((booking.check_out - booking.check_in).days)
+    except Exception:
+        nights = "—"
+
+    details = Table([
+        row("Receipt Date",    payment.received_at.strftime("%d %b %Y, %I:%M %p")),
+        row("Booking ID",      f"#{booking.id}"),
+        row("Guest Name",      guest.full_name or "Guest"),
+        row("Room No.",        room_no),
+        row("Check-In",        str(booking.check_in)),
+        row("Check-Out",       str(booking.check_out)),
+        row("Nights",          nights),
+    ], colWidths=[CW * 0.5, CW * 0.5])
+
+    details.setStyle(TableStyle([
+        ("TOPPADDING",    (0,0),(-1,-1), 3),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 3),
+        ("LEFTPADDING",   (0,0),(-1,-1), 0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+        ("LINEBELOW",     (0,0),(-1,-2), 0.3, LGRAY),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+    ]))
+    el.append(details)
+
+    el.append(Spacer(1, 3*mm))
+    el.append(HRFlowable(width="100%", thickness=0.5, color=LGRAY))
+    el.append(Spacer(1, 3*mm))
+
+   
+    pay_details = Table([
+        row("Payment Method",  method_label),
+        row("Reference No.",   payment.reference_number or "—"),
+        row("Total Charges",   f"\u20b9{float(folio.total_charges):,.2f}", mono=True),
+        row("Amount Paid",     f"\u20b9{float(payment.amount):,.2f}",      mono=True),
+        row("Balance Due",     f"\u20b9{float(folio.balance_due):,.2f}",   mono=True),
+    ], colWidths=[CW * 0.5, CW * 0.5])
+
+    pay_details.setStyle(TableStyle([
+        ("TOPPADDING",    (0,0),(-1,-1), 3),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 3),
+        ("LEFTPADDING",   (0,0),(-1,-1), 0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+        ("LINEBELOW",     (0,0),(-1,-2), 0.3, LGRAY),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        # highlight balance row
+        ("TEXTCOLOR",     (1,4),(1,4),
+            colors.HexColor("#166534") if folio.is_settled else colors.HexColor("#991B1B")),
+    ]))
+    el.append(pay_details)
+
+    el.append(Spacer(1, 4*mm))
+    el.append(HRFlowable(width="100%", thickness=1.5, color=BLACK))
+    el.append(Spacer(1, 4*mm))
+
+   
+    el.append(Paragraph("AMOUNT PAID", sAmtLbl))
+    el.append(Paragraph(f"\u20b9{float(payment.amount):,.2f}", sAmt))
+    el.append(Spacer(1, 3*mm))
+
+    
+    if folio.is_settled:
+        status_tbl = Table(
+            [[Paragraph("✓  FULLY SETTLED", sStatus)]],
+            colWidths=[CW],
+        )
+        status_tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), colors.HexColor("#DCFCE7")),
+            ("TOPPADDING",    (0,0),(-1,-1), 5),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+            ("LEFTPADDING",   (0,0),(-1,-1), 0),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+            ("ROUNDEDCORNERS", [4]),
+        ]))
+        el.append(status_tbl)
+    else:
+        sBalance = S("b", fontName=B, fontSize=9, leading=12,
+                     textColor=colors.HexColor("#991B1B"), alignment=TA_CENTER)
+        el.append(Paragraph(
+            f"Balance Due: \u20b9{float(folio.balance_due):,.2f}",
+            sBalance,
+        ))
+
+    el.append(Spacer(1, 4*mm))
+    el.append(HRFlowable(width="100%", thickness=1, color=BLACK, dash=(2,2)))
+    el.append(Spacer(1, 3*mm))
+
+    
+    el.append(Paragraph(f"Thank you for staying at {hotel_name}!", sFoot))
+    el.append(Paragraph("We look forward to welcoming you again.", sFoot))
+    if hotel_email_s:
+        el.append(Spacer(1, 2*mm))
+        el.append(Paragraph(f"Queries? {hotel_email_s}", sFoot))
+
+    doc.build(el)
+    pdf = buffer.getvalue()
+    buffer.close()
+
+   
+    msg = EmailMessage(
+        subject=f"Payment Receipt – {hotel_name}",
+        body=(
+            f"Dear {guest.full_name or 'Valued Guest'},\n\n"
+            f"Thank you for your payment of \u20b9{float(payment.amount):,.2f}.\n"
+            f"Please find your payment receipt attached.\n\n"
+            f"{'Your account is now fully settled.' if folio.is_settled else f'A balance of Rs.{float(folio.balance_due):,.2f} remains.'}\n\n"
+            f"Warm regards,\n"
+            f"The {hotel_name} Team"
+        ),
+        from_email=settings.EMAIL_HOST_USER,
+        to=[guest.email],
+    )
+    msg.attach(
+        f"Receipt_{booking.id}_{payment.received_at.strftime('%Y%m%d')}.pdf",
+        pdf,
+        "application/pdf",
+    )
+    msg.send()
+
+    return True, guest.email

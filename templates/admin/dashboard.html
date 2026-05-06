@@ -156,24 +156,64 @@ input:checked+.slider:before{transform:translateX(20px);}
 .pending-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);}
 .pending-item:last-child{border-bottom:none;}
 
-/* MODAL */
+/* ── MODAL BASE ── */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;}
 .modal.open{display:flex;}
-.modal-content{background:white;border-radius:28px;max-width:650px;width:90%;padding:24px;max-height:80vh;overflow-y:auto;}
+.modal-content{background:white;border-radius:28px;max-width:650px;width:90%;padding:24px;max-height:88vh;overflow-y:auto;}
 .modal-header{display:flex;justify-content:space-between;margin-bottom:16px;align-items:center;}
 .modal-close{background:none;border:none;font-size:1.6rem;cursor:pointer;color:#64748b;}
 
-/* HOTEL DETAILS MODAL ROWS */
+/* ── HOTEL DETAILS MODAL ── */
+.detail-hotel-header{
+  display:flex;align-items:center;gap:14px;
+  padding:16px;background:#f8fafc;
+  border-radius:16px;margin-bottom:16px;
+  border:1px solid var(--border);
+}
+.detail-avatar{
+  width:64px;height:64px;border-radius:16px;
+  background:linear-gradient(135deg,#2563eb,#06b6d4);
+  display:grid;place-items:center;
+  color:white;font-size:1.3rem;font-weight:800;
+  flex-shrink:0;
+}
+.detail-hotel-img{
+  width:64px;height:64px;border-radius:16px;
+  object-fit:cover;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.detail-hotel-name{font-size:1.1rem;font-weight:800;color:#0f172a;}
+.detail-hotel-sub{font-size:0.75rem;color:#5b6e8c;margin-top:3px;}
+
+.detail-section-title{
+  font-size:0.65rem;font-weight:700;color:#94a3b8;
+  text-transform:uppercase;letter-spacing:0.08em;
+  margin:16px 0 8px;
+}
 .detail-row{display:flex;gap:16px;padding:10px 0;border-bottom:1px solid var(--border);}
 .detail-row:last-child{border-bottom:none;}
 .detail-label{min-width:130px;font-size:0.7rem;font-weight:700;color:#4a5a7a;padding-top:2px;flex-shrink:0;}
 .detail-value{font-size:0.85rem;color:#0f172a;line-height:1.5;}
-.detail-avatar{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:grid;place-items:center;color:white;font-size:1.2rem;font-weight:800;flex-shrink:0;}
-.detail-hotel-header{display:flex;align-items:center;gap:14px;padding:16px;background:#f8fafc;border-radius:16px;margin-bottom:16px;border:1px solid var(--border);}
-.detail-hotel-name{font-size:1.1rem;font-weight:800;color:#0f172a;}
-.detail-hotel-sub{font-size:0.75rem;color:#5b6e8c;margin-top:3px;}
-.detail-section-title{font-size:0.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;margin:16px 0 8px;}
-.detail-actions-bar{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* Hotel image preview inside modal */
+.detail-img-preview{
+  width:100%;max-height:220px;
+  object-fit:cover;border-radius:14px;
+  border:1px solid var(--border);
+  margin-top:6px;display:block;
+}
+.detail-no-img{
+  display:flex;align-items:center;justify-content:center;
+  height:100px;background:#f8fafc;border-radius:14px;
+  border:1px dashed #cbd5e1;color:#94a3b8;
+  font-size:0.8rem;gap:8px;margin-top:6px;
+}
+.detail-actions-bar{
+  display:flex;gap:10px;justify-content:flex-end;
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border);
+}
+#detailStatusRow{margin-bottom:12px;}
 
 /* TOAST */
 .toast-stack{position:fixed;bottom:20px;right:20px;z-index:1100;}
@@ -216,10 +256,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       <i class="fas fa-building"></i> Hotels
       {% if pending_hotels > 0 %}<span class="nav-badge">{{ pending_hotels }}</span>{% endif %}
     </button>
-  
     <div class="sb-section">FEATURES</div>
     <button class="nav-item" data-panel="modules"><i class="fas fa-puzzle-piece"></i> Module Management</button>
-    <button class="nav-item" data-panel="subscriptions"><i class="fas fa-crown"></i> Plans & Pricing</button>
+    <button class="nav-item" data-panel="subscriptions"><i class="fas fa-crown"></i> Plans &amp; Pricing</button>
   </nav>
   <div class="sb-footer"><i class="fas fa-check-circle"></i> Module Management</div>
 </aside>
@@ -233,9 +272,9 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <div class="content">
 
-    <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════
          OVERVIEW PANEL
-    ══════════════════════════════════════════ -->
+    ══════════════════════════════════════ -->
     <div class="panel active" id="panel-overview">
       <div class="page-header">
         <h1>Hotel Portfolio Dashboard</h1>
@@ -283,7 +322,7 @@ input:checked+.slider:before{transform:translateX(20px);}
         </div>
       </div>
 
-      <!-- Pending Approvals Card -->
+      <!-- Pending Approvals -->
       <div class="card">
         <div class="card-hd">
           <div class="card-title"><i class="fas fa-clock"></i> Pending Approvals</div>
@@ -292,16 +331,25 @@ input:checked+.slider:before{transform:translateX(20px);}
         <div class="card-body">
           {% for hotel in pending_hotel_list %}
           <div class="pending-item">
-            <div>
-              <strong>{{ hotel.hotel_name }}</strong>
-              <div class="td-sub">
-                <i class="fas fa-user"></i> {{ hotel.owner_name|default:"—" }} &nbsp;·&nbsp;
-                <i class="fas fa-map-marker-alt"></i> {{ hotel.city|default:"—" }} &nbsp;·&nbsp;
-                {{ hotel.email }}
+            <div style="display:flex;align-items:center;gap:12px;">
+              {% if hotel.image %}
+                <img src="{{ hotel.image.url }}" alt="{{ hotel.hotel_name }}"
+                  style="width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">
+              {% else %}
+                <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:grid;place-items:center;color:white;font-weight:800;font-size:0.85rem;flex-shrink:0;">
+                  {{ hotel.hotel_name|first|upper }}
+                </div>
+              {% endif %}
+              <div>
+                <strong>{{ hotel.hotel_name }}</strong>
+                <div class="td-sub">
+                  <i class="fas fa-user"></i> {{ hotel.owner_name|default:"—" }} &nbsp;·&nbsp;
+                  <i class="fas fa-map-marker-alt"></i> {{ hotel.city|default:"—" }} &nbsp;·&nbsp;
+                  {{ hotel.email }}
+                </div>
               </div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <!-- ✅ NEW: View Details button -->
               <button class="btn btn-info btn-xs"
                 onclick="openHotelDetails({
                   id: {{ hotel.id }},
@@ -313,6 +361,7 @@ input:checked+.slider:before{transform:translateX(20px);}
                   propertyType: '{{ hotel.property_type|default:"—"|escapejs }}',
                   description: '{{ hotel.description|default:"—"|escapejs }}',
                   createdAt: '{{ hotel.created_at|date:"d M Y, H:i"|default:"—"|escapejs }}',
+                  image: '{% if hotel.image %}{{ hotel.image.url }}{% endif %}',
                   isApproved: false,
                   approveUrl: '{% url "approve_hotel" hotel.id %}',
                   rejectUrl: '{% url "reject_hotel" hotel.id %}'
@@ -339,9 +388,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════
          REGISTER HOTEL PANEL
-    ══════════════════════════════════════════ -->
+    ══════════════════════════════════════ -->
     <div class="panel" id="panel-register">
       <div class="page-header">
         <h1><i class="fas fa-plus-circle"></i> Register New Hotel</h1>
@@ -375,9 +424,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════
          HOTELS MANAGEMENT PANEL
-    ══════════════════════════════════════════ -->
+    ══════════════════════════════════════ -->
     <div class="panel" id="panel-hotels">
       <div class="page-header">
         <h1><i class="fas fa-building"></i> Hotels Management</h1>
@@ -401,8 +450,20 @@ input:checked+.slider:before{transform:translateX(20px);}
               {% for hotel in hotels %}
               <tr>
                 <td>
-                  <strong>{{ hotel.hotel_name }}</strong>
-                  <div class="td-sub">{{ hotel.address|truncatechars:40 }}</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    {% if hotel.image %}
+                      <img src="{{ hotel.image.url }}" alt="{{ hotel.hotel_name }}"
+                        style="width:36px;height:36px;border-radius:10px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;">
+                    {% else %}
+                      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#06b6d4);display:grid;place-items:center;color:white;font-weight:800;font-size:0.75rem;flex-shrink:0;">
+                        {{ hotel.hotel_name|first|upper }}
+                      </div>
+                    {% endif %}
+                    <div>
+                      <strong>{{ hotel.hotel_name }}</strong>
+                      <div class="td-sub">{{ hotel.address|truncatechars:40 }}</div>
+                    </div>
+                  </div>
                 </td>
                 <td>{{ hotel.city|default:"—" }}</td>
                 <td>{{ hotel.owner_name|default:"—" }}</td>
@@ -424,7 +485,6 @@ input:checked+.slider:before{transform:translateX(20px);}
                 <td>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     {% if not hotel.is_approved %}
-                      <!-- ✅ View Details for pending hotels in table -->
                       <button class="btn btn-info btn-xs"
                         onclick="openHotelDetails({
                           id: {{ hotel.id }},
@@ -436,6 +496,7 @@ input:checked+.slider:before{transform:translateX(20px);}
                           propertyType: '{{ hotel.property_type|default:"—"|escapejs }}',
                           description: '{{ hotel.description|default:"—"|escapejs }}',
                           createdAt: '{{ hotel.created_at|date:"d M Y, H:i"|default:"—"|escapejs }}',
+                          image: '{% if hotel.image %}{{ hotel.image.url }}{% endif %}',
                           isApproved: false,
                           approveUrl: '{% url "approve_hotel" hotel.id %}',
                           rejectUrl: '{% url "reject_hotel" hotel.id %}'
@@ -451,7 +512,6 @@ input:checked+.slider:before{transform:translateX(20px);}
                         <i class="fas fa-times"></i> Reject
                       </a>
                     {% else %}
-                      <!-- ✅ View Details for approved hotels in table -->
                       <button class="btn btn-info btn-xs"
                         onclick="openHotelDetails({
                           id: {{ hotel.id }},
@@ -463,6 +523,7 @@ input:checked+.slider:before{transform:translateX(20px);}
                           propertyType: '{{ hotel.property_type|default:"—"|escapejs }}',
                           description: '{{ hotel.description|default:"—"|escapejs }}',
                           createdAt: '{{ hotel.created_at|date:"d M Y, H:i"|default:"—"|escapejs }}',
+                          image: '{% if hotel.image %}{{ hotel.image.url }}{% endif %}',
                           isApproved: true,
                           plan: '{{ hotel.subscription_plan|default:"Basic"|escapejs }}'
                         })">
@@ -493,9 +554,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════
          MODULE MANAGEMENT PANEL
-    ══════════════════════════════════════════ -->
+    ══════════════════════════════════════ -->
     <div class="panel" id="panel-modules">
       <div class="page-header">
         <h1><i class="fas fa-puzzle-piece"></i> Module Management</h1>
@@ -553,9 +614,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════════
+    <!-- ══════════════════════════════════
          SUBSCRIPTIONS PANEL
-    ══════════════════════════════════════════ -->
+    ══════════════════════════════════════ -->
     <div class="panel" id="panel-subscriptions">
       <div class="page-header">
         <h1><i class="fas fa-crown"></i> Subscription Plans &amp; Modules</h1>
@@ -611,9 +672,9 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- ══════════════════════════════════════════
-     HOTEL DETAILS MODAL  ✅ NEW
-══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════
+     HOTEL DETAILS MODAL (with image)
+══════════════════════════════════════ -->
 <div id="hotelDetailsModal" class="modal">
   <div class="modal-content" style="max-width:580px;">
     <div class="modal-header">
@@ -627,16 +688,21 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="detail-hotel-header" id="detailHotelHeader"></div>
 
     <!-- Status badge row -->
-    <div id="detailStatusRow" style="margin-bottom:12px;"></div>
+    <div id="detailStatusRow"></div>
 
-    <!-- Detail rows -->
+    <!-- Contact & Location -->
     <div class="detail-section-title">Contact &amp; Location</div>
     <div id="detailContactRows"></div>
 
+    <!-- Property Info (includes image preview) -->
     <div class="detail-section-title">Property Info</div>
     <div id="detailPropertyRows"></div>
 
-    <!-- Action buttons injected dynamically for pending hotels -->
+    <!-- Hotel Image Section -->
+    <div class="detail-section-title">Hotel Image</div>
+    <div id="detailImageSection"></div>
+
+    <!-- Action buttons -->
     <div class="detail-actions-bar" id="detailActionsBar"></div>
   </div>
 </div>
@@ -731,12 +797,25 @@ function initials(name){
 }
 
 /* ─────────────────────────────────────────
-   HOTEL DETAILS MODAL  ✅ NEW
+   HOTEL DETAILS MODAL  — with image
 ───────────────────────────────────────── */
 window.openHotelDetails = function(h){
-  /* Avatar header */
+
+  /* Header: image thumbnail OR initials avatar */
+  const headerThumb = h.image
+    ? `<img src="${h.image}" alt="${escapeHtml(h.name)}"
+          class="detail-hotel-img"
+          onerror="this.style.display='none';
+                   document.getElementById('detailAvatarFallback').style.display='grid';">`
+    : '';
+
+  const avatarStyle = h.image ? 'display:none;' : '';
+
   document.getElementById('detailHotelHeader').innerHTML = `
-    <div class="detail-avatar">${escapeHtml(initials(h.name))}</div>
+    ${headerThumb}
+    <div class="detail-avatar" id="detailAvatarFallback" style="${avatarStyle}">
+      ${escapeHtml(initials(h.name))}
+    </div>
     <div>
       <div class="detail-hotel-name">${escapeHtml(h.name)}</div>
       <div class="detail-hotel-sub">
@@ -745,25 +824,43 @@ window.openHotelDetails = function(h){
       </div>
     </div>`;
 
-  /* Status badge */
+  /* Status badges */
   document.getElementById('detailStatusRow').innerHTML = h.isApproved
     ? `<span class="badge b-green"><i class="fas fa-check-circle"></i> Approved</span>
-       <span class="badge b-purple" style="margin-left:6px;"><i class="fas fa-crown"></i> ${escapeHtml(h.plan||'Basic')}</span>`
+       <span class="badge b-purple" style="margin-left:6px;">
+         <i class="fas fa-crown"></i> ${escapeHtml(h.plan||'Basic')}
+       </span>`
     : `<span class="badge b-amber"><i class="fas fa-clock"></i> Pending Approval</span>`;
 
-  /* Contact & location rows */
+  /* Contact & location */
   document.getElementById('detailContactRows').innerHTML =
     detailRow('Email',         h.email) +
     detailRow('City',          h.city) +
     detailRow('Address',       h.address) +
     detailRow('Registered On', h.createdAt);
 
-  /* Property info rows */
+  /* Property info */
   document.getElementById('detailPropertyRows').innerHTML =
     detailRow('Property Type', h.propertyType) +
     detailRow('Description',   h.description);
 
-  /* Action buttons — Approve/Reject only for pending hotels */
+  /* Hotel image — full preview section */
+  const imgSection = document.getElementById('detailImageSection');
+  if(h.image){
+    imgSection.innerHTML = `
+      <img src="${h.image}"
+           alt="Hotel image for ${escapeHtml(h.name)}"
+           class="detail-img-preview"
+           onerror="this.outerHTML='<div class=\'detail-no-img\'><i class=\'fas fa-image\'></i> Image could not be loaded</div>'"
+      >`;
+  } else {
+    imgSection.innerHTML = `
+      <div class="detail-no-img">
+        <i class="fas fa-image"></i> No image uploaded
+      </div>`;
+  }
+
+  /* Action buttons */
   const actionsBar = document.getElementById('detailActionsBar');
   if(!h.isApproved && h.approveUrl && h.rejectUrl){
     actionsBar.innerHTML = `
@@ -777,7 +874,8 @@ window.openHotelDetails = function(h){
         <i class="fas fa-check"></i> Approve
       </a>`;
   } else {
-    actionsBar.innerHTML = `<button class="btn btn-outline" onclick="closeHotelDetails()">Close</button>`;
+    actionsBar.innerHTML = `
+      <button class="btn btn-outline" onclick="closeHotelDetails()">Close</button>`;
   }
 
   document.getElementById('hotelDetailsModal').classList.add('open');
@@ -883,7 +981,7 @@ function renderModuleLists(){
 }
 
 window.addGlobalModuleFromDropdown = async function(){
-  const name         = document.getElementById('newModuleNameSelect').value;
+  const name = document.getElementById('newModuleNameSelect').value;
   if(!name){ toast('Please select a module name','err'); return; }
   const amenity_type = document.getElementById('newModuleType').value;
   const description  = document.getElementById('newModuleDesc').value;
@@ -1040,7 +1138,7 @@ document.getElementById('menuToggle')?.addEventListener('click', () =>
 
 /* Close modals on backdrop click */
 window.addEventListener('click', e => {
-  if(e.target === document.getElementById('upgradeModal'))      closeUpgradeModal();
+  if(e.target === document.getElementById('upgradeModal'))       closeUpgradeModal();
   if(e.target === document.getElementById('moduleManagerModal')) closeModuleManager();
   if(e.target === document.getElementById('hotelDetailsModal'))  closeHotelDetails();
 });

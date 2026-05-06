@@ -277,7 +277,9 @@ def restaurant_stats(request):
         'total_orders': all_orders.count(),
         'pending': all_orders.filter(status__in=['pending', 'preparing']).count(),
         'served_today': today_orders.filter(status='served').count(),
-    })
+    })# at the top, import BillingPayment
+from billing.models import GuestFolio, FolioCharge, BillingPayment
+
 @login_required
 @csrf_exempt
 @transaction.atomic
@@ -286,62 +288,52 @@ def create_order(request):
         return JsonResponse({'error': 'POST required'}, status=405)
 
     try:
-        staff = getattr(request.user, 'staff_profile', None)
-        user = request.user
-        data = json.loads(request.body)
+        staff          = getattr(request.user, 'staff_profile', None)
+        user           = request.user
+        data           = json.loads(request.body)
 
-        order_type = data.get('order_type', 'dine_in')
-        table_id = data.get('table_id')
-        room_id = data.get('room_id')
+        order_type     = data.get('order_type', 'dine_in')
+        table_id       = data.get('table_id')
+        room_id        = data.get('room_id')
         reservation_id = data.get('reservation_id')
         charge_to_room = data.get('charge_to_room', False)
-        items = data.get('items', [])
+        items          = data.get('items', [])
+        payment_method = data.get('payment_method')  # ← from frontend for takeaway
 
         if not items:
             return JsonResponse({'error': 'No items selected'}, status=400)
 
-        room_obj = None
-        unit = None
-        booking = None
+        room_obj    = None
+        unit        = None
+        booking     = None
         reservation = None
 
+        # ── room service ──
         if order_type == 'room_service' and room_id:
             from pms.models import Room, RoomUnit
-
             room_obj = Room.objects.filter(id=room_id).first()
-
             if not room_obj:
                 unit = RoomUnit.objects.filter(id=room_id).select_related('room').first()
                 if unit:
                     room_obj = unit.room
-
             if not room_obj:
                 return JsonResponse({'error': 'Invalid room selected'}, status=400)
-
             if unit:
-                booking = Booking.objects.filter(
-                    room_unit=unit,
-                    status='checked_in'
-                ).select_related('guest').first()
+                booking = Booking.objects.filter(room_unit=unit, status='checked_in').select_related('guest').first()
             else:
-                booking = Booking.objects.filter(
-                    room=room_obj,
-                    status='checked_in'
-                ).select_related('guest').first()
-
+                booking = Booking.objects.filter(room=room_obj, status='checked_in').select_related('guest').first()
             if not booking:
                 return JsonResponse({'error': 'No active booking for this room'}, status=400)
 
+        # ── dine-in reservation ──
         if order_type == 'dine_in' and reservation_id:
             from .models import TableReservation
-
             reservation = TableReservation.objects.filter(id=reservation_id).first()
-
             if not reservation:
                 return JsonResponse({'error': 'Invalid reservation'}, status=400)
-
             table_id = reservation.table_id
 
+        # ── create order ──
         order = RestaurantOrder.objects.create(
             order_type=order_type,
             table_id=table_id if table_id else None,
@@ -349,19 +341,17 @@ def create_order(request):
             booking=booking,
             reservation=reservation,
             charge_to_room=charge_to_room,
-            served_by=user,  # ✅ FIXED
+            served_by=user,
         )
 
-        total = Decimal('0')
+        total     = Decimal('0')
         tax_total = Decimal('0')
 
         for i in items:
             menu_item = get_object_or_404(MenuItem, pk=i['id'])
-            qty = int(i['qty'])
-
-            subtotal = menu_item.price * qty
-            tax = subtotal * menu_item.tax_percent / 100
-
+            qty       = int(i['qty'])
+            subtotal  = menu_item.price * qty
+            tax       = subtotal * menu_item.tax_percent / 100
             OrderItem.objects.create(
                 order=order,
                 item=menu_item,
@@ -369,23 +359,34 @@ def create_order(request):
                 unit_price=menu_item.price,
                 note=i.get('note', ''),
             )
-
-            total += subtotal
+            total     += subtotal
             tax_total += tax
 
         order.total_amount = total
-        order.tax_amount = tax_total
+        order.tax_amount   = tax_total
         order.save()
 
+        # ── dine-in: mark table occupied ──
         if order_type == 'dine_in' and table_id:
             Table.objects.filter(pk=table_id).update(is_occupied=True)
 
+        # ── TAKEAWAY: create BillingPayment directly (no folio needed) ──
+        if order_type == 'takeaway':
+            BillingPayment.objects.create(
+                order=order,
+                folio=None,
+                amount=total,
+                tax_amount=tax_total,
+                total_amount=total + tax_total,
+                method=payment_method,
+                payment_status="pending",
+                received_by=staff,
+            )
+
+        # ── room service: post to folio ──
         if order_type == 'room_service' and charge_to_room and booking:
             try:
-                from billing.models import GuestFolio, FolioCharge
-
                 folio, _ = GuestFolio.objects.get_or_create(booking=booking)
-
                 if folio.status == "open":
                     FolioCharge.objects.create(
                         folio=folio,
@@ -393,9 +394,8 @@ def create_order(request):
                         description=f'Restaurant Order #{order.order_number}',
                         amount=total,
                         tax_amount=tax_total,
-                        added_by=staff if staff else None  # ✅ SAFE
+                        added_by=staff if staff else None
                     )
-
             except Exception as e:
                 return JsonResponse({
                     'success': True,
@@ -405,17 +405,52 @@ def create_order(request):
                 })
 
         return JsonResponse({
-            'success': True,
-            'order_id': order.id,
-            'order_number': order.order_number,
-            'booking_id': booking.id if booking else None,
+            'success':        True,
+            'order_id':       order.id,
+            'order_number':   order.order_number,
+            'booking_id':     booking.id if booking else None,
             'reservation_id': reservation.id if reservation else None,
-            'total': float(total),
-            'tax': float(tax_total),
+            'total':          float(total),
+            'tax':            float(tax_total),
+            'grand_total':    float(total + tax_total),
+            'payment_status': 'pending' if order_type == 'takeaway' else None,
         })
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+@csrf_exempt
+def mark_order_paid(request, order_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    from billing.models import BillingPayment
+    from django.utils import timezone
+
+    try:
+        data    = json.loads(request.body)
+        payment = BillingPayment.objects.get(order__id=order_id)
+    except BillingPayment.DoesNotExist:
+        return JsonResponse({'error': 'Payment record not found'}, status=404)
+
+    if payment.payment_status == 'paid':
+        return JsonResponse({'error': 'Already marked as paid'}, status=400)
+
+    payment.method           = data.get('method', payment.method)
+    payment.payment_status   = 'paid'
+    payment.paid_at          = timezone.now()
+    payment.reference_number = data.get('reference_number', '')
+    payment.save()
+
+    payment.order.status = 'served'
+    payment.order.save()
+
+    return JsonResponse({
+        'success':  True,
+        'order_id': payment.order.id,
+        'paid_at':  payment.paid_at.isoformat(),
+        'method':   payment.method,
+        'total':    float(payment.total_amount),
+    })
 @csrf_exempt
 def update_order_status(request, pk):
     if request.method != 'POST':
