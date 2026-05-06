@@ -487,7 +487,7 @@ def get_amenities(request):
     
 from django.views.decorators.http import require_POST, require_http_methods
 from dateutil.relativedelta import relativedelta
-from datetime import datetime, date, timedelta
+from datetime import datetime
 @require_http_methods(["DELETE"])
 def delete_amenity(request, amenity_id):
     try:
@@ -547,7 +547,7 @@ def delete_plan(request, plan_id):
 
 @require_POST
 def update_plan_modules(request, plan_id):
-    """Assign which modules are included in a plan (non-core only)."""
+   
     try:
         data       = json.loads(request.body)
         module_ids = data.get("module_ids", [])
@@ -589,12 +589,12 @@ def upgrade_hotel_plan(request, hotel_id):
             hotel.subscription_plan = plan_name
             hotel.save()
 
-            # sync hotel modules: core + plan modules
+            
             core_ids = list(Amenity.objects.filter(is_core=True).values_list("id", flat=True))
             plan_ids = list(plan.modules.values_list("id", flat=True))
             hotel.properties.set(Amenity.objects.filter(id__in=list(set(core_ids + plan_ids))))
 
-            # create first payment record
+            
             PlanPayment.objects.create(
                 hotel    = hotel,
                 plan     = plan,
