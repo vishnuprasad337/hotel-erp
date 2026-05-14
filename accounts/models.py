@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-
-
+from datetime import timedelta
 class Hotel(models.Model):
     
     tenant = models.OneToOneField(
@@ -29,7 +28,76 @@ class Hotel(models.Model):
     logo = models.ImageField(upload_to='hotel_logos/', blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    subscription_plan = models.ForeignKey(
+    'SubscriptionPlan',
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='hotels'
+)
 
+    SUBSCRIPTION_STATUS = [
+        ('inactive',  'Inactive'),
+        ('trial',     'Trial'),
+        ('active',    'Active'),
+        ('expired',   'Expired'),
+        ('suspended', 'Suspended'),
+    ]
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=SUBSCRIPTION_STATUS,
+        default='inactive'
+    )
+    subscription_expiry = models.DateField(null=True, blank=True)
+    trial_eligible    = models.BooleanField(default=True)
+    is_on_trial       = models.BooleanField(default=False)
+    trial_start       = models.DateTimeField(null=True, blank=True)
+    trial_end         = models.DateTimeField(null=True, blank=True)
+    trial_days        = models.PositiveIntegerField(default=14)   
+    trial_granted_by  = models.CharField(max_length=100, blank=True, null=True)
+    @property
+    def trial_is_active(self):
+        
+        return (
+            self.is_on_trial
+            and self.trial_end is not None
+            and timezone.now() < self.trial_end
+        )
+ 
+    @property
+    def trial_has_expired(self):
+        return (
+            self.is_on_trial
+            and self.trial_end is not None
+            and timezone.now() >= self.trial_end
+        )
+ 
+    def start_trial(self, granted_by="system", days=None):
+       
+        if not self.trial_eligible:
+            raise ValueError("This hotel is not eligible for a trial.")
+        if self.is_on_trial or self.subscription_status in ('active', 'trial'):
+            raise ValueError("Hotel already has an active subscription or trial.")
+ 
+        days = days or self.trial_days
+        self.is_on_trial          = True
+        self.trial_start          = timezone.now()
+        self.trial_end            = timezone.now() + timedelta(days=days)
+        self.trial_granted_by     = granted_by
+        self.subscription_status  = 'trial'
+        self.is_subscribed        = True
+        self.save(update_fields=[
+            'is_on_trial', 'trial_start', 'trial_end',
+            'trial_granted_by', 'subscription_status', 'is_subscribed'
+        ])
+ 
+    def end_trial(self, reason="expired"):
+       
+        self.is_on_trial         = False
+        self.subscription_status = 'expired'
+        self.is_subscribed       = False
+        self.save(update_fields=['is_on_trial', 'subscription_status', 'is_subscribed'])
+ 
     def __str__(self):
         return self.hotel_name
 
@@ -72,7 +140,7 @@ class RolePermission(models.Model):
 class Amenity(models.Model):
     name        = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
-    is_core     = models.BooleanField(default=False)  # locked, always on for every hotel
+    is_core     = models.BooleanField(default=False)  
 
     def __str__(self):
         return self.name
@@ -82,7 +150,9 @@ class SubscriptionPlan(models.Model):
     name    = models.CharField(max_length=50, unique=True)
     price   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     modules = models.ManyToManyField(Amenity, blank=True, related_name='plans')
-
+    is_trial_plan   = models.BooleanField(default=False)
+    trial_days      = models.PositiveIntegerField(default=14)
+    tagline       = models.CharField(max_length=200, blank=True, null=True) 
     def __str__(self):
         return self.name
 
@@ -134,7 +204,7 @@ class Staff(models.Model):
         related_name="staff_profile"
     )
 
-    # Basic Info
+  
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15, blank=True, null=True)
 
@@ -146,7 +216,7 @@ class Staff(models.Model):
         blank=True
     )
 
-    # Work Info
+    
     employee_id = models.CharField(max_length=20, blank=True, null=True)
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     joining_date = models.DateField(default=timezone.now)

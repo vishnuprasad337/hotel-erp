@@ -1781,61 +1781,107 @@ function clockOut() {
 
 // ═══ SHIFTS ═══
 let currentWeekOffset = 0;
+
 function getWeekStart(offset) {
-    const d = new Date();
+    const d   = new Date();
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff + offset*7);
-    d.setHours(0,0,0,0);
+    d.setDate(diff + offset * 7);
+    d.setHours(0, 0, 0, 0);
     return d;
 }
 function fmtDate(d) { return d.toISOString().split('T')[0]; }
 function changeWeek(dir) { currentWeekOffset += dir; loadWeeklyShifts(); }
+
 function loadWeeklyShifts() {
-    const start = getWeekStart(currentWeekOffset);
-    const end = new Date(start);
-    end.setDate(end.getDate()+6);
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const start  = getWeekStart(currentWeekOffset);
+    const end    = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     document.getElementById('weekLabel').textContent = `${start.getDate()} ${months[start.getMonth()]} – ${end.getDate()} ${months[end.getMonth()]}`;
     document.getElementById('shiftTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
-    fetch(`/get-weekly-schedule/?start_date=${fmtDate(start)}`)
-        .then(r => r.json())
-        .then(data => renderShiftTable(data, start))
-        .catch(() => {
-            document.getElementById('shiftTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)">Could not load shifts.</td></tr>';
-        });
+    fetch(`/get-weekly-schedule/?start_date=${fmtDate(start)}`).then(r => r.json()).then(data => renderShiftTable(data, start)).catch(() => {
+        document.getElementById('shiftTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-3)">Could not load shifts.</td></tr>';
+    });
 }
+
 function renderShiftTable(data, weekStart) {
     const schedule = data.schedule || data;
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    
+    const days   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const today = fmtDate(new Date());
-    let m = 0, ev = 0, n = 0, html = '';
-    for(let i = 0; i < 7; i++) {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate()+i);
+    const today  = fmtDate(new Date());
+    let m = 0, ev = 0, n = 0, cu = 0, html = '';
+
+    for (let i = 0; i < 7; i++) {
+        const d  = new Date(weekStart);
+        d.setDate(d.getDate() + i);
         const ds = fmtDate(d);
         const dl = `${months[d.getMonth()]} ${d.getDate()}`;
         const dayShifts = schedule[ds] || [];
-        const isToday = ds === today;
-        if(!dayShifts.length) {
-            html += `<tr ${isToday?'style="background:var(--amber-dim)"':''}><td>${days[i]}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td><td><span class="pill pill-gray">Off</span></td><td>—</td><td>—</td><td>${isToday?'<span class="pill pill-amber">Today</span>':'<span class="pill pill-gray">Day off</span>'}</td></tr>`;
+        const isToday   = ds === today;
+
+        if (!dayShifts.length) {
+            html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}>
+                <td>${days[i]}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                <td><span class="pill pill-gray">Off</span></td>
+                <td>—</td><td>—</td>
+                <td>${isToday ? '<span class="pill pill-blue">Today</span>' : '<span class="pill pill-gray">Day off</span>'}</td>
+            </tr>`;
         } else {
             dayShifts.forEach(s => {
-                const times = {Morning:'09:00–17:00', Evening:'14:00–22:00', Night:'22:00–06:00'};
-                let pill = 'pill-blue';
-                if(s.shift === 'Evening') { pill = 'pill-purple'; ev++; }
-                else if(s.shift === 'Night') { pill = 'pill-amber'; n++; }
-                else m++;
+                let pill, shiftLabel, timeStr;
+
+                if (s.shift === 'Morning') {
+                    pill = 'pill-blue';
+                    shiftLabel = 'Morning';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '06:00–14:00';
+                    m++;
+                } else if (s.shift === 'Evening') {
+                    pill = 'pill-purple';
+                    shiftLabel = 'Evening';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '14:00–22:00';
+                    ev++;
+                } else if (s.shift === 'Night') {
+                    pill = 'pill-amber';
+                    shiftLabel = 'Night';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '22:00–06:00';
+                    n++;
+                } else {
+                    pill = 'pill-teal';
+                    shiftLabel = s.custom_name || s.shift || 'Custom';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '—';
+                    cu++;
+                }
+
                 const isPast = d < new Date() && !isToday;
-                html += `<tr ${isToday?'style="background:var(--amber-dim)"':''}><td>${days[i]}</td><td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td><td><span class="pill ${pill}">${s.shift}</span></td><td style="font-family:'DM Mono',monospace;font-size:12px;">${times[s.shift]||'—'}</td><td>${s.department||'—'}</td><td>${isToday?'<span class="pill pill-amber">Today</span>':isPast?'<span class="pill pill-green">Done</span>':'<span class="pill pill-gray">Upcoming</span>'}</td></tr>`;
+                html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}>
+                    <td>${days[i]}</td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
+                    <td><span class="pill ${pill}">${shiftLabel}</span></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${timeStr}</td>
+                    <td>${s.department || '—'}</td>
+                    <td>${isToday ? '<span class="pill pill-blue">Today</span>' : isPast ? '<span class="pill pill-green">Done</span>' : '<span class="pill pill-gray">Upcoming</span>'}</td>
+                </tr>`;
             });
         }
     }
+
     document.getElementById('shiftTableBody').innerHTML = html;
     document.getElementById('morningCount').textContent = m;
     document.getElementById('eveningCount').textContent = ev;
-    document.getElementById('nightCount').textContent = n;
+    document.getElementById('nightCount').textContent   = n;
+    const cuEl = document.getElementById('customCount');
+    if (cuEl) cuEl.textContent = cu;
 }
 
 // ═══ LEAVE ═══

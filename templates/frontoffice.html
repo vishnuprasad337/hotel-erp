@@ -4136,20 +4136,19 @@ function loadWeeklyShifts() {
 }
 
 function renderShiftTable(data, weekStart) {
-    // ✅ Use data.schedule if present, otherwise fall back to data directly
     const schedule = data.schedule || data;
     
     const days   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const today  = fmtDate(new Date());
-    let m = 0, ev = 0, n = 0, html = '';
+    let m = 0, ev = 0, n = 0, cu = 0, html = '';
 
     for (let i = 0; i < 7; i++) {
         const d  = new Date(weekStart);
         d.setDate(d.getDate() + i);
         const ds = fmtDate(d);
         const dl = `${months[d.getMonth()]} ${d.getDate()}`;
-        const dayShifts = schedule[ds] || [];   // ← use schedule, not data
+        const dayShifts = schedule[ds] || [];
         const isToday   = ds === today;
 
         if (!dayShifts.length) {
@@ -4162,17 +4161,44 @@ function renderShiftTable(data, weekStart) {
             </tr>`;
         } else {
             dayShifts.forEach(s => {
-                const times = { Morning: '09:00–17:00', Evening: '14:00–22:00', Night: '22:00–06:00' };
-                let pill = 'pill-blue';
-                if (s.shift === 'Evening') { pill = 'pill-purple'; ev++; }
-                else if (s.shift === 'Night') { pill = 'pill-amber'; n++; }
-                else m++;
+                let pill, shiftLabel, timeStr;
+
+                if (s.shift === 'Morning') {
+                    pill = 'pill-blue';
+                    shiftLabel = 'Morning';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '06:00–14:00';
+                    m++;
+                } else if (s.shift === 'Evening') {
+                    pill = 'pill-purple';
+                    shiftLabel = 'Evening';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '14:00–22:00';
+                    ev++;
+                } else if (s.shift === 'Night') {
+                    pill = 'pill-amber';
+                    shiftLabel = 'Night';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '22:00–06:00';
+                    n++;
+                } else {
+                    pill = 'pill-teal';
+                    shiftLabel = s.custom_name || s.shift || 'Custom';
+                    timeStr = (s.custom_start && s.custom_end)
+                        ? `${s.custom_start}–${s.custom_end}`
+                        : '—';
+                    cu++;
+                }
+
                 const isPast = d < new Date() && !isToday;
                 html += `<tr ${isToday ? 'style="background:var(--blue-dim)"' : ''}>
                     <td>${days[i]}</td>
                     <td style="font-family:'DM Mono',monospace;font-size:12px;">${dl}</td>
-                    <td><span class="pill ${pill}">${s.shift}</span></td>
-                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${times[s.shift] || '—'}</td>
+                    <td><span class="pill ${pill}">${shiftLabel}</span></td>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;">${timeStr}</td>
                     <td>${s.department || '—'}</td>
                     <td>${isToday ? '<span class="pill pill-blue">Today</span>' : isPast ? '<span class="pill pill-green">Done</span>' : '<span class="pill pill-gray">Upcoming</span>'}</td>
                 </tr>`;
@@ -4184,6 +4210,8 @@ function renderShiftTable(data, weekStart) {
     document.getElementById('morningCount').textContent = m;
     document.getElementById('eveningCount').textContent = ev;
     document.getElementById('nightCount').textContent   = n;
+    const cuEl = document.getElementById('customCount');
+    if (cuEl) cuEl.textContent = cu;
 }
 
 // ═══════════════════════════════════════════════════════

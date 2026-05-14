@@ -765,19 +765,19 @@ def update_staff_profile(request):
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
+from django.utils import timezone
+
 def housekeeping_dashboard(request):
     staff_id = request.session.get("staff_id")
     if not staff_id:
         return redirect("staff_login")
- 
+
     staff = Staff.objects.select_related("department").get(id=staff_id)
- 
-    # Only show rooms where a task is assigned to THIS staff member
+
     my_tasks = Task.objects.filter(
         staff=staff
     ).select_related("room_unit", "room_unit__room")
- 
-    # Get unique room units from my tasks
+
     seen_ids = set()
     rooms = []
     for task in my_tasks:
@@ -787,28 +787,70 @@ def housekeeping_dashboard(request):
             rooms.append({
                 "id": unit.id,
                 "number": unit.room_number,
-                "status": unit.status.lower(),  # CSS data-status needs lowercase
+                "status": unit.status.lower(),
                 "room_type": unit.room.room_type if unit.room else "Standard",
-                "has_task": True,  # always True here since we got it from a task
+                "has_task": True,
             })
- 
-    
+
     all_units = RoomUnit.objects.all()
- 
     tasks = my_tasks.filter(status="Pending")
     all_tasks = my_tasks
- 
+
+   
+    today = timezone.now().date()
+
+    # This month's attendance for the logged-in staff
+    monthly_attendance = Attendance.objects.filter(
+        staff=staff,
+        date__month=today.month,
+        date__year=today.year,
+    ).order_by("date")
+
+    
+    present_days   = monthly_attendance.filter(status__in=["Present", "Late"]).count()
+    late_days      = monthly_attendance.filter(status="Late").count()
+    absent_days    = monthly_attendance.filter(status="Absent").count()
+    overtime_hours = sum(
+        float(a.overtime_hours or 0) for a in monthly_attendance
+    )
+
+    
+    attendance_records = []
+    for att in monthly_attendance:
+        working_hours = 0.0
+        if att.check_in and att.check_out:
+            working_hours = round(
+                (att.check_out - att.check_in).total_seconds() / 3600, 2
+            )
+        attendance_records.append({
+            "date":          att.date,
+            "check_in":      att.check_in.strftime("%H:%M") if att.check_in else "—",
+            "check_out":     att.check_out.strftime("%H:%M") if att.check_out else "—",
+            "status":        att.status,
+            "working_hours": working_hours,
+            "overtime":      float(att.overtime_hours or 0),
+        })
+   
     context = {
-        "staff": staff,
-        "rooms": rooms,
-        "tasks": tasks,
-        "all_tasks": all_tasks,
-        "clean_rooms": all_units.filter(status="Available").count(),
-        "dirty_rooms": all_units.filter(status="Dirty").count(),
+        "staff":        staff,
+        "rooms":        rooms,
+        "tasks":        tasks,
+        "all_tasks":    all_tasks,
+        "clean_rooms":  all_units.filter(status="Available").count(),
+        "dirty_rooms":  all_units.filter(status="Dirty").count(),
         "cleaning_rooms": all_units.filter(status="Cleaning").count(),
         "pending_tasks": tasks.count(),
+        "departments":   Department.objects.filter(hotel=staff.hotel).order_by("name"),
+
+       
+        "present_days":       present_days,
+        "late_days":          late_days,
+        "absent_days":        absent_days,
+        "overtime_hours":     round(overtime_hours, 2),
+        "attendance_records": attendance_records,
+        "current_month":      today.strftime("%B %Y"),
     }
- 
+
     return render(request, "housekeeping.html", context)
  
 @csrf_exempt
@@ -1423,7 +1465,6 @@ def apply_leave(request):
 
     return JsonResponse({"success": True})
 
-
 def leave_requests(request):
     tenant = request.tenant
     staff_id = request.session.get("staff_id")
@@ -1435,7 +1476,15 @@ def leave_requests(request):
             current_staff = Staff.objects.get(id=staff_id)
             role = (getattr(current_staff, 'role', '') or '').lower()
             dept_name = (current_staff.department.name if current_staff.department else '').lower()
-            is_admin = any(k in role or k in dept_name for k in ['hr', 'admin', 'manager', 'owner'])
+            
+           
+            ADMIN_KEYWORDS = ['hr', 'admin', 'manager', 'owner', 'hotel', 'supervisor']
+            is_admin = any(k in role or k in dept_name for k in ADMIN_KEYWORDS)
+            
+            # ✅ Also check if they are the tenant owner/superuser
+            if not is_admin and getattr(current_staff, 'is_superuser', False):
+                is_admin = True
+
         except Staff.DoesNotExist:
             pass
 
@@ -1465,13 +1514,218 @@ def leave_requests(request):
             "from_date": l.from_date.strftime("%Y-%m-%d") if l.from_date else None,
             "to_date": l.to_date.strftime("%Y-%m-%d") if l.to_date else None,
             "reason": l.reason or "",
-            "leave_type": l.reason or "",   # adjust if you have a leave_type field
+            "leave_type": getattr(l, "leave_type", None) or l.reason or "",  # ✅ Fixed duplicate
             "applied_at": l.applied_at.strftime("%Y-%m-%d") if getattr(l, "applied_at", None) else None,
             "status": l.status,
             "is_admin_view": is_admin,
         })
 
     return JsonResponse(data, safe=False)
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.db.models import Q
+
+from .models import LeaveRequest
+
+
+def admin_leave_requests(request):
+
+    try:
+
+        hotel_id = request.session.get("hotel_id")
+
+        if not hotel_id:
+            return JsonResponse({
+                "success": False,
+                "error": "Hotel session not found"
+            }, status=400)
+
+        month  = request.GET.get("month")
+        year   = request.GET.get("year")
+        status = request.GET.get("status")
+        search = request.GET.get("search")
+
+        leaves = (
+            LeaveRequest.objects
+            .filter(staff__hotel_id=hotel_id)
+            .select_related("staff", "staff__department")
+            .order_by("-applied_at")
+        )
+
+        if month:
+            leaves = leaves.filter(from_date__month=month)
+
+        if year:
+            leaves = leaves.filter(from_date__year=year)
+
+        if status:
+            leaves = leaves.filter(status=status)
+
+        if search:
+            leaves = leaves.filter(
+                Q(staff__name__icontains=search) |
+                Q(staff__department__name__icontains=search)
+            )
+
+        total    = leaves.count()
+        pending  = leaves.filter(status="Pending").count()
+        approved = leaves.filter(status="Approved").count()
+        rejected = leaves.filter(status="Rejected").count()
+
+        data = []
+
+        for l in leaves:
+
+            data.append({
+
+                "id": l.id,
+
+                "staff": (
+                    l.staff.name
+                    if l.staff else "Deleted Staff"
+                ),
+
+                "staff_id": (
+                    l.staff.id
+                    if l.staff else None
+                ),
+
+                "department": (
+                    l.staff.department.name
+                    if l.staff and l.staff.department
+                    else ""
+                ),
+
+                "from_date": (
+                    l.from_date.strftime("%Y-%m-%d")
+                    if l.from_date else ""
+                ),
+
+                "to_date": (
+                    l.to_date.strftime("%Y-%m-%d")
+                    if l.to_date else ""
+                ),
+
+                "reason": l.reason or "",
+
+                "leave_type": (
+                    getattr(l, "leave_type", "")
+                ),
+
+                "applied_at": (
+                    l.applied_at.strftime("%Y-%m-%d %H:%M")
+                    if l.applied_at else ""
+                ),
+
+                "status": l.status,
+
+                "is_admin_view": True,
+            })
+
+        return JsonResponse({
+
+            "success": True,
+
+            "is_admin": True,
+
+            "summary": {
+                "total": total,
+                "pending": pending,
+                "approved": approved,
+                "rejected": rejected,
+            },
+
+            "leaves": data,
+        })
+
+    except Exception as e:
+
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@require_POST
+def admin_leave_update(request, leave_id):
+
+    try:
+
+        hotel_id = request.session.get("hotel_id")
+
+        if not hotel_id:
+            return JsonResponse({
+                "success": False,
+                "error": "Hotel session not found"
+            }, status=400)
+
+        action = request.POST.get("action", "").lower()
+
+        if action not in ["approve", "reject"]:
+
+            return JsonResponse({
+                "success": False,
+                "error": "Invalid action"
+            }, status=400)
+
+        try:
+
+            leave = (
+                LeaveRequest.objects
+                .select_related("staff")
+                .get(
+                    id=leave_id,
+                    staff__hotel_id=hotel_id
+                )
+            )
+
+        except LeaveRequest.DoesNotExist:
+
+            return JsonResponse({
+                "success": False,
+                "error": "Leave request not found"
+            }, status=404)
+
+        if leave.status != "Pending":
+
+            return JsonResponse({
+                "success": False,
+                "error": f"Leave already {leave.status}"
+            }, status=400)
+
+        leave.status = (
+            "Approved"
+            if action == "approve"
+            else "Rejected"
+        )
+
+        leave.save()
+
+        return JsonResponse({
+
+            "success": True,
+
+            "id": leave.id,
+
+            "status": leave.status,
+
+            "staff": (
+                leave.staff.name
+                if leave.staff else ""
+            ),
+
+            "message": (
+                f"Leave {leave.status.lower()} successfully"
+            )
+
+        })
+
+    except Exception as e:
+
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
 @require_POST
 def update_leave_status(request, leave_id):
     tenant = request.tenant
@@ -2508,9 +2762,7 @@ def _restaurant_report(staff, date_obj):
                 "color":   TYPE_COLOR[ot],
             })
 
-    # ── Top items via OrderItem → item (MenuItem) ─────────────────────────
-    # OrderItem fields: order, item (FK→MenuItem), quantity, unit_price, note
-    # MenuItem fields: name, category (FK→MenuCategory), price, is_veg
+    
     top_items = []
     try:
         item_rows = (
@@ -3142,15 +3394,17 @@ def accountant_dashboard(request):
     }
 
     return render(request, "accountant.html", context)
+
+
 @require_GET
 def accountant_revenue_api(request):
     today = timezone.now().date()
     month = today.month
     year  = today.year
- 
+
     filter_date  = request.GET.get("date")
     filter_month = request.GET.get("month")
- 
+
     if filter_date:
         try:
             fdate         = date.fromisoformat(filter_date)
@@ -3182,7 +3436,7 @@ def accountant_revenue_api(request):
             })
         except ValueError:
             return JsonResponse({"success": False, "error": "Invalid date"})
- 
+
     if filter_month:
         try:
             parts  = filter_month.split("-")
@@ -3213,7 +3467,7 @@ def accountant_revenue_api(request):
             })
         except (ValueError, IndexError):
             return JsonResponse({"success": False, "error": "Invalid month"})
- 
+
     today_payments  = BillingPayment.objects.filter(received_at__date=today)
     today_revenue   = today_payments.aggregate(total=Sum("amount"))["total"] or 0
     monthly_revenue = BillingPayment.objects.filter(received_at__month=month, received_at__year=year).aggregate(total=Sum("amount"))["total"] or 0
@@ -3242,22 +3496,24 @@ def accountant_revenue_api(request):
         "upi_today":           float(method_revenue.get("upi", 0)),
         "bank_transfer_today": float(method_revenue.get("bank_transfer", 0)),
     })
+
+
 @login_required
 @require_GET
 def accountant_collections_api(request):
     staff_id = request.session.get("staff_id")
     if not staff_id:
         return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
-
+ 
     try:
         staff = Staff.objects.select_related("hotel").get(id=staff_id)
     except Staff.DoesNotExist:
         return JsonResponse({"success": False, "error": "Staff not found"}, status=404)
-
+ 
     filter_date  = request.GET.get("date")
     filter_month = request.GET.get("month")
     filter_staff = request.GET.get("staff_id")
-
+ 
     payments_qs = BillingPayment.objects.select_related(
         "folio__booking__guest", "received_by",
         "received_by__department",
@@ -3265,9 +3521,9 @@ def accountant_collections_api(request):
         "order", "order__table"
     )
     charges_qs = FolioCharge.objects.all()
-
+ 
     d = fm = fy = None
-
+ 
     if filter_date:
         try:
             d = date.fromisoformat(filter_date)
@@ -3287,18 +3543,18 @@ def accountant_collections_api(request):
         d = timezone.now().date()
         payments_qs = payments_qs.filter(received_at__date=d)
         charges_qs  = charges_qs.filter(date=d)
-
+ 
     if filter_staff:
         payments_qs = payments_qs.filter(received_by__id=filter_staff)
-
+ 
     total_collection  = float(payments_qs.aggregate(t=Sum("amount"))["t"] or 0)
     transaction_count = payments_qs.count()
     tax_collected     = float(charges_qs.aggregate(t=Sum("tax_amount"))["t"] or 0)
-
+ 
     method_breakdown = {}
     for mp in payments_qs.values("method").annotate(total=Sum("amount")):
         method_breakdown[mp["method"]] = float(mp["total"])
-
+ 
     DEPT_LABELS = {
         "room":       "Room Charges",
         "restaurant": "Restaurant",
@@ -3308,78 +3564,264 @@ def accountant_collections_api(request):
         "transport":  "Transport",
         "other":      "Other",
     }
-
+ 
     charge_type_totals = {}
     for item in charges_qs.values("charge_type").annotate(total=Sum("amount")):
         charge_type_totals[item["charge_type"]] = float(item["total"])
-
+ 
+    # ── RESTAURANT BLOCK ──────────────────────────────────────────────────────
+    # Collects all restaurant orders for the period, grouped by order_type
+    # (dine_in / room_service / takeaway). Room service entries carry room number,
+    # guest name, booking id, and a flag indicating the order was placed on the
+    # same day as the guest's check-out (is_checkout_charge).
     restaurant_payments = []
     rest_total = 0
     try:
         from restaurant.models import RestaurantOrder
+ 
         if d and not fm:
-            rest_qs = payments_qs.filter(order__isnull=False, order__order_type="takeaway")
-            rest_total = float(rest_qs.aggregate(t=Sum("total_amount"))["t"] or 0)
-            for pay in rest_qs.order_by("-received_at")[:100]:
-                order      = pay.order
-                local_time = timezone.localtime(pay.received_at)
-                restaurant_payments.append({
-                    "time":         local_time.strftime("%I:%M %p"),
-                    "guest":        f"Takeaway #{order.order_number}" if order else "—",
-                    "booking":      f"Order #{order.order_number}" if order else "—",
-                    "amount":       float(pay.total_amount or pay.amount),
-                    "method":       pay.method or "—",
-                    "method_label": pay.get_method_display() if pay.method else "—",
-                    "staff":        pay.received_by.name if pay.received_by else "—",
-                    "reference":    pay.reference_number or "—",
-                })
-            if not rest_total:
-                rest_total = float(
-                    RestaurantOrder.objects.filter(
-                        created_at__date=d, status="served"
-                    ).aggregate(t=Sum("total_amount"))["t"] or 0
-                )
+            rest_orders_qs = RestaurantOrder.objects.filter(
+                created_at__date=d
+            ).select_related(
+                "table", "booking", "booking__room_unit",
+                "booking__guest", "staff"
+            )
         elif fm and fy:
-            rest_qs = payments_qs.filter(order__isnull=False, order__order_type="takeaway")
-            rest_total = float(rest_qs.aggregate(t=Sum("total_amount"))["t"] or 0)
-            for pay in rest_qs.order_by("-received_at")[:100]:
-                order      = pay.order
-                local_time = timezone.localtime(pay.received_at)
-                restaurant_payments.append({
-                    "time":         local_time.strftime("%I:%M %p"),
-                    "guest":        f"Takeaway #{order.order_number}" if order else "—",
-                    "booking":      f"Order #{order.order_number}" if order else "—",
-                    "amount":       float(pay.total_amount or pay.amount),
-                    "method":       pay.method or "—",
-                    "method_label": pay.get_method_display() if pay.method else "—",
-                    "staff":        pay.received_by.name if pay.received_by else "—",
-                    "reference":    pay.reference_number or "—",
-                })
-            if not rest_total:
-                rest_total = float(
-                    RestaurantOrder.objects.filter(
-                        created_at__month=fm, created_at__year=fy, status="served"
-                    ).aggregate(t=Sum("total_amount"))["t"] or 0
-                )
+            rest_orders_qs = RestaurantOrder.objects.filter(
+                created_at__month=fm, created_at__year=fy
+            ).select_related(
+                "table", "booking", "booking__room_unit",
+                "booking__guest", "staff"
+            )
+        else:
+            rest_orders_qs = RestaurantOrder.objects.none()
+ 
+        rest_total = float(
+            rest_orders_qs.filter(status="served")
+            .aggregate(t=Sum("total_amount"))["t"] or 0
+        )
+ 
+        for order in rest_orders_qs.order_by("-created_at")[:300]:
+            local_time = timezone.localtime(order.created_at)
+ 
+            room_number        = None
+            room_unit_id       = None
+            booking_id         = None
+            guest_name         = None
+            is_checkout_charge = False
+ 
+            if order.order_type == "room_service" and order.booking:
+                bk         = order.booking
+                booking_id = bk.id
+                if bk.room_unit:
+                    room_number  = bk.room_unit.room_number
+                    room_unit_id = bk.room_unit.id
+                if bk.guest:
+                    guest_name = bk.guest.full_name
+                if bk.check_out:
+                    checkout_day = (
+                        bk.check_out.date()
+                        if hasattr(bk.check_out, "date")
+                        else bk.check_out
+                    )
+                    order_day = order.created_at.date()
+                    is_checkout_charge = (order_day == checkout_day)
+            elif order.order_type == "dine_in":
+                guest_name = f"Table {order.table.number}" if order.table else "Dine-In"
+            elif order.order_type == "takeaway":
+                guest_name = f"Takeaway #{order.order_number}"
+ 
+            restaurant_payments.append({
+                "time":               local_time.strftime("%I:%M %p"),
+                "guest":              guest_name or "—",
+                "booking":            f"#{booking_id}" if booking_id else (order.order_number or "—"),
+                "amount":             float(order.total_amount or 0),
+                "tax":                float(order.tax_amount or 0) if hasattr(order, "tax_amount") else 0,
+                "method":             getattr(order, "payment_method", None) or "—",
+                "method_label":       (
+                    order.get_payment_method_display()
+                    if hasattr(order, "get_payment_method_display")
+                    else "—"
+                ),
+                "staff":              order.staff.get_full_name() if order.staff else "—",
+                "reference":          order.order_number or "—",
+                "order_type":         order.order_type,
+                "order_type_label":   order.order_type.replace("_", " ").title(),
+                "room_number":        room_number,
+                "room_unit_id":       room_unit_id,
+                "booking_id":         booking_id,
+                "is_checkout_charge": is_checkout_charge,
+                "charge_to_room":     getattr(order, "charge_to_room", False),
+                "status":             order.status,
+            })
+ 
         charge_type_totals["restaurant"] = rest_total
+ 
     except Exception:
-        pass
-
+        import traceback
+        traceback.print_exc()
+ 
+    # ── BUILD dept_breakdown ──────────────────────────────────────────────────
     dept_breakdown = []
-
+ 
     for ctype, total in charge_type_totals.items():
+ 
+        # ── RESTAURANT ───────────────────────────────────────────────────────
         if ctype == "restaurant":
+            dine_in_list      = [t for t in restaurant_payments if t["order_type"] == "dine_in"]
+            room_service_list = [t for t in restaurant_payments if t["order_type"] == "room_service"]
+            takeaway_list     = [t for t in restaurant_payments if t["order_type"] == "takeaway"]
+            checkout_list     = [t for t in restaurant_payments if t.get("is_checkout_charge")]
+ 
             dept_breakdown.append({
                 "type":              "restaurant",
                 "label":             "Restaurant",
                 "total":             rest_total,
                 "transaction_count": len(restaurant_payments),
                 "transactions":      restaurant_payments,
+                "sub_breakdown": {
+                    "dine_in": {
+                        "count": len(dine_in_list),
+                        "total": sum(t["amount"] for t in dine_in_list),
+                        "items": dine_in_list,
+                    },
+                    "room_service": {
+                        "count":          len(room_service_list),
+                        "total":          sum(t["amount"] for t in room_service_list),
+                        "checkout_count": len(checkout_list),
+                        "checkout_total": sum(t["amount"] for t in checkout_list),
+                        "items":          room_service_list,
+                    },
+                    "takeaway": {
+                        "count": len(takeaway_list),
+                        "total": sum(t["amount"] for t in takeaway_list),
+                        "items": takeaway_list,
+                    },
+                },
             })
             continue
-
+ 
+        # ── ROOM CHARGES — with restaurant-billed-to-room sub-breakdown ──────
+        if ctype == "room":
+            # Collect all room-service orders that were charged to the room folio
+            room_service_billed       = []
+            room_service_billed_total = 0.0
+            # Group by room number so the UI can show per-room summaries
+            room_service_by_room      = {}   # room_number → {total, count, items[]}
+ 
+            try:
+                from restaurant.models import RestaurantOrder
+ 
+                if d and not fm:
+                    rs_qs = RestaurantOrder.objects.filter(
+                        created_at__date=d,
+                        order_type="room_service",
+                        charge_to_room=True,
+                    ).select_related(
+                        "booking", "booking__room_unit", "booking__guest", "staff"
+                    )
+                elif fm and fy:
+                    rs_qs = RestaurantOrder.objects.filter(
+                        created_at__month=fm,
+                        created_at__year=fy,
+                        order_type="room_service",
+                        charge_to_room=True,
+                    ).select_related(
+                        "booking", "booking__room_unit", "booking__guest", "staff"
+                    )
+                else:
+                    rs_qs = RestaurantOrder.objects.none()
+ 
+                room_service_billed_total = float(
+                    rs_qs.aggregate(t=Sum("total_amount"))["t"] or 0
+                )
+ 
+                for order in rs_qs.order_by("-created_at"):
+                    local_time = timezone.localtime(order.created_at)
+                    bk         = order.booking
+                    room_num   = bk.room_unit.room_number if bk and bk.room_unit else None
+                    guest_name = bk.guest.full_name if bk and bk.guest else "—"
+                    amount     = float(order.total_amount or 0)
+ 
+                    # Checkout flag
+                    is_checkout = False
+                    if bk and bk.check_out:
+                        checkout_day = (
+                            bk.check_out.date()
+                            if hasattr(bk.check_out, "date")
+                            else bk.check_out
+                        )
+                        is_checkout = (order.created_at.date() == checkout_day)
+ 
+                    row = {
+                        "time":               local_time.strftime("%I:%M %p"),
+                        "guest":              guest_name,
+                        "room_number":        room_num,
+                        "booking_id":         bk.id if bk else None,
+                        "order_number":       order.order_number or "—",
+                        "amount":             amount,
+                        "tax":                float(order.tax_amount or 0) if hasattr(order, "tax_amount") else 0,
+                        "status":             order.status,
+                        "staff":              order.staff.get_full_name() if order.staff else "—",
+                        "is_checkout_charge": is_checkout,
+                    }
+                    room_service_billed.append(row)
+ 
+                    # Accumulate per-room summary
+                    key = room_num or "Unknown"
+                    if key not in room_service_by_room:
+                        room_service_by_room[key] = {
+                            "room_number": room_num,
+                            "total":       0.0,
+                            "count":       0,
+                            "items":       [],
+                        }
+                    room_service_by_room[key]["total"] += amount
+                    room_service_by_room[key]["count"] += 1
+                    room_service_by_room[key]["items"].append(row)
+ 
+            except Exception:
+                import traceback
+                traceback.print_exc()
+ 
+            # Standard room-charge payment transactions (existing logic)
+            txs = []
+            for pay in payments_qs.filter(
+                folio__charges__charge_type="room"
+            ).distinct().order_by("-received_at")[:100]:
+                booking    = pay.folio.booking if pay.folio else None
+                guest      = booking.guest if booking else None
+                local_time = timezone.localtime(pay.received_at)
+                txs.append({
+                    "time":         local_time.strftime("%I:%M %p"),
+                    "guest":        guest.full_name if guest else "—",
+                    "booking":      f"#{booking.id}" if booking else "—",
+                    "amount":       float(pay.amount),
+                    "method":       pay.method or "—",
+                    "method_label": pay.get_method_display() if pay.method else "—",
+                    "staff":        pay.received_by.name if pay.received_by else "—",
+                    "reference":    pay.reference_number or "—",
+                })
+ 
+            dept_breakdown.append({
+                "type":              "room",
+                "label":             "Room Charges",
+                "total":             total,
+                "transaction_count": len(txs),
+                "transactions":      txs,
+                # ── new fields ────────────────────────────────────────────────
+                "room_service_billed":         room_service_billed,
+                "room_service_billed_total":   room_service_billed_total,
+                "room_service_billed_count":   len(room_service_billed),
+                "room_service_by_room":        list(room_service_by_room.values()),
+            })
+            continue
+ 
+        # ── ALL OTHER CHARGE TYPES (laundry, minibar, spa, transport, other) ─
         txs = []
-        for pay in payments_qs.filter(folio__charges__charge_type=ctype).distinct().order_by("-received_at")[:100]:
+        for pay in payments_qs.filter(
+            folio__charges__charge_type=ctype
+        ).distinct().order_by("-received_at")[:100]:
             booking    = pay.folio.booking if pay.folio else None
             guest      = booking.guest if booking else None
             local_time = timezone.localtime(pay.received_at)
@@ -3400,9 +3842,10 @@ def accountant_collections_api(request):
             "transaction_count": len(txs),
             "transactions":      txs,
         })
-
+ 
     dept_breakdown.sort(key=lambda x: x["total"], reverse=True)
-
+ 
+    # ── STAFF BREAKDOWN ───────────────────────────────────────────────────────
     staff_breakdown = []
     for row in payments_qs.values(
         "received_by__id",
@@ -3423,7 +3866,7 @@ def accountant_collections_api(request):
             "total":         float(row["total"]),
             "count":         payments_qs.filter(received_by__id=sid).count(),
         })
-
+ 
     return JsonResponse({
         "success":           True,
         "total_collection":  total_collection,
@@ -3433,8 +3876,6 @@ def accountant_collections_api(request):
         "dept_breakdown":    dept_breakdown,
         "staff_breakdown":   staff_breakdown,
     })
-
-
 @login_required
 @require_GET
 def accountant_collections_export(request):
@@ -3507,3 +3948,1791 @@ def accountant_collections_export(request):
         ])
 
     return response
+import json
+from decimal import Decimal
+from datetime import date, timedelta
+
+from django.shortcuts import render, redirect
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from django.db.models import Sum, Count, Q
+from django.views.decorators.cache import never_cache
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
+import csv
+
+from accounts.models import Staff, Department
+from hotel.models import Task
+from inventory.models import (
+    Expense, ExpenseCategory,
+    PurchaseOrder, PurchaseItem,
+    MaintenanceLog, InventoryItem,
+    StockAdjustment,
+)
+
+
+# ─────────────────────────────────────────────────────────────
+# HELPER
+# ─────────────────────────────────────────────────────────────
+
+def _parse_period(request):
+  
+    filter_date  = request.GET.get("date")
+    filter_month = request.GET.get("month")
+
+    if filter_date:
+        try:
+            d = date.fromisoformat(filter_date)
+            return d, None, None
+        except ValueError:
+            pass
+
+    if filter_month:
+        try:
+            parts = filter_month.split("-")
+            return None, int(parts[1]), int(parts[0])
+        except (ValueError, IndexError):
+            pass
+
+    return timezone.now().date(), None, None
+
+
+def _apply_period(qs, field, d, month, year):
+    
+    if d:
+        return qs.filter(**{f"{field}__date": d}) if "__date" not in field else qs.filter(**{field: d})
+    return qs.filter(**{f"{field}__month": month, f"{field}__year": year})
+
+
+# ─────────────────────────────────────────────────────────────
+# 1. EXPENSE REPORT PAGE  (renders accountant_expense.html)
+# ─────────────────────────────────────────────────────────────
+
+@never_cache
+@login_required
+def expense_report_view(request):
+    
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel       = staff.hotel
+    today       = timezone.now().date()
+    departments = Department.objects.filter(hotel=hotel)
+    categories  = ExpenseCategory.objects.all()
+
+    context = {
+        "staff":       staff,
+        "hotel":       hotel,
+        "today":       today,
+        "departments": departments,
+        "categories":  categories,
+    }
+    return render(request, "accountant_expense.html", context)
+
+
+# ─────────────────────────────────────────────────────────────
+# 2. EXPENSE REPORT API  (JSON — called by the page via fetch)
+# ─────────────────────────────────────────────────────────────
+
+@login_required
+@require_GET
+def expense_report_api(request):
+    
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+
+    d, month, year = _parse_period(request)
+
+    dept_filter     = request.GET.get("department_id")
+    category_filter = request.GET.get("category_id")
+    source_filter   = request.GET.get("source")
+
+    # ── Base Expense queryset ─────────────────────────────────
+    exp_qs = Expense.objects.select_related(
+        "department", "expense_category",
+        "purchase_order", "purchase_order__vendor",
+        "maintenance_log", "maintenance_log__asset",
+        "recorded_by",
+    )
+
+    if d:
+        exp_qs = exp_qs.filter(expense_date=d)
+    else:
+        exp_qs = exp_qs.filter(expense_date__month=month, expense_date__year=year)
+
+    if dept_filter:
+        exp_qs = exp_qs.filter(department_id=dept_filter)
+    if category_filter:
+        exp_qs = exp_qs.filter(expense_category_id=category_filter)
+    if source_filter:
+        exp_qs = exp_qs.filter(source=source_filter)
+
+    # ── Summary totals ────────────────────────────────────────
+    total          = float(exp_qs.aggregate(t=Sum("amount"))["t"] or 0)
+    po_qs          = exp_qs.filter(source="purchase_order")
+    maint_qs       = exp_qs.filter(source="maintenance")
+    manual_qs      = exp_qs.filter(source="manual")
+
+    po_total        = float(po_qs.aggregate(t=Sum("amount"))["t"] or 0)
+    maint_total     = float(maint_qs.aggregate(t=Sum("amount"))["t"] or 0)
+    manual_total    = float(manual_qs.aggregate(t=Sum("amount"))["t"] or 0)
+
+    summary = {
+        "total":              total,
+        "po_total":           po_total,
+        "maintenance_total":  maint_total,
+        "manual_total":       manual_total,
+        "po_count":           po_qs.count(),
+        "maintenance_count":  maint_qs.count(),
+        "manual_count":       manual_qs.count(),
+    }
+
+    # ── By department ─────────────────────────────────────────
+    by_dept = []
+    for row in exp_qs.values("department__id", "department__name").annotate(
+        total=Sum("amount"), count=Count("id")
+    ).order_by("-total"):
+        did = row["department__id"]
+        sub = exp_qs.filter(department_id=did)
+        by_dept.append({
+            "dept_id":    did,
+            "department": row["department__name"] or "Unassigned",
+            "total":      float(row["total"]),
+            "count":      row["count"],
+            "by_source": {
+                "manual":         float(sub.filter(source="manual").aggregate(t=Sum("amount"))["t"] or 0),
+                "purchase_order": float(sub.filter(source="purchase_order").aggregate(t=Sum("amount"))["t"] or 0),
+                "maintenance":    float(sub.filter(source="maintenance").aggregate(t=Sum("amount"))["t"] or 0),
+            },
+        })
+
+    # ── By category ───────────────────────────────────────────
+    by_cat = []
+    for row in exp_qs.values("expense_category__name").annotate(
+        total=Sum("amount"), count=Count("id")
+    ).order_by("-total"):
+        by_cat.append({
+            "category": row["expense_category__name"] or "Uncategorised",
+            "total":    float(row["total"]),
+            "count":    row["count"],
+        })
+
+    # ── By source ─────────────────────────────────────────────
+    by_source = []
+    for row in exp_qs.values("source").annotate(
+        total=Sum("amount"), count=Count("id")
+    ).order_by("-total"):
+        by_source.append({
+            "source": row["source"] or "manual",
+            "total":  float(row["total"]),
+            "count":  row["count"],
+        })
+
+    # ── Purchase order detail ─────────────────────────────────
+    po_ids = po_qs.values_list("purchase_order_id", flat=True).distinct()
+    po_list = []
+    for po in PurchaseOrder.objects.filter(id__in=po_ids).select_related(
+        "vendor", "department", "ordered_by", "approved_by"
+    ).prefetch_related("items__item"):
+        items = []
+        for pi in po.items.select_related("item"):
+            items.append({
+                "item":       pi.item.name,
+                "unit":       pi.item.unit,
+                "qty":        float(pi.quantity),
+                "unit_price": float(pi.unit_price),
+                "subtotal":   float(pi.quantity * pi.unit_price),
+            })
+        po_list.append({
+            "po_id":       po.id,
+            "vendor":      po.vendor.name,
+            "department":  po.department.name if po.department else "—",
+            "total":       float(po.total_amount),
+            "status":      po.status,
+            "ordered_by":  str(po.ordered_by) if po.ordered_by else "—",
+            "approved_by": str(po.approved_by) if po.approved_by else "—",
+            "ordered_at":  po.ordered_at.strftime("%d %b %Y") if po.ordered_at else "—",
+            "received_at": po.received_at.strftime("%d %b %Y") if po.received_at else "—",
+            "items_count": len(items),
+            "items":       items,
+        })
+
+   
+    maint_ids = maint_qs.values_list("maintenance_log_id", flat=True).distinct()
+    maint_list = []
+    for log in MaintenanceLog.objects.filter(id__in=maint_ids).select_related(
+        "asset", "asset__department", "department", "recorded_by"
+    ):
+        maint_list.append({
+            "id":             log.id,
+            "asset":          log.asset.name if log.asset else log.custom_asset or "—",
+            "department":     (
+                log.department.name if log.department_id
+                else (log.asset.department.name if log.asset and log.asset.department else "—")
+            ),
+            "type":           log.maintenance_type,
+            "priority":       log.priority,
+            "status":         log.status,
+            "description":    log.description,
+            "location":       log.location,
+            "performed_by":   log.performed_by,
+            "performed_at":   log.performed_at.strftime("%d %b %Y, %I:%M %p") if log.performed_at else "—",
+            "cost":           float(log.cost),
+            "labour_cost":    float(log.labour_cost),
+            "parts_cost":     float(log.parts_cost),
+            "parts_replaced": log.parts_replaced,
+            "notes":          log.notes,
+            "duration":       log.duration,
+        })
+
+    # ── Manual expense detail ─────────────────────────────────
+    manual_list = []
+    for exp in manual_qs.order_by("-expense_date"):
+        manual_list.append({
+            "id":          exp.id,
+            "date":        str(exp.expense_date),
+            "department":  exp.department.name if exp.department else "—",
+            "category":    exp.expense_category.name if exp.expense_category else "—",
+            "source":      exp.source,
+            "description": exp.description,
+            "amount":      float(exp.amount),
+            "recorded_by": str(exp.recorded_by) if exp.recorded_by else "—",
+        })
+
+    # ── Unified transaction list ──────────────────────────────
+    transactions = []
+    for exp in exp_qs.order_by("-expense_date"):
+        row = {
+            "id":          exp.id,
+            "date":        str(exp.expense_date),
+            "department":  exp.department.name if exp.department else "—",
+            "category":    exp.expense_category.name if exp.expense_category else "—",
+            "source":      exp.source or "manual",
+            "description": exp.description,
+            "amount":      float(exp.amount),
+            "recorded_by": str(exp.recorded_by) if exp.recorded_by else "—",
+            "ref":         (
+                f"PO-{exp.purchase_order_id}" if exp.purchase_order_id
+                else f"ML-{exp.maintenance_log_id}" if exp.maintenance_log_id
+                else "—"
+            ),
+        }
+        transactions.append(row)
+
+    return JsonResponse({
+        "success":          True,
+        "summary":          summary,
+        "by_department":    by_dept,
+        "by_category":      by_cat,
+        "by_source":        by_source,
+        "purchase_orders":  po_list,
+        "maintenance_logs": maint_list,
+        "manual_expenses":  manual_list,
+        "transactions":     transactions,
+    })
+
+
+
+@login_required
+@require_GET
+def expense_export_csv(request):
+   
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+
+    d, month, year = _parse_period(request)
+    dept_filter    = request.GET.get("department_id")
+    source_filter  = request.GET.get("source")
+
+    exp_qs = Expense.objects.select_related(
+        "department", "expense_category", "purchase_order",
+        "purchase_order__vendor", "maintenance_log", "recorded_by",
+    )
+
+    if d:
+        exp_qs = exp_qs.filter(expense_date=d)
+        filename = f"expenses_{d}.csv"
+    else:
+        exp_qs = exp_qs.filter(expense_date__month=month, expense_date__year=year)
+        filename = f"expenses_{year}-{str(month).zfill(2)}.csv"
+
+    if dept_filter:
+        exp_qs = exp_qs.filter(department_id=dept_filter)
+    if source_filter:
+        exp_qs = exp_qs.filter(source=source_filter)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "#", "Date", "Department", "Category", "Source",
+        "Reference", "Description", "Amount", "Recorded By",
+    ])
+
+    for exp in exp_qs.order_by("-expense_date"):
+        ref = (
+            f"PO-{exp.purchase_order_id}" if exp.purchase_order_id
+            else f"ML-{exp.maintenance_log_id}" if exp.maintenance_log_id
+            else "—"
+        )
+        writer.writerow([
+            exp.id,
+            str(exp.expense_date),
+            exp.department.name if exp.department else "—",
+            exp.expense_category.name if exp.expense_category else "—",
+            exp.source or "manual",
+            ref,
+            exp.description,
+            float(exp.amount),
+            str(exp.recorded_by) if exp.recorded_by else "—",
+        ])
+
+    return response
+
+
+# ─────────────────────────────────────────────────────────────
+# 4. ADD MANUAL EXPENSE  (AJAX POST from accountant page)
+# ─────────────────────────────────────────────────────────────
+
+@csrf_exempt
+@login_required
+def expense_add(request):
+    
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+
+    try:
+        staff = Staff.objects.get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Staff not found"}, status=404)
+
+    import json as _json
+    data = _json.loads(request.body)
+
+    exp = Expense.objects.create(
+        department_id=data.get("department_id"),
+        expense_category_id=data.get("expense_category_id"),
+        source=data.get("source", "manual"),
+        amount=Decimal(str(data["amount"])),
+        description=data.get("description", ""),
+        expense_date=data.get("expense_date", timezone.now().date()),
+        recorded_by=staff,
+    )
+
+    return JsonResponse({"success": True, "id": exp.id}, status=201)
+
+
+# ─────────────────────────────────────────────────────────────
+# 5. DELETE EXPENSE  (AJAX POST)
+# ─────────────────────────────────────────────────────────────
+
+@csrf_exempt
+@login_required
+@require_POST
+def expense_delete(request, expense_id):
+   
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+
+    try:
+        exp = Expense.objects.get(id=expense_id)
+        exp.delete()
+        return JsonResponse({"success": True})
+    except Expense.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Expense not found"}, status=404)
+
+
+
+
+@login_required
+@require_GET
+def expense_summary_api(request):
+    
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
+
+    d, month, year = _parse_period(request)
+
+    exp_qs = Expense.objects.all()
+    if d:
+        exp_qs = exp_qs.filter(expense_date=d)
+    else:
+        exp_qs = exp_qs.filter(expense_date__month=month, expense_date__year=year)
+
+    by_dept = [
+        {
+            "department": r["department__name"] or "Unassigned",
+            "total": float(r["total"]),
+            "count": r["count"],
+        }
+        for r in exp_qs.values("department__name")
+        .annotate(total=Sum("amount"), count=Count("id"))
+        .order_by("-total")
+    ]
+
+    by_cat = [
+        {
+            "category": r["expense_category__name"] or "Uncategorised",
+            "total": float(r["total"]),
+            "count": r["count"],
+        }
+        for r in exp_qs.values("expense_category__name")
+        .annotate(total=Sum("amount"), count=Count("id"))
+        .order_by("-total")
+    ]
+
+    grand_total = float(exp_qs.aggregate(t=Sum("amount"))["t"] or 0)
+
+    return JsonResponse({
+        "success":        True,
+        "grand_total":    grand_total,
+        "by_department":  by_dept,
+        "by_category":    by_cat,
+    })
+@csrf_exempt
+@login_required
+@require_POST
+def expense_update(request, expense_id):
+
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({
+            "success": False,
+            "error": "Not authenticated"
+        }, status=401)
+
+    try:
+        exp = Expense.objects.get(id=expense_id)
+    except Expense.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "error": "Expense not found"
+        }, status=404)
+
+    import json as _json
+    data = _json.loads(request.body)
+
+    exp.department_id = data.get(
+        "department_id",
+        exp.department_id
+    )
+
+    exp.expense_category_id = data.get(
+        "expense_category_id",
+        exp.expense_category_id
+    )
+
+    exp.source = data.get(
+        "source",
+        exp.source
+    )
+
+    if data.get("amount") is not None:
+        exp.amount = Decimal(str(data.get("amount")))
+
+    exp.description = data.get(
+        "description",
+        exp.description
+    )
+
+    if data.get("expense_date"):
+        exp.expense_date = data.get("expense_date")
+
+    exp.save()
+
+    return JsonResponse({
+        "success": True,
+        "id": exp.id
+    })
+
+
+import json
+import re
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q
+from django.http import JsonResponse
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views import View
+
+from accounts.models import Staff, Department
+from .models import (
+    MessageThread, ThreadParticipant,
+    Message, MessageAttachment, MessageReadStatus,
+    Reaction, PinnedMessage, StarredMessage,
+    Mention, Poll, PollOption, PollVote,
+    Notification,
+)
+
+User = get_user_model()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def json_ok(data, status=200):
+    return JsonResponse(data, status=status, safe=isinstance(data, dict))
+
+def json_err(msg, status=400):
+    return JsonResponse({'error': msg}, status=status)
+
+def get_hotel(user):
+    return getattr(user, 'hotel', None)
+
+def require_hotel(user):
+    hotel = get_hotel(user)
+    if not hotel:
+        raise PermissionError('No hotel linked to this account.')
+    return hotel
+
+
+def _staff_dict(user):
+    staff = getattr(user, 'staff_profile', None)
+    
+    # Get best display name
+    name = (
+        staff.name if (staff and staff.name)
+        else user.get_full_name()
+        or user.username
+    )
+    
+    # Get role/department label
+    dept_name = staff.department.name if (staff and staff.department) else None
+    role      = getattr(staff, 'role', None) or dept_name or 'Staff'
+
+    return {
+        'id':          user.id,
+        'staff_id':    staff.id        if staff else None,
+        'username':    user.username,
+        'name':        name,
+        'role':        role,
+        'employee_id': staff.employee_id  if staff else None,
+        'department':  dept_name,
+        'dept_id':     staff.department_id if staff else None,
+        'photo':       staff.photo.url     if (staff and staff.photo) else None,
+    }
+def _attachment_dict(att):
+    return {
+        'id':        att.id,
+        'url':       att.file.url,
+        'file_name': att.file_name,
+        'file_size': att.file_size,
+        'file_type': att.file_type,
+    }
+
+
+def _message_dict(msg, current_user):
+    reactions = {}
+    for r in msg.reactions.all():
+        reactions.setdefault(r.emoji, []).append({
+            'user_id': r.user_id,
+            'name':    r.user.get_full_name(),
+        })
+
+    reply_preview = None
+    if msg.reply_to_id and not msg.reply_to.is_deleted:
+        rp = msg.reply_to
+        reply_preview = {
+            'id':     rp.id,
+            'body':   rp.body[:100],
+            'sender': rp.sender.get_full_name() if rp.sender else '',
+        }
+
+    fwd_preview = None
+    if msg.forwarded_from_id and not msg.forwarded_from.is_deleted:
+        ff = msg.forwarded_from
+        fwd_preview = {
+            'id':            ff.id,
+            'body':          ff.body[:100],
+            'original_sender': ff.sender.get_full_name() if ff.sender else '',
+        }
+
+    poll_data = None
+    if hasattr(msg, 'poll'):
+        p = msg.poll
+        my_votes = list(PollVote.objects.filter(option__poll=p, user=current_user)
+                                        .values_list('option_id', flat=True))
+        poll_data = {
+            'id':           p.id,
+            'question':     p.question,
+            'is_anonymous': p.is_anonymous,
+            'allow_multi':  p.allow_multi,
+            'is_open':      p.is_open,
+            'closes_at':    str(p.closes_at) if p.closes_at else None,
+            'total_votes':  p.total_votes,
+            'my_votes':     my_votes,
+            'options': [
+                {
+                    'id':         opt.id,
+                    'text':       opt.text,
+                    'votes':      opt.vote_count(),
+                    'percentage': opt.percentage(),
+                    'voted':      opt.id in my_votes,
+                    'voters': [] if p.is_anonymous else [
+                        v.user.get_full_name() for v in opt.votes.select_related('user').all()
+                    ],
+                }
+                for opt in p.options.all()
+            ],
+        }
+
+    mentions = list(msg.mentions.filter(is_all=False)
+                                .values_list('mentioned_user__username', flat=True))
+    has_all_mention = msg.mentions.filter(is_all=True).exists()
+
+    return {
+        'id':             msg.id,
+        'thread_id':      msg.thread_id,
+        'sender':         _staff_dict(msg.sender) if msg.sender else None,
+        'body':           msg.body if not msg.is_deleted else '🚫 This message was deleted.',
+        'priority':       msg.priority,
+        'attachments':    [_attachment_dict(a) for a in msg.attachments.all()],
+        'reply_to':       reply_preview,
+        'forwarded_from': fwd_preview,
+        'poll':           poll_data,
+        'is_edited':      msg.is_edited,
+        'is_deleted':     msg.is_deleted,
+        'is_system_msg':  msg.is_system_msg,
+        'is_mine':        msg.sender_id == current_user.id,
+        'reactions':      reactions,
+        'read_by': [] if msg.is_deleted else list(
+            msg.read_statuses.values_list('user__username', flat=True)
+        ),
+        'mentions':       mentions,
+        'has_all_mention': has_all_mention,
+        'created_at':     str(msg.created_at),
+        'updated_at':     str(msg.updated_at),
+    }
+
+
+def _thread_dict(thread, current_user):
+    membership = thread.memberships.filter(user=current_user).first()
+    last  = thread.last_message()
+    return {
+        'id':              thread.id,
+        'type':            thread.thread_type,
+        'name':            thread.display_name(for_user=current_user),
+        'description':     thread.description,
+        'avatar':          thread.avatar.url if thread.avatar else None,
+        'department':      thread.department.name if thread.department else None,
+        'is_archived':     thread.is_archived,
+        'is_locked':       thread.is_locked,
+        'is_muted':        membership.is_muted       if membership else False,
+        'is_pinned_chat':  membership.is_pinned_chat if membership else False,
+        'is_admin':        membership.is_admin       if membership else False,
+        'participant_count': thread.participants.count(),
+        'participants':    [_staff_dict(u) for u in thread.participants.select_related('staff_profile').all()],
+        'last_message': {
+            'id':         last.id,
+            'body':       last.body if not last.is_deleted else '🚫 Message deleted',
+            'sender':     last.sender.get_full_name() if last.sender else '—',
+            'priority':   last.priority,
+            'created_at': str(last.created_at),
+        } if last else None,
+        'unread_count':    thread.unread_count_for(current_user),
+        'pinned_count':    thread.pinned_messages.count(),
+        'updated_at':      str(thread.updated_at),
+        'created_at':      str(thread.created_at),
+    }
+
+def _display(user):
+    s    = getattr(user, 'staff_profile', None)
+    name = (
+        s.name
+        if (s and s.name)
+        else user.get_full_name() or user.username
+    )
+
+    # Collect all role/dept text to check against
+    role_field = (getattr(s, 'role', None) or '').lower()
+    dept_name  = (s.department.name if (s and s.department) else '') or ''
+    dept_lower = dept_name.lower()
+    combined   = role_field + ' ' + dept_lower
+
+    # ── Priority 1: Hotel Admin ──────────────────────────────────────
+    if any(k in combined for k in [
+        'hotel admin', 'admin', 'manager', 'owner',
+        'general manager', 'gm', 'director'
+    ]):
+        role = 'Hotel Admin'
+
+    # ── Priority 2: HR ───────────────────────────────────────────────
+    elif any(k in combined for k in [
+        'hr', 'human resource', 'human resources',
+        'personnel', 'people ops'
+    ]):
+        role = 'HR'
+
+    # ── Priority 3: Other departments ────────────────────────────────
+    elif any(k in combined for k in ['front', 'reception', 'fd', 'front desk', 'front office']):
+        role = 'Front Desk'
+
+    elif any(k in combined for k in ['house', 'hk', 'housekeeping', 'clean']):
+        role = 'Housekeeping'
+
+    elif any(k in combined for k in ['restaurant', 'f&b', 'food', 'kitchen', 'dining', 'bar']):
+        role = 'Restaurant'
+
+    elif any(k in combined for k in ['account', 'finance', 'billing', 'accounts']):
+        role = 'Accountant'
+
+    elif any(k in combined for k in ['security', 'guard']):
+        role = 'Security'
+
+    elif any(k in combined for k in ['maintenance', 'engineer', 'technician']):
+        role = 'Maintenance'
+
+    elif any(k in combined for k in ['store', 'inventory', 'purchase', 'procurement']):
+        role = 'Store'
+
+    # ── Fallback: use raw department name or Staff ────────────────────
+    else:
+        role = dept_name if dept_name else 'Staff'
+
+    return name, role
+def _parse_mentions(body, thread, sender):
+   
+    mentions = []
+    if '@all' in body:
+        mentions.append(Mention(mentioned_user=None, is_all=True))
+    usernames = set(re.findall(r'@(\w+)', body))
+    usernames.discard('all')
+    if usernames:
+        users = User.objects.filter(
+            username__in=usernames,
+            hotel=sender.hotel,
+            message_threads=thread
+        )
+        for u in users:
+            if u != sender:
+                mentions.append(Mention(mentioned_user=u, is_all=False))
+    return mentions
+
+
+def _fan_out_notifications(msg, thread, sender):
+    participants = thread.participants.exclude(id=sender.id).filter(
+        threadparticipant__thread=thread,
+        threadparticipant__is_muted=False
+    )
+    notifs = [
+        Notification(
+            recipient=u,
+            notif_type='message',
+            title=f"New message in {thread.display_name(for_user=u)}",
+            body=msg.body[:100] if not msg.is_deleted else '',
+            thread=thread,
+            message=msg,
+        )
+        for u in participants
+    ]
+    Notification.objects.bulk_create(notifs)
+
+
+
+@method_decorator(login_required, name='dispatch')
+class StaffListView(View):
+
+    def get(self, request):
+        hotel = get_hotel(request.user)
+
+        if not hotel:
+            return JsonResponse({
+                "staff": [],
+                "error": "No hotel linked."
+            }, status=403)
+
+        qs = (
+            Staff.objects
+            .filter(hotel=hotel, is_active=True)
+            .exclude(user=request.user)
+            .select_related('user', 'department')
+            .order_by('name')
+        )
+
+        dept = request.GET.get('department')
+        if dept:
+            qs = qs.filter(department_id=dept)
+
+        q = request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(employee_id__icontains=q)
+            )
+
+        staff_data = []
+
+        for s in qs:
+            staff_data.append({
+                "id": s.id,
+                "name": (
+                    s.name
+                    or s.user.get_full_name()
+                    or s.user.username
+                ),
+                "department": (
+                    s.department.name
+                    if s.department else ''
+                ),
+                "employee_id": s.employee_id,
+            })
+
+        return JsonResponse({
+            "staff": staff_data
+        })
+
+@method_decorator(login_required, name='dispatch')
+class ThreadListView(View):
+
+    def get(self, request):
+        hotel = get_hotel(request.user)
+        if not hotel:
+            return json_err('No hotel linked.', 403)
+
+        qs = (
+            MessageThread.objects
+            .filter(hotel=hotel, participants=request.user)
+            .prefetch_related(
+                Prefetch('memberships', queryset=ThreadParticipant.objects.select_related('user')),
+                Prefetch('participants'),
+            )
+        )
+        if t := request.GET.get('type'):
+            qs = qs.filter(thread_type=t)
+        if request.GET.get('archived') == 'true':
+            qs = qs.filter(is_archived=True)
+        else:
+            qs = qs.filter(is_archived=False)
+        if request.GET.get('pinned') == 'true':
+            qs = qs.filter(memberships__user=request.user, memberships__is_pinned_chat=True)
+
+        return json_ok([_thread_dict(t, request.user) for t in qs])
+
+    @transaction.atomic
+    def post(self, request):
+        hotel = get_hotel(request.user)
+        if not hotel:
+            return json_err('No hotel linked.', 403)
+
+        data        = json.loads(request.body)
+        thread_type = data.get('type', 'direct')
+
+        # ── Shared helper: get display name + role label from a User ─────────
+        def _display(user):
+            s    = getattr(user, 'staff_profile', None)
+            name = (
+                s.name
+                if (s and s.name)
+                else user.get_full_name() or user.username
+            )
+
+            # Collect role + department into one string for matching
+            role_field = (getattr(s, 'role', None) or '').lower()
+            dept_name  = (s.department.name if (s and s.department) else '') or ''
+            dept_lower = dept_name.lower()
+            combined   = role_field + ' ' + dept_lower
+
+            # ── Priority 1: Hotel Admin ──────────────────────────────────
+            if any(k in combined for k in [
+                'hotel admin', 'admin', 'manager', 'owner',
+                'general manager', 'gm', 'director', 'supervisor'
+            ]):
+                role = 'Hotel Admin'
+
+            # ── Priority 2: HR ───────────────────────────────────────────
+            elif any(k in combined for k in [
+                'hr', 'human resource', 'human resources',
+                'personnel', 'people ops'
+            ]):
+                role = 'HR'
+
+            # ── Priority 3: Front Desk ───────────────────────────────────
+            elif any(k in combined for k in [
+                'front desk', 'front office', 'front', 'reception',
+                'receptionist', 'fd'
+            ]):
+                role = 'Front Desk'
+
+            
+            elif any(k in combined for k in [
+                'housekeeping', 'house keeping', 'hk', 'cleaning', 'clean'
+            ]):
+                role = 'Housekeeping'
+
+            
+            elif any(k in combined for k in [
+                'restaurant', 'f&b', 'food', 'kitchen',
+                'dining', 'bar', 'cafe', 'fbservice'
+            ]):
+                role = 'Restaurant'
+
+            
+            elif any(k in combined for k in [
+                'account', 'accountant', 'finance', 'billing', 'accounts'
+            ]):
+                role = 'Accountant'
+
+            
+            elif any(k in combined for k in [
+                'maintenance', 'engineer', 'technician', 'engineering'
+            ]):
+                role = 'Maintenance'
+
+           
+            elif any(k in combined for k in [
+                'security', 'guard', 'safety'
+            ]):
+                role = 'Security'
+
+           
+            elif any(k in combined for k in [
+                'store', 'inventory', 'purchase', 'procurement', 'storekeeper'
+            ]):
+                role = 'Store'
+
+            
+            else:
+                role = dept_name if dept_name else 'Staff'
+
+            return name, role
+
+        
+        if thread_type == 'direct':
+            other_id = data.get('participant_id')
+            if not other_id:
+                return json_err('participant_id is required.')
+
+           
+            try:
+                other = User.objects.get(
+                    staff_profile__id=other_id,
+                    hotel=hotel
+                )
+            except User.DoesNotExist:
+                try:
+                    other = User.objects.get(id=other_id, hotel=hotel)
+                except User.DoesNotExist:
+                    return json_err('User not found in this hotel.', 404)
+
+          
+            existing = (
+                MessageThread.objects
+                .filter(hotel=hotel, thread_type='direct', participants=request.user)
+                .filter(participants=other)
+                .annotate(cnt=Count('participants'))
+                .filter(cnt=2)
+                .first()
+            )
+            if existing:
+                return json_ok(_thread_dict(existing, request.user))
+
+            thread = MessageThread.objects.create(
+                hotel=hotel, thread_type='direct', created_by=request.user
+            )
+            ThreadParticipant.objects.bulk_create([
+                ThreadParticipant(thread=thread, user=request.user, is_admin=True),
+                ThreadParticipant(thread=thread, user=other),
+            ])
+            return json_ok(_thread_dict(thread, request.user), 201)
+
+        
+        if thread_type == 'group':
+            name = data.get('name', '').strip()
+            if not name:
+                return json_err('name is required for group chats.')
+
+            ids = data.get('participant_ids', [])
+            if not ids or len(ids) < 1:
+                return json_err('At least 1 other participant is required.')
+
+           
+            others = User.objects.filter(
+                staff_profile__id__in=ids,
+                hotel=hotel
+            ).exclude(id=request.user.id).select_related('staff_profile__department')
+
+           
+            if not others.exists():
+                others = User.objects.filter(
+                    id__in=ids,
+                    hotel=hotel
+                ).exclude(id=request.user.id).select_related('staff_profile__department')
+
+            if not others.exists():
+                return json_err(
+                    f'No valid staff members found. Received IDs: {ids}.', 400
+                )
+
+            thread = MessageThread.objects.create(
+                hotel=hotel,
+                thread_type='group',
+                name=name,
+                description=data.get('description', ''),
+                created_by=request.user,
+            )
+
+            members = [ThreadParticipant(thread=thread, user=request.user, is_admin=True)]
+            members += [ThreadParticipant(thread=thread, user=u) for u in others]
+            ThreadParticipant.objects.bulk_create(members)
+
+            
+            creator_name, creator_role = _display(request.user)
+
+            member_parts = []
+            for u in others:
+                m_name, m_role = _display(u)
+                member_parts.append(f'{m_name} ({m_role})')
+            members_str = ', '.join(member_parts)
+
+            Message.objects.create(
+                thread=thread,
+                sender=request.user,
+                body=(
+                    f'{creator_name} ({creator_role}) created the group "{name}" '
+                    f'with {members_str}.'
+                ),
+                is_system_msg=True,
+            )
+            return json_ok(_thread_dict(thread, request.user), 201)
+
+       
+        if thread_type == 'department':
+            dept_id = data.get('department_id')
+            try:
+                dept = Department.objects.get(id=dept_id, hotel=hotel)
+            except Department.DoesNotExist:
+                return json_err('Department not found.', 404)
+
+            thread, created = MessageThread.objects.get_or_create(
+                hotel=hotel, thread_type='department', department=dept,
+                defaults={'name': dept.name, 'created_by': request.user}
+            )
+            if created:
+                dept_users = User.objects.filter(hotel=hotel, role=dept, is_active_staff=True)
+                ThreadParticipant.objects.bulk_create([
+                    ThreadParticipant(thread=thread, user=u, is_admin=(u == request.user))
+                    for u in dept_users
+                ])
+            return json_ok(_thread_dict(thread, request.user), 201 if created else 200)
+
+       
+        if thread_type == 'announcement':
+            name = data.get('name', '').strip()
+            if not name:
+                return json_err('name is required for announcement boards.')
+
+            staff = getattr(request.user, 'staff_profile', None)
+            is_manager = staff and staff.department and \
+                         RolePermission_check(staff.department, 'manage_announcements')
+
+            thread = MessageThread.objects.create(
+                hotel=hotel,
+                thread_type='announcement',
+                name=name,
+                description=data.get('description', ''),
+                created_by=request.user,
+            )
+
+            add_all = data.get('add_all_staff', False)
+            if add_all:
+                all_users = User.objects.filter(hotel=hotel, is_active_staff=True)
+                ThreadParticipant.objects.bulk_create([
+                    ThreadParticipant(thread=thread, user=u, is_admin=(u == request.user))
+                    for u in all_users
+                ])
+            else:
+                ThreadParticipant.objects.create(
+                    thread=thread, user=request.user, is_admin=True
+                )
+            return json_ok(_thread_dict(thread, request.user), 201)
+
+        return json_err(f'Unknown thread type: {thread_type}')
+def RolePermission_check(department, perm_name):
+  
+    from accounts.models import RolePermission, Permission
+    return RolePermission.objects.filter(
+        role=department,
+        permission__name=perm_name
+    ).exists()
+
+
+@method_decorator(login_required, name='dispatch')
+class ThreadDetailView(View):
+    
+
+    def _get_thread(self, request, thread_id):
+        hotel = get_hotel(request.user)
+        return MessageThread.objects.filter(
+            id=thread_id, hotel=hotel, participants=request.user
+        ).prefetch_related('memberships', 'participants').first()
+
+    def get(self, request, thread_id):
+        thread = self._get_thread(request, thread_id)
+        if not thread:
+            return json_err('Thread not found.', 404)
+        return json_ok(_thread_dict(thread, request.user))
+
+    def patch(self, request, thread_id):
+        thread = self._get_thread(request, thread_id)
+        if not thread:
+            return json_err('Thread not found.', 404)
+
+        data       = json.loads(request.body)
+        membership = thread.memberships.filter(user=request.user).first()
+
+        # Non-admin operations (any member can do these)
+        if 'is_muted' in data:
+            membership.is_muted = bool(data['is_muted'])
+            membership.save(update_fields=['is_muted'])
+        if 'is_pinned_chat' in data:
+            membership.is_pinned_chat = bool(data['is_pinned_chat'])
+            membership.save(update_fields=['is_pinned_chat'])
+
+        # Admin-only operations
+        if membership.is_admin:
+            if 'name' in data:
+                thread.name = data['name'].strip()
+            if 'description' in data:
+                thread.description = data['description'].strip()
+            if 'is_locked' in data:
+                thread.is_locked = bool(data['is_locked'])
+            thread.save()
+
+        return json_ok(_thread_dict(thread, request.user))
+
+    def delete(self, request, thread_id):
+        thread = self._get_thread(request, thread_id)
+        if not thread:
+            return json_err('Thread not found.', 404)
+        membership = thread.memberships.filter(user=request.user).first()
+        if not membership or not membership.is_admin:
+            return json_err('Only admins can archive this thread.', 403)
+        thread.is_archived = True
+        thread.save(update_fields=['is_archived'])
+        return json_ok({'archived': True})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# E.  Thread members  (add / remove)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class ThreadMembersView(View):
+    
+
+    def _get_admin_thread(self, request, thread_id):
+        hotel  = get_hotel(request.user)
+        thread = MessageThread.objects.filter(id=thread_id, hotel=hotel).first()
+        if not thread:
+            return None, json_err('Thread not found.', 404)
+        m = thread.memberships.filter(user=request.user).first()
+        if not m or not m.is_admin:
+            return None, json_err('Admin permission required.', 403)
+        return thread, None
+
+    def post(self, request, thread_id):
+        thread, err = self._get_admin_thread(request, thread_id)
+        if err:
+            return err
+        data = json.loads(request.body)
+        ids  = data.get('user_ids', [])
+        hotel = get_hotel(request.user)
+        users = User.objects.filter(id__in=ids, hotel=hotel)
+        added = []
+        for u in users:
+            _, created = ThreadParticipant.objects.get_or_create(thread=thread, user=u)
+            if created:
+                added.append(u.get_full_name())
+                Message.objects.create(
+                    thread=thread, sender=request.user,
+                    body=f"{u.get_full_name()} was added to the group.",
+                    is_system_msg=True,
+                )
+        thread.save(update_fields=['updated_at'])
+        return json_ok({'added': added})
+
+    def delete(self, request, thread_id):
+        hotel  = get_hotel(request.user)
+        thread = MessageThread.objects.filter(id=thread_id, hotel=hotel).first()
+        if not thread:
+            return json_err('Thread not found.', 404)
+
+        data    = json.loads(request.body)
+        user_id = data.get('user_id', request.user.id)
+        m_self  = thread.memberships.filter(user=request.user).first()
+
+        # Members can only remove themselves; admins can remove anyone
+        if user_id != request.user.id and (not m_self or not m_self.is_admin):
+            return json_err('You can only remove yourself unless you are an admin.', 403)
+
+        ThreadParticipant.objects.filter(thread=thread, user_id=user_id).delete()
+        try:
+            removed_user = User.objects.get(id=user_id)
+            Message.objects.create(
+                thread=thread, sender=request.user,
+                body=f"{removed_user.get_full_name()} left the group.",
+                is_system_msg=True,
+            )
+        except User.DoesNotExist:
+            pass
+        thread.save(update_fields=['updated_at'])
+        return json_ok({'removed': user_id})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# F.  Message list / send
+# ─────────────────────────────────────────────────────────────────────────────
+# messaging/views.py
+
+import json
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+@login_required
+def thread_messages_view(request, thread_id):
+
+    hotel = get_hotel(request.user)
+
+    thread = get_object_or_404(
+        MessageThread,
+        id=thread_id,
+        hotel=hotel,
+        participants=request.user
+    )
+
+    if request.method == "GET":
+
+        messages = thread.messages.select_related(
+            'sender__staff_profile'
+        ).prefetch_related(
+            'attachments',
+            'reactions'
+        ).order_by('created_at')
+
+        after = request.GET.get('after')
+
+        if after:
+            messages = messages.filter(id__gt=after)
+
+        unread_ids = [
+            m.id for m in messages
+            if m.sender_id != request.user.id and not m.is_deleted
+        ]
+
+        if unread_ids:
+
+            MessageReadStatus.objects.bulk_create(
+                [
+                    MessageReadStatus(
+                        message_id=mid,
+                        user=request.user
+                    )
+                    for mid in unread_ids
+                ],
+                ignore_conflicts=True
+            )
+
+            membership = thread.memberships.filter(
+                user=request.user
+            ).first()
+
+            if membership:
+                membership.mark_read()
+
+        data = []
+
+        for msg in messages:
+
+            sender_profile = getattr(msg.sender, 'staff_profile', None)
+
+            sender_name = (
+                sender_profile.name
+                if sender_profile and sender_profile.name
+                else msg.sender.get_full_name() or msg.sender.username
+            )
+
+            data.append({
+                'id': msg.id,
+                'body': msg.body,
+                'sender_id': msg.sender.id,
+                'sender_name': sender_name,
+                'created_at': msg.created_at.isoformat(),
+                'priority': msg.priority,
+                'is_system_msg': msg.is_system_msg,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'messages': data
+        })
+
+    elif request.method == "POST":
+
+        if request.content_type and 'multipart/form-data' in request.content_type:
+
+            body = request.POST.get('body', '').strip()
+            priority = request.POST.get('priority', 'normal')
+
+        else:
+
+            data = json.loads(request.body)
+
+            body = data.get('body', '').strip()
+            priority = data.get('priority', 'normal')
+
+        if not body:
+
+            return JsonResponse({
+                'success': False,
+                'message': 'Message body required'
+            }, status=400)
+
+        msg = Message.objects.create(
+            thread=thread,
+            sender=request.user,
+            body=body,
+            priority=priority
+        )
+
+        membership = thread.memberships.filter(
+            user=request.user
+        ).first()
+
+        if membership:
+            membership.mark_read()
+
+        sender_profile = getattr(msg.sender, 'staff_profile', None)
+
+        sender_name = (
+            sender_profile.name
+            if sender_profile and sender_profile.name
+            else msg.sender.get_full_name() or msg.sender.username
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': {
+                'id': msg.id,
+                'body': msg.body,
+                'sender_id': msg.sender.id,
+                'sender_name': sender_name,
+                'created_at': msg.created_at.isoformat(),
+                'priority': msg.priority,
+                'is_system_msg': msg.is_system_msg,
+            }
+        }, status=201)
+
+    return JsonResponse({
+        'success': False,
+        'message': 'Method not allowed'
+    }, status=405)
+
+
+
+@method_decorator(login_required, name='dispatch')
+class MessageDetailView(View):
+   
+
+    def _get_msg(self, request, msg_id, own_only=True):
+        hotel = get_hotel(request.user)
+        qs = Message.objects.filter(id=msg_id, thread__hotel=hotel, is_deleted=False)
+        if own_only:
+            qs = qs.filter(sender=request.user)
+        return qs.first()
+
+    def get(self, request, msg_id):
+        msg = self._get_msg(request, msg_id, own_only=False)
+        if not msg:
+            return json_err('Message not found.', 404)
+        return json_ok(_message_dict(msg, request.user))
+
+    def patch(self, request, msg_id):
+        msg = self._get_msg(request, msg_id)
+        if not msg:
+            return json_err('Message not found or not yours.', 404)
+        data = json.loads(request.body)
+        new_body = data.get('body', '').strip()
+        if not new_body:
+            return json_err('Body cannot be empty.')
+        msg.body      = new_body
+        msg.is_edited = True
+        msg.save(update_fields=['body', 'is_edited', 'updated_at'])
+        return json_ok(_message_dict(msg, request.user))
+
+    def delete(self, request, msg_id):
+        msg = self._get_msg(request, msg_id)
+        if not msg:
+            return json_err('Message not found or not yours.', 404)
+        msg.soft_delete()
+        return json_ok({'deleted': True, 'id': msg_id})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# H.  Attachments upload
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class AttachmentUploadView(View):
+    """
+    POST /api/messaging/messages/<id>/attachments/
+    Multipart form: files[] (multiple allowed)
+    """
+    MAX_SIZE_MB = 20
+
+    def post(self, request, msg_id):
+        hotel = get_hotel(request.user)
+        msg   = Message.objects.filter(
+            id=msg_id, sender=request.user, thread__hotel=hotel, is_deleted=False
+        ).first()
+        if not msg:
+            return json_err('Message not found or not yours.', 404)
+
+        files  = request.FILES.getlist('files[]')
+        if not files:
+            return json_err('No files provided.')
+
+        created = []
+        for f in files:
+            if f.size > self.MAX_SIZE_MB * 1024 * 1024:
+                return json_err(f'{f.name} exceeds {self.MAX_SIZE_MB}MB limit.')
+            att = MessageAttachment.objects.create(
+                message=msg, file=f,
+                file_name=f.name, file_size=f.size,
+            )
+            created.append(_attachment_dict(att))
+
+        return json_ok({'attachments': created}, 201)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# I.  Reactions
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class ReactionView(View):
+    """
+    POST /api/messaging/messages/<id>/react/
+    Body: { "emoji": "👍" }   — toggles add/remove
+    """
+    def post(self, request, msg_id):
+        hotel = get_hotel(request.user)
+        msg   = Message.objects.filter(id=msg_id, thread__hotel=hotel, is_deleted=False).first()
+        if not msg:
+            return json_err('Message not found.', 404)
+        data  = json.loads(request.body)
+        emoji = data.get('emoji', '').strip()
+        valid = [e for e, _ in Reaction.EMOJI_CHOICES]
+        if emoji not in valid:
+            return json_err(f'Invalid emoji. Choose from: {valid}')
+
+        reaction, created = Reaction.objects.get_or_create(message=msg, user=request.user, emoji=emoji)
+        if not created:
+            reaction.delete()
+            return json_ok({'action': 'removed', 'emoji': emoji})
+
+        # Notify message owner
+        if msg.sender and msg.sender != request.user:
+            Notification.objects.create(
+                recipient=msg.sender, notif_type='reaction',
+                title=f"{request.user.get_full_name()} reacted {emoji} to your message",
+                body=msg.body[:80], thread=msg.thread, message=msg,
+            )
+        return json_ok({'action': 'added', 'emoji': emoji})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# J.  Pin / unpin messages
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class PinMessageView(View):
+    """
+    GET    /api/messaging/threads/<id>/pins/     → list pinned messages
+    POST   /api/messaging/threads/<id>/pins/     → pin a message  (admin only)
+           body: { "message_id": <id> }
+    DELETE /api/messaging/threads/<id>/pins/<pin_id>/  → unpin  (admin only)
+    """
+
+    def _get_admin_membership(self, request, thread_id):
+        hotel  = get_hotel(request.user)
+        thread = MessageThread.objects.filter(id=thread_id, hotel=hotel).first()
+        if not thread:
+            return None, None, json_err('Thread not found.', 404)
+        m = thread.memberships.filter(user=request.user).first()
+        if not m or not m.is_admin:
+            return None, None, json_err('Only thread admins can manage pins.', 403)
+        return thread, m, None
+
+    def get(self, request, thread_id):
+        hotel  = get_hotel(request.user)
+        thread = MessageThread.objects.filter(id=thread_id, hotel=hotel, participants=request.user).first()
+        if not thread:
+            return json_err('Thread not found.', 404)
+        pins = (
+            thread.pinned_messages
+            .select_related('message__sender', 'pinned_by')
+            .prefetch_related('message__attachments')
+            .order_by('-pinned_at')
+        )
+        return json_ok([{
+            'pin_id':    p.id,
+            'message':   _message_dict(p.message, request.user),
+            'pinned_by': p.pinned_by.get_full_name() if p.pinned_by else '—',
+            'pinned_at': str(p.pinned_at),
+        } for p in pins])
+
+    def post(self, request, thread_id):
+        thread, _, err = self._get_admin_membership(request, thread_id)
+        if err:
+            return err
+        if thread.pinned_messages.count() >= 10:
+            return json_err('Maximum 10 pinned messages per thread.')
+        data = json.loads(request.body)
+        msg  = Message.objects.filter(id=data.get('message_id'), thread=thread, is_deleted=False).first()
+        if not msg:
+            return json_err('Message not found in this thread.', 404)
+        pin, created = PinnedMessage.objects.get_or_create(
+            thread=thread, message=msg, defaults={'pinned_by': request.user}
+        )
+        return json_ok({'pin_id': pin.id, 'created': created}, 201 if created else 200)
+
+    def delete(self, request, thread_id, pin_id):
+        thread, _, err = self._get_admin_membership(request, thread_id)
+        if err:
+            return err
+        deleted, _ = PinnedMessage.objects.filter(id=pin_id, thread=thread).delete()
+        return json_ok({'deleted': bool(deleted)})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# K.  Starred messages  (personal bookmarks)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class StarredMessageView(View):
+    """
+    GET    /api/messaging/starred/              → all starred messages
+    POST   /api/messaging/messages/<id>/star/   → toggle star
+    """
+    def get(self, request):
+        hotel = get_hotel(request.user)
+        stars = (
+            StarredMessage.objects
+            .filter(user=request.user, message__thread__hotel=hotel)
+            .select_related('message__sender', 'message__thread')
+            .prefetch_related('message__attachments')
+            .order_by('-starred_at')
+        )
+        return json_ok([{
+            'star_id':    s.id,
+            'thread':     s.message.thread.display_name(for_user=request.user),
+            'thread_id':  s.message.thread_id,
+            'message':    _message_dict(s.message, request.user),
+            'starred_at': str(s.starred_at),
+        } for s in stars])
+
+    def post(self, request, msg_id):
+        hotel = get_hotel(request.user)
+        msg   = Message.objects.filter(id=msg_id, thread__hotel=hotel, is_deleted=False).first()
+        if not msg:
+            return json_err('Message not found.', 404)
+        star, created = StarredMessage.objects.get_or_create(user=request.user, message=msg)
+        if not created:
+            star.delete()
+            return json_ok({'action': 'unstarred'})
+        return json_ok({'action': 'starred', 'star_id': star.id})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# L.  Poll voting
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class PollVoteView(View):
+    """
+    POST /api/messaging/polls/<poll_id>/vote/
+    Body: { "option_ids": [<id>] }   — single-choice: list of 1; multi: list of N
+    """
+    def post(self, request, poll_id):
+        hotel = get_hotel(request.user)
+        poll  = Poll.objects.filter(
+            id=poll_id, message__thread__hotel=hotel
+        ).prefetch_related('options').first()
+        if not poll:
+            return json_err('Poll not found.', 404)
+        if not poll.is_open:
+            return json_err('This poll is closed.')
+
+        data       = json.loads(request.body)
+        option_ids = data.get('option_ids', [])
+        if not option_ids:
+            return json_err('option_ids is required.')
+        if not poll.allow_multi and len(option_ids) > 1:
+            return json_err('This poll only allows one choice.')
+
+        valid_ids = set(poll.options.values_list('id', flat=True))
+        if not all(oid in valid_ids for oid in option_ids):
+            return json_err('One or more option IDs are invalid.')
+
+        with transaction.atomic():
+            # Remove previous votes
+            PollVote.objects.filter(option__poll=poll, user=request.user).delete()
+            # Cast new votes
+            PollVote.objects.bulk_create([
+                PollVote(option_id=oid, user=request.user)
+                for oid in option_ids
+            ])
+
+        poll.refresh_from_db()
+        return json_ok({
+            'total_votes': poll.total_votes,
+            'options': [
+                {
+                    'id':         opt.id,
+                    'text':       opt.text,
+                    'votes':      opt.vote_count(),
+                    'percentage': opt.percentage(),
+                    'voted':      opt.id in option_ids,
+                }
+                for opt in poll.options.all()
+            ]
+        })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# M.  Message search
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class MessageSearchView(View):
+    """
+    GET /api/messaging/search/?q=<text>&thread=<id>&priority=<p>
+    Returns up to 50 matching messages across all the user's threads in this hotel.
+    """
+    def get(self, request):
+        hotel = get_hotel(request.user)
+        if not hotel:
+            return json_err('No hotel linked.', 403)
+        q = request.GET.get('q', '').strip()
+        if len(q) < 2:
+            return json_err('Query must be at least 2 characters.')
+
+        qs = Message.objects.filter(
+            thread__hotel=hotel,
+            thread__participants=request.user,
+            is_deleted=False,
+            body__icontains=q,
+        ).select_related('sender__staff_profile', 'thread').order_by('-created_at')
+
+        if tid := request.GET.get('thread'):
+            qs = qs.filter(thread_id=tid)
+        if prio := request.GET.get('priority'):
+            qs = qs.filter(priority=prio)
+
+        results = qs[:50]
+        return json_ok([{
+            **_message_dict(m, request.user),
+            'thread_name': m.thread.display_name(for_user=request.user),
+        } for m in results])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# N.  Notifications
+# ─────────────────────────────────────────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class NotificationView(View):
+    """
+    GET   /api/messaging/notifications/         → all notifications (paginated)
+          ?unread=true                           → only unread
+          ?type=mention|reaction|message|poll
+    POST  /api/messaging/notifications/read/    → mark all read
+          body: { "ids": [1,2,3] }              → mark specific ids read
+    """
+    def get(self, request):
+        qs = Notification.objects.filter(recipient=request.user)
+        if request.GET.get('unread') == 'true':
+            qs = qs.filter(is_read=False)
+        if ntype := request.GET.get('type'):
+            qs = qs.filter(notif_type=ntype)
+        limit  = min(int(request.GET.get('limit', 30)), 100)
+        notifs = qs[:limit]
+        return json_ok({
+            'unread_total': Notification.objects.filter(recipient=request.user, is_read=False).count(),
+            'results': [
+                {
+                    'id':         n.id,
+                    'type':       n.notif_type,
+                    'title':      n.title,
+                    'body':       n.body,
+                    'thread_id':  n.thread_id,
+                    'message_id': n.message_id,
+                    'is_read':    n.is_read,
+                    'created_at': str(n.created_at),
+                }
+                for n in notifs
+            ]
+        })
+
+    def post(self, request):
+        data = json.loads(request.body)
+        ids  = data.get('ids')
+        qs   = Notification.objects.filter(recipient=request.user)
+        if ids:
+            qs = qs.filter(id__in=ids)
+        qs.update(is_read=True)
+        return json_ok({'marked_read': True})
+@method_decorator(login_required, name='dispatch')
+class MarkThreadReadView(View):
+    def post(self, request, thread_id):
+        hotel = get_hotel(request.user)
+        thread = MessageThread.objects.filter(
+            id=thread_id, hotel=hotel, participants=request.user
+        ).first()
+        if not thread:
+            return json_err('Thread not found.', 404)
+        membership = thread.memberships.filter(user=request.user).first()
+        if membership:
+            membership.mark_read()
+        MessageReadStatus.objects.bulk_create(
+            [MessageReadStatus(message_id=mid, user=request.user)
+             for mid in thread.messages.exclude(sender=request.user)
+                                       .values_list('id', flat=True)],
+            ignore_conflicts=True
+        )
+        return json_ok({'ok': True})
+
+
+@method_decorator(login_required, name='dispatch')
+class PinnedMessagesView(View):
+    """GET /messages/threads/<id>/pinned/  — lightweight list for the pinned bar"""
+    def get(self, request, thread_id):
+        hotel = get_hotel(request.user)
+        thread = MessageThread.objects.filter(
+            id=thread_id, hotel=hotel, participants=request.user
+        ).first()
+        if not thread:
+            return json_err('Thread not found.', 404)
+        pins = thread.pinned_messages.select_related(
+            'message__sender', 'pinned_by'
+        ).order_by('-pinned_at')[:10]
+        return json_ok({'pinned': [_message_dict(p.message, request.user) for p in pins]})

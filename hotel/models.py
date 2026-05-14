@@ -293,3 +293,384 @@ class Payroll(models.Model):
 
     def computed_net(self):
         return self.total_earnings() - self.total_deductions()
+
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1.  Message Thread
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MessageThread(models.Model):
+    THREAD_TYPES = [
+        ('direct',       'Direct Message'),
+        ('group',        'Group Chat'),
+        ('department',   'Department Channel'),
+        ('announcement', 'Announcement Board'),
+    ]
+
+    hotel       = models.ForeignKey('accounts.Hotel', on_delete=models.CASCADE, related_name='message_threads')
+    thread_type = models.CharField(max_length=15, choices=THREAD_TYPES, default='direct')
+    name        = models.CharField(max_length=150, blank=True)
+    description = models.CharField(max_length=300, blank=True)
+    avatar      = models.ImageField(upload_to='thread_avatars/', null=True, blank=True)
+    department  = models.ForeignKey('accounts.Department', on_delete=models.CASCADE, null=True, blank=True, related_name='message_channel')
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, through='ThreadParticipant', related_name='message_threads')
+    created_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_threads')
+    is_archived = models.BooleanField(default=False)
+    is_locked   = models.BooleanField(default=False)
+    max_members = models.PositiveIntegerField(null=True, blank=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def last_message(self):
+        return self.messages.filter(is_deleted=False).order_by('-created_at').first()
+
+    def unread_count_for(self, user):
+        from datetime import datetime, timezone as dt_timezone
+        membership = self.memberships.filter(user=user).first()
+        cursor = membership.last_read_at if membership else None
+        if cursor is None:
+            cursor = datetime.min.replace(tzinfo=dt_timezone.utc)
+        return self.messages.filter(created_at__gt=cursor).exclude(sender=user).count()
+
+    def display_name(self, for_user=None):
+        if self.thread_type == 'department':
+            return f"# {self.department.name}" if self.department else self.name
+        if self.thread_type == 'announcement':
+            return f" {self.name}"
+        if self.thread_type == 'group':
+            return self.name
+        if self.thread_type == 'direct' and for_user:
+            other = self.participants.exclude(id=for_user.id).first()
+            return other.get_full_name() or other.username if other else '(empty)'
+        return self.name or f"Thread {self.id}"
+
+    def can_post(self, user):
+        if self.is_locked or self.is_archived:
+            return False
+        if self.thread_type == 'announcement':
+            return self.memberships.filter(user=user, is_admin=True).exists()
+        return self.memberships.filter(user=user).exists()
+
+    def __str__(self):
+        return f"[{self.hotel.hotel_name}] {self.get_thread_type_display()}: {self.name or self.id}"
+class ThreadParticipant(models.Model):
+    
+    thread        = models.ForeignKey(MessageThread, on_delete=models.CASCADE, related_name='memberships')
+    user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    is_admin      = models.BooleanField(default=False)
+    is_muted      = models.BooleanField(default=False)
+    is_pinned_chat = models.BooleanField(default=False)
+    last_read_at  = models.DateTimeField(null=True, blank=True)
+    joined_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('thread', 'user')
+
+    def mark_read(self):
+        self.last_read_at = timezone.now()
+        self.save(update_fields=['last_read_at'])
+
+    def __str__(self):
+        flags = []
+        if self.is_admin:       flags.append('admin')
+        if self.is_muted:       flags.append('muted')
+        if self.is_pinned_chat: flags.append('pinned')
+        tag = f" [{', '.join(flags)}]" if flags else ''
+        return f"{self.user.username} in thread {self.thread_id}{tag}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3.  Message
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Message(models.Model):
+
+    PRIORITY_CHOICES = [
+        ('normal', 'Normal'),
+        ('urgent', 'Urgent'),          
+        ('info',   'Info'),           
+    ]
+
+    thread   = models.ForeignKey(MessageThread, on_delete=models.CASCADE, related_name='messages')
+    sender   = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_messages'
+    )
+
+    # ── Content ────────────────────────────────────────────────────────────
+    body        = models.TextField(blank=True)           # blank allowed if attachment present
+    priority    = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
+
+    # Reply / forward
+    reply_to    = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='replies'
+    )
+    forwarded_from = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='forwards'
+    )
+
+    # ── State flags ────────────────────────────────────────────────────────
+    is_edited       = models.BooleanField(default=False)
+    is_deleted      = models.BooleanField(default=False)   
+    is_system_msg   = models.BooleanField(default=False)  
+
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def soft_delete(self):
+        self.is_deleted     = True
+        self.body           = ''
+        self.save(update_fields=['is_deleted', 'body', 'updated_at'])
+        self.attachments.all().delete()   # remove files when message is deleted
+
+    def __str__(self):
+        preview = self.body[:50] + ('…' if len(self.body) > 50 else '')
+        return f"[T{self.thread_id}] {self.sender}: {preview}"
+
+
+
+class MessageAttachment(models.Model):
+    
+    FILE_TYPES = [
+        ('image',    'Image'),
+        ('video',    'Video'),
+        ('audio',    'Audio'),
+        ('pdf',      'PDF'),
+        ('document', 'Document'),
+        ('other',    'Other'),
+    ]
+
+    IMAGE_EXTS    = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'}
+    VIDEO_EXTS    = {'.mp4', '.mov', '.avi', '.mkv', '.webm'}
+    AUDIO_EXTS    = {'.mp3', '.wav', '.ogg', '.m4a'}
+    DOC_EXTS      = {'.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'}
+
+    message   = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='attachments')
+    file      = models.FileField(upload_to='message_attachments/%Y/%m/')
+    file_name = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField(default=0)   # bytes
+    file_type = models.CharField(max_length=10, choices=FILE_TYPES, default='other')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        import os
+        ext = os.path.splitext(self.file_name)[1].lower()
+        if ext in self.IMAGE_EXTS:
+            self.file_type = 'image'
+        elif ext in self.VIDEO_EXTS:
+            self.file_type = 'video'
+        elif ext in self.AUDIO_EXTS:
+            self.file_type = 'audio'
+        elif ext == '.pdf':
+            self.file_type = 'pdf'
+        elif ext in self.DOC_EXTS:
+            self.file_type = 'document'
+        else:
+            self.file_type = 'other'
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.file_name} ({self.file_type}) — msg {self.message_id}"
+
+
+
+class MessageReadStatus(models.Model):
+    
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='read_statuses')
+    user    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('message', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} ✓ msg {self.message_id}"
+
+
+
+
+class Reaction(models.Model):
+    EMOJI_CHOICES = [
+        ('👍', 'Thumbs Up'),
+        ('❤️',  'Heart'),
+        ('😂', 'Laugh'),
+        ('😮', 'Wow'),
+        ('😢', 'Sad'),
+        ('🙏', 'Pray'),
+        ('🔥', 'Fire'),
+        ('✅', 'Check'),
+    ]
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='reactions')
+    user    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    emoji   = models.CharField(max_length=10, choices=EMOJI_CHOICES)
+
+    class Meta:
+        unique_together = ('message', 'user', 'emoji')
+
+    def __str__(self):
+        return f"{self.user.username} {self.emoji} → msg {self.message_id}"
+
+
+
+class PinnedMessage(models.Model):
+    
+    thread     = models.ForeignKey(MessageThread, on_delete=models.CASCADE, related_name='pinned_messages')
+    message    = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='pins')
+    pinned_by  = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='pinned_messages'
+    )
+    pinned_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('thread', 'message')
+        ordering        = ['-pinned_at']
+
+    def __str__(self):
+        return f"Pinned msg {self.message_id} in thread {self.thread_id}"
+
+
+class StarredMessage(models.Model):
+    
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='starred_messages')
+    message    = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='stars')
+    starred_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'message')
+        ordering        = ['-starred_at']
+
+    def __str__(self):
+        return f"{self.user.username} ★ msg {self.message_id}"
+
+
+
+class Mention(models.Model):
+    
+    message        = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='mentions')
+    mentioned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True, blank=True,          # null = @all
+        related_name='received_mentions'
+    )
+    is_all         = models.BooleanField(default=False)   # True for @all
+
+    class Meta:
+        unique_together = ('message', 'mentioned_user')
+
+    def __str__(self):
+        target = self.mentioned_user.username if self.mentioned_user else '@all'
+        return f"@{target} in msg {self.message_id}"
+
+
+
+class Poll(models.Model):
+    
+    message      = models.OneToOneField(Message, on_delete=models.CASCADE, related_name='poll')
+    question     = models.CharField(max_length=300)
+    is_anonymous = models.BooleanField(default=False)    # hide who voted for what
+    allow_multi  = models.BooleanField(default=False)    # allow multiple option selection
+    closes_at    = models.DateTimeField(null=True, blank=True)  # None = open forever
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_open(self):
+        return self.closes_at is None or timezone.now() < self.closes_at
+
+    @property
+    def total_votes(self):
+        return PollVote.objects.filter(option__poll=self).count()
+
+    def __str__(self):
+        return f"Poll: {self.question[:60]}"
+
+
+class PollOption(models.Model):
+    poll  = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name='options')
+    text  = models.CharField(max_length=200)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def vote_count(self):
+        return self.votes.count()
+
+    def percentage(self):
+        total = self.poll.total_votes
+        return round((self.votes.count() / total * 100), 1) if total else 0.0
+
+    def __str__(self):
+        return f"{self.text} (poll {self.poll_id})"
+
+
+class PollVote(models.Model):
+    option = models.ForeignKey(PollOption, on_delete=models.CASCADE, related_name='votes')
+    user   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    voted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        
+        unique_together = ('option', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} → option {self.option_id}"
+
+
+class Notification(models.Model):
+    
+    NOTIF_TYPES = [
+        ('message',  'New Message'),
+        ('mention',  'Mention'),
+        ('reaction', 'Reaction'),
+        ('poll',     'Poll Update'),
+        ('system',   'System'),
+    ]
+
+    recipient  = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    notif_type = models.CharField(max_length=15, choices=NOTIF_TYPES)
+    title      = models.CharField(max_length=200)
+    body       = models.CharField(max_length=500, blank=True)
+
+    
+    thread     = models.ForeignKey(MessageThread, on_delete=models.SET_NULL, null=True, blank=True)
+    message    = models.ForeignKey(Message,       on_delete=models.SET_NULL, null=True, blank=True)
+
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def mark_read(self):
+        self.is_read = True
+        self.save(update_fields=['is_read'])
+
+    def __str__(self):
+        return f"[{self.notif_type}] → {self.recipient.username}: {self.title[:60]}"

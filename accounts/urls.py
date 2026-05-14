@@ -39,21 +39,43 @@ urlpatterns =[
    
     path('add-amenity/',                        add_amenity,            name='add_amenity'),
     path('delete-amenity/<int:amenity_id>/',    delete_amenity,         name='delete_amenity'),
-
+    path('get-hotel-modules/<int:hotel_id>/', get_hotel_modules, name='get_hotel_modules'),
     # Plans
     path('get-plans/',                          get_plans,              name='get_plans'),
     path('create-plan/',                        create_plan,            name='create_plan'),
     path('delete-plan/<int:plan_id>/',          delete_plan,            name='delete_plan'),
     path('update-plan-modules/<int:plan_id>/',  update_plan_modules,    name='update_plan_modules'),
-
+   
+    path('upgrade-hotel-plan/<int:hotel_id>/', upgrade_hotel_plan, name='upgrade_hotel_plan'),
     # Payments
     path('get-payments/',                       get_payments,           name='get_payments'),
     path('create-payment/',                     create_payment,         name='create_payment'),
     path('mark-payment-paid/<int:payment_id>/', mark_payment_paid,      name='mark_payment_paid'),
     path('cancel-payment/<int:payment_id>/',    cancel_payment,         name='cancel_payment'),
+   path('superadmin/subscription/summary/',                hotel_subscription_summary,  name='hotel_subscription_summary'),
 
-    
-    
+path('superadmin/trial/grant/<int:hotel_id>/',          grant_trial,                 name='grant_trial'),
+path('superadmin/trial/revoke/<int:hotel_id>/',         revoke_trial_eligibility,    name='revoke_trial_eligibility'),
+path('superadmin/trial/restore/<int:hotel_id>/',        restore_trial_eligibility,   name='restore_trial_eligibility'),
+path('superadmin/trial/end/<int:hotel_id>/',            end_trial_now,               name='end_trial_now'),
+
+path('superadmin/subscription/status/<int:hotel_id>/',  set_subscription_status,     name='set_subscription_status'),
+path('superadmin/subscription/upgrade/<int:hotel_id>/', upgrade_hotel_plan,          name='upgrade_hotel_plan'),
+
+path('hotel/start-trial/',                              hotel_start_trial,           name='hotel_start_trial'),
+path('superadmin/trial/days/<int:hotel_id>/',           set_hotel_trial_days,        name='set_hotel_trial_days'),
+ path(
+        "superadmin/hotels/modules/overview/",
+        get_all_hotels_modules,
+        name="get_all_hotels_modules",
+    ),
+ path(
+        "superadmin/hotels/<int:hotel_id>/set-expiry/",
+        set_subscription_expiry,
+        name="set_subscription_expiry",
+    ),
+path('start-trial/', hotel_start_trial, name='hotel_start_trial'),  
+path('superadmin/hotel/<int:hotel_id>/send-mail/', send_hotel_mail, name='send_hotel_mail'),
     # forgot password
 
     

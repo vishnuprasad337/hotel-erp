@@ -2,23 +2,91 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("inventory/categories/", views.list_categories),
-    path("inventory/add-category/", views.add_category),
+    path("categories/",            views.list_categories,       name="list_categories"),
+    path("categories/add/",        views.add_category,          name="add_category"),
+ 
+    # ── Vendors ────────────────────────────────────────────────
+    path("vendors/",               views.list_vendors,          name="list_vendors"),
+    path("vendors/add/",           views.add_vendor,            name="add_vendor"),
+ 
+    # ── Inventory Items ────────────────────────────────────────
+    path("items/",                 views.list_inventory,        name="list_inventory"),
+    path("items/add/",             views.add_inventory_item,    name="add_inventory_item"),
+    path("items/by-department/",   views.inventory_by_department, name="inventory_by_department"),
+ 
+    # ── Stock Adjustments ──────────────────────────────────────
+    path("adjustments/",           views.list_stock_adjustments, name="list_stock_adjustments"),
+    path("adjustments/add/",       views.stock_adjust,          name="stock_adjust"),
+ 
+    # ── Purchase Orders ────────────────────────────────────────
+    path("po/",                    views.list_purchase_orders,  name="list_purchase_orders"),
+    path("po/create/",             views.create_purchase_order, name="create_purchase_order"),
+    path("po/<int:po_id>/status/", views.update_po_status,      name="update_po_status"),
+ 
+    # ── Expense Categories ─────────────────────────────────────
+    path("expense-categories/",      views.list_expense_categories, name="list_expense_categories"),
+    path("expense-categories/add/",  views.add_expense_category,    name="add_expense_category"),
+ 
+    # ── Expenses ───────────────────────────────────────────────
+    path("expenses/",              views.list_expenses,         name="list_expenses"),
+    path("expenses/add/",          views.add_expense,           name="add_expense"),
+    path("expenses/summary/",      views.expense_summary,       name="expense_summary"),
+ 
+    # ── Asset Categories ───────────────────────────────────────
+    path("asset-categories/",      views.list_asset_categories, name="list_asset_categories"),
+    path("asset-categories/add/",  views.add_asset_category,    name="add_asset_category"),
+ 
+    # ── Hotel Assets ───────────────────────────────────────────
+    path("assets/",                          views.list_assets,          name="list_assets"),
+    path("assets/add/",                      views.add_asset,            name="add_asset"),
+    path("assets/<int:asset_id>/status/",    views.update_asset_status,  name="update_asset_status"),
+ 
+    # ── Maintenance Logs ───────────────────────────────────────
+    path("maintenance/",           views.list_maintenance_logs, name="list_maintenance_logs"),
+    path("maintenance/add/",       views.add_maintenance_log,   name="add_maintenance_log"),
+    path(
+    "maintenance/<int:log_id>/update-status/",
+    views.update_maintenance_status,
+    name="update_maintenance_status"
+),
 
-    path("inventory/vendors/", views.list_vendors),
-    path("inventory/add-vendor/", views.add_vendor),
-
-    path("inventory/items/", views.list_inventory),
-    path("inventory/add-item/", views.add_inventory_item),
-    path("inventory/stock-adjust/", views.stock_adjust),
-
-    path("purchase/create/", views.create_purchase_order),
-    path("purchase/list/", views.list_purchase_orders),
-
+path(
+    "maintenance/<int:log_id>/delete/",
+    views.delete_maintenance_log,
+    name="delete_maintenance_log"
+),
     path("laundry/services/", views.list_laundry_services),
     path("laundry/add-service/", views.add_laundry_service),
 
     path("laundry/orders/", views.list_laundry_orders),
     path("laundry/create-order/", views.create_laundry_order),
     path("laundry/update-status/<int:pk>/", views.update_laundry_status),
+     path('inventory/items/<int:pk>/update/', views.update_inventory_item),
+   path('inventory/items/<int:pk>/delete/', views.delete_inventory_item),
+   
+   path(
+    "expenses/<int:expense_id>/delete/",
+    views.delete_expense,
+    name="delete_expense"
+),
+   
+   # PO items
+   path('inventory/po/<int:pk>/items/', views.get_po_items),
+   
+   # Assets
+   
+   # Asset categories
+   path('inventory/asset-categories/add/', views.add_asset_category),
+   
+   # Maintenance
+   
+   # Expense categories
+   path('inventory/expense-categories/add/', views.add_expense_category),
+  
+path(
+    "maintenance/<int:log_id>/edit/",
+    views.edit_maintenance_log,
+    name="edit_maintenance_log"
+),
+   
 ]

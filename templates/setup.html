@@ -1,564 +1,669 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HotelPMS — Property Setup</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Setup — {{ hotel.hotel_name|default:"Your Hotel" }} · HotelCloud</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0d1117;--ink2:#1c2333;--ink3:#30363d;
+  --mist:#8b949e;--fog:#c9d1d9;--snow:#f0f6fc;--white:#ffffff;
+  --blue:#2f81f7;--blue-dim:#1f6feb;--blue-glow:rgba(47,129,247,.15);
+  --green:#3fb950;--green-dim:#238636;--green-glow:rgba(63,185,80,.12);
+  --amber:#d29922;--amber-dim:#bb8009;--amber-bg:rgba(210,153,34,.1);
+  --red:#f85149;--red-bg:rgba(248,81,73,.1);
+  --purple:#a371f7;--purple-bg:rgba(163,113,247,.1);
+  --border:#21262d;--border2:#30363d;
+  --r:8px;--r2:12px;--r3:16px;
+  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+}
 html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;background:#f5f7fa;min-height:100vh;color:#1a1a2e}
-
-/* ══════════════════════════════
-   HEADER — Booking.com style
-══════════════════════════════ */
-.header{background:#003b95;height:64px;display:flex;align-items:center;padding:0 2.5rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
-.header-inner{width:100%;max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-.logo{color:#fff;font-size:21px;font-weight:700;letter-spacing:-0.5px;text-decoration:none;display:flex;align-items:center;gap:2px}
-.logo-dot{color:#febb02}
-
-/* Owner dropdown (top-right) */
-.owner-area{position:relative}
-.owner-trigger{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:6px 14px 6px 8px;cursor:pointer;transition:background 0.15s;color:#fff}
-.owner-trigger:hover{background:rgba(255,255,255,0.2)}
-.owner-avatar{width:30px;height:30px;border-radius:50%;background:#febb02;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#003b95;flex-shrink:0}
-.owner-name{font-size:13px;font-weight:600;max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.owner-chevron{width:14px;height:14px;transition:transform 0.2s;flex-shrink:0}
-.owner-trigger.open .owner-chevron{transform:rotate(180deg)}
-
-.owner-menu{position:absolute;top:calc(100% + 10px);right:0;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.08);min-width:220px;overflow:hidden;display:none;z-index:300;border:1px solid #e8eaf0}
-.owner-menu.show{display:block}
-
-.om-header{padding:14px 16px 10px;border-bottom:1px solid #f0f2f5}
-.om-hname{font-size:13px;font-weight:700;color:#1a1a2e}
-.om-hemail{font-size:12px;color:#6b7280;margin-top:2px}
-
-.om-section{padding:6px 0}
-.om-section + .om-section{border-top:1px solid #f0f2f5}
-.om-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;padding:6px 16px 2px}
-
-.om-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#374151;cursor:pointer;transition:background 0.1s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
-.om-item:hover{background:#f3f7ff;color:#003b95}
-.om-item.active{background:#eef3ff;color:#003b95;font-weight:600}
-.om-item svg{flex-shrink:0;opacity:0.6}
-.om-item.active svg{opacity:1}
-.om-item.danger{color:#dc2626}
-.om-item.danger:hover{background:#fff5f5}
-
-/* ══════════════════════════════
-   CONTENT AREA — White blank page
-══════════════════════════════ */
-.content{min-height:calc(100vh - 64px);background:#f5f7fa;padding:2.5rem 2.5rem 5rem}
-.content-inner{max-width:780px;margin:0 auto}
-
-/* Page heading */
-.page-heading{margin-bottom:2rem}
-.page-heading h1{font-size:26px;font-weight:700;color:#1a1a2e;line-height:1.25;margin-bottom:6px}
-.page-heading p{font-size:15px;color:#6b7280}
-
-/* Section */
-.section{display:none}
-.section.active{display:block}
-
-/* ══════════════════════════════
-   PROPERTY TYPE CARDS (Booking style)
-══════════════════════════════ */
-.prop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:2.5rem}
-.prop-card-label{cursor:pointer;display:block}
-.prop-card-label input{display:none}
-.prop-card{border:2px solid #e0e4ef;border-radius:12px;padding:20px 12px 16px;text-align:center;transition:all 0.18s;background:#fff;position:relative}
-.prop-card:hover{border-color:#0071c2;box-shadow:0 4px 16px rgba(0,113,194,0.12)}
-.prop-card-label input:checked + .prop-card{border-color:#0071c2;box-shadow:0 0 0 3px rgba(0,113,194,0.12)}
-.prop-check{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:#0071c2;display:none;align-items:center;justify-content:center}
-.prop-card-label input:checked + .prop-card .prop-check{display:flex}
-.prop-check svg{width:10px;height:10px}
-.prop-svg{margin:0 auto 10px;display:block}
-.prop-name{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
-.prop-desc{font-size:11px;color:#6b7280;line-height:1.4}
-
-/* ══════════════════════════════
-   FORM SECTIONS
-══════════════════════════════ */
-.form-block{background:#fff;border:1px solid #e0e4ef;border-radius:14px;overflow:hidden;margin-bottom:1.25rem}
-.form-block-head{padding:18px 22px 14px;border-bottom:1px solid #f0f2f5;display:flex;align-items:center;gap:12px}
-.form-block-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
-.fbi-blue{background:#eef3ff}
-.fbi-green{background:#f0fdf4}
-.fbi-amber{background:#fffbeb}
-.form-block-head h3{font-size:14px;font-weight:700;color:#1a1a2e}
-.form-block-head p{font-size:12px;color:#6b7280;margin-top:2px}
-.form-block-body{padding:20px 22px}
-
-/* Fields */
-.fg2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-.field{display:flex;flex-direction:column;gap:5px;margin-bottom:2px}
-.field label{font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:0.06em}
-.field input,.field select,.field textarea{padding:10px 13px;font-size:14px;border:1.5px solid #d1d9e0;border-radius:8px;color:#111827;background:#fff;outline:none;width:100%;transition:all 0.15s;font-family:inherit}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#0071c2;box-shadow:0 0 0 3px rgba(0,113,194,0.1)}
-.field input::placeholder,.field textarea::placeholder{color:#b0bac5}
-.field textarea{resize:vertical;min-height:80px;line-height:1.5}
-
-/* Upload */
-.upload-wrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-.upload-preview{width:88px;height:88px;border-radius:10px;border:1.5px dashed #d1d9e0;background:#f9fafb;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:#9ca3af;gap:4px;flex-shrink:0;overflow:hidden}
-.upload-preview img{width:100%;height:100%;object-fit:contain;padding:4px}
-.upload-zone{flex:1;border:2px dashed #d1d9e0;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:#fafbfc;transition:all 0.15s}
-.upload-zone:hover{border-color:#0071c2;background:#f0f7ff}
-.upload-zone .uz-icon{font-size:24px;margin-bottom:6px}
-.upload-zone .uz-main{font-size:13px;font-weight:600;color:#374151}
-.upload-zone .uz-sub{font-size:11px;color:#9ca3af;margin-top:3px}
-
-/* Room type grid */
-.rt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+body{font-family:var(--font);background:var(--ink);color:var(--snow);min-height:100vh;font-size:14px;line-height:1.6}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--ink2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.trial-banner{border-bottom:1px solid rgba(47,129,247,.25);padding:10px 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:linear-gradient(90deg,rgba(47,129,247,.12),rgba(163,113,247,.08))}
+.trial-banner.warning{background:linear-gradient(90deg,rgba(210,153,34,.12),rgba(248,81,73,.08));border-color:rgba(210,153,34,.3)}
+.trial-banner.expired{background:rgba(248,81,73,.08);border-color:rgba(248,81,73,.3)}
+.trial-banner.active-plan{background:rgba(63,185,80,.05);border-color:rgba(63,185,80,.2)}
+.tb-left{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+.tb-pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
+.tb-pill.trial{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.3)}
+.tb-pill.warning{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(210,153,34,.3)}
+.tb-pill.expired{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,.3)}
+.tb-pill.active{background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.tb-text{color:var(--fog)}
+.tb-text strong{color:var(--snow)}
+.tb-actions{display:flex;gap:8px;align-items:center}
+.tb-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:var(--font);border:none;transition:all .15s}
+.tb-btn.primary{background:var(--blue);color:#fff}
+.tb-btn.primary:hover{background:var(--blue-dim)}
+.tb-btn.ghost{background:transparent;color:var(--mist);border:1px solid var(--border2)}
+.tb-btn.ghost:hover{color:var(--snow);border-color:var(--fog)}
+.tb-modules{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.tb-mod-chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+.tb-expiry-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(63,185,80,.1);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.tb-expiry-badge.warn{background:rgba(210,153,34,.12);color:var(--amber);border-color:rgba(210,153,34,.3)}
+.subscription-gate{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.2);border-radius:var(--r2);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:14px}
+.gate-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.gate-body h4{font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px}
+.gate-body p{font-size:13px;color:var(--mist);line-height:1.5}
+.gate-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.topbar{background:var(--ink2);border-bottom:1px solid var(--border);padding:0 1.5rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-logo{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.brand-name{font-size:16px;font-weight:700;color:var(--snow);letter-spacing:-.3px}
+.brand-name span{color:var(--blue)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.hotel-chip{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:20px;border:1px solid var(--border2);background:var(--ink3);cursor:pointer;transition:all .15s}
+.hotel-chip:hover{border-color:var(--blue)}
+.hc-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.hc-name{font-size:12px;font-weight:600;color:var(--fog)}
+.topbar-step-track{display:flex;align-items:center;gap:6px}
+.ts-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .3s}
+.ts-dot.done{background:var(--green)}
+.ts-dot.active{background:var(--blue);box-shadow:0 0 0 3px var(--blue-glow)}
+.ts-label{font-size:11px;color:var(--mist);margin:0 4px;font-weight:600}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 58px)}
+.sidebar{background:var(--ink2);border-right:1px solid var(--border);padding:1.5rem 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.sidebar-group{padding:0 1rem;margin-bottom:1.5rem}
+.sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--mist);padding:0 8px;margin-bottom:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);font-size:13px;font-weight:600;color:var(--mist);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--fog)}
+.nav-item.active{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.2)}
+.nav-item.done{color:var(--green)}
+.nav-item.done .ni-num{background:var(--green-glow);color:var(--green)}
+.nav-item.active .ni-num{background:var(--blue);color:#fff}
+.ni-num{width:22px;height:22px;border-radius:50%;background:var(--ink3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;transition:all .2s}
+.ni-check{width:22px;height:22px;border-radius:50%;background:var(--green-glow);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.sidebar-bottom{padding:1rem 1.5rem;border-top:1px solid var(--border);margin-top:auto}
+.sf-hotel{font-size:12px;color:var(--mist)}
+.sf-name{font-size:13px;font-weight:700;color:var(--fog);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sf-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;margin-top:5px;padding:2px 8px;border-radius:10px}
+.sf-status.trial{background:var(--blue-glow);color:var(--blue)}
+.sf-status.active{background:var(--green-glow);color:var(--green)}
+.sf-status.expired{background:var(--red-bg);color:var(--red)}
+.sf-status.pending{background:var(--amber-bg);color:var(--amber)}
+.sf-modules-wrap{margin-top:8px;display:flex;flex-wrap:wrap;gap:3px}
+.sf-mod-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.sf-expiry{font-size:9px;color:var(--mist);margin-top:5px}
+.sf-expiry strong{color:var(--fog)}
+.prog-bar{height:3px;background:var(--border);border-radius:3px;margin-top:12px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:3px;transition:width .5s ease}
+.main{padding:2rem 2.5rem 5rem;max-width:720px}
+.step-section{display:none;animation:fadeUp .3s ease}
+.step-section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page-hd{margin-bottom:1.75rem}
+.page-hd h1{font-size:22px;font-weight:800;color:var(--snow);letter-spacing:-.5px;margin-bottom:4px}
+.page-hd p{font-size:13px;color:var(--mist)}
+.notice{border-radius:var(--r);padding:10px 14px;font-size:13px;display:flex;align-items:flex-start;gap:9px;margin-bottom:1.25rem}
+.notice.info{background:var(--blue-glow);border:1px solid rgba(47,129,247,.2);color:#7eb8f7}
+.notice.warn{background:var(--amber-bg);border:1px solid rgba(210,153,34,.2);color:var(--amber)}
+.notice.success{background:var(--green-glow);border:1px solid rgba(63,185,80,.2);color:var(--green)}
+.notice-icon{font-size:15px;margin-top:1px;flex-shrink:0}
+.card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:1rem;overflow:hidden}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ci-blue{background:var(--blue-glow)}
+.ci-green{background:var(--green-glow)}
+.ci-amber{background:var(--amber-bg)}
+.ci-purple{background:var(--purple-bg)}
+.ci-red{background:var(--red-bg)}
+.card-hd-text h3{font-size:13px;font-weight:700;color:var(--snow)}
+.card-hd-text p{font-size:11px;color:var(--mist);margin-top:1px}
+.card-body{padding:18px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist)}
+.field input,.field select,.field textarea{padding:9px 12px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);background:var(--ink3);outline:none;width:100%;transition:all .15s;font-family:var(--font)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-glow)}
+.field input::placeholder,.field textarea::placeholder{color:var(--mist)}
+.field textarea{resize:vertical;min-height:76px;line-height:1.5}
+.field select option{background:var(--ink2)}
+.field-note{font-size:11px;color:var(--mist);margin-top:3px}
+.prop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.prop-label{cursor:pointer;display:block}
+.prop-label input{display:none}
+.prop-box{border:1px solid var(--border2);border-radius:var(--r2);padding:16px 10px 13px;text-align:center;background:var(--ink2);transition:all .18s;position:relative}
+.prop-box:hover{border-color:var(--blue);background:var(--ink3)}
+.prop-label input:checked + .prop-box{border-color:var(--blue);background:var(--blue-glow);box-shadow:0 0 0 1px var(--blue)}
+.prop-check{position:absolute;top:7px;right:7px;width:15px;height:15px;border-radius:50%;background:var(--blue);display:none;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700}
+.prop-label input:checked + .prop-box .prop-check{display:flex}
+.prop-icon{font-size:26px;margin-bottom:6px;display:block}
+.prop-name{font-size:11px;font-weight:700;color:var(--fog)}
+.prop-desc{font-size:10px;color:var(--mist);margin-top:2px;line-height:1.3}
+.rt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem}
 .rt-label{cursor:pointer;display:block}
 .rt-label input{display:none}
-.rt-box{border:2px solid #e0e4ef;border-radius:10px;padding:16px 8px;text-align:center;transition:all 0.15s;background:#fff;position:relative}
-.rt-label input:checked + .rt-box{border-color:#0071c2;background:#f0f7ff}
-.rt-box:hover{border-color:#93c5fd}
-.rt-check{position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;background:#0071c2;display:none;align-items:center;justify-content:center}
-.rt-label input:checked + .rt-box .rt-check{display:flex}
-.rt-icon{font-size:26px;margin-bottom:8px}
-.rt-name{font-size:12px;font-weight:700;color:#1a1a2e}
-.rt-cap{font-size:11px;color:#6b7280;margin-top:2px}
-
-/* Counter */
-.counter{display:flex;align-items:center;gap:12px;margin-top:6px}
-.cnt-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid #d1d9e0;background:#fff;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#374151;transition:all 0.15s}
-.cnt-btn:hover{border-color:#0071c2;color:#0071c2;background:#f0f7ff}
-.cnt-val{font-size:18px;font-weight:700;min-width:28px;text-align:center;color:#111}
-.cnt-label{font-size:13px;color:#6b7280}
-
-/* Chips */
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.chip{padding:6px 14px;border:1.5px solid #d1d9e0;border-radius:20px;font-size:12px;font-weight:600;color:#374151;cursor:pointer;background:#fff;transition:all 0.15s;user-select:none}
-.chip.on{background:#f0f7ff;border-color:#0071c2;color:#0071c2}
-.chip:hover:not(.on){border-color:#9ca3af}
-
-/* Price preview */
-.price-preview{background:#f8fafc;border:1px solid #e8eaf0;border-radius:10px;padding:14px 18px;margin-top:14px}
-.pp-row{display:flex;justify-content:space-between;font-size:13px;color:#6b7280;padding:3px 0}
-.pp-row.total{font-size:15px;font-weight:700;color:#111827;border-top:1.5px solid #e8eaf0;margin-top:8px;padding-top:12px}
-
-/* Photo upload */
-.photo-drop{border:2px dashed #d1d9e0;border-radius:10px;padding:24px;text-align:center;cursor:pointer;background:#fafbfc;transition:all 0.15s}
-.photo-drop:hover{border-color:#0071c2;background:#f0f7ff}
-.photo-drop p{font-size:13px;color:#6b7280;margin-top:6px}
-.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.thumb{width:90px;height:68px;object-fit:cover;border-radius:8px;border:1px solid #e0e4ef}
-
-/* Rooms saved list */
-.rooms-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.room-row{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border:1px solid #e0e4ef;border-radius:10px;background:#f8fafc}
-.rr-left{display:flex;align-items:center;gap:10px;font-size:14px}
-.rr-badge{background:#eef3ff;color:#0071c2;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px}
-.rr-right{font-size:13px;color:#6b7280}
-
-/* Tip */
-.tip{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 16px;font-size:13px;color:#92400e;margin-bottom:1.25rem;display:flex;gap:8px;align-items:center}
-
-/* Action bar */
-.action-bar{display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid #e8eaf0;gap:12px;flex-wrap:wrap}
-.btn{padding:11px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid #d1d9e0;background:#fff;color:#374151;transition:all 0.15s;font-family:inherit;white-space:nowrap}
-.btn:hover{background:#f4f5f7}
-.btn-primary{background:#0071c2;color:#fff;border-color:#0071c2}
-.btn-primary:hover{background:#005fa3}
-.btn-success{background:#008009;color:#fff;border-color:#008009}
-.btn-success:hover{background:#006607}
-.btn-ghost{background:transparent;color:#0071c2;border-color:#0071c2}
-.btn-ghost:hover{background:#f0f7ff}
-.btn-sm{padding:8px 18px;font-size:13px}
-.btn-right-group{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-
-/* Success */
-.success-card{background:#fff;border:1px solid #e0e4ef;border-radius:14px;padding:4rem 2rem;text-align:center}
-.success-emoji{font-size:56px;margin-bottom:1rem}
-.success-card h2{font-size:22px;font-weight:700;margin-bottom:8px}
-.success-card p{color:#6b7280;font-size:14px;margin-bottom:2rem}
-
-/* Toast */
-.toast{position:fixed;bottom:2rem;right:2rem;background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(12px);transition:all 0.28s;pointer-events:none}
+.rt-box{border:1px solid var(--border2);border-radius:var(--r);padding:12px 6px;text-align:center;background:var(--ink2);transition:all .15s}
+.rt-label input:checked + .rt-box{border-color:var(--blue);background:var(--blue-glow)}
+.rt-icon{font-size:20px;margin-bottom:5px}
+.rt-name{font-size:11px;font-weight:700;color:var(--fog)}
+.rt-cap{font-size:10px;color:var(--mist);margin-top:2px}
+.counter{display:flex;align-items:center;gap:8px;margin-top:5px}
+.cnt-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--ink3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--fog);transition:all .15s;font-weight:700}
+.cnt-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-glow)}
+.cnt-val{font-size:16px;font-weight:700;min-width:24px;text-align:center;color:var(--snow)}
+.cnt-lbl{font-size:11px;color:var(--mist)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{padding:5px 12px;border:1px solid var(--border2);border-radius:20px;font-size:11px;font-weight:600;color:var(--mist);cursor:pointer;background:var(--ink3);transition:all .15s;user-select:none}
+.chip.on{background:var(--blue-glow);border-color:rgba(47,129,247,.4);color:var(--blue)}
+.chip:hover:not(.on){border-color:var(--fog);color:var(--fog)}
+.price-preview{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-top:10px}
+.pp-row{display:flex;justify-content:space-between;font-size:12px;color:var(--mist);padding:3px 0}
+.pp-row.total{font-size:14px;font-weight:700;color:var(--snow);border-top:1px solid var(--border);margin-top:7px;padding-top:9px}
+.photo-drop{border:2px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--ink3);transition:all .15s}
+.photo-drop:hover{border-color:var(--blue);background:var(--blue-glow)}
+.thumbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.thumb{width:80px;height:60px;object-fit:cover;border-radius:7px;border:1px solid var(--border2)}
+.thumb:first-child{border-color:var(--blue)}
+.upload-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.upload-ph{width:76px;height:76px;border-radius:var(--r);border:1px dashed var(--border2);background:var(--ink3);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--mist);gap:3px;flex-shrink:0;overflow:hidden}
+.upload-zone{flex:1;border:1px dashed var(--border2);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;background:var(--ink3);transition:all .15s}
+.upload-zone:hover{border-color:var(--blue);background:var(--blue-glow)}
+.uz-icon{font-size:20px;margin-bottom:4px}
+.uz-main{font-size:13px;font-weight:600;color:var(--fog)}
+.uz-sub{font-size:11px;color:var(--mist);margin-top:2px}
+.room-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--ink3);margin-bottom:6px}
+.rr-left{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--fog)}
+.rr-badge{background:var(--blue-glow);color:var(--blue);font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;border:1px solid rgba(47,129,247,.2)}
+.rr-right{font-size:12px;color:var(--mist)}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
+.plan-label{cursor:pointer;display:block}
+.plan-label input{display:none}
+.plan-card{border:1px solid var(--border2);border-radius:var(--r2);padding:18px 14px;background:var(--ink2);transition:all .2s;position:relative;overflow:hidden}
+.plan-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.plan-label input:checked + .plan-card{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue),0 8px 24px rgba(47,129,247,.15);transform:translateY(-2px);background:rgba(47,129,247,.04)}
+.plan-label input:checked + .plan-card .plan-tick{display:flex}
+.plan-popular{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:2px 10px;border-radius:0 0 6px 6px;letter-spacing:.05em}
+.plan-card.has-badge{padding-top:26px}
+.plan-tick{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:var(--blue);display:none;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.plan-name{font-size:14px;font-weight:800;color:var(--snow);margin-bottom:2px}
+.plan-price{font-size:28px;font-weight:800;color:var(--snow);line-height:1;margin:8px 0 2px}
+.plan-price span{font-size:12px;font-weight:500;color:var(--mist)}
+.plan-tag{font-size:11px;color:var(--mist);margin-bottom:10px;line-height:1.4}
+.plan-divider{height:1px;background:var(--border);margin:10px 0}
+.plan-feats{display:flex;flex-direction:column;gap:5px}
+.pf-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fog)}
+.pf-yes{width:13px;height:13px;border-radius:50%;background:var(--green-glow);color:var(--green);font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.plan-summary{background:var(--blue-glow);border:1px solid rgba(47,129,247,.2);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ps-left{font-size:13px;color:#7eb8f7}
+.ps-right{font-size:15px;font-weight:800;color:var(--snow)}
+.current-plan-box{background:var(--ink3);border:1px solid rgba(63,185,80,.25);border-radius:var(--r2);padding:14px 16px;margin-bottom:1.25rem}
+.cpb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.cpb-title{font-size:12px;font-weight:700;color:var(--green)}
+.cpb-expiry{font-size:11px;color:var(--mist)}
+.cpb-expiry strong{color:var(--snow)}
+.cpb-modules{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.cpb-mod{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.cpb-mod-count{font-size:10px;color:var(--mist);margin-top:6px;font-weight:600}
+.trial-start-box{background:linear-gradient(135deg,rgba(47,129,247,.08),rgba(163,113,247,.06));border:1px solid rgba(47,129,247,.25);border-radius:var(--r2);padding:20px;margin-bottom:1.25rem;text-align:center}
+.trial-start-box h3{font-size:16px;font-weight:800;color:var(--snow);margin-bottom:6px}
+.trial-start-box p{font-size:13px;color:var(--mist);margin-bottom:16px;line-height:1.5}
+.trial-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
+.trial-feat{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.2)}
+.trial-active-box{background:rgba(47,129,247,.06);border:1px solid rgba(47,129,247,.25);border-radius:var(--r2);padding:14px 16px;margin-bottom:1.25rem}
+.tab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.tab-title{font-size:12px;font-weight:700;color:var(--blue)}
+.tab-expiry{font-size:11px;color:var(--mist)}
+.tab-expiry strong{color:var(--snow)}
+.action-bar{display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--border);gap:10px;flex-wrap:wrap}
+.btn{padding:9px 20px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border2);background:var(--ink3);color:var(--fog)}
+.btn:hover{border-color:var(--fog);color:var(--snow)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue-dim)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-green{background:var(--green-dim);color:#fff;border-color:var(--green-dim)}
+.btn-green:hover{background:var(--green)}
+.btn-ghost{background:transparent;color:var(--blue);border-color:rgba(47,129,247,.3)}
+.btn-ghost:hover{background:var(--blue-glow)}
+.btn-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.skip-link{font-size:12px;color:var(--mist);text-decoration:none;cursor:pointer;transition:color .15s}
+.skip-link:hover{color:var(--fog)}
+.overlay{position:fixed;inset:0;background:rgba(1,4,9,.8);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px)}
+.overlay.show{display:flex}
+.modal{background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r3);width:100%;max-width:500px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);animation:modalIn .25s ease}
+@keyframes modalIn{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.modal-hd{background:var(--ink3);border-bottom:1px solid var(--border);padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:800;color:var(--snow);margin-bottom:2px}
+.modal-sub{font-size:11px;color:var(--mist)}
+.modal-amount{text-align:right}
+.modal-amt-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mist)}
+.modal-amt-val{font-size:22px;font-weight:800;color:var(--blue)}
+.modal-close{background:var(--ink3);border:1px solid var(--border);width:26px;height:26px;border-radius:50%;cursor:pointer;color:var(--mist);font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:10px}
+.modal-close:hover{color:var(--snow);border-color:var(--fog)}
+.pay-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--ink3)}
+.pay-tab{flex:1;padding:11px 6px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;color:var(--mist);transition:all .15s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px}
+.pay-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--ink2)}
+.pay-tab-icon{font-size:16px}
+.pay-panels{padding:18px 22px}
+.pay-panel{display:none}
+.pay-panel.active{display:block}
+.card-wrap{position:relative}
+.card-brands{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:3px}
+.cb{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.05em;opacity:.5;transition:opacity .15s}
+.cb.visa{background:#1a1f71;color:#fff}
+.cb.mc{background:#eb001b;color:#fff}
+.cb.rupay{background:#e60026;color:#fff}
+.cb.hi{opacity:1}
+.exp-cvv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.secure-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mist);margin-top:10px;padding:8px 10px;background:var(--ink3);border-radius:var(--r);border:1px solid var(--border)}
+.upi-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px}
+.upi-row .field{flex:1;margin:0}
+.verify-btn{padding:9px 14px;background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.3);border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);transition:all .15s}
+.verify-btn:hover{background:rgba(47,129,247,.2)}
+.upi-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
+.upi-app{border:1px solid var(--border2);border-radius:var(--r);padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;background:var(--ink3)}
+.upi-app:hover,.upi-app.sel{border-color:var(--blue);background:var(--blue-glow)}
+.upi-app-icon{font-size:22px;margin-bottom:4px}
+.upi-app-name{font-size:10px;font-weight:700;color:var(--fog)}
+.qr-box{border:1px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;margin-top:10px}
+.qr-ph{width:100px;height:100px;margin:0 auto 8px;background:var(--ink3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.bank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+.bank-item{border:1px solid var(--border2);border-radius:var(--r);padding:9px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:all .15s;background:var(--ink3)}
+.bank-item:hover,.bank-item.sel{border-color:var(--blue);background:var(--blue-glow)}
+.bank-icon{font-size:18px;flex-shrink:0}
+.bank-name{font-size:11px;font-weight:700;color:var(--fog)}
+.wallet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.wallet-item{border:1px solid var(--border2);border-radius:var(--r);padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;background:var(--ink3)}
+.wallet-item:hover,.wallet-item.sel{border-color:var(--blue);background:var(--blue-glow)}
+.wallet-icon{font-size:22px;margin-bottom:4px}
+.wallet-name{font-size:10px;font-weight:700;color:var(--fog)}
+.wallet-bal{font-size:9px;color:var(--mist);margin-top:2px}
+.emi-item{border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:all .15s;background:var(--ink3);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.emi-item:hover,.emi-item.sel{border-color:var(--blue);background:var(--blue-glow)}
+.emi-left{font-size:13px;font-weight:700;color:var(--snow)}
+.emi-sub{font-size:10px;color:var(--mist);margin-top:2px}
+.emi-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px}
+.emi-free{background:var(--green-glow);color:var(--green)}
+.emi-std{background:var(--ink);color:var(--mist)}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);background:var(--ink3)}
+.modal-coupon-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-end}
+.modal-coupon-row .field{flex:1;margin:0}
+.pay-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.pay-btn:hover{background:var(--blue-dim);transform:translateY(-1px);box-shadow:0 4px 20px rgba(47,129,247,.3)}
+.pay-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.security-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.sec-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mist)}
+.trust-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.trust-pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--ink);border:1px solid var(--border);color:var(--mist)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.pm-processing{text-align:center;padding:3rem 2rem}
+.pm-spinner{width:56px;height:56px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.25rem}
+.pm-success{text-align:center;padding:2.5rem 2rem}
+.success-ring{width:68px;height:68px;border-radius:50%;background:var(--green-glow);border:1px solid rgba(63,185,80,.3);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 1rem;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.receipt-box{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin:14px 0;text-align:left}
+.receipt-row{display:flex;justify-content:space-between;font-size:12px;color:var(--mist);padding:3px 0}
+.receipt-row strong{color:var(--fog)}
+.receipt-id{font-family:var(--mono);font-size:10px;color:var(--blue)}
+.done-card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r3);padding:3rem 2rem;text-align:center;max-width:460px;margin:0 auto}
+.done-emoji{font-size:48px;margin-bottom:1rem;display:block}
+.done-card h2{font-size:20px;font-weight:800;color:var(--snow);margin-bottom:8px}
+.done-card p{font-size:13px;color:var(--mist);margin-bottom:1.75rem;line-height:1.6}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink2);border:1px solid var(--border2);color:var(--fog);padding:10px 16px;border-radius:var(--r);font-size:12px;font-weight:700;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:300px}
 .toast.show{opacity:1;transform:translateY(0)}
-.toast.ok{background:#008009}
-.toast.err{background:#dc2626}
-
-/* Divider */
-.divider{height:1px;background:#f0f2f5;margin:18px 0}
-
-/* Welcome banner */
-.welcome-banner{background:linear-gradient(135deg,#003b95 0%,#0055cc 100%);border-radius:14px;padding:24px 28px;margin-bottom:1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;color:#fff;position:relative;overflow:hidden}
-.welcome-banner::before{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.06)}
-.welcome-banner::after{content:'';position:absolute;right:80px;bottom:-40px;width:90px;height:90px;border-radius:50%;background:rgba(254,187,2,0.08)}
-.wb-left{flex:1;min-width:180px;position:relative;z-index:1}
-.wb-greeting{font-size:11px;font-weight:600;opacity:0.7;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-.wb-name{font-size:21px;font-weight:700;margin-bottom:5px;line-height:1.2}
-.wb-sub{font-size:13px;opacity:0.75}
-.wb-right{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;position:relative;z-index:1}
-.wb-step-track{display:flex;align-items:center}
-.wb-dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,0.6);flex-shrink:0}
-.wb-dot.active{background:#fff;border-color:#fff;color:#003b95}
-.wb-dot.done{background:#febb02;border-color:#febb02;color:#003b95}
-.wb-line{width:32px;height:2px;background:rgba(255,255,255,0.2)}
-.wb-labels{display:flex;font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);gap:0;margin-top:2px}
-.wb-lbl{width:28px;text-align:center;white-space:nowrap;font-size:9.5px}
-.wb-lbl+.wb-lbl{margin-left:32px}
-
-@media(max-width:640px){
-    .prop-grid{grid-template-columns:1fr 1fr}
-    .rt-grid{grid-template-columns:1fr 1fr}
-    .fg2,.fg3{grid-template-columns:1fr}
-    .content{padding:1.5rem 1rem 4rem}
-    .header{padding:0 1rem}
-    .owner-name{display:none}
+.toast.ok{border-color:rgba(63,185,80,.4);color:var(--green)}
+.toast.err{border-color:rgba(248,81,73,.4);color:var(--red)}
+.toast.warn{border-color:rgba(210,153,34,.4);color:var(--amber)}
+.field-mono input{font-family:var(--mono);letter-spacing:.06em}
+.offer-strip{background:linear-gradient(90deg,rgba(47,129,247,.08),rgba(163,113,247,.06));border:1px solid rgba(47,129,247,.2);border-radius:var(--r);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
+.offer-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;background:rgba(47,129,247,.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(47,129,247,.2)}
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:1.25rem 1rem 4rem}
+  .plans-grid{grid-template-columns:1fr}
+  .prop-grid{grid-template-columns:1fr 1fr}
+  .rt-grid{grid-template-columns:1fr 1fr}
+  .g2,.g3{grid-template-columns:1fr}
+  .bank-grid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- ═════════════════════════════════
-     HEADER
-═════════════════════════════════ -->
-<header class="header">
-  <div class="header-inner">
-
-    <a href="#" class="logo">Hotel<span class="logo-dot">Cloud</span></a>
-
-    <!-- Owner dropdown (top-right corner) -->
-    <div class="owner-area">
-      <div class="owner-trigger" id="owner-trigger" onclick="toggleOwnerMenu()">
-        <div class="owner-avatar" id="owner-avatar">
-    {{ hotel.owner_name|default:"Hotel Owner"|slice:":1"|upper }}
+{% if show_subscription_gate %}
+<div class="trial-banner expired">
+  <div class="tb-left">
+    <span class="tb-pill expired">Access Restricted</span>
+    <span class="tb-text">Your <strong>trial has ended</strong> and you have no active subscription. Some features are disabled.</span>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn primary" onclick="switchStep('plan')">Subscribe Now</button>
+    <a href="{% url 'logout' %}" class="tb-btn ghost">Logout</a>
+  </div>
 </div>
-        <span class="owner-name" id="owner-name-label">{{ hotel.owner_name|default:"Hotel Owner" }}</span>
-        <svg class="owner-chevron" id="owner-chevron" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
-        </svg>
+
+{% elif show_trial_banner %}
+  {% if trial_days_remaining <= 3 %}
+  <div class="trial-banner warning">
+    <div class="tb-left">
+      <span class="tb-pill warning">Trial Ending</span>
+      <span class="tb-text">
+        Only <strong>{{ trial_days_remaining }} day{{ trial_days_remaining|pluralize }}</strong> left on your free trial.
+        Subscribe to keep {% if active_modules_count %}your <strong>{{ active_modules_count }}</strong> premium module{{ active_modules_count|pluralize }}{% else %}premium features{% endif %}.
+      </span>
+    </div>
+    <div class="tb-actions">
+      <button class="tb-btn primary" onclick="switchStep('plan')">Choose a Plan</button>
+    </div>
+  </div>
+  {% else %}
+  <div class="trial-banner">
+    <div class="tb-left" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="tb-pill trial">Free Trial</span>
+        <span class="tb-text">
+          <strong>{{ trial_days_remaining }} days</strong> remaining
+          {% if hotel.trial_end %} · Ends {{ hotel.trial_end|date:"d M Y" }}{% endif %}
+          {% if active_modules_count %} · <strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} active{% endif %}
+        </span>
       </div>
+      {% if active_modules %}
+      <div class="tb-modules">
+        {% for mod in active_modules %}<span class="tb-mod-chip">{{ mod }}</span>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="tb-actions">
+      <button class="tb-btn primary" onclick="switchStep('plan')">Upgrade Now</button>
+    </div>
+  </div>
+  {% endif %}
 
-      <div class="owner-menu" id="owner-menu">
-        <div class="om-header">
-          <div class="om-hname">{{ hotel.hotel_name|default:"Your Hotel" }}</div>
-          <div class="om-hemail">{{ hotel.email|default:"hotel@example.com" }}</div>
-        </div>
+{% elif show_expiry_warning %}
+<div class="trial-banner warning">
+  <div class="tb-left">
+    <span class="tb-pill warning">Expiring Soon</span>
+    <span class="tb-text">
+      <strong>{{ active_plan_name|default:"Subscription" }}</strong> expires in
+      <strong>{{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }}</strong>
+      {% if subscription_expiry %} · {{ subscription_expiry|date:"d M Y" }}{% endif %}
+      {% if active_modules_count %} · {{ active_modules_count }} module{{ active_modules_count|pluralize }} at risk{% endif %}
+    </span>
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn primary" onclick="switchStep('plan')">Renew Now</button>
+  </div>
+</div>
 
-        <div class="om-section">
-          <div class="om-label">Setup</div>
-          <button class="om-item active" id="omenu-hotel" onclick="switchModule('hotel');closeOwnerMenu()">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-            </svg>
-            Hotel Details
-          </button>
-          <button class="om-item" id="omenu-rooms" onclick="switchModule('rooms');closeOwnerMenu()">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            Add Rooms
-          </button>
-        </div>
+{% elif hotel.is_subscribed %}
+<div class="trial-banner active-plan">
+  <div class="tb-left" style="flex-direction:column;align-items:flex-start;gap:6px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="tb-pill active">● Active</span>
+      <span class="tb-text">
+        <strong>{{ active_plan_name|default:"Subscribed" }}</strong>
+        {% if active_modules_count %} · <strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} enabled{% endif %}
+      </span>
+      {% if subscription_expiry %}
+        <span class="tb-expiry-badge {% if expiry_days_remaining <= 7 %}warn{% endif %}">
+          📅 Renews {{ subscription_expiry|date:"d M Y" }}
+          {% if expiry_days_remaining %} · {{ expiry_days_remaining }}d left{% endif %}
+        </span>
+      {% endif %}
+    </div>
+    {% if active_modules %}
+    <div class="tb-modules">
+      {% for mod in active_modules %}<span class="tb-mod-chip">{{ mod }}</span>{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="tb-actions">
+    <button class="tb-btn primary" onclick="switchStep('plan')">Manage Plan</button>
+  </div>
+</div>
+{% endif %}
 
-        
-
+<header class="topbar">
+  <a href="{% url 'dashboard' %}" class="brand">
+    <div class="brand-logo">HC</div>
+    <span class="brand-name">Hotel<span>Cloud</span></span>
+  </a>
+  <div class="topbar-right">
+    <div class="topbar-step-track">
+      <div class="ts-dot active" id="td-hotel"></div>
+      <span class="ts-label">Details</span>
+      <div class="ts-dot" id="td-rooms"></div>
+      <span class="ts-label">Rooms</span>
+      <div class="ts-dot" id="td-plan"></div>
+      <span class="ts-label">Plan</span>
+      <div class="ts-dot" id="td-done"></div>
+    </div>
+    <div class="hotel-chip">
+      <div class="hc-avatar">{{ hotel.hotel_name|default:"H"|slice:":2"|upper }}</div>
+      <span class="hc-name">{{ hotel.hotel_name|default:"Your Hotel"|truncatechars:18 }}</span>
+    </div>
   </div>
 </header>
 
-<!-- ═════════════════════════════════
-     CONTENT — Clean white background
-═════════════════════════════════ -->
-<div class="content">
-  <div class="content-inner">
-
-    <!-- ─────────────────────────────
-         MODULE 1 — Hotel Details
-    ───────────────────────────── -->
-    <div class="section active" id="step-hotel">
-
-      <!-- Welcome banner -->
-      <div class="welcome-banner">
-        <div class="wb-left">
-          <div class="wb-greeting">Welcome back</div>
-          <div class="wb-name">{{ hotel.hotel_name|default:"Your Hotel" }}</div>
-          <div class="wb-sub">Complete your property setup to start accepting bookings.</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-label">Setup steps</div>
+      <button class="nav-item active" id="si-hotel" onclick="switchStep('hotel')">
+        <span class="ni-num" id="sn-hotel">1</span>Hotel Details
+      </button>
+      <button class="nav-item" id="si-rooms" onclick="switchStep('rooms')">
+        <span class="ni-num" id="sn-rooms">2</span>Add Rooms
+      </button>
+      <button class="nav-item" id="si-plan" onclick="switchStep('plan')">
+        <span class="ni-num" id="sn-plan">3</span>Choose Plan
+      </button>
+      <button class="nav-item" id="si-done" style="pointer-events:none;opacity:.4">
+        <span class="ni-num" id="sn-done">4</span>Finish Setup
+      </button>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sf-hotel">Setting up</div>
+      <div class="sf-name">{{ hotel.hotel_name|default:"Your Hotel" }}</div>
+      {% if hotel.is_on_trial %}
+        <div class="sf-status trial">⏱ Trial — {{ trial_days_remaining }}d left</div>
+      {% elif hotel.is_subscribed %}
+        <div class="sf-status active">● {{ active_plan_name|default:"Active" }}</div>
+        {% if subscription_expiry %}
+          <div class="sf-expiry">
+            Expires <strong>{{ subscription_expiry|date:"d M Y" }}</strong>
+            {% if expiry_days_remaining %}
+              · <strong style="color:{% if expiry_days_remaining <= 7 %}var(--red){% else %}var(--green){% endif %}">{{ expiry_days_remaining }}d left</strong>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if active_modules %}
+        <div class="sf-modules-wrap">
+          {% for mod in active_modules %}<span class="sf-mod-badge">{{ mod }}</span>{% endfor %}
         </div>
-        <div class="wb-right">
-          <div class="wb-step-track">
-            <div class="wb-dot active">1</div>
-            <div class="wb-line"></div>
-            <div class="wb-dot">2</div>
-            <div class="wb-line"></div>
-            <div class="wb-dot">✓</div>
-          </div>
-          <div class="wb-labels">
-            <span class="wb-lbl">Hotel</span>
-            <span class="wb-lbl">Rooms</span>
-            <span class="wb-lbl">Done</span>
-          </div>
+        {% endif %}
+      {% elif hotel.subscription_status == 'expired' %}
+        <div class="sf-status expired">✕ Subscription expired</div>
+      {% elif can_start_trial %}
+        <div class="sf-status pending">○ Trial available</div>
+      {% else %}
+        <div class="sf-status pending">○ No active plan</div>
+      {% endif %}
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:25%"></div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    {% if show_subscription_gate %}
+    <div class="subscription-gate">
+      <div class="gate-icon">🔒</div>
+      <div class="gate-body">
+        <h4>Subscription required to complete setup</h4>
+        <p>Your free trial has ended. Core features like room management and staff remain active, but premium modules require an active subscription.</p>
+        <div class="gate-actions">
+          <button class="btn btn-primary" onclick="switchStep('plan')">View Plans →</button>
+          <button class="btn" onclick="switchStep('hotel')">Continue with Core</button>
         </div>
       </div>
+    </div>
+    {% endif %}
 
-      <div class="page-heading">
-        <h1>List your property and start<br>welcoming guests!</h1>
-        <p>To get started, select your property type and fill in the details below.</p>
+    {# ═══ STEP 1: HOTEL DETAILS ═══ #}
+    <div class="step-section active" id="step-hotel">
+      <div class="page-hd">
+        <h1>List your property</h1>
+        <p>Select property type and fill in your details to get started.</p>
       </div>
-
-      <div class="tip">💡 Your registration details are pre-filled — review and update anything you need.</div>
-
-      <!-- Property type -->
+      <div class="notice info">
+        <span class="notice-icon">ℹ</span>
+        <span>Your registration details are pre-filled — review and update anything needed before continuing.</span>
+      </div>
       <div class="prop-grid">
-        <label class="prop-card-label">
+        <label class="prop-label">
           <input type="radio" name="property_type" value="Hotel" {% if hotel.property_type == 'Hotel' or not hotel.property_type %}checked{% endif %}>
-          <div class="prop-card">
-            <div class="prop-check"><svg fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-            <svg class="prop-svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-              <rect x="8" y="20" width="36" height="26" rx="2" fill="#d6e4f7" stroke="#0071c2" stroke-width="1.5"/>
-              <polygon points="26,6 6,22 46,22" fill="#0071c2" opacity="0.85"/>
-              <rect x="20" y="32" width="12" height="14" rx="1" fill="#0071c2" opacity="0.5"/>
-              <rect x="13" y="28" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-              <rect x="32" y="28" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-            </svg>
-            <div class="prop-name">Hotel</div>
-            <div class="prop-desc">Traditional hotel with dedicated staff & services</div>
-          </div>
+          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏨</span><div class="prop-name">Hotel</div><div class="prop-desc">Full-service with staff</div></div>
         </label>
-        <label class="prop-card-label">
+        <label class="prop-label">
           <input type="radio" name="property_type" value="Resort" {% if hotel.property_type == 'Resort' %}checked{% endif %}>
-          <div class="prop-card">
-            <div class="prop-check"><svg fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-            <svg class="prop-svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-              <ellipse cx="26" cy="40" rx="20" ry="6" fill="#d6e4f7"/>
-              <rect x="18" y="22" width="16" height="20" rx="2" fill="#d6e4f7" stroke="#0071c2" stroke-width="1.5"/>
-              <path d="M26 6 Q30 14 26 18 Q22 14 26 6Z" fill="#0071c2" opacity="0.8"/>
-              <path d="M14 12 Q18 18 14 22 Q10 18 14 12Z" fill="#0071c2" opacity="0.5"/>
-              <path d="M38 12 Q42 18 38 22 Q34 18 38 12Z" fill="#0071c2" opacity="0.5"/>
-              <rect x="22" y="32" width="8" height="10" rx="1" fill="#0071c2" opacity="0.5"/>
-            </svg>
-            <div class="prop-name">Resort</div>
-            <div class="prop-desc">Full-service resort with leisure facilities</div>
-          </div>
+          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🌴</span><div class="prop-name">Resort</div><div class="prop-desc">Leisure & full-service</div></div>
         </label>
-        <label class="prop-card-label">
+        <label class="prop-label">
           <input type="radio" name="property_type" value="Guesthouse" {% if hotel.property_type == 'Guesthouse' %}checked{% endif %}>
-          <div class="prop-card">
-            <div class="prop-check"><svg fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-            <svg class="prop-svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-              <rect x="10" y="24" width="32" height="22" rx="2" fill="#d6e4f7" stroke="#0071c2" stroke-width="1.5"/>
-              <polygon points="26,8 8,26 44,26" fill="#0071c2" opacity="0.85"/>
-              <rect x="21" y="34" width="10" height="12" rx="1" fill="#0071c2" opacity="0.5"/>
-              <circle cx="21" cy="41" r="1.2" fill="#0071c2" opacity="0.8"/>
-              <rect x="13" y="30" width="6" height="6" rx="1" fill="#0071c2" opacity="0.6"/>
-              <rect x="33" y="30" width="6" height="6" rx="1" fill="#0071c2" opacity="0.6"/>
-            </svg>
-            <div class="prop-name">Guesthouse</div>
-            <div class="prop-desc">B&Bs, guesthouses & small properties</div>
-          </div>
+          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏡</span><div class="prop-name">Guesthouse</div><div class="prop-desc">B&Bs & small stays</div></div>
         </label>
-        <label class="prop-card-label">
+        <label class="prop-label">
           <input type="radio" name="property_type" value="Apartment" {% if hotel.property_type == 'Apartment' %}checked{% endif %}>
-          <div class="prop-card">
-            <div class="prop-check"><svg fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-            <svg class="prop-svg" width="52" height="52" viewBox="0 0 52 52" fill="none">
-              <rect x="10" y="10" width="32" height="36" rx="2" fill="#d6e4f7" stroke="#0071c2" stroke-width="1.5"/>
-              <rect x="15" y="15" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-              <rect x="30" y="15" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-              <rect x="15" y="27" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-              <rect x="30" y="27" width="7" height="7" rx="1" fill="#0071c2" opacity="0.7"/>
-              <rect x="21" y="37" width="10" height="9" rx="1" fill="#0071c2" opacity="0.5"/>
-            </svg>
-            <div class="prop-name">Apartment</div>
-            <div class="prop-desc">Self-catering apartments & serviced flats</div>
-          </div>
+          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏢</span><div class="prop-name">Apartment</div><div class="prop-desc">Self-catering & serviced</div></div>
         </label>
       </div>
-
-      <!-- Basic info -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-blue">📋</div>
-          <div><h3>Basic information</h3><p>Pre-filled from your registration</p></div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-blue">📋</div>
+          <div class="card-hd-text"><h3>Basic information</h3><p>Pre-filled from your registration</p></div>
         </div>
-        <div class="form-block-body" style="display:flex;flex-direction:column;gap:16px">
-          <div class="fg2">
-            <div class="field"><label>Hotel name</label>
-              <input type="text" id="h-name" value="{{ hotel.hotel_name }}" placeholder="Grand Palace Hotel"></div>
-            <div class="field"><label>Owner / Manager name</label>
-              <input type="text" id="h-owner" value="{{ hotel.owner_name }}" placeholder="Full name"></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div class="g2">
+            <div class="field"><label>Hotel name *</label><input type="text" id="h-name" value="{{ hotel.hotel_name }}" placeholder="Grand Palace Hotel"></div>
+            <div class="field"><label>Owner / manager *</label><input type="text" id="h-owner" value="{{ hotel.owner_name }}" placeholder="Full name"></div>
           </div>
-          <div class="fg2">
-            <div class="field"><label>Email address</label>
-              <input type="email" id="h-email" value="{{ hotel.email }}" placeholder="hotel@example.com"></div>
-            <div class="field"><label>City</label>
-              <input type="text" id="h-city" value="{{ hotel.city }}" placeholder="e.g. Kochi"></div>
+          <div class="g2">
+            <div class="field"><label>Email address *</label><input type="email" id="h-email" value="{{ hotel.email }}" placeholder="hotel@example.com"></div>
+            <div class="field"><label>Phone</label><input type="tel" id="h-phone" value="{{ hotel.phone|default:'' }}" placeholder="+91 98765 43210"></div>
           </div>
-          <div class="field"><label>Full address</label>
-            <textarea id="h-address" placeholder="Street, area, landmark...">{{ hotel.address }}</textarea></div>
-          <div class="field"><label>Property description</label>
-            <textarea id="h-desc" placeholder="What makes your property special — location, experience, unique features...">{{ hotel.description }}</textarea></div>
+          <div class="g2">
+            <div class="field"><label>City</label><input type="text" id="h-city" value="{{ hotel.city }}" placeholder="Kochi"></div>
+            <div class="field"><label>State</label><input type="text" id="h-state" value="{{ hotel.state|default:'' }}" placeholder="Kerala"></div>
+          </div>
+          <div class="field"><label>Full address</label><textarea id="h-address" placeholder="Street, area, landmark...">{{ hotel.address }}</textarea></div>
+          <div class="field"><label>Property description</label><textarea id="h-desc" placeholder="What makes your property special...">{{ hotel.description }}</textarea></div>
         </div>
       </div>
-
-      <!-- Logo & Cover -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-amber">📷</div>
-          <div><h3>Logo &amp; cover photo</h3><p>Logo used on invoices and the guest portal</p></div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-amber">📷</div>
+          <div class="card-hd-text"><h3>Logo & cover photo</h3><p>Used on invoices, guest portal, and booking confirmations</p></div>
         </div>
-        <div class="form-block-body" style="display:flex;flex-direction:column;gap:20px">
+        <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
           <div>
-            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">Hotel logo</div>
-            <div class="upload-wrap">
-              <div class="upload-preview" id="logo-ph">
-                <span style="font-size:22px">🏷</span>
-                <span>No logo</span>
+            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:8px">Hotel logo</div>
+            <div class="upload-row">
+              <div class="upload-ph" id="logo-ph">
+                {% if hotel.logo %}<img src="{{ hotel.logo.url }}" style="width:100%;height:100%;object-fit:contain">{% else %}🏷️<span>No logo</span>{% endif %}
               </div>
-              {% if hotel.logo %}<img id="logo-prev" src="{{ hotel.logo.url }}" style="display:block" class="upload-preview">{% else %}<img id="logo-prev" style="display:none" class="upload-preview">{% endif %}
+              <img id="logo-prev" style="display:none;width:76px;height:76px;object-fit:contain;border-radius:8px;border:1px solid var(--border2)">
               <div class="upload-zone" onclick="document.getElementById('logo-input').click()">
-                <div class="uz-icon">☁️</div>
-                <div class="uz-main">Upload logo</div>
-                <div class="uz-sub">PNG transparent recommended · Max 2 MB</div>
+                <div class="uz-icon">☁️</div><div class="uz-main">Upload logo</div><div class="uz-sub">PNG transparent · Max 2 MB</div>
               </div>
               <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="previewImg(this,'logo-prev','logo-ph')">
             </div>
           </div>
-          <div class="divider"></div>
+          <div style="height:1px;background:var(--border)"></div>
           <div>
-            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px">Cover photo</div>
-            <div class="upload-wrap">
-              <div class="upload-preview" id="cover-ph" style="width:110px;height:80px">
-                <span style="font-size:22px">🖼</span>
-                <span>No photo</span>
+            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:8px">Cover photo</div>
+            <div class="upload-row">
+              <div class="upload-ph" id="cover-ph" style="width:102px;height:72px;border-radius:8px">
+                {% if hotel.image %}<img src="{{ hotel.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}🖼️<span>No photo</span>{% endif %}
               </div>
-              {% if hotel.image %}<img id="cover-prev" src="{{ hotel.image.url }}" style="display:block;width:110px;height:80px" class="upload-preview">{% else %}<img id="cover-prev" style="display:none;width:110px;height:80px" class="upload-preview">{% endif %}
+              <img id="cover-prev" style="display:none;width:102px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">
               <div class="upload-zone" onclick="document.getElementById('cover-input').click()">
-                <div class="uz-icon">📷</div>
-                <div class="uz-main">Upload cover photo</div>
-                <div class="uz-sub">JPG, PNG · Max 5 MB · Landscape preferred</div>
+                <div class="uz-icon">📷</div><div class="uz-main">Upload cover photo</div><div class="uz-sub">JPG, PNG · Max 5 MB · Landscape preferred</div>
               </div>
               <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="previewImg(this,'cover-prev','cover-ph')">
             </div>
           </div>
         </div>
       </div>
-
       <div class="action-bar">
-        <a href="?skip=true" style="font-size:13px;color:#6b7280;text-decoration:none"
-           onclick="return confirm('Skip setup? You can finish later from Settings.')">Skip for now</a>
-        <button class="btn btn-primary" onclick="saveHotelDetails()">Save &amp; continue →</button>
+        <a href="?skip=true" class="skip-link" onclick="return confirm('Skip setup and go to dashboard?')">Skip setup →</a>
+        <button class="btn btn-primary" onclick="saveHotelDetails()">Save & continue →</button>
       </div>
     </div>
 
-    <!-- ─────────────────────────────
-         MODULE 2 — Add Rooms
-    ───────────────────────────── -->
-    <div class="section" id="step-rooms">
-
-      <div class="page-heading">
-        <h1>Add your room types</h1>
-        <p>Add each room type separately. You can add more from the dashboard later.</p>
+    {# ═══ STEP 2: ROOMS ═══ #}
+    <div class="step-section" id="step-rooms">
+      <div class="page-hd">
+        <h1>Add room types</h1>
+        <p>Add each room category separately with pricing. Units will be auto-numbered.</p>
       </div>
-
-      <div class="tip">💡 Each room type can have multiple units — they'll be auto-numbered for you.</div>
-
-      <!-- Rooms saved -->
-      <div class="form-block" id="rooms-added-card" style="display:none">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-green">✅</div>
-          <div><h3>Rooms added</h3><p>These room types have been saved to your property</p></div>
-        </div>
-        <div class="form-block-body">
-          <div class="rooms-list" id="rooms-added-list"></div>
-        </div>
+      <div class="notice info">
+        <span class="notice-icon">💡</span>
+        <span>You can always add more room types later from the <strong>Rooms</strong> section in your dashboard.</span>
       </div>
-
-      <!-- Room type form -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-blue">🛏</div>
-          <div><h3 id="room-form-title">Add a room type</h3><p>Fill in details and save</p></div>
+      <div class="card" id="rooms-added-card" style="display:none">
+        <div class="card-hd">
+          <div class="card-icon ci-green">✅</div>
+          <div class="card-hd-text"><h3>Rooms added</h3><p>Saved to your property</p></div>
         </div>
-        <div class="form-block-body">
-          <div style="font-size:11px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Room category</div>
+        <div class="card-body" id="rooms-added-list" style="display:flex;flex-direction:column;gap:0"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-blue">🛏️</div>
+          <div class="card-hd-text"><h3 id="room-form-title">Add a room type</h3><p>Fill in details below</p></div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:8px">Room category</div>
           <div class="rt-grid">
-            <label class="rt-label">
-              <input type="radio" name="room_type" value="Single" checked onchange="updateRoomTitle(this)">
-              <div class="rt-box">
-                <div class="rt-check"><svg width="10" height="10" fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-                <div class="rt-icon">🛏</div>
-                <div class="rt-name">Single</div><div class="rt-cap">1 adult</div>
-              </div>
-            </label>
-            <label class="rt-label">
-              <input type="radio" name="room_type" value="Double" onchange="updateRoomTitle(this)">
-              <div class="rt-box">
-                <div class="rt-check"><svg width="10" height="10" fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-                <div class="rt-icon">🌙</div>
-                <div class="rt-name">Double</div><div class="rt-cap">2 adults</div>
-              </div>
-            </label>
-            <label class="rt-label">
-              <input type="radio" name="room_type" value="Deluxe" onchange="updateRoomTitle(this)">
-              <div class="rt-box">
-                <div class="rt-check"><svg width="10" height="10" fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-                <div class="rt-icon">⭐</div>
-                <div class="rt-name">Deluxe</div><div class="rt-cap">2 adults + extras</div>
-              </div>
-            </label>
-            <label class="rt-label">
-              <input type="radio" name="room_type" value="Suite" onchange="updateRoomTitle(this)">
-              <div class="rt-box">
-                <div class="rt-check"><svg width="10" height="10" fill="white" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg></div>
-                <div class="rt-icon">🌠</div>
-                <div class="rt-name">Suite</div><div class="rt-cap">Up to 4 guests</div>
-              </div>
-            </label>
+            <label class="rt-label"><input type="radio" name="room_type" value="Single" checked onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🛏️</div><div class="rt-name">Single</div><div class="rt-cap">1 adult</div></div></label>
+            <label class="rt-label"><input type="radio" name="room_type" value="Double" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🌙</div><div class="rt-name">Double</div><div class="rt-cap">2 adults</div></div></label>
+            <label class="rt-label"><input type="radio" name="room_type" value="Deluxe" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">⭐</div><div class="rt-name">Deluxe</div><div class="rt-cap">2+ guests</div></div></label>
+            <label class="rt-label"><input type="radio" name="room_type" value="Suite" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🌠</div><div class="rt-name">Suite</div><div class="rt-cap">Up to 4</div></div></label>
           </div>
-
-          <div style="display:flex;flex-direction:column;gap:16px">
-            <div class="fg3">
-              <div class="field"><label>Max adults</label>
-                <input type="number" id="r-adults" value="2" min="1" max="10"></div>
-              <div class="field"><label>Max children</label>
-                <input type="number" id="r-children" value="0" min="0" max="10"></div>
-              <div class="field"><label>Room size (sq ft)</label>
-                <input type="number" id="r-size" placeholder="e.g. 250"></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="g3">
+              <div class="field"><label>Max adults</label><input type="number" id="r-adults" value="2" min="1" max="10"></div>
+              <div class="field"><label>Max children</label><input type="number" id="r-children" value="0" min="0" max="10"></div>
+              <div class="field"><label>Size (sq ft)</label><input type="number" id="r-size" placeholder="250"></div>
             </div>
-            <div class="field"><label>Room description</label>
-              <textarea id="r-desc" placeholder="Bed type, view, floor, special features..."></textarea></div>
+            <div class="field"><label>Room description</label><textarea id="r-desc" placeholder="Bed type, view, floor, special features..."></textarea></div>
             <div class="field">
               <label>Number of units</label>
               <div class="counter">
                 <button type="button" class="cnt-btn" onclick="changeUnits(-1)">−</button>
                 <span class="cnt-val" id="units-val">3</span>
                 <button type="button" class="cnt-btn" onclick="changeUnits(1)">+</button>
-                <span class="cnt-label">rooms · will be auto-numbered</span>
+                <span class="cnt-lbl">units · auto-numbered (S1, S2…)</span>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Pricing -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-green">💰</div>
-          <div><h3>Pricing</h3><p>Set your base rates and extra charges</p></div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-green">💰</div>
+          <div class="card-hd-text"><h3>Pricing</h3><p>Base nightly rates and charges</p></div>
         </div>
-        <div class="form-block-body" style="display:flex;flex-direction:column;gap:16px">
-          <div class="fg2">
-            <div class="field"><label>Base price / night (₹)</label>
-              <input type="number" id="r-price" value="2500" min="0" oninput="calcPrice()"></div>
-            <div class="field"><label>Weekend price / night (₹)</label>
-              <input type="number" id="r-wprice" placeholder="Same as base if blank"></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div class="g2">
+            <div class="field"><label>Base price / night (₹) *</label><input type="number" id="r-price" value="2500" min="0" oninput="calcPrice()"></div>
+            <div class="field"><label>Weekend price / night (₹)</label><input type="number" id="r-wprice" placeholder="Same as base if blank"></div>
           </div>
-          <div class="fg2">
-            <div class="field"><label>Extra adult charge (₹)</label>
-              <input type="number" id="r-eadult" value="500" min="0" oninput="calcPrice()"></div>
-            <div class="field"><label>Extra child charge (₹)</label>
-              <input type="number" id="r-echild" value="200" min="0" oninput="calcPrice()"></div>
+          <div class="g2">
+            <div class="field"><label>Extra adult charge (₹)</label><input type="number" id="r-eadult" value="500" min="0"></div>
+            <div class="field"><label>Extra child charge (₹)</label><input type="number" id="r-echild" value="200" min="0"></div>
           </div>
-          <div class="fg2">
-            <div class="field"><label>GST / Tax (%)</label>
-              <input type="number" id="r-tax" value="18" min="0" max="100" oninput="calcPrice()"></div>
+          <div class="g2">
+            <div class="field"><label>GST / Tax (%)</label><input type="number" id="r-tax" value="18" min="0" max="100" oninput="calcPrice()"></div>
             <div class="field"><label>Cancellation policy</label>
               <select id="r-cancel">
                 <option value="free_24h">Free cancellation (24h)</option>
@@ -574,270 +679,933 @@ body{font-family:'Inter',sans-serif;background:#f5f7fa;min-height:100vh;color:#1
           </div>
         </div>
       </div>
-
-      <!-- Amenities -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-blue">✨</div>
-          <div><h3>Amenities</h3><p>Select all that apply to this room type</p></div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-purple">✨</div>
+          <div class="card-hd-text"><h3>In-room amenities</h3><p>Select all that apply</p></div>
         </div>
-        <div class="form-block-body">
+        <div class="card-body">
           <div class="chips" id="chip-grid">
-            {% for amenity in amenities %}
-              <div class="chip" onclick="toggleChip(this)" data-id="{{ amenity.id }}">{{ amenity.name }}</div>
-            {% empty %}
-              <div class="chip" onclick="toggleChip(this)">AC</div>
-              <div class="chip" onclick="toggleChip(this)">Free Wi-Fi</div>
-              <div class="chip" onclick="toggleChip(this)">TV</div>
-              <div class="chip" onclick="toggleChip(this)">Hot water</div>
-              <div class="chip" onclick="toggleChip(this)">Mini bar</div>
-              <div class="chip" onclick="toggleChip(this)">Balcony</div>
-              <div class="chip" onclick="toggleChip(this)">Sea view</div>
-              <div class="chip" onclick="toggleChip(this)">Bathtub</div>
-              <div class="chip" onclick="toggleChip(this)">Room service</div>
-              <div class="chip" onclick="toggleChip(this)">Work desk</div>
-              <div class="chip" onclick="toggleChip(this)">In-room safe</div>
-              <div class="chip" onclick="toggleChip(this)">Hair dryer</div>
-              <div class="chip" onclick="toggleChip(this)">Kettle</div>
-              <div class="chip" onclick="toggleChip(this)">Breakfast included</div>
-            {% endfor %}
+            <div class="chip" onclick="toggleChip(this)">AC</div>
+            <div class="chip" onclick="toggleChip(this)">Free Wi-Fi</div>
+            <div class="chip" onclick="toggleChip(this)">TV</div>
+            <div class="chip" onclick="toggleChip(this)">Hot water</div>
+            <div class="chip" onclick="toggleChip(this)">Mini bar</div>
+            <div class="chip" onclick="toggleChip(this)">Balcony</div>
+            <div class="chip" onclick="toggleChip(this)">Sea view</div>
+            <div class="chip" onclick="toggleChip(this)">Bathtub</div>
+            <div class="chip" onclick="toggleChip(this)">Room service</div>
+            <div class="chip" onclick="toggleChip(this)">Work desk</div>
+            <div class="chip" onclick="toggleChip(this)">In-room safe</div>
+            <div class="chip" onclick="toggleChip(this)">Hair dryer</div>
+            <div class="chip" onclick="toggleChip(this)">Kettle</div>
+            <div class="chip" onclick="toggleChip(this)">Breakfast included</div>
+            <div class="chip" onclick="toggleChip(this)">Housekeeping daily</div>
           </div>
         </div>
       </div>
-
-      <!-- Room photos -->
-      <div class="form-block">
-        <div class="form-block-head">
-          <div class="form-block-icon fbi-amber">📸</div>
-          <div><h3>Room photos</h3><p>First photo becomes the cover image for this room type</p></div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-icon ci-amber">📸</div>
+          <div class="card-hd-text"><h3>Room photos</h3><p>First photo becomes the primary image</p></div>
         </div>
-        <div class="form-block-body">
+        <div class="card-body">
           <div class="photo-drop" onclick="document.getElementById('r-imgs').click()">
-            <div style="font-size:30px">📸</div>
-            <p style="font-weight:600;color:#374151">Click to upload photos</p>
-            <p>JPG, PNG up to 5 MB · Multiple files allowed</p>
+            <div style="font-size:24px;margin-bottom:6px">📸</div>
+            <p style="font-weight:600;color:var(--fog);font-size:13px">Click to upload room photos</p>
+            <p style="font-size:11px;color:var(--mist);margin-top:3px">JPG, PNG up to 5 MB · Multiple files allowed</p>
           </div>
           <input type="file" id="r-imgs" multiple accept="image/*" style="display:none" onchange="previewRoomImgs(this)">
           <div class="thumbs" id="r-thumbs"></div>
         </div>
       </div>
-
       <div class="action-bar">
-        <button class="btn" onclick="switchModule('hotel')">← Back</button>
-        <div class="btn-right-group">
-          <button class="btn btn-ghost" onclick="saveRoom(false)">+ Save &amp; add another</button>
-          <button class="btn btn-success" onclick="saveRoom(true)">Finish setup ✓</button>
+        <button class="btn" onclick="switchStep('hotel')">← Back</button>
+        <div class="btn-group">
+          <button class="btn btn-ghost" onclick="saveRoom(false)">+ Save & add another</button>
+          <button class="btn btn-primary" onclick="saveRoom(true)">Save & choose plan →</button>
         </div>
       </div>
     </div>
 
-    <!-- ─────────────────────────────
-         MODULE 3 — Done
-    ───────────────────────────── -->
-    <div class="section" id="step-done">
-      <div class="success-card">
-        <div class="success-emoji">🎉</div>
-        <h2>You're all set!</h2>
-        <p>Your property is configured. Taking you to the dashboard...</p>
-        <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to dashboard →</a>
+    {# ═══ STEP 3: PLAN ═══ #}
+    <div class="step-section" id="step-plan">
+      <div class="page-hd">
+        <h1>Choose your plan</h1>
+        <p>Start with a free trial or pick a paid plan. Upgrade anytime from your dashboard.</p>
+      </div>
+
+      {# ── TRIAL START BOX — only when eligible and not yet on trial ── #}
+      {% if can_start_trial %}
+      <div class="trial-start-box">
+        <h3>🎁 Start your {{ trial_days }}-day free trial</h3>
+        <p>Get full access to all premium modules — no payment required. Your trial starts the moment you click the button below.</p>
+        <div class="trial-features">
+          <span class="trial-feat">✓ All premium modules</span>
+          <span class="trial-feat">✓ No credit card needed</span>
+          <span class="trial-feat">✓ {{ trial_days }} days free</span>
+          <span class="trial-feat">✓ Cancel anytime</span>
+        </div>
+        <button class="btn btn-green" style="width:100%;justify-content:center;padding:13px;font-size:14px" id="trial-start-btn" onclick="startTrial()">
+          🚀 Start Free Trial ({{ trial_days }} days)
+        </button>
+        <div style="font-size:11px;color:var(--mist);margin-top:10px">Or select a paid plan below to subscribe directly</div>
+      </div>
+      {% endif %}
+
+      {# ── ACTIVE TRIAL BOX — only when trial is running ── #}
+      {% if hotel.is_on_trial %}
+      <div class="trial-active-box">
+        <div class="tab-header">
+          <span class="tab-title">⏱ Free Trial Active</span>
+          <span class="tab-expiry">
+            Ends <strong>{{ hotel.trial_end|date:"d M Y" }}</strong>
+            · <strong style="color:var(--blue)">{{ trial_days_remaining }} day{{ trial_days_remaining|pluralize }} left</strong>
+          </span>
+        </div>
+        {% if active_modules %}
+        <div style="font-size:10px;color:var(--mist);font-weight:600;margin-bottom:6px">{{ active_modules_count }} module{{ active_modules_count|pluralize }} active:</div>
+        <div class="cpb-modules">
+          {% for mod in active_modules %}<span class="cpb-mod">{{ mod }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <div style="font-size:12px;color:var(--mist);margin-top:10px">Subscribe to a paid plan below to continue after your trial ends.</div>
+      </div>
+      {% endif %}
+
+      {# ── CURRENT PLAN BOX — only when subscribed ── #}
+      {% if hotel.is_subscribed and not hotel.is_on_trial and active_plan_name %}
+      <div class="current-plan-box">
+        <div class="cpb-header">
+          <span class="cpb-title">✅ Current plan: {{ active_plan_name }}</span>
+          <span class="cpb-expiry">
+            {% if subscription_expiry %}
+              Expires <strong>{{ subscription_expiry|date:"d M Y" }}</strong>
+              {% if expiry_days_remaining %}
+                · <strong style="color:{% if expiry_days_remaining <= 7 %}var(--red){% else %}var(--green){% endif %}">
+                    {{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }} left
+                  </strong>
+              {% endif %}
+            {% else %}
+              <strong style="color:var(--mist)">No expiry date set</strong>
+            {% endif %}
+          </span>
+        </div>
+        {% if active_modules %}
+          <div class="cpb-mod-count">{{ active_modules_count }} active module{{ active_modules_count|pluralize }}:</div>
+          <div class="cpb-modules">
+            {% for mod in active_modules %}<span class="cpb-mod">{{ mod }}</span>{% endfor %}
+          </div>
+        {% else %}
+          <div style="font-size:11px;color:var(--mist);margin-top:4px">
+            {% if active_plan_price and active_plan_price != '0' %}Modules are being provisioned — refresh if this persists.
+            {% else %}Core modules only on this plan.{% endif %}
+          </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div id="plans-loading" style="text-align:center;padding:2rem;color:var(--mist)">
+        <div style="width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
+        <div style="font-size:13px">Loading plans...</div>
+      </div>
+      <div class="plans-grid" id="plan-cards-grid" style="display:none"></div>
+      <div id="plans-empty" style="display:none;text-align:center;padding:2rem;color:var(--mist)">
+        <div style="font-size:28px;margin-bottom:8px">📋</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">No plans configured yet</div>
+        <div style="font-size:12px">Continue with the free tier — subscribe later from the dashboard.</div>
+      </div>
+
+      <div id="plan-summary" class="plan-summary" style="display:none">
+        <div class="ps-left">Selected: <strong id="ps-name">—</strong> · <span id="ps-mods">—</span> premium modules</div>
+        <div class="ps-right" id="ps-price">₹0/mo</div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div class="card-hd">
+          <div class="card-icon ci-amber">🏷️</div>
+          <div class="card-hd-text"><h3>Promo code</h3><p>Apply a discount coupon</p></div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div class="field field-mono" style="flex:1;margin:0">
+              <label>Enter code</label>
+              <input type="text" id="coupon-input" placeholder="e.g. LAUNCH30" style="text-transform:uppercase">
+            </div>
+            <button class="verify-btn" onclick="applyCoupon()">Apply</button>
+          </div>
+          <div id="coupon-result" style="display:none;margin-top:8px;font-size:13px;color:var(--green);font-weight:600"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div class="card-hd">
+          <div class="card-icon ci-green">✅</div>
+          <div class="card-hd-text"><h3>Included in all plans</h3><p>Core features always on</p></div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="pf-row"><span class="pf-yes">✓</span>Property dashboard</div>
+            <div class="pf-row"><span class="pf-yes">✓</span>Room management</div>
+            <div class="pf-row"><span class="pf-yes">✓</span>Staff management</div>
+            <div class="pf-row"><span class="pf-yes">✓</span>Basic PMS & bookings</div>
+            <div class="pf-row"><span class="pf-yes">✓</span>Guest check-in / out</div>
+            <div class="pf-row"><span class="pf-yes">✓</span>Email notifications</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn" onclick="switchStep('rooms')">← Back</button>
+        <div class="btn-group">
+          <a href="#" class="skip-link" onclick="skipPlan();return false">Continue free →</a>
+          <button class="btn btn-primary" id="proceed-btn" onclick="proceedToPayment()" disabled>Proceed to payment →</button>
+        </div>
       </div>
     </div>
 
+    {# ═══ STEP 4: DONE ═══ #}
+    <div class="step-section" id="step-done">
+      <div class="done-card">
+        <span class="done-emoji">🎉</span>
+        <h2>You're all set!</h2>
+        <p>
+          Your property is configured
+          {% if hotel.is_on_trial %}and your <strong>{{ trial_days_remaining }}-day free trial</strong> is active{% elif hotel.is_subscribed %}and your <strong>{{ active_plan_name }}</strong> subscription is active{% endif %}.
+          Head to your dashboard to start managing your hotel.
+        </p>
+        {% if hotel.is_subscribed and not hotel.is_on_trial %}
+          {% if subscription_expiry %}
+          <div class="notice success" style="text-align:left;margin-bottom:1.25rem">
+            <span class="notice-icon">📅</span>
+            <span>Subscription renews on <strong>{{ subscription_expiry|date:"d M Y" }}</strong>{% if expiry_days_remaining %} · {{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }} remaining{% endif %}</span>
+          </div>
+          {% endif %}
+          {% if active_modules %}
+          <div class="notice success" style="text-align:left;margin-bottom:1.25rem">
+            <span class="notice-icon">🧩</span>
+            <span><strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} active: {% for mod in active_modules %}{{ mod }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+          </div>
+          {% endif %}
+        {% endif %}
+        {% if hotel.is_on_trial %}
+        <div class="notice warn" style="text-align:left;margin-bottom:1.25rem">
+          <span class="notice-icon">⏱</span>
+          <span>Your <strong>{{ trial_days_remaining }}-day trial</strong> is active. Choose a paid plan before it ends to keep your premium modules.</span>
+        </div>
+        {% endif %}
+        {% if show_subscription_gate %}
+        <div class="notice" style="text-align:left;margin-bottom:1.25rem;background:var(--red-bg);border:1px solid rgba(248,81,73,.2);color:var(--red)">
+          <span class="notice-icon">🔒</span>
+          <span>Your trial has ended. Subscribe to re-enable premium modules.</span>
+        </div>
+        {% endif %}
+        <a href="{% url 'dashboard' %}" class="btn btn-primary" style="width:100%;justify-content:center">Go to dashboard →</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+{# ═══ PAYMENT MODAL ═══ #}
+<div class="overlay" id="pay-overlay">
+  <div class="modal">
+    <div id="pm-processing" class="pm-processing" style="display:none">
+      <div class="pm-spinner"></div>
+      <div style="font-size:16px;font-weight:800;color:var(--snow);margin-bottom:6px">Processing payment...</div>
+      <div style="font-size:12px;color:var(--mist)">Please don't close this window</div>
+    </div>
+    <div id="pm-success" class="pm-success" style="display:none">
+      <div class="success-ring">✅</div>
+      <div style="font-size:18px;font-weight:800;color:var(--snow);margin-bottom:6px">Payment Successful!</div>
+      <div style="font-size:13px;color:var(--mist);margin-bottom:4px">
+        Your subscription is now active. Welcome to HotelCloud <strong id="suc-plan" style="color:var(--snow)">Pro</strong>!
+      </div>
+      <div class="receipt-box">
+        <div class="receipt-row"><span>Plan</span><strong id="rcpt-plan">—</strong></div>
+        <div class="receipt-row"><span>Amount paid</span><strong id="rcpt-amount">—</strong></div>
+        <div class="receipt-row"><span>Billing cycle</span><strong id="rcpt-cycle">Monthly</strong></div>
+        <div class="receipt-row"><span>Next billing</span><strong id="rcpt-next">—</strong></div>
+        <div class="receipt-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+          <span>Transaction ID</span><span class="receipt-id" id="rcpt-txn">—</span>
+        </div>
+      </div>
+      <button class="btn btn-green" style="width:100%;justify-content:center" onclick="completeOnboarding()">Go to dashboard →</button>
+    </div>
+    <div id="pm-form">
+      <div class="modal-hd">
+        <div>
+          <div class="modal-title">Complete payment</div>
+          <div class="modal-sub" id="pm-plan-label">HotelCloud Pro · Monthly</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div class="modal-amount">
+            <div class="modal-amt-label">Total due</div>
+            <div class="modal-amt-val" id="pm-amount-display">₹0</div>
+          </div>
+          <button class="modal-close" onclick="closePaymentModal()">✕</button>
+        </div>
+      </div>
+      <div style="padding:10px 14px 0">
+        <div class="offer-strip">
+          <span style="font-size:12px;color:var(--mist)">🎁 First 3 months 30% off · Code <span class="offer-code">LAUNCH30</span></span>
+          <span style="font-size:11px;color:var(--green);font-weight:700">Save up to ₹2,700</span>
+        </div>
+      </div>
+      <div class="pay-tabs">
+        <div class="pay-tab active" onclick="switchPayTab('card',this)"><span class="pay-tab-icon">💳</span>Card</div>
+        <div class="pay-tab" onclick="switchPayTab('upi',this)"><span class="pay-tab-icon">📱</span>UPI</div>
+        <div class="pay-tab" onclick="switchPayTab('netbanking',this)"><span class="pay-tab-icon">🏦</span>Net Banking</div>
+        <div class="pay-tab" onclick="switchPayTab('wallet',this)"><span class="pay-tab-icon">👛</span>Wallet</div>
+        <div class="pay-tab" onclick="switchPayTab('emi',this)"><span class="pay-tab-icon">📅</span>EMI</div>
+      </div>
+      <div class="pay-panels">
+        <div class="pay-panel active" id="panel-card">
+          <div class="field field-mono" style="margin-bottom:10px">
+            <label>Card number</label>
+            <div class="card-wrap">
+              <input type="text" id="card-num" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this)" autocomplete="cc-number">
+              <div class="card-brands">
+                <span class="cb visa" id="cb-visa">VISA</span>
+                <span class="cb mc" id="cb-mc">MC</span>
+                <span class="cb rupay" id="cb-rupay">RuPay</span>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:10px"><label>Cardholder name</label><input type="text" id="card-name" placeholder="Name as on card" autocomplete="cc-name"></div>
+          <div class="exp-cvv">
+            <div class="field field-mono"><label>Expiry (MM/YY)</label><input type="text" id="card-exp" placeholder="MM / YY" maxlength="7" oninput="formatExp(this)" autocomplete="cc-exp"></div>
+            <div class="field field-mono"><label>CVV</label><input type="password" id="card-cvv" placeholder="•••" maxlength="4" autocomplete="cc-csc"></div>
+          </div>
+          <div class="secure-row">🔒 256-bit SSL encrypted · PCI DSS compliant · Card details never stored</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-top:8px">
+            <input type="checkbox" id="save-card" style="width:auto;cursor:pointer;accent-color:var(--blue)">
+            <label for="save-card" style="font-size:12px;color:var(--mist);cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">Save card for future payments</label>
+          </div>
+        </div>
+        <div class="pay-panel" id="panel-upi">
+          <div class="upi-row">
+            <div class="field"><label>UPI ID</label><input type="text" id="upi-id" placeholder="name@upi" oninput="validateUPI(this)"></div>
+            <button class="verify-btn" onclick="verifyUPI()">Verify</button>
+          </div>
+          <div id="upi-verified" style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px;display:none"></div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:7px">Or pay via app</div>
+          <div class="upi-apps">
+            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🟢</div><div class="upi-app-name">GPay</div></div>
+            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🟣</div><div class="upi-app-name">PhonePe</div></div>
+            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🔵</div><div class="upi-app-name">Paytm</div></div>
+            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🇮🇳</div><div class="upi-app-name">BHIM</div></div>
+          </div>
+          <div class="qr-box" id="upi-qr" style="display:none">
+            <div class="qr-ph">📱</div>
+            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:3px">Scan with any UPI app</div>
+            <div style="font-size:11px;color:var(--mist)">Expires in <span id="qr-timer" style="color:var(--red);font-weight:700">04:59</span></div>
+          </div>
+        </div>
+        <div class="pay-panel" id="panel-netbanking">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:8px">Popular banks</div>
+          <div class="bank-grid">
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">SBI</div></div>
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">HDFC</div></div>
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">ICICI</div></div>
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Axis</div></div>
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Kotak</div></div>
+            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Bank of Baroda</div></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label>Other bank</label>
+            <select id="bank-select">
+              <option value="">— Search bank —</option>
+              <option>Yes Bank</option><option>IndusInd Bank</option><option>PNB</option>
+              <option>Canara Bank</option><option>Federal Bank</option><option>South Indian Bank</option>
+            </select>
+          </div>
+        </div>
+        <div class="pay-panel" id="panel-wallet">
+          <div class="wallet-grid">
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🔵</div><div class="wallet-name">Paytm</div><div class="wallet-bal">₹0</div></div>
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🟣</div><div class="wallet-name">PhonePe</div><div class="wallet-bal">₹0</div></div>
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🟠</div><div class="wallet-name">Amazon Pay</div><div class="wallet-bal">₹0</div></div>
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">⚡</div><div class="wallet-name">JusPay</div><div class="wallet-bal">₹0</div></div>
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🔴</div><div class="wallet-name">Airtel</div><div class="wallet-bal">₹0</div></div>
+            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">💙</div><div class="wallet-name">MobiKwik</div><div class="wallet-bal">₹0</div></div>
+          </div>
+        </div>
+        <div class="pay-panel" id="panel-emi">
+          <div style="font-size:12px;color:var(--mist);margin-bottom:12px">No-cost EMI available on select cards. Subject to bank approval.</div>
+          <div id="emi-options"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-coupon-row">
+          <div class="field field-mono" style="margin:0">
+            <label style="font-size:10px">Promo code</label>
+            <input type="text" id="pm-coupon" placeholder="Enter code" style="text-transform:uppercase">
+          </div>
+          <button class="verify-btn" onclick="applyModalCoupon()" style="padding:9px 12px;font-size:11px">Apply</button>
+        </div>
+        <div id="pm-discount" style="display:none;font-size:12px;color:var(--green);font-weight:700;margin-bottom:8px;justify-content:space-between">
+          <span id="pm-disc-label">Discount</span><span id="pm-disc-val">-₹0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
+          <span style="color:var(--mist)">Total (incl. 18% GST)</span>
+          <span style="font-weight:800;color:var(--snow)" id="pm-total-display">₹0</span>
+        </div>
+        <button class="pay-btn" id="pm-pay-btn" onclick="processPayment()">
+          🔒 <span id="pm-pay-label">Pay securely</span>
+        </button>
+        <div class="security-row">
+          <span class="sec-badge">🛡 Secured by Razorpay</span>
+          <span class="sec-badge">🔐 256-bit SSL</span>
+          <span class="sec-badge">📋 PCI DSS</span>
+        </div>
+        <div class="trust-row">
+          <span class="trust-pill">🇮🇳 Indian payments</span>
+          <span class="trust-pill">✅ RBI approved</span>
+          <span class="trust-pill">↩️ Cancel anytime</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const CSRF = '{{ csrf_token }}';
-let roomsAdded = [];
-let unitCount = 3;
+const CSRF        = '{{ csrf_token }}';
+const HOTEL_ID    = '{{ hotel.id }}';
+const UPGRADE_URL = '{% url "upgrade_hotel_plan" hotel.id %}';
+const TRIAL_URL   = '{% url "hotel_start_trial" %}';
 
-/* Owner menu */
-function toggleOwnerMenu(){
-  const m = document.getElementById('owner-menu');
-  const t = document.getElementById('owner-trigger');
-  const open = m.classList.toggle('show');
-  t.classList.toggle('open', open);
-}
-function closeOwnerMenu(){
-  document.getElementById('owner-menu').classList.remove('show');
-  document.getElementById('owner-trigger').classList.remove('open');
-}
-document.addEventListener('click', e => {
-  if(!e.target.closest('.owner-area')) closeOwnerMenu();
-});
+const HOTEL_STATE = {
+  isSubscribed:   {{ hotel.is_subscribed|yesno:"true,false" }},
+  isOnTrial:      {{ hotel.is_on_trial|yesno:"true,false" }},
+  activePlanName: '{{ active_plan_name|default:""|escapejs }}',
+  activeModules:  {{ active_modules|default:"[]"|safe }},
+  expiryDays:     {{ expiry_days_remaining|default:0 }},
+  trialDays:      {{ trial_days_remaining|default:0 }},
+  canStartTrial:  {{ can_start_trial|yesno:"true,false" }},
+  trialDaysTotal: {{ trial_days|default:14 }},
+};
 
-/* Module switch */
-function switchModule(mod){
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.om-item').forEach(i => i.classList.remove('active'));
-  if(mod==='hotel'){
-    document.getElementById('step-hotel').classList.add('active');
-    document.getElementById('omenu-hotel').classList.add('active');
-  } else if(mod==='rooms'){
-    document.getElementById('step-rooms').classList.add('active');
-    document.getElementById('omenu-rooms').classList.add('active');
-  } else if(mod==='done'){
-    document.getElementById('step-done').classList.add('active');
-  }
+let roomsAdded = [], unitCount = 3, allPlans = [], selectedPlan = null;
+let couponDiscount = 0, payTab = 'card';
+let qrInterval = null;
+
+const COUPONS = {
+  'LAUNCH30': {pct:30, label:'Launch offer'},
+  'HOTEL50':  {pct:50, label:'Hotel special'},
+  'FIRST20':  {pct:20, label:'First-time'}
+};
+
+const STEPS = ['hotel','rooms','plan','done'];
+function switchStep(step) {
+  STEPS.forEach(s => {
+    document.getElementById('step-'+s)?.classList.remove('active');
+    const si = document.getElementById('si-'+s);
+    if (si) si.classList.remove('active');
+  });
+  document.getElementById('step-'+step)?.classList.add('active');
+  const si = document.getElementById('si-'+step);
+  if (si) { si.classList.add('active'); si.style.pointerEvents=''; si.style.opacity=''; }
+  updateProgress(step);
+  if (step === 'plan') loadPlans();
   window.scrollTo(0,0);
 }
 
-/* Toast */
-function showToast(msg, type='ok'){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast '+type+' show';
-  setTimeout(()=>t.classList.remove('show'),3000);
+function updateProgress(step) {
+  const idx = STEPS.indexOf(step);
+  const pct = Math.round((idx / (STEPS.length-1)) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  STEPS.forEach((s, i) => {
+    const dot = document.getElementById('td-'+s);
+    if (!dot) return;
+    dot.classList.remove('active','done');
+    if (i < idx) dot.classList.add('done');
+    else if (i === idx) dot.classList.add('active');
+  });
+  STEPS.forEach((s, i) => {
+    const ni   = document.getElementById('sn-'+s);
+    const item = document.getElementById('si-'+s);
+    if (!ni || !item) return;
+    if (i < idx) {
+      item.classList.add('done');
+      ni.innerHTML = '✓'; ni.className = 'ni-check';
+    } else {
+      item.classList.remove('done');
+      if (ni.className === 'ni-check') { ni.className = 'ni-num'; ni.innerHTML = i+1; }
+    }
+  });
 }
 
-/* Image preview */
-function previewImg(input, prevId, phId){
-  if(!input.files||!input.files[0]) return;
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+type+' show';
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function previewImg(input, prevId, phId) {
+  if (!input.files || !input.files[0]) return;
   const prev = document.getElementById(prevId);
-  const ph = document.getElementById(phId);
+  const ph   = document.getElementById(phId);
   prev.src = URL.createObjectURL(input.files[0]);
   prev.style.display = 'block';
-  if(ph) ph.style.display = 'none';
+  if (ph) ph.style.display = 'none';
 }
-
-/* Room photo thumbs */
-function previewRoomImgs(input){
-  const c = document.getElementById('r-thumbs');
-  c.innerHTML='';
-  Array.from(input.files).forEach((f,i)=>{
+function previewRoomImgs(input) {
+  const c = document.getElementById('r-thumbs'); c.innerHTML = '';
+  Array.from(input.files).forEach(f => {
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(f);
-    img.className='thumb';
-    if(i===0) img.style.border='2px solid #0071c2';
+    img.src = URL.createObjectURL(f); img.className = 'thumb';
     c.appendChild(img);
   });
 }
 
-/* Counter */
-function changeUnits(d){
-  unitCount = Math.max(1,unitCount+d);
-  document.getElementById('units-val').textContent=unitCount;
+function changeUnits(d) {
+  unitCount = Math.max(1, unitCount+d);
+  document.getElementById('units-val').textContent = unitCount;
 }
 
-/* Price calc */
-function calcPrice(){
-  const base = parseFloat(document.getElementById('r-price').value)||0;
-  const tax  = parseFloat(document.getElementById('r-tax').value)||0;
-  const ta = Math.round(base*tax/100);
-  document.getElementById('s-base').textContent='₹'+base.toLocaleString('en-IN');
-  document.getElementById('s-tax').textContent='₹'+ta.toLocaleString('en-IN');
-  document.getElementById('s-total').textContent='₹'+(base+ta).toLocaleString('en-IN');
-  document.getElementById('s-tax-label').textContent='GST ('+tax+'%)';
+function calcPrice() {
+  const base = parseFloat(document.getElementById('r-price').value) || 0;
+  const tax  = parseFloat(document.getElementById('r-tax').value)   || 0;
+  const ta   = Math.round(base * tax / 100);
+  document.getElementById('s-base').textContent      = '₹' + base.toLocaleString('en-IN');
+  document.getElementById('s-tax').textContent       = '₹' + ta.toLocaleString('en-IN');
+  document.getElementById('s-total').textContent     = '₹' + (base+ta).toLocaleString('en-IN');
+  document.getElementById('s-tax-label').textContent = 'GST (' + tax + '%)';
 }
 
-/* Chips */
-function toggleChip(el){ el.classList.toggle('on'); }
-
-/* Room title */
-function updateRoomTitle(el){
-  document.getElementById('room-form-title').textContent='Add '+el.value+' room';
+function toggleChip(el) { el.classList.toggle('on'); }
+function updateRoomTitle(el) {
+  document.getElementById('room-form-title').textContent = 'Add ' + el.value + ' room';
 }
 
-/* Save hotel */
-function saveHotelDetails(){
+function saveHotelDetails() {
+  const name  = document.getElementById('h-name').value.trim();
+  const email = document.getElementById('h-email').value.trim();
+  if (!name)  { showToast('Enter hotel name', 'err'); return; }
+  if (!email) { showToast('Enter email address', 'err'); return; }
   const fd = new FormData();
-  fd.append('csrfmiddlewaretoken',CSRF);
-  fd.append('form_type','hotel_details');
-  fd.append('hotel_name',document.getElementById('h-name').value);
-  fd.append('owner_name',document.getElementById('h-owner').value);
-  fd.append('email',document.getElementById('h-email').value);
-  fd.append('city',document.getElementById('h-city').value);
-  fd.append('address',document.getElementById('h-address').value);
-  fd.append('description',document.getElementById('h-desc').value);
-  const pt=document.querySelector('input[name="property_type"]:checked');
-  if(pt) fd.append('property_type',pt.value);
-  const logo=document.getElementById('logo-input').files[0];
-  if(logo) fd.append('logo',logo);
-  const cover=document.getElementById('cover-input').files[0];
-  if(cover) fd.append('image',cover);
-
-  fetch(window.location.href,{method:'POST',body:fd})
-  .then(r=>r.json()).then(d=>{
-    if(d.success){ showToast('Hotel details saved ✓'); setTimeout(()=>switchModule('rooms'),700); }
-    else showToast(d.error||'Error saving','err');
-  }).catch(()=>{ showToast('Hotel details saved ✓'); setTimeout(()=>switchModule('rooms'),700); });
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('form_type',   'hotel_details');
+  fd.append('hotel_name',  name);
+  fd.append('owner_name',  document.getElementById('h-owner').value);
+  fd.append('email',       email);
+  fd.append('phone',       document.getElementById('h-phone').value);
+  fd.append('city',        document.getElementById('h-city').value);
+  fd.append('state',       document.getElementById('h-state').value);
+  fd.append('address',     document.getElementById('h-address').value);
+  fd.append('description', document.getElementById('h-desc').value);
+  const pt = document.querySelector('input[name="property_type"]:checked');
+  if (pt) fd.append('property_type', pt.value);
+  const logo  = document.getElementById('logo-input').files[0];
+  if (logo)  fd.append('logo', logo);
+  const cover = document.getElementById('cover-input').files[0];
+  if (cover) fd.append('image', cover);
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) { showToast('Hotel details saved ✓'); setTimeout(() => switchStep('rooms'), 500); }
+      else showToast(d.error || 'Error saving', 'err');
+    })
+    .catch(() => { showToast('Saved ✓'); setTimeout(() => switchStep('rooms'), 500); });
 }
 
-/* Save room */
-function saveRoom(finish){
-  const rt=document.querySelector('input[name="room_type"]:checked');
-  if(!rt){ showToast('Select a room type','err'); return; }
-  const price=document.getElementById('r-price').value;
-  if(!price){ showToast('Enter a base price','err'); return; }
-
-  const fd=new FormData();
-  fd.append('csrfmiddlewaretoken',CSRF);
-  fd.append('form_type','room_details');
-  fd.append('room_type',rt.value);
-  fd.append('base_price',price);
-  fd.append('max_adults',document.getElementById('r-adults').value);
-  fd.append('max_children',document.getElementById('r-children').value);
-  fd.append('description',document.getElementById('r-desc').value);
-  fd.append('total_units',unitCount);
-  fd.append('extra_adult_price',document.getElementById('r-eadult').value||0);
-  fd.append('extra_child_price',document.getElementById('r-echild').value||0);
-  document.querySelectorAll('.chip.on').forEach(c=>{ if(c.dataset.id) fd.append('amenities',c.dataset.id); });
-  Array.from(document.getElementById('r-imgs').files).forEach(img=>fd.append('images',img));
-
-  fetch(window.location.href,{method:'POST',body:fd})
-  .then(r=>r.json()).then(d=>{
-    if(d.success){
-      roomsAdded.push({type:rt.value,units:unitCount,price:price});
-      updateRoomsList();
-      showToast(rt.value+' room saved ✓');
-      if(finish) finishSetup(); else resetRoomForm();
-    } else showToast(d.error||'Error saving room','err');
-  }).catch(()=>showToast('Error saving room','err'));
+function saveRoom(goToPlan) {
+  const rt = document.querySelector('input[name="room_type"]:checked');
+  if (!rt) { showToast('Select a room type', 'err'); return; }
+  const price = document.getElementById('r-price').value;
+  if (!price) { showToast('Enter a base price', 'err'); return; }
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('form_type',         'room_details');
+  fd.append('room_type',         rt.value);
+  fd.append('base_price',        price);
+  fd.append('max_adults',        document.getElementById('r-adults').value);
+  fd.append('max_children',      document.getElementById('r-children').value);
+  fd.append('description',       document.getElementById('r-desc').value);
+  fd.append('total_units',       unitCount);
+  fd.append('extra_adult_price', document.getElementById('r-eadult').value || 0);
+  fd.append('extra_child_price', document.getElementById('r-echild').value || 0);
+  document.querySelectorAll('.chip.on').forEach(c => { if (c.dataset.id) fd.append('amenities', c.dataset.id); });
+  Array.from(document.getElementById('r-imgs').files).forEach(img => fd.append('images', img));
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        roomsAdded.push({type:rt.value, units:unitCount, price});
+        renderRoomsList();
+        showToast(rt.value + ' room added ✓');
+        if (goToPlan) switchStep('plan'); else resetRoomForm();
+      } else showToast(d.error || 'Error saving room', 'err');
+    })
+    .catch(() => showToast('Error saving', 'err'));
 }
 
-/* Update rooms list */
-function updateRoomsList(){
-  const card=document.getElementById('rooms-added-card');
-  const list=document.getElementById('rooms-added-list');
-  card.style.display='block';
-  const icons={Single:'🛏',Double:'🌙',Deluxe:'⭐',Suite:'🌠'};
-  list.innerHTML=roomsAdded.map(r=>`
+function renderRoomsList() {
+  const card = document.getElementById('rooms-added-card');
+  const list = document.getElementById('rooms-added-list');
+  card.style.display = 'block';
+  const icons = {Single:'🛏️', Double:'🌙', Deluxe:'⭐', Suite:'🌠'};
+  list.innerHTML = roomsAdded.map(r => `
     <div class="room-row">
       <div class="rr-left">
-        <span style="font-size:20px">${icons[r.type]||'🛏'}</span>
+        <span style="font-size:18px">${icons[r.type]||'🛏️'}</span>
         <span class="rr-badge">${r.type}</span>
       </div>
       <div class="rr-right">${r.units} unit${r.units>1?'s':''} · ₹${parseInt(r.price).toLocaleString('en-IN')}/night</div>
     </div>`).join('');
 }
 
-/* Reset room form */
-function resetRoomForm(){
-  document.querySelector('input[name="room_type"][value="Single"]').checked=true;
-  document.getElementById('room-form-title').textContent='Add another room type';
-  ['r-adults','r-children','r-size','r-desc','r-wprice'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=id==='r-adults'?2:id==='r-size'?'':''; });
-  document.getElementById('r-price').value=2500;
-  document.getElementById('r-eadult').value=500;
-  document.getElementById('r-echild').value=200;
-  document.getElementById('r-tax').value=18;
-  document.getElementById('r-thumbs').innerHTML='';
-  document.getElementById('r-imgs').value='';
-  unitCount=3; document.getElementById('units-val').textContent=3;
-  document.querySelectorAll('.chip.on').forEach(c=>c.classList.remove('on'));
+function resetRoomForm() {
+  document.querySelector('input[name="room_type"][value="Single"]').checked = true;
+  document.getElementById('room-form-title').textContent = 'Add another room type';
+  ['r-price','r-eadult','r-echild','r-tax','r-adults','r-children'].forEach((id,i) => {
+    document.getElementById(id).value = [2500,500,200,18,2,0][i];
+  });
+  document.getElementById('r-size').value = '';
+  document.getElementById('r-desc').value = '';
+  document.getElementById('r-thumbs').innerHTML = '';
+  document.getElementById('r-imgs').value = '';
+  unitCount = 3; document.getElementById('units-val').textContent = 3;
+  document.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
   calcPrice(); window.scrollTo(0,0);
 }
 
-/* Finish */
-function finishSetup(){
-  const fd=new FormData();
-  fd.append('csrfmiddlewaretoken',CSRF);
-  fd.append('form_type','finish');
-  fetch(window.location.href,{method:'POST',body:fd})
-  .then(()=>{ switchModule('done'); setTimeout(()=>{ window.location.href="{% url 'dashboard' %}"; },2500); })
-  .catch(()=>{ switchModule('done'); setTimeout(()=>{ window.location.href="{% url 'dashboard' %}"; },2500); });
+async function loadPlans() {
+  const grid = document.getElementById('plan-cards-grid');
+  document.getElementById('plans-loading').style.display = 'block';
+  grid.style.display = 'none';
+  document.getElementById('plans-empty').style.display = 'none';
+  try {
+    const r    = await fetch('/get-plans/', {headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const data = await r.json();
+    allPlans   = data.plans || [];
+  } catch(e) {
+    console.error('loadPlans error:', e);
+    allPlans = [];
+  }
+  document.getElementById('plans-loading').style.display = 'none';
+  if (!allPlans.length) { document.getElementById('plans-empty').style.display = 'block'; return; }
+  grid.style.display = 'grid';
+  renderPlans();
+  buildEmi();
 }
+
+function renderPlans() {
+  const grid   = document.getElementById('plan-cards-grid');
+  const popIdx = allPlans.length > 1 ? 1 : 0;
+  grid.innerHTML = allPlans.map((p, i) => {
+    const price     = parseFloat(p.price || 0);
+    const isFree    = price === 0;
+    const isPop     = i === popIdx && !isFree && allPlans.length > 1;
+    const isCurrent = HOTEL_STATE.activePlanName && p.name === HOTEL_STATE.activePlanName;
+    const priceStr  = isFree ? 'Free' : '₹' + price.toLocaleString('en-IN');
+    const period    = isFree ? 'forever' : '/month';
+    const mods      = p.module_names || [];
+    const feats     = mods.length
+      ? mods.slice(0,5).map(m => `<div class="pf-row"><span class="pf-yes">✓</span>${m}</div>`).join('')
+        + (mods.length > 5 ? `<div style="font-size:10px;color:var(--mist);margin-top:3px">+${mods.length-5} more</div>` : '')
+      : `<div style="font-size:11px;color:var(--mist);font-style:italic">Core modules only</div>`;
+    const currentBadge = isCurrent
+      ? `<div style="position:absolute;top:0;right:0;background:var(--green-dim);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:0 var(--r2) 0 6px;letter-spacing:.04em">Current</div>`
+      : '';
+    return `
+    <label class="plan-label">
+      <input type="radio" name="sub_plan" value="${p.name}"
+        onchange="onPlanSelect(this,'${p.name}',${price},${mods.length})"
+        ${isCurrent ? 'checked' : ''}>
+      <div class="plan-card ${isPop?'has-badge':''}" style="${isCurrent?'border-color:var(--green);box-shadow:0 0 0 1px var(--green);':''}">
+        ${isPop ? '<div class="plan-popular">🔥 Most Popular</div>' : ''}
+        ${currentBadge}
+        <div class="plan-tick">✓</div>
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-price">${priceStr}<span> ${period}</span></div>
+        <div class="plan-tag">${p.tagline || 'Upgrade your property'}</div>
+        <div class="plan-divider"></div>
+        <div class="plan-feats">${feats}</div>
+      </div>
+    </label>`;
+  }).join('');
+  if (HOTEL_STATE.activePlanName) {
+    const current = allPlans.find(p => p.name === HOTEL_STATE.activePlanName);
+    if (current) {
+      selectedPlan = {name: current.name, price: parseFloat(current.price || 0), mods: (current.module_names || []).length};
+      updatePlanSummary();
+      document.getElementById('proceed-btn').disabled = false;
+    }
+  }
+}
+
+function onPlanSelect(el, name, price, mods) {
+  selectedPlan = {name, price, mods};
+  updatePlanSummary();
+  document.getElementById('proceed-btn').disabled = false;
+}
+
+function updatePlanSummary() {
+  if (!selectedPlan) return;
+  document.getElementById('ps-name').textContent  = selectedPlan.name;
+  document.getElementById('ps-mods').textContent  = selectedPlan.mods;
+  document.getElementById('ps-price').textContent = selectedPlan.price === 0 ? 'Free' : '₹' + selectedPlan.price.toLocaleString('en-IN') + '/mo';
+  document.getElementById('plan-summary').style.display = 'flex';
+  document.getElementById('proceed-btn').textContent = selectedPlan.price === 0 ? 'Continue free →' : 'Proceed to payment →';
+}
+
+async function startTrial() {
+  const btn = document.getElementById('trial-start-btn');
+  btn.disabled = true;
+  btn.textContent = 'Starting trial...';
+  const foundPlan = selectedPlan ? allPlans.find(p => p.name === selectedPlan.name) : null;
+  try {
+    const r = await fetch(TRIAL_URL, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'},
+      body:    JSON.stringify({plan_id: foundPlan?.id || null}),
+    });
+    const data = await r.json();
+    if (data.success) {
+      showToast(`🎉 Trial started! ${data.days} days free · Ends ${data.trial_end}`, 'ok');
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      showToast(data.error || 'Could not start trial', 'err');
+      btn.disabled = false;
+      btn.textContent = `🚀 Start Free Trial (${HOTEL_STATE.trialDaysTotal} days)`;
+    }
+  } catch(e) {
+    console.error('startTrial error:', e);
+    showToast('Network error — please try again', 'err');
+    btn.disabled = false;
+    btn.textContent = `🚀 Start Free Trial (${HOTEL_STATE.trialDaysTotal} days)`;
+  }
+}
+
+function applyCoupon() {
+  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+  const c    = COUPONS[code];
+  const res  = document.getElementById('coupon-result');
+  if (c) {
+    couponDiscount = c.pct;
+    res.textContent = `✅ ${c.label} — ${c.pct}% off applied`;
+    res.style.display = 'block';
+    showToast(`${c.pct}% off applied! 🎉`);
+  } else {
+    showToast('Invalid coupon code', 'err');
+    res.style.display = 'none';
+    couponDiscount = 0;
+  }
+}
+
+function proceedToPayment() {
+  if (!selectedPlan) { showToast('Please select a plan', 'err'); return; }
+  if (selectedPlan.price === 0) { skipPlan(); return; }
+  openPaymentModal();
+}
+
+function skipPlan() {
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('form_type', 'finish');
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(() => { window.location.href = "{% url 'dashboard' %}"; })
+    .catch(() => { window.location.href = "{% url 'dashboard' %}"; });
+}
+
+function openPaymentModal() {
+  const price = selectedPlan.price;
+  const disc  = Math.round(price * couponDiscount / 100);
+  const after = price - disc;
+  const gst   = Math.round(after * 0.18);
+  const total = after + gst;
+  document.getElementById('pm-plan-label').textContent     = `HotelCloud ${selectedPlan.name} · Monthly`;
+  document.getElementById('pm-amount-display').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('pm-total-display').textContent  = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('pm-pay-label').textContent      = `Pay ₹${total.toLocaleString('en-IN')} securely`;
+  document.getElementById('pm-form').style.display       = 'block';
+  document.getElementById('pm-processing').style.display = 'none';
+  document.getElementById('pm-success').style.display    = 'none';
+  document.getElementById('pay-overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  buildEmi(total);
+}
+
+function closePaymentModal() {
+  document.getElementById('pay-overlay').classList.remove('show');
+  document.body.style.overflow = '';
+  if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
+}
+
+document.getElementById('pay-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closePaymentModal();
+});
+
+function switchPayTab(tab, el) {
+  payTab = tab;
+  document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab === 'upi' && document.querySelector('.upi-app.sel')) showQR();
+}
+
+function formatCard(el) {
+  let v = el.value.replace(/\D/g,''), f = '';
+  for (let i=0; i<v.length; i++) { if (i>0 && i%4===0) f+=' '; f+=v[i]; }
+  el.value = f;
+  ['cb-visa','cb-mc','cb-rupay'].forEach(id => document.getElementById(id).classList.remove('hi'));
+  if (v[0]==='4') document.getElementById('cb-visa').classList.add('hi');
+  else if (v[0]==='5') document.getElementById('cb-mc').classList.add('hi');
+  else if (v.startsWith('60')) document.getElementById('cb-rupay').classList.add('hi');
+}
+function formatExp(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length >= 2) v = v.slice(0,2) + ' / ' + v.slice(2);
+  el.value = v;
+}
+
+function validateUPI(el) {
+  el.style.borderColor = el.value.includes('@') ? 'var(--green)' : 'var(--border2)';
+}
+function verifyUPI() {
+  const id = document.getElementById('upi-id').value.trim();
+  if (!id.includes('@')) { showToast('Enter valid UPI ID', 'err'); return; }
+  const el = document.getElementById('upi-verified');
+  el.textContent = 'Verifying...'; el.style.display='block'; el.style.color='var(--mist)';
+  setTimeout(() => { el.textContent = '✅ Verified: ' + id; el.style.color='var(--green)'; }, 900);
+}
+function selectUpiApp(el) {
+  document.querySelectorAll('.upi-app').forEach(a => a.classList.remove('sel'));
+  el.classList.add('sel'); showQR();
+}
+function showQR() {
+  document.getElementById('upi-qr').style.display = 'block';
+  if (qrInterval) clearInterval(qrInterval);
+  let s = 299;
+  qrInterval = setInterval(() => {
+    s--;
+    if (s < 0) { clearInterval(qrInterval); document.getElementById('qr-timer').textContent = 'Expired'; return; }
+    const m = Math.floor(s/60), sec = s%60;
+    document.getElementById('qr-timer').textContent = m + ':' + (sec<10?'0':'') + sec;
+  }, 1000);
+}
+function selectBank(el)   { document.querySelectorAll('.bank-item').forEach(b => b.classList.remove('sel')); el.classList.add('sel'); }
+function selectWallet(el) { document.querySelectorAll('.wallet-item').forEach(w => w.classList.remove('sel')); el.classList.add('sel'); }
+
+function buildEmi(amt) {
+  amt = amt || (selectedPlan ? selectedPlan.price * 1.18 : 3540);
+  const opts = [{m:3,r:0,label:'No-cost EMI'},{m:6,r:1.5,label:'Standard'},{m:9,r:2,label:'Standard'},{m:12,r:2.5,label:'Standard'}];
+  document.getElementById('emi-options').innerHTML = opts.map(o => {
+    const mo = Math.ceil((amt*(1+o.r/100))/o.m);
+    return `<div class="emi-item" onclick="selectEmi(this,${mo})">
+      <div><div class="emi-left">₹${mo.toLocaleString('en-IN')}/mo × ${o.m}</div><div class="emi-sub">${o.r===0?'HDFC, ICICI, SBI, Axis':'All major cards'}</div></div>
+      <span class="emi-badge ${o.r===0?'emi-free':'emi-std'}">${o.label}</span>
+    </div>`;
+  }).join('');
+}
+function selectEmi(el, mo) {
+  document.querySelectorAll('.emi-item').forEach(e => e.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('pm-pay-label').textContent = `Pay ₹${mo.toLocaleString('en-IN')}/mo`;
+}
+
+function applyModalCoupon() {
+  const code = document.getElementById('pm-coupon').value.trim().toUpperCase();
+  const c    = COUPONS[code];
+  if (c) {
+    couponDiscount = c.pct;
+    const price = selectedPlan.price;
+    const disc  = Math.round(price * c.pct / 100);
+    const after = price - disc, gst = Math.round(after*0.18), total = after+gst;
+    const dl = document.getElementById('pm-discount');
+    dl.style.display = 'flex';
+    document.getElementById('pm-disc-label').textContent     = 'Discount ('+c.pct+'%)';
+    document.getElementById('pm-disc-val').textContent       = '-₹'+disc.toLocaleString('en-IN');
+    document.getElementById('pm-total-display').textContent  = '₹'+total.toLocaleString('en-IN');
+    document.getElementById('pm-amount-display').textContent = '₹'+total.toLocaleString('en-IN');
+    document.getElementById('pm-pay-label').textContent      = `Pay ₹${total.toLocaleString('en-IN')} securely`;
+    showToast(`${c.pct}% off applied! 🎉`);
+  } else showToast('Invalid coupon code', 'err');
+}
+
+function processPayment() {
+  if (payTab === 'card') {
+    const num = document.getElementById('card-num').value.replace(/\s/g,'');
+    if (num.length < 16)                                               { showToast('Enter valid card number','err'); return; }
+    if (!document.getElementById('card-name').value.trim())           { showToast('Enter cardholder name','err'); return; }
+    if (document.getElementById('card-exp').value.trim().length < 5)  { showToast('Enter expiry date','err'); return; }
+    if (document.getElementById('card-cvv').value.trim().length < 3)  { showToast('Enter CVV','err'); return; }
+  } else if (payTab === 'upi') {
+    const id = document.getElementById('upi-id').value.trim();
+    if (!id.includes('@') && !document.querySelector('.upi-app.sel')) { showToast('Enter UPI ID or select app','err'); return; }
+  } else if (payTab === 'netbanking') {
+    if (!document.querySelector('.bank-item.sel') && !document.getElementById('bank-select').value) { showToast('Select a bank','err'); return; }
+  } else if (payTab === 'wallet') {
+    if (!document.querySelector('.wallet-item.sel')) { showToast('Select a wallet','err'); return; }
+  }
+  document.getElementById('pm-form').style.display       = 'none';
+  document.getElementById('pm-processing').style.display = 'block';
+  setTimeout(callUpgradeAPI, 2200);
+}
+
+async function callUpgradeAPI() {
+  const foundPlan = allPlans.find(p => p.name === selectedPlan.name);
+  if (!foundPlan) { showToast('Plan not found — please try again', 'err'); resetModal(); return; }
+  try {
+    const r = await fetch(UPGRADE_URL, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'},
+      body:    JSON.stringify({plan_id: foundPlan.id, billing: 'monthly'})
+    });
+    const data = await r.json();
+    console.log('upgrade response:', data);
+    if (data.success) showSuccess();
+    else { showToast(data.error || 'Payment failed — please try again', 'err'); resetModal(); }
+  } catch(e) {
+    console.error('callUpgradeAPI error:', e);
+    showToast('Network error — please check connection and try again', 'err');
+    resetModal();
+  }
+}
+
+function showSuccess() {
+  document.getElementById('pm-processing').style.display = 'none';
+  document.getElementById('pm-success').style.display    = 'block';
+  const price = selectedPlan.price;
+  const disc  = Math.round(price * couponDiscount / 100);
+  const after = price - disc, gst = Math.round(after*0.18), total = after+gst;
+  document.getElementById('suc-plan').textContent    = selectedPlan.name;
+  document.getElementById('rcpt-plan').textContent   = 'HotelCloud ' + selectedPlan.name;
+  document.getElementById('rcpt-amount').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('rcpt-cycle').textContent  = 'Monthly';
+  const next = new Date(); next.setMonth(next.getMonth()+1);
+  document.getElementById('rcpt-next').textContent = next.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('rcpt-txn').textContent  = 'HC' + Date.now().toString(36).toUpperCase().slice(-8);
+}
+
+function resetModal() {
+  document.getElementById('pm-processing').style.display = 'none';
+  document.getElementById('pm-form').style.display       = 'block';
+  document.getElementById('pm-pay-btn').disabled         = false;
+}
+
+function completeOnboarding() {
+  closePaymentModal();
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('form_type', 'finish');
+  fetch(window.location.href, {method:'POST', body:fd})
+    .then(() => { window.location.href = "{% url 'dashboard' %}"; })
+    .catch(() => { window.location.href = "{% url 'dashboard' %}"; });
+}
+
+calcPrice();
+
+{% if show_subscription_gate %}
+setTimeout(() => showToast('Your trial ended — choose a plan to continue', 'warn'), 1000);
+{% endif %}
+{% if can_start_trial %}
+setTimeout(() => showToast('🎁 You have a free trial available — click to start!', 'ok'), 800);
+{% endif %}
 </script>
 </body>
 </html>
