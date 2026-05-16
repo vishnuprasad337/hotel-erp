@@ -1074,6 +1074,7 @@ def dashboard(request):
         "reserved_count": reserved_count,
         "today_checkins": today_checkins,
         "today_checkouts": today_checkouts,
+        
     })
 ##----------------------Role & permissions----------------------
 def add_department(request):

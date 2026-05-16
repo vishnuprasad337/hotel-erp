@@ -60,7 +60,7 @@ path(
 
     path("laundry/orders/", views.list_laundry_orders),
     path("laundry/create-order/", views.create_laundry_order),
-    path("laundry/update-status/<int:pk>/", views.update_laundry_status),
+   path('laundry/update-status/<int:order_id>/', views.update_laundry_status),
      path('inventory/items/<int:pk>/update/', views.update_inventory_item),
    path('inventory/items/<int:pk>/delete/', views.delete_inventory_item),
    

@@ -701,7 +701,7 @@ def _send_invoice_email_helper(invoice):
 @csrf_exempt
 @require_http_methods(["POST"])
 def generate_invoice(request):
-    """Generate invoice, close folio, and email guest automatically."""
+   
     try:
         data = json.loads(request.body)
     except Exception:
@@ -721,7 +721,7 @@ def generate_invoice(request):
     subtotal = sum(Decimal(str(c.amount)) for c in folio.charges.all())
     tax_total = sum(Decimal(str(c.tax_amount)) for c in folio.charges.all())
     grand_total = (subtotal + tax_total) - discount
-
+    staff = Staff.objects.filter(user=request.user).first()
     invoice, _ = Invoice.objects.update_or_create(
         folio=folio,
         defaults={
@@ -733,6 +733,7 @@ def generate_invoice(request):
                 "partial" if folio.total_paid > 0 else "pending"
             ),
             "notes": data.get("notes", ""),
+            "generated_by":staff
         },
     )
 
@@ -774,7 +775,7 @@ def generate_invoice(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def send_invoice_email(request, invoice_id):
-    """Standalone endpoint to (re)send invoice email for an existing invoice."""
+    
     invoice = Invoice.objects.select_related(
         "folio__booking__guest",
         "folio__booking__room_unit",
@@ -805,7 +806,20 @@ def get_invoice(request, invoice_id):
 
     if not invoice:
         return JsonResponse({"success": False, "error": "Invoice not found"}, status=404)
-
+    hotel = _get_hotel()
+    hotel_name    = getattr(hotel, "hotel_name", None) or getattr(hotel, "name", None) or "Hotel"
+    hotel_addr    = getattr(hotel, "address",  "") or ""
+    hotel_city    = getattr(hotel, "city",     "") or ""
+    hotel_phone   = getattr(hotel, "phone",    "") or ""
+    hotel_email_s = getattr(hotel, "email",    "") or ""
+    hotel_gstin   = getattr(hotel, "gstin",    "") or ""
+    hotel_tagline = getattr(hotel, "tagline",  "") or ""
+    hotel_logo_url = ""
+    if hotel and hotel.logo:
+        try:
+            hotel_logo_url = hotel.logo.url
+        except Exception:
+            pass
     folio   = invoice.folio
     booking = folio.booking
     guest   = booking.guest
@@ -836,6 +850,14 @@ def get_invoice(request, invoice_id):
     return JsonResponse({
         "success": True,
         "invoice": {
+            "hotel_name":    hotel_name,
+            "hotel_address": hotel_addr,
+            "hotel_city":    hotel_city,
+            "hotel_phone":   hotel_phone,
+            "hotel_email":   hotel_email_s,
+            "hotel_gstin":   hotel_gstin,
+            "hotel_tagline": hotel_tagline,
+            "hotel_logo_url": hotel_logo_url,
             "id":             invoice.id,
             "invoice_number": invoice.invoice_number,
             "status":         invoice.status,
@@ -866,55 +888,140 @@ def get_invoice(request, invoice_id):
             "payments": payments,
         }
     })
-
-
 @require_GET
 def billing_summary(request):
-    from django.db.models import Sum
+    from django.db.models import Sum, Q
+    from decimal import Decimal
 
     today = timezone.now().date()
 
+    
     today_revenue = (
-        BillingPayment.objects.filter(received_at__date=today)
+        BillingPayment.objects
+        .filter(received_at__date=today, folio__isnull=False)
         .aggregate(total=Sum("amount"))["total"] or Decimal("0")
     )
 
-    open_folios = GuestFolio.objects.filter(status="open")
-    pending_balance = sum(f.balance_due for f in open_folios)
-    settled_today = GuestFolio.objects.filter(
-        status="closed", updated_at__date=today
+   
+    inhouse_pending = Decimal("0")
+    inhouse_folios = (
+        GuestFolio.objects
+        .filter(
+            status="open",
+            booking__status="checked_in",
+        )
+        .prefetch_related("charges", "payments")
+    )
+    for folio in inhouse_folios:
+        bal = Decimal(str(folio.balance_due))
+        if bal > 0:
+            inhouse_pending += bal
+
+   
+    checkout_pending = Decimal("0")
+    unpaid_invoices = (
+        Invoice.objects
+        .filter(status__in=["pending", "partial"])
+        .select_related("folio__booking")
+        .prefetch_related("folio__payments")
+    )
+    for inv in unpaid_invoices:
+      
+        bal = Decimal(str(inv.folio.balance_due))
+        if bal > 0:
+            checkout_pending += bal
+
+    pending_balance = inhouse_pending + checkout_pending
+
+    
+    open_folio_count = GuestFolio.objects.filter(
+        status="open",
+        booking__status="checked_in",
     ).count()
 
+   
+    settled_today = GuestFolio.objects.filter(
+        status="closed",
+        updated_at__date=today,
+    ).count()
+
+    
     return JsonResponse({
-        "success": True,
-        "today_revenue": float(today_revenue),
-        "pending_balance": float(pending_balance),
-        "open_folios": open_folios.count(),
-        "settled_today": settled_today,
+        "success":            True,
+        "today_revenue":      float(today_revenue),
+        "pending_balance":    float(pending_balance),
+        "pending_breakdown": {
+            "in_house_unpaid":      float(inhouse_pending),
+            "post_checkout_unpaid": float(checkout_pending),
+        },
+        "open_folios":        open_folio_count,
+        "settled_today":      settled_today,
     })
-
-
 @require_GET
 def list_invoices(request):
+
     invoices = Invoice.objects.select_related(
         "folio__booking__guest",
         "folio__booking__room_unit",
+        "generated_by",
     ).order_by("-generated_at")
 
     return JsonResponse({
         "invoices": [
             {
-                "id":             inv.id,
+                "id": inv.id,
+
                 "invoice_number": inv.invoice_number,
-                "guest_name":     inv.folio.booking.guest.full_name if inv.folio.booking.guest else "Unknown",
-                "guest_email":    inv.folio.booking.guest.email     if inv.folio.booking.guest else "",
-                "room_number":    inv.folio.booking.room_unit.room_number if inv.folio.booking.room_unit else "—",
-                "check_in":       inv.folio.booking.check_in.isoformat()  if inv.folio.booking.check_in  else "",
-                "check_out":      inv.folio.booking.check_out.isoformat() if inv.folio.booking.check_out else "",
-                "status":         inv.status,
-                "grand_total":    float(inv.grand_total),
-                
-                "generated_at":   inv.generated_at.isoformat(),
+
+                "guest_name": (
+                    inv.folio.booking.guest.full_name
+                    if inv.folio.booking.guest else "Unknown"
+                ),
+
+                "guest_email": (
+                    inv.folio.booking.guest.email
+                    if inv.folio.booking.guest else ""
+                ),
+
+                "room_number": (
+                    inv.folio.booking.room_unit.room_number
+                    if inv.folio.booking.room_unit else "—"
+                ),
+
+                "check_in": (
+                    inv.folio.booking.check_in.isoformat()
+                    if inv.folio.booking.check_in else ""
+                ),
+
+                "check_out": (
+                    inv.folio.booking.check_out.isoformat()
+                    if inv.folio.booking.check_out else ""
+                ),
+
+                "status": inv.status,
+
+                "subtotal": float(inv.subtotal or 0),
+
+                "tax": float(inv.tax_total or 0),
+
+                "discount": float(inv.discount or 0),
+
+                "grand_total": float(inv.grand_total or 0),
+
+                "paid": float(inv.folio.total_paid or 0),
+
+                "balance": float(inv.folio.balance_due or 0),
+
+                # STAFF NAME
+                "generated_by": (
+                    inv.generated_by.name
+                    if inv.generated_by else ""
+                ),
+
+                "generated_at": (
+                    inv.generated_at.isoformat()
+                    if inv.generated_at else ""
+                ),
             }
             for inv in invoices
         ]

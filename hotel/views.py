@@ -1107,32 +1107,46 @@ from django.utils import timezone
 from django.db.models import Prefetch, Count
 def hr_dashboard(request):
     staff_id = request.session.get("staff_id")
+
     if not staff_id:
         return redirect("staff_login")
 
     try:
-        staff = Staff.objects.select_related("hotel", "department").get(id=staff_id)
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department"
+        ).get(id=staff_id)
+
     except Staff.DoesNotExist:
         return redirect("staff_login")
 
     hotel = staff.hotel
     today = timezone.now().date()
 
-    hotel_staff_ids = Staff.objects.filter(hotel=hotel).values_list("id", flat=True)
+    bookings = Booking.objects.select_related(
+        "guest",
+        "room",
+        "room_unit",
+        "created_by"
+    ).order_by("-id")
 
-    bookings = Booking.objects.filter(
-        created_by_id__in=hotel_staff_ids
-    ).select_related("guest", "room", "room_unit").order_by("-id")
+    arrivals = bookings.filter(
+        check_in=today,
+        status="confirmed"
+    )
 
-    if not bookings.exists():
-        bookings = Booking.objects.all().select_related(
-            "guest", "room", "room_unit"
-        ).order_by("-id")
+    departures = bookings.filter(
+        check_out=today,
+        status="checked_in"
+    )
 
-    arrivals = bookings.filter(check_in=today, status="confirmed")
-    departures = bookings.filter(check_out=today, status="checked_in")
+    occupied_rooms = RoomUnit.objects.filter(
+        status="Occupied"
+    ).count()
 
-    rooms_qs = Room.objects.filter(is_active=True).prefetch_related("units")
+    rooms_qs = Room.objects.filter(
+        is_active=True
+    ).prefetch_related("units")
 
     rooms_json = json.dumps([
         {
@@ -1156,72 +1170,97 @@ def hr_dashboard(request):
         for r in rooms_qs
     ])
 
-    room_units = RoomUnit.objects.select_related("room").order_by("room_number")
+    room_units = RoomUnit.objects.select_related(
+        "room"
+    ).order_by("room_number")
 
     hk_dept = Department.objects.filter(
-        hotel=hotel, name__icontains="housekeeping"
+        hotel=hotel,
+        name__icontains="housekeeping"
     ).first()
 
     if hk_dept:
         housekeeping_staff = Staff.objects.filter(
-            hotel=hotel, department=hk_dept
+            hotel=hotel,
+            department=hk_dept
         ).select_related("department")
+
     else:
         housekeeping_staff = Staff.objects.filter(
             hotel=hotel
         ).select_related("department")
 
-    hotel_staff = Staff.objects.filter(hotel=hotel).select_related("department")
+    hotel_staff = Staff.objects.filter(
+        hotel=hotel
+    ).select_related("department")
 
-    departments = Department.objects.filter(hotel=hotel).prefetch_related(
+    departments = Department.objects.filter(
+        hotel=hotel
+    ).prefetch_related(
         Prefetch(
             "staff_set",
-            queryset=Staff.objects.filter(hotel=hotel).select_related("department"),
+            queryset=Staff.objects.filter(
+                hotel=hotel
+            ).select_related("department"),
             to_attr="employees"
         )
-    ).annotate(staff_count=Count("staff"))
-
-    recent_tasks = (
-        Task.objects.filter(staff__hotel=hotel)
-        .select_related("staff", "room_unit", "room_unit__room")
-        .order_by("-created_at")[:30]
+    ).annotate(
+        staff_count=Count("staff")
     )
+
+    recent_tasks = Task.objects.filter(
+        staff__hotel=hotel
+    ).select_related(
+        "staff",
+        "room_unit",
+        "room_unit__room"
+    ).order_by("-created_at")[:30]
 
     shifts = Shift.objects.filter(
         hotel=hotel
-    ).select_related("staff", "department")
+    ).select_related(
+        "staff",
+        "department"
+    )
 
     total_bookings = bookings.count()
+
     arrivals_count = arrivals.count()
+
     departures_count = departures.count()
-    occupied_rooms = bookings.filter(status="checked_in").count()
+
     total_staff = hotel_staff.count()
+
     total_departments = departments.count()
 
-    schema = getattr(hotel, "schema_name", "") or getattr(hotel, "slug", "") or str(hotel.id)
+    schema = (
+        getattr(hotel, "schema_name", "")
+        or getattr(hotel, "slug", "")
+        or str(hotel.id)
+    )
 
     return render(request, "hr.html", {
-        "staff":              staff,
-        "hotel":              hotel,
-        "bookings":           bookings,
-        "arrivals":           arrivals,
-        "departures":         departures,
-        "arrivals_count":     arrivals_count,
-        "departures_count":   departures_count,
-        "total_bookings":     total_bookings,
-        "occupied_rooms":     occupied_rooms,
-        "rooms":              rooms_qs,
-        "rooms_json":         rooms_json,
-        "room_units":         room_units,
+        "staff": staff,
+        "hotel": hotel,
+        "bookings": bookings,
+        "arrivals": arrivals,
+        "departures": departures,
+        "arrivals_count": arrivals_count,
+        "departures_count": departures_count,
+        "total_bookings": total_bookings,
+        "occupied_rooms": occupied_rooms,
+        "rooms": rooms_qs,
+        "rooms_json": rooms_json,
+        "room_units": room_units,
         "housekeeping_staff": housekeeping_staff,
-        "hotel_staff":        hotel_staff,
-        "departments":        departments,
-        "recent_tasks":       recent_tasks,
-        "shifts":             shifts,
-        "total_staff":        total_staff,
-        "total_departments":  total_departments,
-        "schema":             schema,
-        "token":              "",
+        "hotel_staff": hotel_staff,
+        "departments": departments,
+        "recent_tasks": recent_tasks,
+        "shifts": shifts,
+        "total_staff": total_staff,
+        "total_departments": total_departments,
+        "schema": schema,
+        "token": "",
     })
 from datetime import time
 
@@ -2490,15 +2529,25 @@ def update_task_status(request):
 
 
 
+from django.utils import timezone
+from django.http import JsonResponse
+from datetime import datetime
 
+# ─────────────────────────────────────────────────────────────────────────────
+# KEYWORD LISTS  (shared with messaging / display helpers)
+# ─────────────────────────────────────────────────────────────────────────────
 FRONT_DESK_KEYWORDS   = ["front desk", "front office", "reception", "fd"]
 HOUSEKEEPING_KEYWORDS = ["housekeeping", "hk", "cleaning"]
 RESTAURANT_KEYWORDS   = ["restaurant", "f&b", "food", "kitchen", "dining", "bar", "cafe", "fbservice"]
+ACCOUNTANT_KEYWORDS   = ["account", "accountant", "finance", "billing", "accounts"]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPARTMENT DETECTOR
+# ─────────────────────────────────────────────────────────────────────────────
 def _dept_type(staff):
-    dept = (staff.department.name.lower() if staff.department else "")
-    role = (getattr(staff, "role", "") or "").lower()
+    dept     = (staff.department.name.lower() if staff.department else "")
+    role     = (getattr(staff, "role", "") or "").lower()
     combined = dept + " " + role
 
     if any(k in combined for k in FRONT_DESK_KEYWORDS):
@@ -2507,71 +2556,182 @@ def _dept_type(staff):
         return "housekeeping"
     if any(k in combined for k in RESTAURANT_KEYWORDS):
         return "restaurant"
+    if any(k in combined for k in ACCOUNTANT_KEYWORDS):
+        return "accountant"
     return "general"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ATTENDANCE & SHIFT HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+from django.utils import timezone
+
 def _attendance_for(staff, date_obj):
-    att = Attendance.objects.filter(staff=staff, date=date_obj).first()
+    att = Attendance.objects.filter(
+        staff=staff,
+        date=date_obj
+    ).first()
+
     if not att:
         return None
-    working_hours = 0.0
-    if att.check_in and att.check_out:
-        working_hours = round(
-            (att.check_out - att.check_in).total_seconds() / 3600, 2
-        )
+
+    working_hours = 0
+    overtime_hours = 0
+
+    if att.check_in:
+
+        # checkout or current local time
+        if att.check_out:
+            end_time = att.check_out
+        else:
+            end_time = timezone.now()
+
+        # convert both to local timezone
+        check_in = timezone.localtime(att.check_in)
+        end_time = timezone.localtime(end_time)
+
+        diff = end_time - check_in
+
+        working_hours = round(diff.total_seconds() / 3600, 2)
+
+        if working_hours < 0:
+            working_hours = 0
+
+        overtime_hours = max(0, round(working_hours - 8, 2))
+
     return {
-        "check_in":      att.check_in.strftime("%H:%M") if att.check_in else None,
-        "check_out":     att.check_out.strftime("%H:%M") if att.check_out else None,
-        "status":        att.status,
+        "status": att.status,
+        "check_in": timezone.localtime(att.check_in).strftime("%I:%M %p") if att.check_in else None,
+        "check_out": timezone.localtime(att.check_out).strftime("%I:%M %p") if att.check_out else None,
         "working_hours": working_hours,
-        "overtime_hours": float(att.overtime_hours or 0),
+        "overtime_hours": overtime_hours,
     }
-
-
 def _shift_for(staff, date_obj):
     shift = Shift.objects.filter(staff=staff, date=date_obj).first()
     return shift.shift if shift else None
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FRONT DESK REPORT  — STAFF-SPECIFIC
+# ─────────────────────────────────────────────────────────────────────────────
+def _get_booking_staff_fk():
+    """
+    Inspect the Booking model's fields ONCE and return the first FK field name
+    that points to Staff / accounts.Staff.
+    Returns None if no such FK exists yet.
+    """
+    from django.db import models as _models
+
+    # Explicit priority list – add more names here if needed
+    CANDIDATES = [
+        "handled_by",
+        "checked_in_by",
+        "created_by",
+        "assigned_to",
+        "staff",
+    ]
+
+    # Build a set of actual field names on Booking for O(1) lookup
+    booking_field_names = {f.name for f in Booking._meta.get_fields()}
+
+    for candidate in CANDIDATES:
+        if candidate in booking_field_names:
+            field = Booking._meta.get_field(candidate)
+            # Make sure it's actually a FK/OneToOne (not just a coincidental name)
+            if isinstance(field, (_models.ForeignKey, _models.OneToOneField)):
+                return candidate
+
+    return None          # No staff FK found on Booking
+
+
+# Cache the result so we only introspect once per process
+_BOOKING_STAFF_FK = None
+
+def _staff_booking_qs(base_qs, staff):
+    
+    global _BOOKING_STAFF_FK
+
+    if _BOOKING_STAFF_FK is None:
+        _BOOKING_STAFF_FK = _get_booking_staff_fk() or "__NONE__"
+
+    fk = _BOOKING_STAFF_FK
+
+    if fk == "__NONE__":
+       
+        return base_qs
+
+    return base_qs.filter(**{fk: staff})
 def _frontdesk_report(staff, date_obj):
+
     checkins = Booking.objects.filter(
         actual_check_in__date=date_obj,
-        status__in=["checked_in", "checked_out"]
-    ).select_related("guest", "room", "room_unit")
+        status__in=["checked_in", "checked_out"],
+        checked_in_by=staff
+    ).select_related(
+        "guest",
+        "room",
+        "room_unit",
+        "payment"
+    )
 
     checkouts = Booking.objects.filter(
         actual_check_out__date=date_obj,
-        status="checked_out"
-    ).select_related("guest", "room", "room_unit")
+        status="checked_out",
+        checked_out_by=staff
+    ).select_related(
+        "guest",
+        "room",
+        "room_unit",
+        "payment"
+    )
 
     new_bookings = Booking.objects.filter(
-        created_at__date=date_obj
-    ).select_related("guest", "room", "room_unit")
+        created_at__date=date_obj,
+        created_by=staff
+    ).select_related(
+        "guest",
+        "room",
+        "room_unit",
+        "payment"
+    )
+
+    scheduled_checkins = Booking.objects.filter(
+        check_in=date_obj,
+        created_by=staff
+    ).select_related(
+        "guest",
+        "room",
+        "room_unit",
+        "payment"
+    )
 
     def serialize_booking(b, event_type):
+
         try:
-            total = float(b.payment.total_amount)
-            payment_status = b.payment.payment_status
+            payment = b.payment
+            total = float(payment.total_amount or 0)
+            payment_status = payment.payment_status or "pending"
         except Exception:
-            total = 0.0
-            payment_status = "unknown"
+            total = float(b.total_amount or 0)
+            payment_status = "pending"
+
         return {
-            "booking_id":     b.id,
-            "booking_code":   getattr(b, "booking_code", None) or f"BK{b.id:06d}",
-            "event":          event_type,
-            "guest_name":     b.guest.full_name if b.guest else "N/A",
-            "guest_phone":    b.guest.phone     if b.guest else "",
-            "room_type":      b.room.room_type  if b.room  else "N/A",
-            "room_number":    b.room_unit.room_number if b.room_unit else "N/A",
-            "check_in":       b.check_in.isoformat()  if b.check_in  else None,
-            "check_out":      b.check_out.isoformat() if b.check_out else None,
-            "nights":         getattr(b, "nights", None),
-            "adults":         b.adults,
-            "children":       b.children,
-            "source":         b.source or "",
-            "status":         b.status,
-            "total_amount":   total,
+            "booking_id": b.id,
+            "booking_code": getattr(b, "booking_code", None) or f"BK{b.id:06d}",
+            "event": event_type,
+            "guest_name": b.guest.full_name if b.guest else "N/A",
+            "guest_phone": b.guest.phone if b.guest else "",
+            "room_type": b.room.room_type if b.room else "N/A",
+            "room_number": b.room_unit.room_number if b.room_unit else "N/A",
+            "check_in": b.check_in.isoformat() if b.check_in else None,
+            "check_out": b.check_out.isoformat() if b.check_out else None,
+            "adults": b.adults,
+            "children": b.children,
+            "source": b.source or "",
+            "status": b.status,
+            "total_amount": total,
             "payment_status": payment_status,
+            "booked_at": b.created_at.strftime("%H:%M") if b.created_at else None,
         }
 
     activity = []
@@ -2592,23 +2752,33 @@ def _frontdesk_report(staff, date_obj):
             activity.append(serialize_booking(b, "new_booking"))
             seen_ids.add(b.id)
 
-    revenue_today = sum(
-        item["total_amount"] for item in activity if item["payment_status"] == "paid"
-    )
+    for b in scheduled_checkins:
+        if b.id not in seen_ids:
+            activity.append(serialize_booking(b, "scheduled_check_in"))
+            seen_ids.add(b.id)
+
+    activity.sort(key=lambda x: x["booked_at"] or "")
+
+    revenue_today = 0
+
+    for b in checkouts:
+        try:
+            revenue_today += float(b.payment.total_amount or 0)
+        except Exception:
+            revenue_today += float(b.total_amount or 0)
 
     return {
         "type": "frontdesk",
         "summary": {
-            "check_ins":         checkins.count(),
-            "check_outs":        checkouts.count(),
-            "new_bookings":      new_bookings.count(),
-            "total_actions":     len(activity),
+            "check_ins": checkins.count(),
+            "check_outs": checkouts.count(),
+            "new_bookings": new_bookings.count(),
+            "scheduled_check_ins": scheduled_checkins.count(),
+            "total_actions": len(activity),
             "revenue_collected": round(revenue_today, 2),
         },
         "activity": activity,
     }
-
-
 def _housekeeping_report(staff, date_obj):
     tasks = Task.objects.filter(
         staff=staff,
@@ -2657,6 +2827,7 @@ def _housekeeping_report(staff, date_obj):
     }
 
 
+
 def _restaurant_report(staff, date_obj):
     from django.db.models import Sum, Count
     from django.db.models.functions import ExtractHour
@@ -2665,19 +2836,19 @@ def _restaurant_report(staff, date_obj):
     EMPTY = {
         "type": "restaurant",
         "summary": {
-            "total_orders":          0,
-            "total_revenue":         0.0,
-            "avg_order_value":       0.0,
-            "covers_served":         0,
-            "dine_in_orders":        0,
-            "room_service_orders":   0,
-            "takeaway_orders":       0,
-            "dine_in_revenue":       0.0,
-            "room_service_revenue":  0.0,
-            "takeaway_revenue":      0.0,
-            "completed_orders":      0,
-            "pending_orders":        0,
-            "cancelled_orders":      0,
+            "total_orders":         0,
+            "total_revenue":        0.0,
+            "avg_order_value":      0.0,
+            "covers_served":        0,
+            "dine_in_orders":       0,
+            "room_service_orders":  0,
+            "takeaway_orders":      0,
+            "dine_in_revenue":      0.0,
+            "room_service_revenue": 0.0,
+            "takeaway_revenue":     0.0,
+            "completed_orders":     0,
+            "pending_orders":       0,
+            "cancelled_orders":     0,
         },
         "categories": [],
         "top_items":  [],
@@ -2685,7 +2856,6 @@ def _restaurant_report(staff, date_obj):
         "activity":   [],
     }
 
-    # RestaurantOrder uses `staff` FK to accounts.Staff — filter by this staff
     orders_qs = RestaurantOrder.objects.filter(
         created_at__date=date_obj,
         staff=staff
@@ -2693,7 +2863,7 @@ def _restaurant_report(staff, date_obj):
         "table", "room", "booking", "booking__room_unit", "reservation"
     ).order_by("created_at")
 
-    # fallback: show all orders for the date if staff has no direct assignment
+    # fallback: all orders for date (restaurants where staff FK not used)
     if not orders_qs.exists():
         orders_qs = RestaurantOrder.objects.filter(
             created_at__date=date_obj
@@ -2704,12 +2874,10 @@ def _restaurant_report(staff, date_obj):
     if not orders_qs.exists():
         return EMPTY
 
-    # ── Totals ──────────────────────────────────────────────────────────
     total_orders    = orders_qs.count()
     total_revenue   = float(orders_qs.aggregate(s=Sum("total_amount"))["s"] or 0)
     avg_order_value = round(total_revenue / total_orders, 2) if total_orders else 0.0
 
-    # covers = sum of reservation.guests_count where available, else table.capacity
     covers_served = 0
     for o in orders_qs:
         if o.reservation_id and o.reservation:
@@ -2717,7 +2885,6 @@ def _restaurant_report(staff, date_obj):
         elif o.table_id and o.table:
             covers_served += o.table.capacity
 
-    # ── By order_type ────────────────────────────────────────────────────
     dine_in_qs       = orders_qs.filter(order_type="dine_in")
     room_service_qs  = orders_qs.filter(order_type="room_service")
     takeaway_qs      = orders_qs.filter(order_type="takeaway")
@@ -2730,13 +2897,10 @@ def _restaurant_report(staff, date_obj):
     room_service_rev = float(room_service_qs.aggregate(s=Sum("total_amount"))["s"] or 0)
     takeaway_rev     = float(takeaway_qs.aggregate(s=Sum("total_amount"))["s"] or 0)
 
-    # ── By status ────────────────────────────────────────────────────────
-    # RestaurantOrder.STATUS choices: pending, preparing, served, cancelled
     completed_orders = orders_qs.filter(status="served").count()
     pending_orders   = orders_qs.filter(status__in=["pending", "preparing"]).count()
     cancelled_orders = orders_qs.filter(status="cancelled").count()
 
-    # ── Categories (order type breakdown) ────────────────────────────────
     TYPE_COLOR = {
         "dine_in":      "#1a65f5",
         "room_service": "#7c3aed",
@@ -2762,7 +2926,6 @@ def _restaurant_report(staff, date_obj):
                 "color":   TYPE_COLOR[ot],
             })
 
-    
     top_items = []
     try:
         item_rows = (
@@ -2788,7 +2951,6 @@ def _restaurant_report(staff, date_obj):
     except Exception:
         pass
 
-    # ── Hourly breakdown ─────────────────────────────────────────────────
     hourly = []
     try:
         hourly_rows = (
@@ -2807,7 +2969,6 @@ def _restaurant_report(staff, date_obj):
     except Exception:
         pass
 
-    # ── Activity list ────────────────────────────────────────────────────
     STATUS_DISPLAY = {
         "pending":   "Pending",
         "preparing": "Preparing",
@@ -2852,19 +3013,19 @@ def _restaurant_report(staff, date_obj):
     return {
         "type": "restaurant",
         "summary": {
-            "total_orders":          total_orders,
-            "total_revenue":         round(total_revenue, 2),
-            "avg_order_value":       avg_order_value,
-            "covers_served":         covers_served,
-            "dine_in_orders":        dine_in_count,
-            "room_service_orders":   room_service_count,
-            "takeaway_orders":       takeaway_count,
-            "dine_in_revenue":       round(dine_in_rev, 2),
-            "room_service_revenue":  round(room_service_rev, 2),
-            "takeaway_revenue":      round(takeaway_rev, 2),
-            "completed_orders":      completed_orders,
-            "pending_orders":        pending_orders,
-            "cancelled_orders":      cancelled_orders,
+            "total_orders":         total_orders,
+            "total_revenue":        round(total_revenue, 2),
+            "avg_order_value":      avg_order_value,
+            "covers_served":        covers_served,
+            "dine_in_orders":       dine_in_count,
+            "room_service_orders":  room_service_count,
+            "takeaway_orders":      takeaway_count,
+            "dine_in_revenue":      round(dine_in_rev, 2),
+            "room_service_revenue": round(room_service_rev, 2),
+            "takeaway_revenue":     round(takeaway_rev, 2),
+            "completed_orders":     completed_orders,
+            "pending_orders":       pending_orders,
+            "cancelled_orders":     cancelled_orders,
         },
         "categories": categories,
         "top_items":  top_items,
@@ -2895,6 +3056,182 @@ def _general_report(staff, date_obj):
             "completed":   sum(1 for t in task_list if t["status"] == "Completed"),
         },
         "activity": task_list,
+    }
+def _accountant_report(date_obj):
+    from django.db.models import Sum, Count
+
+    try:
+        from billing.models import BillingPayment, FolioCharge, Invoice
+        HAS_BILLING = True
+    except ImportError:
+        HAS_BILLING = False
+
+    try:
+        from inventory.models import Expense
+        HAS_INVENTORY = True
+    except ImportError:
+        HAS_INVENTORY = False
+
+    revenue_activity   = []
+    total_revenue      = 0.0
+    method_totals      = {"cash": 0.0, "card": 0.0, "upi": 0.0, "bank_transfer": 0.0}
+    other_payments     = 0.0
+    total_transactions = 0
+
+    if HAS_BILLING:
+        pay_qs = BillingPayment.objects.filter(
+            received_at__date=date_obj,
+        ).select_related("folio__booking__guest", "folio__booking__room_unit", "order")
+
+        total_transactions = pay_qs.count()
+        total_revenue      = float(pay_qs.aggregate(s=Sum("amount"))["s"] or 0)
+
+        for mp in pay_qs.values("method").annotate(t=Sum("amount")):
+            method = (mp["method"] or "other").lower()
+            amount = float(mp["t"] or 0)
+            if method in method_totals:
+                method_totals[method] = amount
+            else:
+                other_payments += amount
+
+        for pay in pay_qs.order_by("-received_at")[:200]:
+            local_t = timezone.localtime(pay.received_at)
+
+            if pay.folio:
+                booking    = pay.folio.booking
+                guest      = booking.guest if booking else None
+                guest_name = guest.full_name if guest else "—"
+                ref        = f"#{booking.id}" if booking else "—"
+                room_no    = (
+                    booking.room_unit.room_number
+                    if (booking and booking.room_unit) else "—"
+                )
+            elif pay.order:
+                guest_name = f"Takeaway #{pay.order.order_number}"
+                ref        = f"Order #{pay.order.order_number}"
+                room_no    = "—"
+            else:
+                guest_name = "—"
+                ref        = "—"
+                room_no    = "—"
+
+            revenue_activity.append({
+                "payment_id":  pay.id,
+                "time":        local_t.strftime("%H:%M"),
+                "guest":       guest_name,
+                "booking_ref": ref,
+                "room_number": room_no,
+                "amount":      float(pay.amount),
+                "method":      pay.method or "—",
+                "reference":   pay.reference_number or "—",
+                "note":        pay.note or "",
+                "received_by": pay.received_by.name if pay.received_by else "—",
+            })
+
+    expense_activity      = []
+    total_expenses        = 0.0
+    manual_exp_total      = 0.0
+    po_exp_total          = 0.0
+    maintenance_exp_total = 0.0
+    total_expense_count   = 0
+
+    if HAS_INVENTORY:
+        exp_qs = Expense.objects.filter(
+            expense_date=date_obj,
+        ).select_related("department", "expense_category")
+
+        total_expense_count   = exp_qs.count()
+        total_expenses        = float(exp_qs.aggregate(s=Sum("amount"))["s"] or 0)
+        manual_exp_total      = float(
+            exp_qs.filter(source="manual").aggregate(s=Sum("amount"))["s"] or 0
+        )
+        po_exp_total          = float(
+            exp_qs.filter(source="purchase_order").aggregate(s=Sum("amount"))["s"] or 0
+        )
+        maintenance_exp_total = float(
+            exp_qs.filter(source="maintenance").aggregate(s=Sum("amount"))["s"] or 0
+        )
+
+        for exp in exp_qs.order_by("expense_date"):
+            expense_activity.append({
+                "expense_id":  exp.id,
+                "department":  exp.department.name if exp.department else "—",
+                "category":    exp.expense_category.name if exp.expense_category else "—",
+                "source":      exp.source or "manual",
+                "description": exp.description or "",
+                "amount":      float(exp.amount),
+                "recorded_by": exp.recorded_by.name if exp.recorded_by else "—",
+            })
+
+    charge_breakdown = []
+    if HAS_BILLING:
+        try:
+            from collections import defaultdict
+            type_totals = defaultdict(float)
+
+            for pay in pay_qs:
+                if pay.folio:
+                    type_totals["room"] += float(pay.amount)
+                elif pay.order:
+                    type_totals["restaurant"] += float(pay.amount)
+
+            for charge_type, total in sorted(type_totals.items(), key=lambda x: -x[1]):
+                charge_breakdown.append({
+                    "charge_type": charge_type,
+                    "total":       round(total, 2),
+                })
+        except Exception:
+            pass
+
+    invoices_today = []
+    if HAS_BILLING:
+        try:
+            inv_qs = Invoice.objects.filter(
+                generated_at__date=date_obj
+            ).select_related(
+                "folio__booking__guest", "folio__booking__room_unit"
+            )
+            for inv in inv_qs.order_by("-generated_at")[:50]:
+                booking = inv.folio.booking if inv.folio else None
+                guest   = booking.guest if booking else None
+                invoices_today.append({
+                    "invoice_id":     inv.id,
+                    "invoice_number": inv.invoice_number,
+                    "guest":          guest.full_name if guest else "—",
+                    "room_number":    (
+                        booking.room_unit.room_number
+                        if (booking and booking.room_unit) else "—"
+                    ),
+                    "grand_total":    float(inv.grand_total),
+                    "status":         inv.status,
+                    "generated_at":   timezone.localtime(inv.generated_at).strftime("%H:%M"),
+                })
+        except Exception:
+            pass
+
+    net = round(total_revenue - total_expenses, 2)
+
+    return {
+        "type": "accountant",
+        "summary": {
+            "total_revenue_collected": round(total_revenue, 2),
+            "cash":                    round(method_totals["cash"], 2),
+            "card":                    round(method_totals["card"], 2),
+            "upi":                     round(method_totals["upi"], 2),
+            "bank_transfer":           round(method_totals["bank_transfer"], 2),
+            "other_payments":          round(other_payments, 2),
+            "total_transactions":      total_transactions,
+            "total_expenses_recorded": round(total_expenses, 2),
+            "manual_expenses":         round(manual_exp_total, 2),
+            "po_expenses":             round(po_exp_total, 2),
+            "maintenance_expenses":    round(maintenance_exp_total, 2),
+            "total_expense_count":     total_expense_count,
+            "net":                     net,
+        },
+        "charge_breakdown": charge_breakdown,
+        "invoices_today":   invoices_today,
+        "revenue_activity": revenue_activity,
+        "expense_activity": expense_activity,
     }
 
 
@@ -2931,6 +3268,8 @@ def work_report(request):
         dept_report = _housekeeping_report(staff, date_obj)
     elif dept_type == "restaurant":
         dept_report = _restaurant_report(staff, date_obj)
+    elif dept_type == "accountant":
+        dept_report = _accountant_report( date_obj)
     else:
         dept_report = _general_report(staff, date_obj)
 
@@ -2951,6 +3290,7 @@ def work_report(request):
     })
 
 
+
 def work_report_all(request):
     hotel_id = request.session.get("hotel_id")
     if not hotel_id:
@@ -2968,6 +3308,15 @@ def work_report_all(request):
     if dept_filter:
         staffs_qs = staffs_qs.filter(department__name__icontains=dept_filter)
 
+    DEPT_TYPE_LABELS = {
+        "frontdesk":    "Front Desk",
+        "housekeeping": "Housekeeping",
+        "restaurant":   "Restaurant",
+        "accountant":   "Accountant",
+        "hr":           "HR",
+        "general":      "General",
+    }
+
     results = []
     for staff in staffs_qs:
         dept_type  = _dept_type(staff)
@@ -2980,25 +3329,21 @@ def work_report_all(request):
             rep = _housekeeping_report(staff, date_obj)
         elif dept_type == "restaurant":
             rep = _restaurant_report(staff, date_obj)
+        elif dept_type == "accountant":
+            rep = _accountant_report(date_obj)
         else:
             rep = _general_report(staff, date_obj)
 
         results.append({
-            "staff_id":    staff.id,
-            "name":        staff.name,
-            "employee_id": getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
-            "department":  staff.department.name if staff.department else "N/A",
-            "dept_type":   dept_type,
-            "shift":       shift,
-            "attendance":  attendance,
-            "summary":     rep["summary"],
-            "dept_type_label": {
-                "frontdesk":    "Front Desk",
-                "housekeeping": "Housekeeping",
-                "restaurant":   "Restaurant",
-                "hr":           "HR",
-                "general":      "General",
-            }.get(dept_type, dept_type.title()),
+            "staff_id":        staff.id,
+            "name":            staff.name,
+            "employee_id":     getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department":      staff.department.name if staff.department else "N/A",
+            "dept_type":       dept_type,
+            "dept_type_label": DEPT_TYPE_LABELS.get(dept_type, dept_type.title()),
+            "shift":           shift,
+            "attendance":      attendance,
+            "summary":         rep["summary"],
         })
 
     return JsonResponse({
@@ -5197,16 +5542,13 @@ class ThreadMembersView(View):
         return json_ok({'removed': user_id})
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# F.  Message list / send
-# ─────────────────────────────────────────────────────────────────────────────
-# messaging/views.py
 
 import json
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
+
 @login_required
 def thread_messages_view(request, thread_id):
 
@@ -5219,6 +5561,7 @@ def thread_messages_view(request, thread_id):
         participants=request.user
     )
 
+    
     if request.method == "GET":
 
         messages = thread.messages.select_related(
@@ -5239,7 +5582,6 @@ def thread_messages_view(request, thread_id):
         ]
 
         if unread_ids:
-
             MessageReadStatus.objects.bulk_create(
                 [
                     MessageReadStatus(
@@ -5261,23 +5603,13 @@ def thread_messages_view(request, thread_id):
         data = []
 
         for msg in messages:
-
-            sender_profile = getattr(msg.sender, 'staff_profile', None)
-
-            sender_name = (
-                sender_profile.name
-                if sender_profile and sender_profile.name
-                else msg.sender.get_full_name() or msg.sender.username
-            )
-
             data.append({
                 'id': msg.id,
                 'body': msg.body,
                 'sender_id': msg.sender.id,
-                'sender_name': sender_name,
+                'sender_name': msg.sender.get_full_name(),
                 'created_at': msg.created_at.isoformat(),
                 'priority': msg.priority,
-                'is_system_msg': msg.is_system_msg,
             })
 
         return JsonResponse({
@@ -5285,22 +5617,14 @@ def thread_messages_view(request, thread_id):
             'messages': data
         })
 
+    # POST new message
     elif request.method == "POST":
 
-        if request.content_type and 'multipart/form-data' in request.content_type:
+        data = json.loads(request.body)
 
-            body = request.POST.get('body', '').strip()
-            priority = request.POST.get('priority', 'normal')
-
-        else:
-
-            data = json.loads(request.body)
-
-            body = data.get('body', '').strip()
-            priority = data.get('priority', 'normal')
+        body = data.get('body', '').strip()
 
         if not body:
-
             return JsonResponse({
                 'success': False,
                 'message': 'Message body required'
@@ -5310,7 +5634,7 @@ def thread_messages_view(request, thread_id):
             thread=thread,
             sender=request.user,
             body=body,
-            priority=priority
+            priority=data.get('priority', 'normal')
         )
 
         membership = thread.memberships.filter(
@@ -5320,24 +5644,15 @@ def thread_messages_view(request, thread_id):
         if membership:
             membership.mark_read()
 
-        sender_profile = getattr(msg.sender, 'staff_profile', None)
-
-        sender_name = (
-            sender_profile.name
-            if sender_profile and sender_profile.name
-            else msg.sender.get_full_name() or msg.sender.username
-        )
-
         return JsonResponse({
             'success': True,
             'message': {
                 'id': msg.id,
                 'body': msg.body,
                 'sender_id': msg.sender.id,
-                'sender_name': sender_name,
+                'sender_name': msg.sender.get_full_name(),
                 'created_at': msg.created_at.isoformat(),
                 'priority': msg.priority,
-                'is_system_msg': msg.is_system_msg,
             }
         }, status=201)
 

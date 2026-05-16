@@ -1358,44 +1358,188 @@ tr.inv-row-low td      { background: #fffbeb !important; }
     </div>
 
     <!-- ── ROOM CARDS ─────────────────────────────────────────── -->
-    <div class="panel" id="panel-room-cards">
+    <!-- ── ROOM CARDS PANEL — drop-in replacement ── -->
+<div class="panel" id="panel-room-cards">
 
-  <!-- ── Filter / Action Bar ── -->
+  <!-- ── Section Header ── -->
   <div class="sec-head">
     <div class="sec-title"><i class="fas fa-door-open"></i> Room Status</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <div id="rc2StatusTabs" style="display:flex;gap:4px;background:var(--surface-3,#f1f5f9);padding:3px;border-radius:8px;">
-        <button class="rc2-ftab active" data-filter="" onclick="rc2SetFilter('',this)">All</button>
-        <button class="rc2-ftab" data-filter="Available" onclick="rc2SetFilter('Available',this)">Available</button>
-        <button class="rc2-ftab" data-filter="Occupied"  onclick="rc2SetFilter('Occupied',this)">Occupied</button>
-        <button class="rc2-ftab" data-filter="Dirty"     onclick="rc2SetFilter('Dirty',this)">Dirty</button>
-        <button class="rc2-ftab" data-filter="Reserved"  onclick="rc2SetFilter('Reserved',this)">Reserved</button>
-      </div>
-      <select class="form-ctrl" id="rc2TypeFilter" onchange="renderCards(roomData)" style="width:140px;font-size:.75rem;">
-        <option value="">All Types</option>
-        <option>Single</option><option>Double</option>
-        <option>Deluxe</option><option>Suite</option>
-      </select>
-      <div class="search-wrap" style="position:relative;">
-        <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:11px;pointer-events:none;"></i>
-        <input class="form-ctrl" id="rc2Search" placeholder="Room number…" oninput="renderCards(roomData)"
-               style="padding-left:28px;width:140px;font-size:.75rem;">
-      </div>
-      <button class="btn btn-outline btn-sm" onclick="rc2ClearFilters()"><i class="fas fa-times"></i> Clear</button>
-      <button class="btn btn-outline btn-sm" onclick="loadCardView()"><i class="fas fa-sync-alt"></i></button>
+      <button class="btn btn-outline btn-sm" onclick="loadCardView()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
     </div>
   </div>
 
   <!-- ── KPI Strip ── -->
-  <div id="rc2KpiStrip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;"></div>
+  <div id="rc2KpiStrip"
+       style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+              gap:10px;margin-bottom:18px;">
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+              padding:14px 16px;margin-bottom:18px;">
+
+    <!-- Row 1: Status tabs + search -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+
+      <!-- Status pill tabs -->
+      <div id="rc2StatusTabs"
+           style="display:flex;gap:3px;background:var(--surface-3,#f1f5f9);
+                  padding:3px;border-radius:8px;flex-wrap:wrap;">
+        <button class="rc2-ftab active" data-filter=""
+                onclick="rc2SetFilter('',this)">All</button>
+        <button class="rc2-ftab" data-filter="Available"
+                onclick="rc2SetFilter('Available',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:var(--green);margin-right:4px;vertical-align:middle;"></span>
+          Available
+        </button>
+        <button class="rc2-ftab" data-filter="Occupied"
+                onclick="rc2SetFilter('Occupied',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:var(--red);margin-right:4px;vertical-align:middle;"></span>
+          Occupied
+        </button>
+        <button class="rc2-ftab" data-filter="Dirty"
+                onclick="rc2SetFilter('Dirty',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:var(--accent);margin-right:4px;vertical-align:middle;"></span>
+          Dirty
+        </button>
+        <button class="rc2-ftab" data-filter="Reserved"
+                onclick="rc2SetFilter('Reserved',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:var(--purple);margin-right:4px;vertical-align:middle;"></span>
+          Reserved
+        </button>
+        <button class="rc2-ftab" data-filter="Cleaning"
+                onclick="rc2SetFilter('Cleaning',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:var(--cyan);margin-right:4px;vertical-align:middle;"></span>
+          Cleaning
+        </button>
+        <button class="rc2-ftab" data-filter="Maintenance"
+                onclick="rc2SetFilter('Maintenance',this)">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;
+                       background:#6b7280;margin-right:4px;vertical-align:middle;"></span>
+          Maintenance
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap" style="position:relative;margin-left:auto;">
+        <i class="fas fa-search"
+           style="position:absolute;left:9px;top:50%;transform:translateY(-50%);
+                  color:var(--text-muted);font-size:11px;pointer-events:none;"></i>
+        <input class="form-ctrl" id="rc2Search"
+               placeholder="Search room number, guest…"
+               oninput="_rc2ApplyFilters()"
+               style="padding-left:30px;width:210px;font-size:.75rem;">
+      </div>
+    </div>
+
+    <!-- Row 2: Advanced filters -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+
+      <div class="fg" style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.67rem;font-weight:600;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:.05em;">Room Type</label>
+        <select class="form-ctrl" id="rc2TypeFilter"
+                onchange="_rc2ApplyFilters()"
+                style="width:140px;font-size:.75rem;">
+          <option value="">All Types</option>
+          <option>Single</option>
+          <option>Double</option>
+          <option>Deluxe</option>
+          <option>Suite</option>
+        </select>
+      </div>
+
+      <div class="fg" style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.67rem;font-weight:600;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:.05em;">Floor</label>
+        <select class="form-ctrl" id="rc2FloorFilter"
+                onchange="_rc2ApplyFilters()"
+                style="width:110px;font-size:.75rem;">
+          <option value="">All Floors</option>
+          <option value="1">Floor 1</option>
+          <option value="2">Floor 2</option>
+          <option value="3">Floor 3</option>
+          <option value="4">Floor 4</option>
+          <option value="5">Floor 5</option>
+        </select>
+      </div>
+
+      <div class="fg" style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.67rem;font-weight:600;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:.05em;">Sort By</label>
+        <select class="form-ctrl" id="rc2SortBy"
+                onchange="_rc2ApplyFilters()"
+                style="width:150px;font-size:.75rem;">
+          <option value="number_asc">Room No. (A→Z)</option>
+          <option value="number_desc">Room No. (Z→A)</option>
+          <option value="status">Status</option>
+          <option value="type">Room Type</option>
+          <option value="price_asc">Price (Low→High)</option>
+          <option value="price_desc">Price (High→Low)</option>
+        </select>
+      </div>
+
+      <div class="fg" style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:.67rem;font-weight:600;color:var(--text-muted);
+                      text-transform:uppercase;letter-spacing:.05em;">Per Page</label>
+        <select class="form-ctrl" id="rc2PerPage"
+                onchange="_rc2ChangePerPage()"
+                style="width:90px;font-size:.75rem;">
+          <option value="12">12</option>
+          <option value="24" selected>24</option>
+          <option value="48">48</option>
+          <option value="96">96</option>
+          <option value="9999">All</option>
+        </select>
+      </div>
+
+      <!-- Active filter chips -->
+      <div id="rc2ActiveFilters"
+           style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;
+                  margin-left:auto;margin-top:auto;">
+      </div>
+
+      <button class="btn btn-outline btn-sm" onclick="rc2ClearFilters()"
+              style="align-self:flex-end;">
+        <i class="fas fa-times"></i> Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Results Summary ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;
+              margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:.75rem;color:var(--text-muted);">
+      Showing <strong id="rc2ResultsFrom">0</strong>–<strong id="rc2ResultsTo">0</strong>
+      of <strong id="rc2ResultsTotal">0</strong> rooms
+    </div>
+    <!-- Pagination top (compact) -->
+    <div id="rc2PaginationTop" style="display:flex;gap:4px;align-items:center;"></div>
+  </div>
 
   <!-- ── Card Grid ── -->
   <div class="rooms-grid" id="cardContainer">
     <div class="empty" style="grid-column:1/-1;padding:48px 0;">
-      <i class="fas fa-spinner fa-spin" style="font-size:1.5rem;display:block;margin-bottom:10px;opacity:.3;"></i>
+      <i class="fas fa-spinner fa-spin"
+         style="font-size:1.5rem;display:block;margin-bottom:10px;opacity:.3;"></i>
       Loading rooms…
     </div>
   </div>
+
+  <!-- ── Pagination Bottom ── -->
+  <div id="rc2PaginationBottom"
+       style="display:flex;justify-content:center;align-items:center;
+              gap:4px;margin-top:22px;flex-wrap:wrap;min-height:36px;">
+  </div>
+
 </div>
       
 
@@ -1471,7 +1615,7 @@ tr.inv-row-low td      { background: #fffbeb !important; }
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Code</th><th>Guest</th><th>Phone</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Guests</th><th>Amount</th><th>Payment</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Code</th><th>Guest</th><th>Phone</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Guests</th><th>Amount</th><th>Payment</th><th>Source</th><th>Status</th><th>Booked By</th></tr></thead>
             <tbody id="bkTable"></tbody>
           </table>
         </div>
@@ -7136,17 +7280,164 @@ function updateBookingKPIs(){
 }
 function renderBookings(){
   const search=(document.getElementById('bkSearch')?.value||'').toLowerCase().trim();
-  const sf=document.getElementById('bkStatusFilter')?.value||'';const srcf=document.getElementById('bkSourceFilter')?.value||'';const payf=document.getElementById('bkPayFilter')?.value||'';
+  const sf=document.getElementById('bkStatusFilter')?.value||'';
+  const srcf=document.getElementById('bkSourceFilter')?.value||'';
+  const payf=document.getElementById('bkPayFilter')?.value||'';
+
   let filtered=bookings;
-  if(search)filtered=filtered.filter(b=>(b.guest||'').toLowerCase().includes(search)||(b.booking_code||'').toLowerCase().includes(search)||(b.phone||'').includes(search));
-  if(sf)filtered=filtered.filter(b=>b.status===sf);if(srcf)filtered=filtered.filter(b=>(b.source||'')===srcf);if(payf)filtered=filtered.filter(b=>(b.payment_status||'no_payment')===payf);
-  const ce=document.getElementById('bkCount');if(ce)ce.textContent=filtered.length+' records';
-  const scls={confirmed:'b-confirmed',checked_in:'b-checked_in',checked_out:'b-checked_out',cancelled:'b-cancelled',no_show:'b-red'};
-  const pcls={paid:'b-paid',pending:'b-pending',no_payment:'b-no_payment'};
-  const srcIcon={'walk-in':'fa-walking','online':'fa-globe','phone':'fa-phone','booking.com':'fa-bed'};
-  const body=document.getElementById('bkTable');if(!body)return;
-  if(!filtered.length){body.innerHTML='<tr><td colspan="13"><div class="empty" style="border:none;padding:22px"><i class="fas fa-calendar-times"></i>No bookings found.</div></td></tr>';return;}
-  body.innerHTML=filtered.map(b=>{const nights=b.check_in&&b.check_out?Math.ceil((new Date(b.check_out)-new Date(b.check_in))/86400000):'—';const payStatus=b.payment_status||'no_payment';return `<tr style="cursor:pointer" onclick="openRoomDetailModal(null,null,${b.id})"><td><span style="font-family:'DM Mono',monospace;font-size:.68rem;background:var(--surface-2);padding:2px 7px;border-radius:4px;border:1px solid var(--border)">${esc(b.booking_code||'#'+b.id)}</span></td><td><strong style="font-size:.79rem">${esc(b.guest||'—')}</strong></td><td style="font-size:.73rem;color:var(--text-muted)">${esc(b.phone||'—')}</td><td>${esc(b.room_type||'—')}</td><td style="font-size:.73rem">${b.check_in||'—'}</td><td style="font-size:.73rem">${b.check_out||'—'}</td><td style="font-weight:700;text-align:center">${nights}</td><td style="text-align:center">${Number(b.adults||1)+Number(b.children||0)}</td><td><strong>${fmtInr(b.total||0)}</strong></td><td><span class="badge ${pcls[payStatus]||'b-gray'}">${payStatus.replace('_',' ')}</span></td><td style="font-size:.71rem"><i class="fas ${srcIcon[b.source||'']||'fa-question'}" style="margin-right:3px"></i>${esc(b.source||'—')}</td><td><span class="badge ${scls[b.status]||'b-gray'}">${(b.status||'').replace('_',' ')}</span></td><td style="white-space:nowrap" onclick="event.stopPropagation()">${b.status==='confirmed'?`<button class="btn btn-success btn-xs" onclick="document.getElementById('ci-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-in-alt"></i></button>`:b.status==='checked_in'?`<button class="btn btn-danger btn-xs" onclick="document.getElementById('co-id').value=${b.id};switchPanel('checkin-checkout')"><i class="fas fa-sign-out-alt"></i></button>`:'<span style="font-size:.65rem;color:var(--text-muted)">—</span>'}</td></tr>`;}).join('');
+
+  if(search)
+    filtered=filtered.filter(b=>
+      (b.guest||'').toLowerCase().includes(search)||
+      (b.booking_code||'').toLowerCase().includes(search)||
+      (b.phone||'').includes(search)
+    );
+
+  if(sf)filtered=filtered.filter(b=>b.status===sf);
+  if(srcf)filtered=filtered.filter(b=>(b.source||'')===srcf);
+  if(payf)filtered=filtered.filter(b=>(b.payment_status||'no_payment')===payf);
+
+  const ce=document.getElementById('bkCount');
+  if(ce)ce.textContent=filtered.length+' records';
+
+  const scls={
+    confirmed:'b-confirmed',
+    checked_in:'b-checked_in',
+    checked_out:'b-checked_out',
+    cancelled:'b-cancelled',
+    no_show:'b-red'
+  };
+
+  const pcls={
+    paid:'b-paid',
+    pending:'b-pending',
+    no_payment:'b-no_payment'
+  };
+
+  const srcIcon={
+    'walk-in':'fa-walking',
+    'online':'fa-globe',
+    'phone':'fa-phone',
+    'booking.com':'fa-bed'
+  };
+
+  const body=document.getElementById('bkTable');
+  if(!body)return;
+
+  if(!filtered.length){
+    body.innerHTML=
+      '<tr><td colspan="13"><div class="empty" style="border:none;padding:22px"><i class="fas fa-calendar-times"></i>No bookings found.</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML=filtered.map(b=>{
+
+    const nights=
+      b.check_in&&b.check_out
+        ? Math.ceil((new Date(b.check_out)-new Date(b.check_in))/86400000)
+        : '—';
+
+    const payStatus=b.payment_status||'no_payment';
+
+    return `
+      <tr style="cursor:pointer" onclick="openRoomDetailModal(null,null,${b.id})">
+
+        <td>
+          <span style="
+            font-family:'DM Mono',monospace;
+            font-size:.68rem;
+            background:var(--surface-2);
+            padding:2px 7px;
+            border-radius:4px;
+            border:1px solid var(--border)
+          ">
+            ${esc(b.booking_code||'#'+b.id)}
+          </span>
+        </td>
+
+        <td>
+          <strong style="font-size:.79rem">
+            ${esc(b.guest||'—')}
+          </strong>
+        </td>
+
+        <td style="font-size:.73rem;color:var(--text-muted)">
+          ${esc(b.phone||'—')}
+        </td>
+
+        <td>${esc(b.room_type||'—')}</td>
+
+        <td style="font-size:.73rem">
+          ${b.check_in||'—'}
+        </td>
+
+        <td style="font-size:.73rem">
+          ${b.check_out||'—'}
+        </td>
+
+        <td style="font-weight:700;text-align:center">
+          ${nights}
+        </td>
+
+        <td style="text-align:center">
+          ${Number(b.adults||1)+Number(b.children||0)}
+        </td>
+
+        <td>
+          <strong>${fmtInr(b.total||0)}</strong>
+        </td>
+
+        <td>
+          <span class="badge ${pcls[payStatus]||'b-gray'}">
+            ${payStatus.replace('_',' ')}
+          </span>
+        </td>
+
+        <td style="font-size:.71rem">
+          <i class="fas ${srcIcon[b.source||'']||'fa-question'}"
+             style="margin-right:3px"></i>
+          ${esc(b.source||'—')}
+        </td>
+
+        <td>
+          <span class="badge ${scls[b.status]||'b-gray'}">
+            ${(b.status||'').replace('_',' ')}
+          </span>
+        </td>
+
+        <!-- BOOKED BY COLUMN -->
+        <td>
+          ${
+            b.booked_by
+              ? `
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div style="
+                    width:24px;
+                    height:24px;
+                    border-radius:6px;
+                    background:linear-gradient(135deg,var(--teal),var(--green));
+                    color:white;
+                    display:grid;
+                    place-items:center;
+                    font-size:10px;
+                    font-weight:700;
+                    flex-shrink:0;
+                  ">
+                    ${esc(b.booked_by.charAt(0).toUpperCase())}
+                  </div>
+
+                  <span style="font-size:.74rem;font-weight:600;">
+                    ${esc(b.booked_by)}
+                  </span>
+                </div>
+              `
+              : '—'
+          }
+        </td>
+
+      </tr>
+    `;
+  }).join('');
 }
 
 let _lookupTimer=null,_currentRoomPrice=0;
@@ -7310,7 +7601,35 @@ function renderInvoices() {
     <td class="invoice-amount-cell" style="color:var(--green);">${inv.discount ? '-'+fmtInr(inv.discount) : '—'}</td>
     <td class="invoice-amount-cell" style="font-weight:800;">${fmtInr(inv.grand_total || inv.total_amount || 0)}</td>
     <td><span class="invoice-status-pill ${sc[inv.status] || 'isp-pending'}">${esc(inv.status || 'pending')}</span></td>
-    <td style="font-size:.71rem;color:var(--text-muted);">${inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN') : '—'}</td>
+    
+    <td>
+  ${
+    inv.generated_by
+      ? `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="
+            width:24px;
+            height:24px;
+            border-radius:6px;
+            background:linear-gradient(135deg,var(--teal),var(--green));
+            color:white;
+            display:grid;
+            place-items:center;
+            font-size:10px;
+            font-weight:700;
+            flex-shrink:0;
+          ">
+            ${esc(inv.generated_by.charAt(0).toUpperCase())}
+          </div>
+
+          <span style="font-size:.75rem;font-weight:600;">
+            ${esc(inv.generated_by)}
+          </span>
+        </div>
+      `
+      : '—'
+  }
+</td>
     <td onclick="event.stopPropagation()">
       <button class="btn btn-outline btn-xs" onclick="_t1OpenInvoiceDetail(${inv.id})"><i class="fas fa-eye"></i></button>
       ${inv.guest_email ? `<button class="btn btn-indigo btn-xs" style="margin-left:3px;" onclick="_t1ResendEmail(${inv.id},'${esc(inv.guest_email)}')"><i class="fas fa-paper-plane"></i></button>` : ''}
@@ -7407,131 +7726,356 @@ async function _t1OpenInvoiceDetail(invoiceId) {
       `<div style="padding:20px;color:var(--red);text-align:center;">${esc(err.message)}</div>`;
   }
 }
-
 function _t1RenderInvoiceDetail(inv) {
-  const charges  = inv.charges  || inv.folio_charges  || [];
-  const payments = inv.payments || inv.folio_payments || [];
-  const subtotal = inv.subtotal    || inv.total_charges || 0;
-  const tax      = inv.tax         || inv.tax_total     || 0;
-  const discount = inv.discount    || 0;
-  const grand    = inv.grand_total || inv.total_amount  || 0;
-  const paid     = inv.paid        || inv.total_paid    || 0;
-  const balance  = inv.balance     || inv.balance_due   || 0;
-  const sc       = { paid:'isp-paid', partial:'isp-partial', pending:'isp-pending', open:'b-open' };
-  const ctTypeCls = { room:'ct-room', food:'ct-food', service:'ct-service', minibar:'ct-minibar', laundry:'ct-laundry', extra:'ct-extra' };
-  const pmIcon    = { cash:'fa-money-bill-wave', card:'fa-credit-card', upi:'fa-mobile-alt', bank_transfer:'fa-university' };
+    document.getElementById('invDetailTitleT1').textContent = inv.invoice_number || `INV-${inv.id}`;
 
-  document.getElementById('invDetailTitleT1').textContent = inv.invoice_number || `INV-${inv.id}`;
+    const emailBtn = document.getElementById('invDetailEmailBtnT1');
+    if (emailBtn) {
+        emailBtn.setAttribute('data-invoice-id', inv.id);
+        emailBtn.setAttribute('data-email', inv.guest_email || '');
+    }
 
-  const chargesHtml = charges.length
-    ? charges.map(c => `
-      <div style="display:flex;justify-content:space-between;align-items:center;
-                  padding:8px 0;border-bottom:1px solid var(--surface-3);font-size:.8rem;">
-        <span style="display:flex;align-items:center;gap:7px;">
-          <span class="charge-type-pill ${ctTypeCls[c.charge_type] || 'ct-extra'}" style="font-size:.6rem;">${esc(c.charge_type || 'extra')}</span>
-          <span>${esc(c.description || '—')}</span>
-        </span>
-        <span style="font-family:'DM Mono',monospace;font-weight:700;">${fmtInr(c.total || c.amount || 0)}</span>
-      </div>`).join('')
-    : '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No charges recorded</div>';
+    // Store hotel info on the invoice object for printing
+    window._lastInvoiceT1 = inv;
 
-  const paymentsHtml = payments.length
-    ? payments.map(p => `
-      <div style="display:flex;align-items:center;justify-content:space-between;
-                  padding:8px 0;border-bottom:1px solid var(--surface-3);">
-        <span style="display:flex;align-items:center;gap:7px;color:var(--green);font-size:.79rem;">
-          <i class="fas ${pmIcon[p.payment_method || p.method] || 'fa-check-circle'}" style="font-size:11px;"></i>
-          ${esc((p.payment_method || p.method || 'Payment').replace('_', ' '))}
-          ${p.reference_number ? `<span style="font-size:.65rem;color:var(--text-muted);">#${p.reference_number}</span>` : ''}
-        </span>
-        <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green);">${fmtInr(p.amount || 0)}</span>
-      </div>`).join('')
-    : '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No payments recorded</div>';
+    const charges  = inv.charges  || inv.folio_charges  || [];
+    const payments = inv.payments || inv.folio_payments || [];
+    const stc      = { paid: 'isp-paid', partial: 'isp-partial', pending: 'isp-pending', open: 'b-open' }[inv.status] || 'isp-pending';
+    const ctTypeCls = { room: 'ct-room', food: 'ct-food', service: 'ct-service', minibar: 'ct-minibar', laundry: 'ct-laundry', extra: 'ct-extra' };
+    const pmIcon    = { cash: 'fa-money-bill-wave', card: 'fa-credit-card', upi: 'fa-mobile-alt', bank_transfer: 'fa-university' };
 
-  document.getElementById('invDetailBodyT1').innerHTML = `
-    <!-- Hero strip -->
-    <div style="background:var(--navy);border-radius:10px;padding:16px 20px;margin-bottom:16px;
-                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;color:#fff;">${esc(inv.invoice_number || 'INV-' + inv.id)}</div>
-        <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;">
-          ${inv.generated_at ? new Date(inv.generated_at).toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' }) : '—'}
+    const chargesHtml = charges.length
+        ? charges.map(c => `
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        padding:8px 0;border-bottom:1px solid var(--surface-3);font-size:.8rem;">
+              <span style="display:flex;align-items:center;gap:7px;">
+                <span class="charge-type-pill ${ctTypeCls[c.charge_type] || 'ct-extra'}" style="font-size:.6rem;">${esc(c.charge_type || 'extra')}</span>
+                <span>${esc(c.description || '—')}</span>
+              </span>
+              <span style="font-family:'DM Mono',monospace;font-weight:700;">${fmtInr(c.total || (parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0)))}</span>
+            </div>`).join('')
+        : '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No charges recorded</div>';
+
+    const paymentsHtml = payments.length
+        ? payments.map(p => `
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:8px 0;border-bottom:1px solid var(--surface-3);">
+              <span style="display:flex;align-items:center;gap:7px;color:var(--green);font-size:.79rem;">
+                <i class="fas ${pmIcon[p.payment_method || p.method] || 'fa-check-circle'}" style="font-size:11px;"></i>
+                ${esc((p.payment_method || p.method || 'Payment').replace('_', ' '))}
+                ${p.reference_number ? `<span style="font-size:.65rem;color:var(--text-muted);">#${p.reference_number}</span>` : ''}
+              </span>
+              <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--green);">${fmtInr(p.amount || 0)}</span>
+            </div>`).join('')
+        : '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No payments recorded</div>';
+
+    const subtotal   = inv.subtotal    || inv.total_charges || 0;
+    const taxTotal   = inv.tax         || inv.tax_total     || 0;
+    const discount   = inv.discount    || 0;
+    const grandTotal = inv.grand_total || inv.total_amount  || 0;
+    const paid       = inv.paid        || inv.total_paid    || 0;
+    const balance    = inv.balance     || inv.balance_due   || 0;
+
+    document.getElementById('invDetailBodyT1').innerHTML = `
+        <!-- Hero strip -->
+        <div style="background:var(--navy);border-radius:10px;padding:16px 20px;margin-bottom:16px;
+                    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;color:#fff;">${esc(inv.invoice_number || 'INV-' + inv.id)}</div>
+            <div style="font-size:.7rem;color:rgba(255,255,255,.45);margin-top:2px;">
+              ${inv.generated_at ? new Date(inv.generated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
+            </div>
+          </div>
+          <span class="invoice-status-pill ${stc}" style="font-size:.72rem;padding:5px 14px;">${(inv.status || 'pending').toUpperCase()}</span>
         </div>
-      </div>
-      <span class="invoice-status-pill ${sc[inv.status] || 'isp-pending'}" style="font-size:.72rem;padding:5px 14px;">${(inv.status || 'pending').toUpperCase()}</span>
-    </div>
 
-    <!-- Guest + Stay grid -->
-    <div class="grid-2" style="gap:10px;margin-bottom:16px;">
-      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-        <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-user" style="margin-right:4px;"></i>Guest</div>
-        <div style="font-weight:700;font-size:.88rem;">${esc(inv.guest_name || '—')}</div>
-        <div style="font-size:.71rem;color:var(--text-muted);margin-top:2px;">${esc(inv.guest_phone || inv.guest_email || '')}</div>
-      </div>
-      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-        <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-door-open" style="margin-right:4px;"></i>Stay</div>
-        <div style="font-weight:700;font-size:.88rem;">${esc(inv.room_number || '—')}</div>
-        <div style="font-size:.71rem;color:var(--text-muted);margin-top:2px;">${inv.check_in || ''} → ${inv.check_out || ''}</div>
-      </div>
-    </div>
+        <!-- Guest + Stay grid -->
+        <div class="grid-2" style="gap:10px;margin-bottom:16px;">
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-user" style="margin-right:4px;"></i>Guest</div>
+            <div style="font-weight:700;font-size:.88rem;">${esc(inv.guest_name || '—')}</div>
+            <div style="font-size:.71rem;color:var(--text-muted);margin-top:2px;">${esc(inv.guest_phone || inv.guest_email || '')}</div>
+          </div>
+          <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+            <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;"><i class="fas fa-door-open" style="margin-right:4px;"></i>Stay</div>
+            <div style="font-weight:700;font-size:.88rem;">${esc(inv.room_number || '—')}</div>
+            <div style="font-size:.71rem;color:var(--text-muted);margin-top:2px;">${inv.check_in || ''} → ${inv.check_out || ''}</div>
+          </div>
+        </div>
 
-    <!-- Charges -->
-    <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-      <i class="fas fa-list-ul" style="color:var(--blue);"></i> Charges
-      <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
-    </div>
-    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;padding:4px 12px;margin-bottom:14px;">
-      ${chargesHtml}
-    </div>
+        <!-- Charges -->
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-list-ul" style="color:var(--blue);"></i> Charges
+          <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;padding:4px 12px;margin-bottom:14px;">
+          ${chargesHtml}
+        </div>
 
-    <!-- Totals summary -->
-    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;">
-      ${[
-        ['Subtotal',    fmtInr(subtotal), false],
-        ['Tax (GST)',   fmtInr(tax),      false],
-        ...(discount ? [['Discount', '-'+fmtInr(discount), false]] : []),
-      ].map(([l, v, bold]) => `
-        <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:.8rem;border-bottom:1px solid var(--surface-3);">
-          <span style="color:var(--text-muted);">${l}</span>
-          <span style="font-family:'DM Mono',monospace;">${v}</span>
-        </div>`).join('')}
-      <div style="display:flex;justify-content:space-between;padding:12px 14px;font-weight:800;font-size:.95rem;background:var(--surface-2);">
-        <span>Grand Total</span>
-        <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmtInr(grand)}</span>
+        <!-- Totals summary -->
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:.8rem;border-bottom:1px solid var(--surface-3);">
+            <span style="color:var(--text-muted);">Subtotal</span>
+            <span style="font-family:'DM Mono',monospace;">${fmtInr(subtotal)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:.8rem;border-bottom:1px solid var(--surface-3);">
+            <span style="color:var(--text-muted);">Tax (GST)</span>
+            <span style="font-family:'DM Mono',monospace;">${fmtInr(taxTotal)}</span>
+          </div>
+          ${discount ? `
+          <div style="display:flex;justify-content:space-between;padding:9px 14px;font-size:.8rem;border-bottom:1px solid var(--surface-3);">
+            <span style="color:var(--green);">Discount</span>
+            <span style="font-family:'DM Mono',monospace;color:var(--green);">-${fmtInr(discount)}</span>
+          </div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:12px 14px;font-weight:800;font-size:.95rem;background:var(--surface-2);">
+            <span>Grand Total</span>
+            <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmtInr(grandTotal)}</span>
+          </div>
+        </div>
+
+        <!-- Payments -->
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-money-bill-wave" style="color:var(--green);"></i> Payments
+          <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;padding:4px 12px;margin-bottom:10px;">
+          ${paymentsHtml}
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;font-weight:700;color:var(--green);">
+          <span>Amount Paid</span>
+          <span style="font-family:'DM Mono',monospace;">${fmtInr(paid)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;font-weight:700;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">
+          <span>Balance Due</span>
+          <span style="font-family:'DM Mono',monospace;">${fmtInr(balance)}</span>
+        </div>
+        ${inv.notes ? `<div style="margin-top:12px;padding:10px 13px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:.74rem;color:var(--text-muted);border:1px solid var(--border);">${esc(inv.notes)}</div>` : ''}
+    `;
+}
+
+function _t1BuildPrintableInvoice(inv) {
+    const charges  = inv.charges  || [];
+    const payments = inv.payments || [];
+    const subtotal   = parseFloat(inv.subtotal    || inv.total_charges || 0);
+    const taxTotal   = parseFloat(inv.tax         || inv.tax_total     || 0);
+    const discount   = parseFloat(inv.discount    || 0);
+    const grandTotal = parseFloat(inv.grand_total || inv.total_amount  || 0);
+    const paid       = parseFloat(inv.paid        || inv.total_paid    || 0);
+    const balance    = parseFloat(inv.balance     || inv.balance_due   || 0);
+
+    // Hotel branding — use what we have, fallback gracefully
+    const hotelName    = inv.hotel_name    || document.querySelector('.sb-brand-name')?.textContent?.trim() || 'Hotel ERP';
+    const hotelAddr    = inv.hotel_address || '';
+    const hotelCity    = inv.hotel_city    || '';
+    const hotelPhone   = inv.hotel_phone   || '';
+    const hotelEmail   = inv.hotel_email   || '';
+    const hotelGstin   = inv.hotel_gstin   || '';
+    const hotelTagline = inv.hotel_tagline || '';
+    const hotelLogoUrl = inv.hotel_logo_url || '';
+
+    const location = [hotelAddr, hotelCity].filter(Boolean).join(', ');
+    const contact  = [hotelPhone, hotelEmail].filter(Boolean).join('  ·  ');
+
+    const logoHtml = hotelLogoUrl
+        ? `<img src="${esc(hotelLogoUrl)}" alt="${esc(hotelName)} logo"
+               style="max-height:60px;max-width:140px;object-fit:contain;display:block;margin-bottom:6px;"
+               onerror="this.style.display='none'">`
+        : '';
+
+    const statusColor = inv.status === 'paid' ? '#166534' : inv.status === 'partial' ? '#92400e' : '#991b1b';
+    const statusBg    = inv.status === 'paid' ? '#dcfce7'  : inv.status === 'partial' ? '#fef3c7'  : '#fee2e2';
+
+    const chargeRows = charges.length
+        ? charges.map(c => {
+            const amount = parseFloat(c.total || (parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0)));
+            return `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;">${esc(c.description || '—')}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;font-family:monospace;">₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+            </tr>`;
+        }).join('')
+        : '<tr><td colspan="2" style="padding:12px;text-align:center;color:#888;font-size:12px;">No charges</td></tr>';
+
+    const genDate = inv.generated_at
+        ? new Date(inv.generated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice ${esc(inv.invoice_number || '')}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 28px 32px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  @media print {
+    body { padding: 0; }
+    @page { margin: 16mm 14mm; size: A4; }
+  }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 3px solid #0d1117; }
+  .hotel-name { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #0d1117; margin-bottom: 2px; }
+  .hotel-tagline { font-size: 11px; color: #b8952a; font-style: italic; margin-bottom: 6px; }
+  .hotel-meta { font-size: 11px; color: #666; line-height: 1.7; }
+  .inv-block { text-align: right; }
+  .inv-badge { display: inline-block; background: #0d1117; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 4px 14px; border-radius: 4px; margin-bottom: 8px; }
+  .inv-meta { font-size: 11px; color: #555; line-height: 1.8; }
+  .inv-meta strong { color: #1a1a1a; }
+  .status-pill { display: inline-block; padding: 3px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; margin-top: 6px; background: ${statusBg}; color: ${statusColor}; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 22px; }
+  .info-box { background: #f8f8f6; border: 1px solid #e8e8e4; border-radius: 6px; padding: 12px 14px; }
+  .info-box-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #b8952a; margin-bottom: 8px; }
+  .info-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 2px 0; }
+  .info-row .lbl { color: #777; }
+  .info-row .val { font-weight: 600; text-align: right; }
+  table.charges { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  table.charges thead th { background: #0d1117; color: #fff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 9px 12px; text-align: left; }
+  table.charges thead th:last-child { text-align: right; }
+  table.charges tbody tr:nth-child(even) { background: #fafaf7; }
+  .totals-table { width: 260px; margin-left: auto; margin-bottom: 18px; }
+  .totals-table td { padding: 5px 10px; font-size: 12px; }
+  .totals-table .lbl-col { color: #666; text-align: right; }
+  .totals-table .amt-col { text-align: right; font-family: monospace; }
+  .grand-row td { border-top: 2px solid #0d1117; padding-top: 9px; font-size: 14px; font-weight: 700; color: #0d1117; }
+  .payments-section { border: 1px solid #dcfce7; border-radius: 6px; background: #f0fdf4; padding: 12px 14px; margin-bottom: 16px; }
+  .payments-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #166534; margin-bottom: 8px; }
+  .pay-row { display: flex; justify-content: space-between; font-size: 12px; color: #166534; padding: 2px 0; }
+  .footer { text-align: center; font-size: 10.5px; color: #888; padding-top: 18px; border-top: 1px dashed #ccc; margin-top: 10px; font-style: italic; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="hotel-block">
+      ${logoHtml}
+      <div class="hotel-name">${esc(hotelName.toUpperCase())}</div>
+      ${hotelTagline ? `<div class="hotel-tagline">${esc(hotelTagline)}</div>` : ''}
+      <div class="hotel-meta">
+        ${location   ? `${esc(location)}<br>` : ''}
+        ${contact    ? `${esc(contact)}<br>` : ''}
+        ${hotelGstin ? `GSTIN: ${esc(hotelGstin)}` : ''}
       </div>
     </div>
+    <div class="inv-block">
+      <div class="inv-badge">TAX INVOICE</div>
+      <div class="inv-meta">
+        <strong>${esc(inv.invoice_number || `INV-${inv.id}`)}</strong><br>
+        Date: ${genDate}<br>
+        ${inv.check_in  ? `Check-In: ${inv.check_in}<br>` : ''}
+        ${inv.check_out ? `Check-Out: ${inv.check_out}`   : ''}
+      </div>
+      <div class="status-pill">${(inv.status || 'pending').toUpperCase()}</div>
+    </div>
+  </div>
 
-    <!-- Payments -->
-    <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-      <i class="fas fa-money-bill-wave" style="color:var(--green);"></i> Payments
-      <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
+  <!-- GUEST & STAY -->
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="info-box-title">Billed To</div>
+      <div class="info-row"><span class="lbl">Guest</span><span class="val">${esc(inv.guest_name || '—')}</span></div>
+      <div class="info-row"><span class="lbl">Booking #</span><span class="val">#${esc(String(inv.booking_id || '—'))}</span></div>
+      ${inv.guest_email ? `<div class="info-row"><span class="lbl">Email</span><span class="val">${esc(inv.guest_email)}</span></div>` : ''}
+      ${inv.guest_phone ? `<div class="info-row"><span class="lbl">Phone</span><span class="val">${esc(inv.guest_phone)}</span></div>` : ''}
     </div>
-    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;padding:4px 12px;margin-bottom:10px;">
-      ${paymentsHtml}
+    <div class="info-box">
+      <div class="info-box-title">Stay Details</div>
+      <div class="info-row"><span class="lbl">Room</span><span class="val">${esc(inv.room_number || '—')}</span></div>
+      ${inv.room_type ? `<div class="info-row"><span class="lbl">Type</span><span class="val">${esc(inv.room_type)}</span></div>` : ''}
+      <div class="info-row"><span class="lbl">Check-In</span><span class="val">${inv.check_in || '—'}</span></div>
+      <div class="info-row"><span class="lbl">Check-Out</span><span class="val">${inv.check_out || '—'}</span></div>
     </div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;font-weight:700;color:var(--green);">
-      <span>Amount Paid</span>
-      <span style="font-family:'DM Mono',monospace;">${fmtInr(paid)}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;font-weight:700;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">
+  </div>
+
+  <!-- CHARGES TABLE -->
+  <table class="charges">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>${chargeRows}</tbody>
+  </table>
+
+  <!-- TOTALS -->
+  <table class="totals-table">
+    <tr><td class="lbl-col">Subtotal</td><td class="amt-col">₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
+    <tr><td class="lbl-col">Tax / GST</td><td class="amt-col">₹${taxTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>
+    ${discount ? `<tr><td class="lbl-col" style="color:#15803d;">Discount</td><td class="amt-col" style="color:#15803d;">−₹${discount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td></tr>` : ''}
+    <tr class="grand-row">
+      <td class="lbl-col">Grand Total</td>
+      <td class="amt-col">₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+    </tr>
+  </table>
+
+  <!-- PAYMENTS -->
+  ${payments.length ? `
+  <div class="payments-section">
+    <div class="payments-title">Payments Received</div>
+    ${payments.map(p => `
+      <div class="pay-row">
+        <span>${esc(p.method || p.payment_method || 'Payment')}${p.reference_number ? ` · #${esc(p.reference_number)}` : ''}</span>
+        <span>₹${parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+      </div>`).join('')}
+    <div class="pay-row" style="border-top:1px solid #86efac;margin-top:6px;padding-top:6px;font-weight:700;">
       <span>Balance Due</span>
-      <span style="font-family:'DM Mono',monospace;">${fmtInr(balance)}</span>
+      <span style="color:${balance > 0 ? '#991b1b' : '#166534'};">₹${balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
     </div>
-    ${inv.notes ? `<div style="margin-top:12px;padding:10px 13px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:.74rem;color:var(--text-muted);border:1px solid var(--border);">${esc(inv.notes)}</div>` : ''}
-  `;
+  </div>` : ''}
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Thank you for staying at <strong>${esc(hotelName)}</strong>. We hope to welcome you again soon.
+    ${hotelEmail ? `<br>${esc(hotelEmail)}` : ''}
+    <br><em>This is a computer-generated invoice. No signature required.</em>
+  </div>
+
+</body>
+</html>`;
 }
 
-function printInvDetailT1() {
-  const body = document.getElementById('invDetailBodyT1')?.innerHTML || '';
-  const win  = window.open('', '_blank');
-  win.document.write(`<html><head><title>Invoice</title>
-    <style>body{font-family:sans-serif;padding:20px;font-size:13px;}</style>
-  </head><body>${body}</body></html>`);
-  win.document.close();
-  win.print();
+async function printInvDetailT1() {
+    const inv = window._lastInvoiceT1;
+    if (!inv) { toast('No invoice loaded', 'error'); return; }
+
+    // If this invoice came from the sidebar list (may lack hotel info),
+    // try to re-fetch to get hotel details
+    let fullInv = inv;
+    if (!inv.hotel_name && inv.id) {
+        try {
+            const res  = await fetch(`/api/billing/invoice/${inv.id}/`, { headers: { 'X-CSRFToken': getCsrf() } });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && (data.success || data.invoice)) fullInv = data.invoice || data;
+        } catch (_) {}
+    }
+
+    const win = window.open('', '_blank');
+    win.document.write(_t1BuildPrintableInvoice(fullInv));
+    win.document.close();
+    setTimeout(() => win.print(), 600);
 }
 
-function _t1PrintInvoice(id) { _t1OpenInvoiceDetail(id); setTimeout(printInvDetailT1, 800); }
+async function _t1PrintInvoice(id) {
+    try {
+        const res  = await fetch(`/api/billing/invoice/${id}/`, { headers: { 'X-CSRFToken': getCsrf() } });
+        const data = await res.json().catch(() => ({}));
+        const inv  = (res.ok && (data.invoice || data.success)) ? (data.invoice || data) : null;
+        if (!inv) { toast('Could not load invoice', 'error'); return; }
+        const win = window.open('', '_blank');
+        win.document.write(_t1BuildPrintableInvoice(inv));
+        win.document.close();
+        setTimeout(() => win.print(), 600);
+    } catch (e) {
+        toast('Print failed: ' + e.message, 'error');
+    }
+}
 
 async function emailInvT1() {
   const btn   = document.getElementById('invDetailEmailBtnT1');
@@ -9569,15 +10113,214 @@ function rc2SetFilter(status, btn) {
   _rc2StatusFilter = status;
   document.querySelectorAll('.rc2-ftab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  renderCards(roomData);
+  _rc2ApplyFilters();   // ← was renderCards(roomData)
 }
 
 function rc2ClearFilters() {
   _rc2StatusFilter = '';
   const tf = document.getElementById('rc2TypeFilter'); if (tf) tf.value = '';
-  const sf = document.getElementById('rc2Search');     if (sf) sf.value = '';
+  const ff = document.getElementById('rc2FloorFilter'); if (ff) ff.value = '';
+  const sv = document.getElementById('rc2Search');     if (sv) sv.value = '';
   document.querySelectorAll('.rc2-ftab').forEach(b => b.classList.toggle('active', !b.dataset.filter));
-  renderCards(roomData);
+  _rc2ApplyFilters();   // ← was renderCards(roomData)
+}
+// ── RC2 PAGINATION STATE ─────────────────────────────────────
+let _rc2FilteredUnits = [];
+let _rc2CurrentPage   = 1;
+let _rc2PerPage       = 24;
+
+// ── RC2 APPLY FILTERS ────────────────────────────────────────
+function _rc2ApplyFilters() {
+  // Flatten all units from roomData
+  let units = [];
+  (roomData || []).forEach(r => {
+    (r.units || []).forEach(u => units.push({ ...u, room: r }));
+  });
+
+  // Status filter
+  if (_rc2StatusFilter)
+    units = units.filter(u => u.status === _rc2StatusFilter);
+
+  // Type filter
+  const tf = document.getElementById('rc2TypeFilter')?.value;
+  if (tf) units = units.filter(u => u.room.room_type === tf);
+
+  // Floor filter
+  const ff = document.getElementById('rc2FloorFilter')?.value;
+  if (ff) units = units.filter(u =>
+    String(u.number || '').replace(/\D/g, '').charAt(0) === ff
+  );
+
+  // Search filter
+  const sv = (document.getElementById('rc2Search')?.value || '').toLowerCase().trim();
+  if (sv) units = units.filter(u =>
+    (u.number || '').toLowerCase().includes(sv) ||
+    (u.guest_name || '').toLowerCase().includes(sv)
+  );
+
+  // Sort
+  const sort = document.getElementById('rc2SortBy')?.value || 'number_asc';
+  units.sort((a, b) => {
+    if (sort === 'number_asc')  return (a.number||'').localeCompare(b.number||'');
+    if (sort === 'number_desc') return (b.number||'').localeCompare(a.number||'');
+    if (sort === 'status')      return (a.status||'').localeCompare(b.status||'');
+    if (sort === 'type')        return (a.room.room_type||'').localeCompare(b.room.room_type||'');
+    if (sort === 'price_asc')   return (a.room.price||0) - (b.room.price||0);
+    if (sort === 'price_desc')  return (b.room.price||0) - (a.room.price||0);
+    return 0;
+  });
+
+  
+
+  _rc2FilteredUnits = units;
+  _rc2CurrentPage   = 1;
+  _rc2UpdateActiveFilterChips();
+  _rc2RenderPage();
+}
+
+function _rc2RenderPage() {
+  const total  = _rc2FilteredUnits.length;
+  const pages  = Math.ceil(total / _rc2PerPage) || 1;
+  _rc2CurrentPage = Math.max(1, Math.min(_rc2CurrentPage, pages));
+
+  const start = (_rc2CurrentPage - 1) * _rc2PerPage;
+  const end   = Math.min(start + _rc2PerPage, total);
+  const slice = _rc2FilteredUnits.slice(start, end);
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+  setEl('rc2ResultsFrom',  total ? start + 1 : 0);
+  setEl('rc2ResultsTo',    end);
+  setEl('rc2ResultsTotal', total);
+
+  const container = document.getElementById('cardContainer');
+  if (!container) return;
+
+  if (!slice.length) {
+    container.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:48px 0;">
+      <i class="fas fa-door-closed"></i><br>No rooms match filters.</div>`;
+    _rc2RenderPagination(pages);
+    return;
+  }
+
+  // Reconstruct room objects from sliced units
+  const roomMap = new Map();
+  slice.forEach(u => {
+    if (!roomMap.has(u.room.id)) {
+      roomMap.set(u.room.id, { ...u.room, units: [] });
+    }
+    roomMap.get(u.room.id).units.push(u);
+  });
+
+  renderCards([...roomMap.values()]);
+  _rc2RenderPagination(pages);
+}
+// ── RC2 PAGINATION CONTROLS ───────────────────────────────────
+function _rc2RenderPagination(pages) {
+  ['rc2PaginationTop','rc2PaginationBottom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (pages <= 1) { el.innerHTML = ''; return; }
+
+    let html = `<button onclick="_rc2GoPage(${_rc2CurrentPage-1})"
+      style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+             background:var(--surface);cursor:pointer;font-family:inherit;
+             ${_rc2CurrentPage===1?'opacity:.4;pointer-events:none':''}">&laquo;</button>`;
+
+    for (let i = 1; i <= pages; i++) {
+      if (pages > 7 && Math.abs(i - _rc2CurrentPage) > 2 && i !== 1 && i !== pages) {
+        if (i === 2 || i === pages - 1) html += `<span style="padding:0 4px;color:var(--text-muted)">…</span>`;
+        continue;
+      }
+      const active = i === _rc2CurrentPage;
+      html += `<button onclick="_rc2GoPage(${i})"
+        style="min-width:32px;padding:5px 8px;border:1px solid ${active?'var(--blue)':'var(--border)'};
+               border-radius:6px;background:${active?'var(--blue)':'var(--surface)'};
+               color:${active?'#fff':'var(--text)'};cursor:pointer;font-family:inherit;
+               font-weight:${active?'700':'400'}">${i}</button>`;
+    }
+
+    html += `<button onclick="_rc2GoPage(${_rc2CurrentPage+1})"
+      style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+             background:var(--surface);cursor:pointer;font-family:inherit;
+             ${_rc2CurrentPage===pages?'opacity:.4;pointer-events:none':''}">&raquo;</button>`;
+
+    el.innerHTML = html;
+  });
+}
+
+function _rc2GoPage(page) {
+  const pages = Math.ceil(_rc2FilteredUnits.length / _rc2PerPage) || 1;
+  _rc2CurrentPage = Math.max(1, Math.min(page, pages));
+  _rc2RenderPage();
+  document.getElementById('panel-room-cards')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function _rc2ChangePerPage() {
+  _rc2PerPage = parseInt(document.getElementById('rc2PerPage')?.value) || 24;
+  _rc2CurrentPage = 1;
+  _rc2RenderPage();
+}
+// ── ACTIVE FILTER CHIPS ───────────────────────────────────────
+function _rc2UpdateActiveFilterChips() {
+  const chips = [];
+
+  if (_rc2StatusFilter)
+    chips.push({
+      label: _rc2StatusFilter,
+      clear: () => { rc2SetFilter('', null); }
+    });
+
+  const tf = document.getElementById('rc2TypeFilter')?.value;
+  if (tf)
+    chips.push({
+      label: `Type: ${tf}`,
+      clear: () => {
+        document.getElementById('rc2TypeFilter').value = '';
+        _rc2ApplyFilters();
+      }
+    });
+
+  const ff = document.getElementById('rc2FloorFilter')?.value;
+  if (ff)
+    chips.push({
+      label: `Floor ${ff}`,
+      clear: () => {
+        document.getElementById('rc2FloorFilter').value = '';
+        _rc2ApplyFilters();
+      }
+    });
+
+  const sv = document.getElementById('rc2Search')?.value;
+  if (sv)
+    chips.push({
+      label: `"${sv}"`,
+      clear: () => {
+        document.getElementById('rc2Search').value = '';
+        _rc2ApplyFilters();
+      }
+    });
+
+  const el = document.getElementById('rc2ActiveFilters');
+  if (!el) return;
+
+  el.innerHTML = chips.map((c, i) => `
+    <span style="display:inline-flex;align-items:center;gap:5px;
+                 padding:3px 9px;background:var(--blue);color:#fff;
+                 border-radius:100px;font-size:.67rem;font-weight:600;">
+      ${esc(c.label)}
+      <button onclick="_rc2ClearChip(${i})"
+              style="background:none;border:none;color:rgba(255,255,255,.7);
+                     cursor:pointer;padding:0;font-size:11px;line-height:1;
+                     display:grid;place-items:center;">✕</button>
+    </span>`).join('');
+
+  // store clear callbacks
+  el._chips = chips;
+}
+
+function _rc2ClearChip(i) {
+  const el = document.getElementById('rc2ActiveFilters');
+  if (el && el._chips && el._chips[i]) el._chips[i].clear();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -9586,9 +10329,9 @@ function rc2ClearFilters() {
 async function loadCardView() {
   await fetchRooms();
   if (!bookings.length) await loadBookings();
-  renderCards(roomData);
+  _rc2PerPage = parseInt(document.getElementById('rc2PerPage')?.value) || 24;
+  _rc2ApplyFilters();   // ← was renderCards(roomData)
 }
-
 // ─────────────────────────────────────────────────────────────────
 // STATUS META HELPERS
 // ─────────────────────────────────────────────────────────────────
@@ -10556,6 +11299,7 @@ Object.assign(window,{
   loadPermissionsPanel,onAssignDeptChange,quickAddPerm,insertPermSuggest,
   deletePerm,removePDept,openDeptPermModal,saveDeptPermModal,
   toggleMod,addCustomModule,saveSelectedModules,
+  _rc2ApplyFilters, _rc2GoPage, _rc2ChangePerPage, _rc2RenderPage,
   openEditShiftModal,confirmEditShift,closeModal,openModal,
   loadShifts,renderShifts,renderBookings,createBooking,addRoom,renderCards,
   loadBillingOverview,loadAllInvoices,renderInvoices,loadFolioManager,renderFolioList,

@@ -1108,50 +1108,146 @@
     </div>
 </div>
     <!-- ══════════ ROOMS ══════════ -->
-    <div class="panel" id="panel-rooms">
-        <div class="topbar">
-            <div class="topbar-left"><h1>Room Overview</h1><p>Live room status &amp; availability</p></div>
-            <div class="topbar-actions">
-                <button class="btn btn-outline btn-sm" onclick="loadRoomCards()"><i class="fas fa-sync-alt"></i> Refresh</button>
-            </div>
-        </div>
-        <div class="content">
-            <div class="stat-grid" id="roomsKpiStrip">
-                <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-bed"></i></div><div><div class="stat-num blue" id="rc-total">—</div><div class="stat-label">Total Rooms</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div><div><div class="stat-num green" id="rc-available">—</div><div class="stat-label">Available</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-red"><i class="fas fa-user-check"></i></div><div><div class="stat-num red" id="rc-occupied">—</div><div class="stat-label">Occupied</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-broom"></i></div><div><div class="stat-num amber" id="rc-dirty">—</div><div class="stat-label">Dirty/Cleaning</div></div></div>
-            </div>
-            <div class="room-filter-bar">
-                <select id="rcStatusFilter" onchange="renderRoomCards()">
-                    <option value="">All Status</option>
-                    <option value="available">Available</option>
-                    <option value="occupied">Occupied</option>
-                    <option value="reserved">Reserved</option>
-                    <option value="dirty">Dirty</option>
-                    <option value="cleaning">Cleaning</option>
-                    <option value="maintenance">Maintenance</option>
-                </select>
-                <select id="rcTypeFilter" onchange="renderRoomCards()">
-                    <option value="">All Types</option>
-                    {% for room in rooms %}<option value="{{ room.room_type }}">{{ room.room_type }}</option>{% endfor %}
-                </select>
-                <input type="text" id="rcSearch" placeholder="Search room number..." style="width:180px;" oninput="renderRoomCards()">
-                <button class="btn btn-outline btn-sm" onclick="resetRoomFilters()"><i class="fas fa-times"></i> Clear</button>
-                <div style="display:flex; gap:14px; align-items:center; margin-left:auto; font-size:11px; font-weight:600; flex-wrap:wrap;">
-                    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;"></span> Available</span>
-                    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;"></span> Occupied</span>
-                    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--amber);display:inline-block;"></span> Dirty</span>
-                    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--purple);display:inline-block;"></span> Reserved</span>
-                    <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--teal);display:inline-block;"></span> Cleaning</span>
-                </div>
-            </div>
-            <div class="room-cards-grid" id="roomCardsContainer">
-                <div class="empty" style="grid-column:1/-1"><i class="fas fa-spinner fa-spin"></i><p>Loading rooms...</p></div>
-            </div>
+   <div class="panel" id="panel-rooms">
+    <div class="topbar">
+        <div class="topbar-left"><h1>Room Overview</h1><p>Live room status &amp; availability</p></div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="loadRoomCards()"><i class="fas fa-sync-alt"></i> Refresh</button>
         </div>
     </div>
+    <div class="content">
 
+        <!-- KPI strip -->
+        <div class="stat-grid" id="roomsKpiStrip">
+            <div class="stat-card" onclick="rcSetStatus('available')">
+                <div class="stat-icon si-blue"><i class="fas fa-bed"></i></div>
+                <div><div class="stat-num blue" id="rc-total">—</div><div class="stat-label">Total Rooms</div></div>
+            </div>
+            <div class="stat-card" onclick="rcSetStatus('available')">
+                <div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div>
+                <div><div class="stat-num green" id="rc-available">—</div><div class="stat-label">Available</div></div>
+            </div>
+            <div class="stat-card" onclick="rcSetStatus('occupied')">
+                <div class="stat-icon si-red"><i class="fas fa-user-check"></i></div>
+                <div><div class="stat-num red" id="rc-occupied">—</div><div class="stat-label">Occupied</div></div>
+            </div>
+            <div class="stat-card" onclick="rcSetStatus('dirty')">
+                <div class="stat-icon si-amber"><i class="fas fa-broom"></i></div>
+                <div><div class="stat-num amber" id="rc-dirty">—</div><div class="stat-label">Dirty/Cleaning</div></div>
+            </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:18px;">
+
+            <!-- Row 1: Status chips + Search + Page size -->
+            <div style="padding:11px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--surface-2);border-bottom:1px solid var(--border);">
+
+                <!-- Status chips -->
+                <div id="rcStatusChips" style="display:flex;gap:5px;flex-wrap:wrap;">
+                    <button class="rc-status-chip" data-status=""
+                        onclick="rcSetStatusChip('',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--ink);background:var(--ink);color:white;">
+                        All
+                    </button>
+                    <button class="rc-status-chip" data-status="available"
+                        onclick="rcSetStatusChip('available',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:var(--green);"></i> Available
+                    </button>
+                    <button class="rc-status-chip" data-status="occupied"
+                        onclick="rcSetStatusChip('occupied',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:var(--red);"></i> Occupied
+                    </button>
+                    <button class="rc-status-chip" data-status="reserved"
+                        onclick="rcSetStatusChip('reserved',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:var(--purple);"></i> Reserved
+                    </button>
+                    <button class="rc-status-chip" data-status="dirty"
+                        onclick="rcSetStatusChip('dirty',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:var(--amber);"></i> Dirty
+                    </button>
+                    <button class="rc-status-chip" data-status="cleaning"
+                        onclick="rcSetStatusChip('cleaning',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:var(--teal);"></i> Cleaning
+                    </button>
+                    <button class="rc-status-chip" data-status="maintenance"
+                        onclick="rcSetStatusChip('maintenance',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text-3);">
+                        <i class="fas fa-circle" style="font-size:7px;color:#6b7280;"></i> Maintenance
+                    </button>
+                </div>
+
+                <!-- Right side: search + page size + clear -->
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <div style="position:relative;">
+                        <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:11px;pointer-events:none;"></i>
+                        <input type="text" id="rcSearch" class="form-control"
+                            placeholder="Search room number…"
+                            style="padding-left:28px;font-size:12px;width:170px;"
+                            oninput="RC.page=1;renderRoomCards()">
+                    </div>
+                    <select id="rcPageSize" class="form-control"
+                        style="width:auto;font-size:12px;padding:5px 10px;"
+                        onchange="RC.page=1;renderRoomCards()">
+                        <option value="12">12 / page</option>
+                        <option value="24" selected>24 / page</option>
+                        <option value="48">48 / page</option>
+                        <option value="9999">All</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="resetRoomFilters()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 2: Room type chips (populated dynamically) -->
+            <div style="padding:9px 16px;border-bottom:1px solid var(--border);">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;">
+                    <i class="fas fa-door-open" style="color:var(--blue);"></i> Room Type
+                </div>
+                <div id="rcTypeChips" style="display:flex;gap:5px;flex-wrap:wrap;">
+                    <button class="rc-type-chip" data-type=""
+                        onclick="rcSetTypeChip('',this)"
+                        style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;border:1px solid var(--ink);background:var(--ink);color:white;">
+                        All Types
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row count bar -->
+            <div style="padding:8px 16px;background:var(--surface-2);display:flex;align-items:center;justify-content:space-between;">
+                <span id="rcRowCount" style="font-size:12px;color:var(--text-3);"></span>
+                <span id="rcPageInfo" style="font-size:12px;color:var(--text-3);"></span>
+            </div>
+        </div>
+
+        <!-- Room cards grid -->
+        <div class="room-cards-grid" id="roomCardsContainer">
+            <div class="empty" style="grid-column:1/-1"><i class="fas fa-spinner fa-spin"></i><p>Loading rooms…</p></div>
+        </div>
+
+        <!-- Pagination footer -->
+        <div id="rcPaginationBar"
+            style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin-top:4px;flex-wrap:wrap;gap:8px;">
+            <span id="rcPgInfo2" style="font-size:12px;color:var(--text-3);"></span>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button class="btn btn-outline btn-sm" id="rcPrevBtn" onclick="rcGoPage(RC.page-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div id="rcPageNums" style="display:flex;gap:4px;"></div>
+                <button class="btn btn-outline btn-sm" id="rcNextBtn" onclick="rcGoPage(RC.page+1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
     <!-- ══════════ HK TASKS ══════════ -->
     <div class="panel" id="panel-hktasks">
         <div class="topbar">
@@ -2775,7 +2871,360 @@ function resetRoomFilters() {
     });
     renderRoomCards();
 }
+// ═══════════════════════════════════════════════════════════════
+// ROOMS PANEL — Filter + Pagination engine
+// ═══════════════════════════════════════════════════════════════
 
+const RC = {
+  page:       1,
+  pageSize:   24,
+  status:     '',   // '' = all
+  type:       '',   // '' = all room types
+  search:     '',
+};
+
+// ── Status chip selection ──────────────────────────────────────
+function rcSetStatusChip(status, btn) {
+  RC.status = status;
+  RC.page   = 1;
+
+  document.querySelectorAll('.rc-status-chip').forEach(b => {
+    const isActive = b.dataset.status === status;
+    b.style.background  = isActive ? 'var(--ink)' : 'var(--surface)';
+    b.style.color       = isActive ? 'white'       : 'var(--text-3)';
+    b.style.borderColor = isActive ? 'var(--ink)'  : 'var(--border)';
+  });
+
+  renderRoomCards();
+}
+
+// Legacy alias used by KPI card click handlers
+function rcSetStatus(status) {
+  const chip = document.querySelector(`.rc-status-chip[data-status="${status}"]`);
+  rcSetStatusChip(status, chip);
+}
+
+// ── Room type chip selection ───────────────────────────────────
+function rcSetTypeChip(type, btn) {
+  RC.type = type;
+  RC.page = 1;
+
+  document.querySelectorAll('.rc-type-chip').forEach(b => {
+    const isActive = b.dataset.type === type;
+    b.style.background  = isActive ? 'var(--ink)' : 'var(--surface)';
+    b.style.color       = isActive ? 'white'       : 'var(--text-3)';
+    b.style.borderColor = isActive ? 'var(--ink)'  : 'var(--border)';
+  });
+
+  renderRoomCards();
+}
+
+// ── Reset all room filters ─────────────────────────────────────
+function resetRoomFilters() {
+  RC.status = '';
+  RC.type   = '';
+  RC.search = '';
+  RC.page   = 1;
+
+  const s = document.getElementById('rcSearch');
+  if (s) s.value = '';
+
+  const ps = document.getElementById('rcPageSize');
+  if (ps) ps.value = '24';
+
+  // Reset status chips
+  document.querySelectorAll('.rc-status-chip').forEach(b => {
+    const isAll = b.dataset.status === '';
+    b.style.background  = isAll ? 'var(--ink)' : 'var(--surface)';
+    b.style.color       = isAll ? 'white'       : 'var(--text-3)';
+    b.style.borderColor = isAll ? 'var(--ink)'  : 'var(--border)';
+  });
+
+  // Reset type chips
+  document.querySelectorAll('.rc-type-chip').forEach(b => {
+    const isAll = b.dataset.type === '';
+    b.style.background  = isAll ? 'var(--ink)' : 'var(--surface)';
+    b.style.color       = isAll ? 'white'       : 'var(--text-3)';
+    b.style.borderColor = isAll ? 'var(--ink)'  : 'var(--border)';
+  });
+
+  renderRoomCards();
+}
+
+// ── Page navigation ────────────────────────────────────────────
+function rcGoPage(p) {
+  RC.pageSize = parseInt(document.getElementById('rcPageSize')?.value || 24);
+  const filtered = _rcFiltered();
+  const maxPg = Math.max(1, Math.ceil(filtered.length / RC.pageSize));
+  RC.page = Math.max(1, Math.min(p, maxPg));
+  renderRoomCards();
+}
+
+// ── Core filter function ───────────────────────────────────────
+function _rcFiltered() {
+  const statusF = RC.status.toLowerCase();
+  const typeF   = RC.type.toLowerCase();
+  const searchV = (document.getElementById('rcSearch')?.value || '').toLowerCase().trim();
+
+  return _allRoomUnits.filter(unit => {
+    // Status
+    if (statusF) {
+      const st = (unit.status || '').toLowerCase().replace(/\s+/g, '');
+      const sf = statusF.replace(/\s+/g, '');
+      if (st !== sf) return false;
+    }
+
+    // Room type
+    if (typeF) {
+      const rt = (unit.room_type || '').toLowerCase();
+      if (!rt.includes(typeF)) return false;
+    }
+
+    // Search by room number
+    if (searchV) {
+      const num = (unit.number || unit.room_number || '').toLowerCase();
+      if (!num.includes(searchV)) return false;
+    }
+
+    return true;
+  });
+}
+
+// ── Main render function (overrides the earlier version) ───────
+renderRoomCards = function() {
+  const container = document.getElementById('roomCardsContainer');
+  if (!container) return;
+
+  // Read current filter state from DOM
+  RC.search   = (document.getElementById('rcSearch')?.value || '').toLowerCase().trim();
+  RC.pageSize = parseInt(document.getElementById('rcPageSize')?.value || 24);
+
+  const filtered = _rcFiltered();
+  const total    = filtered.length;
+  const maxPg    = Math.max(1, Math.ceil(total / RC.pageSize));
+  RC.page        = Math.max(1, Math.min(RC.page, maxPg));
+  const start    = (RC.page - 1) * RC.pageSize;
+  const slice    = filtered.slice(start, start + RC.pageSize);
+
+  // ── Row count / page info labels ──
+  const rcRowCount = document.getElementById('rcRowCount');
+  if (rcRowCount) {
+    rcRowCount.textContent = `${total} room${total !== 1 ? 's' : ''}`;
+  }
+  const rcPageInfo = document.getElementById('rcPageInfo');
+  if (rcPageInfo && total > 0) {
+    rcPageInfo.textContent = `Page ${RC.page} of ${maxPg}`;
+  } else if (rcPageInfo) {
+    rcPageInfo.textContent = '';
+  }
+
+  // ── Empty state ──
+  if (!slice.length) {
+    container.innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        <i class="fas fa-door-closed"></i>
+        <p>No rooms match the selected filters</p>
+        <button class="btn btn-outline btn-sm" onclick="resetRoomFilters()" style="margin-top:10px;">
+          <i class="fas fa-times"></i> Clear filters
+        </button>
+      </div>`;
+    _rcRenderPagination(total, maxPg);
+    return;
+  }
+
+  // ── Render cards ──
+  const STATUS_COLORS = {
+    available:   'green', occupied: 'red',   dirty:       'amber',
+    reserved:    'purple', cleaning: 'teal', maintenance: 'gray'
+  };
+  const STATUS_LABELS = {
+    available:   'Available', occupied:    'Occupied',    dirty:    'Dirty',
+    reserved:    'Reserved',  cleaning:    'Cleaning',    maintenance: 'Maintenance'
+  };
+
+  container.innerHTML = slice.map(unit => {
+    const st    = (unit.status || 'available').toLowerCase().replace(' ', '-');
+    const stKey = st.replace('-', '');
+    const color = STATUS_COLORS[st] || STATUS_COLORS[stKey] || 'gray';
+    const label = STATUS_LABELS[st] || STATUS_LABELS[stKey] || unit.status;
+    const num   = unit.number || unit.room_number || '—';
+    const bk    = unit.current_guest;
+    const upcoming = unit.upcoming_guest;
+
+    let guestStripHTML = '';
+    if (bk) {
+      const statusBadge = bk.status === 'checked_in'
+        ? `<span class="badge badge-checked_in" style="font-size:9px;margin-left:5px;">IN</span>`
+        : `<span class="badge badge-confirmed" style="font-size:9px;margin-left:5px;">RESERVED</span>`;
+      guestStripHTML = `<div class="room-guest-strip">
+        <div class="room-guest-name">${escapeHtml(bk.guest_name)}${statusBadge}</div>
+        <div class="room-guest-dates">${bk.check_in} → ${bk.check_out}</div>
+      </div>`;
+    } else if (upcoming) {
+      guestStripHTML = `<div class="room-guest-strip" style="background:#f5f3ff;border-color:#ddd6fe;">
+        <div class="room-guest-name" style="color:var(--purple)">
+          <i class="fas fa-calendar-check" style="font-size:10px;margin-right:4px;"></i>${escapeHtml(upcoming.guest_name)}
+        </div>
+        <div class="room-guest-dates">Arrives ${upcoming.check_in}</div>
+      </div>`;
+    }
+
+    let actions = '';
+    if (st === 'available') {
+      actions = `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();openNewBookingModal('${escapeHtml(unit.room_type)}','${unit.id}')">
+        <i class="fas fa-calendar-plus"></i> Book
+      </button>`;
+    } else if (st === 'occupied' && bk) {
+      actions = `<button class="btn btn-sm btn-warning" onclick="event.stopPropagation();startCheckout('${bk.booking_id}','${escapeHtml(bk.guest_name)}','${unit.room_type}','${num}','${unit.id}')">
+        <i class="fas fa-sign-out-alt"></i> Check Out
+      </button>`;
+    } else if (st === 'reserved' && bk) {
+      actions = `<button class="btn btn-sm btn-success" onclick="event.stopPropagation();checkInGuest('${bk.booking_id}','${escapeHtml(bk.guest_name)}','${unit.room_type}','${num}')">
+        <i class="fas fa-sign-in-alt"></i> Check In
+      </button>`;
+    } else if (st === 'dirty' || st === 'cleaning') {
+      actions = `<button class="btn btn-sm btn-teal" onclick="event.stopPropagation();openHKFromCard('${unit.id}','${num}','${unit.room_type}')">
+        <i class="fas fa-broom"></i> HK Task
+      </button>`;
+    }
+    actions += ` <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openRoomStatusModal('${unit.id}','${num}','${unit.status}')" title="Update Status">
+      <i class="fas fa-exchange-alt"></i>
+    </button>`;
+
+    const unitDataAttr = encodeURIComponent(JSON.stringify({
+      id: unit.id, num, room_type: unit.room_type, status: unit.status,
+      price: unit.price, max_adults: unit.max_adults, max_children: unit.max_children,
+      amenities: unit.amenities, description: unit.description, images: unit.images,
+      current_guest: bk || null, upcoming_guest: upcoming || null,
+    }));
+
+    const imgHTML = unit.images && unit.images.length
+      ? `<img src="${unit.images[0]}" alt="Room ${num}" loading="lazy">`
+      : `<span style="opacity:.15;font-size:2.8rem;">🛏️</span>`;
+
+    return `
+      <div class="room-card" onclick="openRoomCardDetail('${unitDataAttr}')">
+        <div class="room-card-bar ${color}"></div>
+        <div class="room-card-img">
+          ${imgHTML}
+          <span class="room-status-pill rsp-${color}">${label}</span>
+        </div>
+        <div class="room-card-body">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+            <div>
+              <div class="room-card-num">${num}</div>
+              <div class="room-card-type">${unit.room_type}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="room-card-price">₹${parseFloat(unit.price || 0).toLocaleString('en-IN')}</div>
+              <div style="font-size:10px;color:var(--text-3);">/night</div>
+            </div>
+          </div>
+          <div class="room-card-meta">
+            <i class="fas fa-users" style="font-size:10px;"></i>
+            ${unit.max_adults || 2} adults${unit.max_children ? ' · ' + unit.max_children + ' children' : ''}
+          </div>
+          ${guestStripHTML}
+          <div class="room-card-actions">
+            ${actions}
+            <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openRoomCardDetail('${unitDataAttr}')">
+              <i class="fas fa-eye"></i> Details
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  _rcRenderPagination(total, maxPg);
+
+  // ── Rebuild type chips after first data load ──
+  _rcBuildTypeChips();
+};
+
+// ── Pagination bar renderer ────────────────────────────────────
+function _rcRenderPagination(total, maxPg) {
+  const start = (RC.page - 1) * RC.pageSize;
+  const end   = Math.min(start + RC.pageSize, total);
+
+  const info2 = document.getElementById('rcPgInfo2');
+  if (info2) info2.textContent = total > 0 ? `Showing ${start + 1}–${end} of ${total}` : '';
+
+  const nums = document.getElementById('rcPageNums');
+  if (nums) {
+    let html = '';
+    for (let i = 1; i <= maxPg; i++) {
+      const show = i === 1 || i === maxPg ||
+                   (i >= RC.page - 2 && i <= RC.page + 2);
+      if (show) {
+        const active = i === RC.page;
+        html += `<button onclick="rcGoPage(${i})"
+          style="min-width:28px;height:28px;padding:0 6px;border-radius:6px;cursor:pointer;
+                 border:1px solid ${active ? 'var(--blue)' : 'var(--border)'};
+                 background:${active ? 'var(--blue)' : 'var(--surface)'};
+                 color:${active ? 'white' : 'var(--text-2)'};
+                 font-size:11px;font-weight:${active ? '700' : '400'};">${i}</button>`;
+      } else if (i === RC.page - 3 || i === RC.page + 3) {
+        html += `<span style="padding:0 2px;color:var(--text-3);line-height:28px;">…</span>`;
+      }
+    }
+    nums.innerHTML = html;
+  }
+
+  const prev = document.getElementById('rcPrevBtn');
+  const next = document.getElementById('rcNextBtn');
+  if (prev) prev.disabled = RC.page <= 1;
+  if (next) next.disabled = RC.page >= maxPg;
+}
+
+// ── Build room-type chips from loaded data ─────────────────────
+function _rcBuildTypeChips() {
+  const wrap = document.getElementById('rcTypeChips');
+  if (!wrap || !_allRoomUnits.length) return;
+
+  // Count by type
+  const typeCounts = {};
+  _allRoomUnits.forEach(u => {
+    const t = u.room_type || 'Unknown';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+
+  const types = Object.keys(typeCounts).sort();
+  if (!types.length) return;
+
+  // Only rebuild if types have changed
+  const existing = wrap.querySelectorAll('.rc-type-chip[data-type]');
+  const existingTypes = Array.from(existing)
+    .map(b => b.dataset.type)
+    .filter(t => t !== '');
+  if (existingTypes.length === types.length) return;  // already built
+
+  const allActive = RC.type === '';
+  let html = `<button class="rc-type-chip" data-type=""
+    onclick="rcSetTypeChip('',this)"
+    style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;
+           font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;
+           border:1px solid ${allActive ? 'var(--ink)' : 'var(--border)'};
+           background:${allActive ? 'var(--ink)' : 'var(--surface)'};
+           color:${allActive ? 'white' : 'var(--text-3)'};">
+    All Types
+  </button>`;
+
+  types.forEach(t => {
+    const isActive = RC.type.toLowerCase() === t.toLowerCase();
+    html += `<button class="rc-type-chip" data-type="${escapeHtml(t)}"
+      onclick="rcSetTypeChip('${escapeHtml(t)}',this)"
+      style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;
+             font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;
+             border:1px solid ${isActive ? 'var(--blue)' : 'var(--border)'};
+             background:${isActive ? 'var(--blue-dim)' : 'var(--surface)'};
+             color:${isActive ? 'var(--blue)' : 'var(--text-3)'};">
+      ${escapeHtml(t)}
+      <span style="font-size:9px;opacity:.65;">(${typeCounts[t]})</span>
+    </button>`;
+  });
+
+  wrap.innerHTML = html;
+}
 // ─── Room Card Detail Modal ───────────────────────────
 // FIX 3: Book button in detail modal also passes unit id
 // FIX 4: Invoice button in detail modal opens sidebar
@@ -3234,109 +3683,327 @@ function renderInvoiceDetail(inv) {
     document.getElementById('invDetailSubtitle').textContent = `${escapeHtml(inv.guest_name || '—')} · ${inv.room_number || '—'}`;
 
     const emailBtn = document.getElementById('invDetailEmailBtn');
-    emailBtn.setAttribute('data-invoice-id', inv.id);
-    emailBtn.setAttribute('data-email', inv.guest_email || '');
+    if (emailBtn) {
+        emailBtn.setAttribute('data-invoice-id', inv.id);
+        emailBtn.setAttribute('data-email', inv.guest_email || '');
+    }
+
+    // Store hotel info on the invoice object for printing
+    window._lastInvoice = inv;
 
     const charges  = inv.charges  || inv.folio_charges  || [];
     const payments = inv.payments || inv.folio_payments || [];
-    const statusColor = { paid: 'green', partial: 'amber', pending: 'red', open: 'blue' };
-    const stc = statusColor[inv.status] || 'gray';
+    const stc      = { paid: 'pill-green', partial: 'pill-amber', pending: 'pill-red', open: 'pill-blue' }[inv.status] || 'pill-gray';
 
     const chargesHtml = charges.length
         ? charges.map(c => `
             <div class="inv-line">
-                <span style="display:flex;align-items:center;gap:7px;">
-                    <span class="charge-icon ci-${c.charge_type || 'other'}" style="width:22px;height:22px;font-size:10px;border-radius:5px;display:grid;place-items:center;flex-shrink:0;">
-                        <i class="fas ${chargeIcon(c.charge_type)}"></i>
-                    </span>
-                    ${escapeHtml(c.description)}
+              <span style="display:flex;align-items:center;gap:7px;">
+                <span class="charge-icon ci-${c.charge_type || 'other'}" style="width:22px;height:22px;font-size:10px;border-radius:5px;display:grid;place-items:center;flex-shrink:0;">
+                  <i class="fas ${chargeIcon(c.charge_type)}"></i>
                 </span>
-                <span style="font-family:'DM Mono',monospace;">${fmt(c.total || (parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0)))}</span>
+                ${escapeHtml(c.description)}
+              </span>
+              <span style="font-family:'DM Mono',monospace;">${fmt(c.total || (parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0)))}</span>
             </div>`).join('')
         : '<div style="padding:10px 0;color:var(--text-3);font-size:12px;">No charges recorded</div>';
 
     const paymentsHtml = payments.length
         ? payments.map(p => `
             <div class="inv-line">
-                <span style="display:flex;align-items:center;gap:7px;">
-                    <i class="fas fa-check-circle" style="color:var(--green);font-size:12px;"></i>
-                    ${escapeHtml(p.method || p.payment_method || 'Payment')}
-                    ${p.reference_number ? `<span style="font-size:10px;color:var(--text-3);">#${p.reference_number}</span>` : ''}
-                </span>
-                <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmt(p.amount)}</span>
+              <span style="display:flex;align-items:center;gap:7px;color:var(--green);">
+                <i class="fas fa-check-circle" style="font-size:12px;"></i>
+                ${escapeHtml(p.method || p.payment_method || 'Payment')}
+                ${p.reference_number ? `<span style="font-size:10px;color:var(--text-3);">#${p.reference_number}</span>` : ''}
+              </span>
+              <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmt(p.amount)}</span>
             </div>`).join('')
         : '<div style="padding:10px 0;color:var(--text-3);font-size:12px;">No payments recorded</div>';
 
-    const subtotal  = inv.subtotal    || inv.total_charges || 0;
-    const taxTotal  = inv.tax         || inv.tax_total     || 0;
-    const discount  = inv.discount    || 0;
+    const subtotal   = inv.subtotal    || inv.total_charges || 0;
+    const taxTotal   = inv.tax         || inv.tax_total     || 0;
+    const discount   = inv.discount    || 0;
     const grandTotal = inv.grand_total || inv.total_amount  || 0;
-    const paid      = inv.paid        || inv.total_paid     || 0;
-    const balance   = inv.balance     || inv.balance_due    || 0;
+    const paid       = inv.paid        || inv.total_paid    || 0;
+    const balance    = inv.balance     || inv.balance_due   || 0;
 
     document.getElementById('invoiceDetailBody').innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-            <div>
-                <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--ink);">${inv.invoice_number || `INV-${inv.id}`}</div>
-                <div style="font-size:12px;color:var(--text-3);margin-top:2px;">
-                    ${inv.generated_at ? new Date(inv.generated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}
-                </div>
-            </div>
-            <span class="pill pill-${stc}" style="font-size:12px;padding:4px 12px;">${(inv.status || '').toUpperCase()}</span>
+          <div>
+            <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;">${inv.invoice_number || `INV-${inv.id}`}</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:2px;">${inv.generated_at ? new Date(inv.generated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'}</div>
+          </div>
+          <span class="pill ${stc}" style="font-size:12px;padding:4px 12px;">${(inv.status || '').toUpperCase()}</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-            <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:11px 13px;border:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;"><i class="fas fa-user"></i> Guest</div>
-                <div style="font-weight:700;font-size:13px;">${escapeHtml(inv.guest_name || '—')}</div>
-                <div style="font-size:11px;color:var(--text-3);">${escapeHtml(inv.guest_phone || inv.guest_email || '')}</div>
-            </div>
-            <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:11px 13px;border:1px solid var(--border);">
-                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;"><i class="fas fa-door-open"></i> Stay Details</div>
-                <div style="font-weight:700;font-size:13px;">${escapeHtml(inv.room_number || '—')}</div>
-                <div style="font-size:11px;color:var(--text-3);">${inv.check_in || ''} → ${inv.check_out || ''}</div>
-            </div>
+          <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:11px 13px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;"><i class="fas fa-user"></i> Guest</div>
+            <div style="font-weight:700;font-size:13px;">${escapeHtml(inv.guest_name || '—')}</div>
+            <div style="font-size:11px;color:var(--text-3);">${escapeHtml(inv.guest_phone || inv.guest_email || '')}</div>
+          </div>
+          <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:11px 13px;border:1px solid var(--border);">
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;"><i class="fas fa-door-open"></i> Stay Details</div>
+            <div style="font-weight:700;font-size:13px;">${escapeHtml(inv.room_number || '—')}</div>
+            <div style="font-size:11px;color:var(--text-3);">${inv.check_in || ''} → ${inv.check_out || ''}</div>
+          </div>
         </div>
-        <div class="inv-detail-section">
-            <div class="inv-detail-label"><i class="fas fa-list-ul"></i> Charges</div>
-            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;"><div style="padding:4px 0;">${chargesHtml}</div></div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-list-ul"></i> Charges</div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;padding:4px 0;">${chargesHtml}</div>
         </div>
-        <div class="inv-detail-section">
-            <div class="inv-detail-label"><i class="fas fa-calculator"></i> Summary</div>
-            <div class="inv-line"><span>Subtotal</span><span style="font-family:'DM Mono',monospace;">${fmt(subtotal)}</span></div>
-            <div class="inv-line"><span>Tax (GST)</span><span style="font-family:'DM Mono',monospace;">${fmt(taxTotal)}</span></div>
-            ${discount ? `<div class="inv-line"><span style="color:var(--green);">Discount</span><span style="font-family:'DM Mono',monospace;color:var(--green);">-${fmt(discount)}</span></div>` : ''}
-            <div class="inv-line-total"><span>Grand Total</span><span style="font-family:'DM Mono',monospace;color:var(--blue);">${fmt(grandTotal)}</span></div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-calculator"></i> Summary</div>
+          <div class="inv-line"><span>Subtotal</span><span style="font-family:'DM Mono',monospace;">${fmt(subtotal)}</span></div>
+          <div class="inv-line"><span>Tax (GST)</span><span style="font-family:'DM Mono',monospace;">${fmt(taxTotal)}</span></div>
+          ${discount ? `<div class="inv-line"><span style="color:var(--green);">Discount</span><span style="font-family:'DM Mono',monospace;color:var(--green);">-${fmt(discount)}</span></div>` : ''}
+          <div class="inv-line-total"><span>Grand Total</span><span style="font-family:'DM Mono',monospace;color:var(--blue);">${fmt(grandTotal)}</span></div>
         </div>
-        <div class="inv-detail-section">
-            <div class="inv-detail-label"><i class="fas fa-money-bill-wave"></i> Payments</div>
-            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;"><div style="padding:4px 0;">${paymentsHtml}</div></div>
-            <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:13px;margin-top:4px;">
-                <span style="color:var(--green);font-weight:700;">Amount Paid</span>
-                <span style="font-family:'DM Mono',monospace;color:var(--green);font-weight:700;">${fmt(paid)}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;">
-                <span style="color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">Balance Due</span>
-                <span style="font-family:'DM Mono',monospace;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">${fmt(balance)}</span>
-            </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-money-bill-wave"></i> Payments</div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;padding:4px 0;">${paymentsHtml}</div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:13px;"><span style="color:var(--green);font-weight:700;">Amount Paid</span><span style="font-family:'DM Mono',monospace;color:var(--green);font-weight:700;">${fmt(paid)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">Balance Due</span><span style="font-family:'DM Mono',monospace;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">${fmt(balance)}</span></div>
         </div>
         ${inv.notes ? `<div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 13px;font-size:12px;color:var(--text-3);border:1px solid var(--border);">${escapeHtml(inv.notes)}</div>` : ''}
     `;
 }
 
-function chargeIcon(type) {
-    const map = { room: 'fa-bed', restaurant: 'fa-utensils', laundry: 'fa-tshirt', minibar: 'fa-wine-glass', spa: 'fa-spa', transport: 'fa-car', other: 'fa-tag' };
-    return map[type] || 'fa-tag';
+function _buildPrintableInvoice(inv) {
+    // inv may come from window._lastInvoice or be fetched fresh
+    const charges  = inv.charges  || [];
+    const payments = inv.payments || [];
+    const subtotal   = parseFloat(inv.subtotal    || inv.total_charges || 0);
+    const taxTotal   = parseFloat(inv.tax         || inv.tax_total     || 0);
+    const discount   = parseFloat(inv.discount    || 0);
+    const grandTotal = parseFloat(inv.grand_total || inv.total_amount  || 0);
+    const paid       = parseFloat(inv.paid        || inv.total_paid    || 0);
+    const balance    = parseFloat(inv.balance     || inv.balance_due   || 0);
+
+    // Hotel branding — use what we have, fallback gracefully
+    const hotelName    = inv.hotel_name    || document.querySelector('.sb-brand-name')?.textContent?.trim() || 'Hotel ERP';
+    const hotelAddr    = inv.hotel_address || '';
+    const hotelCity    = inv.hotel_city    || '';
+    const hotelPhone   = inv.hotel_phone   || '';
+    const hotelEmail   = inv.hotel_email   || '';
+    const hotelGstin   = inv.hotel_gstin   || '';
+    const hotelTagline = inv.hotel_tagline || '';
+    const hotelLogoUrl = inv.hotel_logo_url || '';
+
+    const location = [hotelAddr, hotelCity].filter(Boolean).join(', ');
+    const contact  = [hotelPhone, hotelEmail].filter(Boolean).join('  ·  ');
+
+    const logoHtml = hotelLogoUrl
+        ? `<img src="${escapeHtml(hotelLogoUrl)}" alt="${escapeHtml(hotelName)} logo"
+               style="max-height:60px;max-width:140px;object-fit:contain;display:block;margin-bottom:6px;"
+               onerror="this.style.display='none'">`
+        : '';
+
+    const statusColor = inv.status === 'paid' ? '#166534' : inv.status === 'partial' ? '#92400e' : '#991b1b';
+    const statusBg    = inv.status === 'paid' ? '#dcfce7'  : inv.status === 'partial' ? '#fef3c7'  : '#fee2e2';
+
+    const chargeRows = charges.length
+        ? charges.map(c => {
+            const amount = parseFloat(c.total || (parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0)));
+            return `<tr>
+                <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;">${escapeHtml(c.description || '—')}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;font-family:monospace;">₹${amount.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+            </tr>`;
+        }).join('')
+        : '<tr><td colspan="2" style="padding:12px;text-align:center;color:#888;font-size:12px;">No charges</td></tr>';
+
+    const paymentRows = payments.length
+        ? payments.map(p => {
+            const method = p.method || p.payment_method || 'Payment';
+            const ref    = p.reference_number ? ` <span style="font-size:10px;color:#888;">#${escapeHtml(p.reference_number)}</span>` : '';
+            return `<tr>
+                <td style="padding:6px 12px;font-size:12px;color:#15803d;">${escapeHtml(method)}${ref}</td>
+                <td style="padding:6px 12px;font-size:12px;text-align:right;font-family:monospace;color:#15803d;">₹${parseFloat(p.amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+            </tr>`;
+        }).join('')
+        : '';
+
+    const genDate = inv.generated_at
+        ? new Date(inv.generated_at).toLocaleDateString('en-IN', {day:'2-digit', month:'long', year:'numeric'})
+        : new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'long', year:'numeric'});
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invoice ${escapeHtml(inv.invoice_number || '')}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 28px 32px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  @media print {
+    body { padding: 0; }
+    @page { margin: 16mm 14mm; size: A4; }
+  }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; padding-bottom: 18px; border-bottom: 3px solid #0d1117; }
+  .hotel-block {}
+  .hotel-name { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #0d1117; margin-bottom: 2px; }
+  .hotel-tagline { font-size: 11px; color: #b8952a; font-style: italic; margin-bottom: 6px; }
+  .hotel-meta { font-size: 11px; color: #666; line-height: 1.7; }
+  .inv-block { text-align: right; }
+  .inv-badge { display: inline-block; background: #0d1117; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 4px 14px; border-radius: 4px; margin-bottom: 8px; }
+  .inv-meta { font-size: 11px; color: #555; line-height: 1.8; }
+  .inv-meta strong { color: #1a1a1a; }
+  .status-pill { display: inline-block; padding: 3px 14px; border-radius: 100px; font-size: 11px; font-weight: 700; margin-top: 6px; background: ${statusBg}; color: ${statusColor}; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 22px; }
+  .info-box { background: #f8f8f6; border: 1px solid #e8e8e4; border-radius: 6px; padding: 12px 14px; }
+  .info-box-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #b8952a; margin-bottom: 8px; }
+  .info-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 2px 0; }
+  .info-row .lbl { color: #777; }
+  .info-row .val { font-weight: 600; text-align: right; }
+  table.charges { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  table.charges thead th { background: #0d1117; color: #fff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 9px 12px; text-align: left; }
+  table.charges thead th:last-child { text-align: right; }
+  table.charges tbody tr:nth-child(even) { background: #fafaf7; }
+  .totals-table { width: 260px; margin-left: auto; margin-bottom: 18px; }
+  .totals-table td { padding: 5px 10px; font-size: 12px; }
+  .totals-table .lbl-col { color: #666; text-align: right; }
+  .totals-table .amt-col { text-align: right; font-family: monospace; }
+  .grand-row td { border-top: 2px solid #0d1117; padding-top: 9px; font-size: 14px; font-weight: 700; color: #0d1117; }
+  .payments-section { border: 1px solid #dcfce7; border-radius: 6px; background: #f0fdf4; padding: 12px 14px; margin-bottom: 16px; }
+  .payments-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #166534; margin-bottom: 8px; }
+  .pay-row { display: flex; justify-content: space-between; font-size: 12px; color: #166534; padding: 2px 0; }
+  .footer { text-align: center; font-size: 10.5px; color: #888; padding-top: 18px; border-top: 1px dashed #ccc; margin-top: 10px; font-style: italic; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="hotel-block">
+      ${logoHtml}
+      <div class="hotel-name">${escapeHtml(hotelName.toUpperCase())}</div>
+      ${hotelTagline ? `<div class="hotel-tagline">${escapeHtml(hotelTagline)}</div>` : ''}
+      <div class="hotel-meta">
+        ${location  ? `${escapeHtml(location)}<br>` : ''}
+        ${contact   ? `${escapeHtml(contact)}<br>` : ''}
+        ${hotelGstin ? `GSTIN: ${escapeHtml(hotelGstin)}` : ''}
+      </div>
+    </div>
+    <div class="inv-block">
+      <div class="inv-badge">TAX INVOICE</div>
+      <div class="inv-meta">
+        <strong>${escapeHtml(inv.invoice_number || `INV-${inv.id}`)}</strong><br>
+        Date: ${genDate}<br>
+        ${inv.check_in ? `Check-In: ${inv.check_in}<br>` : ''}
+        ${inv.check_out ? `Check-Out: ${inv.check_out}` : ''}
+      </div>
+      <div class="status-pill">${(inv.status || 'pending').toUpperCase()}</div>
+    </div>
+  </div>
+
+  <!-- GUEST & STAY -->
+  <div class="info-grid">
+    <div class="info-box">
+      <div class="info-box-title">Billed To</div>
+      <div class="info-row"><span class="lbl">Guest</span><span class="val">${escapeHtml(inv.guest_name || '—')}</span></div>
+      <div class="info-row"><span class="lbl">Booking #</span><span class="val">#${escapeHtml(String(inv.booking_id || '—'))}</span></div>
+      ${inv.guest_email ? `<div class="info-row"><span class="lbl">Email</span><span class="val">${escapeHtml(inv.guest_email)}</span></div>` : ''}
+      ${inv.guest_phone ? `<div class="info-row"><span class="lbl">Phone</span><span class="val">${escapeHtml(inv.guest_phone)}</span></div>` : ''}
+    </div>
+    <div class="info-box">
+      <div class="info-box-title">Stay Details</div>
+      <div class="info-row"><span class="lbl">Room</span><span class="val">${escapeHtml(inv.room_number || '—')}</span></div>
+      ${inv.room_type ? `<div class="info-row"><span class="lbl">Type</span><span class="val">${escapeHtml(inv.room_type)}</span></div>` : ''}
+      <div class="info-row"><span class="lbl">Check-In</span><span class="val">${inv.check_in || '—'}</span></div>
+      <div class="info-row"><span class="lbl">Check-Out</span><span class="val">${inv.check_out || '—'}</span></div>
+    </div>
+  </div>
+
+  <!-- CHARGES TABLE -->
+  <table class="charges">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>${chargeRows}</tbody>
+  </table>
+
+  <!-- TOTALS -->
+  <table class="totals-table">
+    <tr><td class="lbl-col">Subtotal</td><td class="amt-col">₹${subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+    <tr><td class="lbl-col">Tax / GST</td><td class="amt-col">₹${taxTotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>
+    ${discount ? `<tr><td class="lbl-col" style="color:#15803d;">Discount</td><td class="amt-col" style="color:#15803d;">−₹${discount.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>` : ''}
+    <tr class="grand-row">
+      <td class="lbl-col">Grand Total</td>
+      <td class="amt-col">₹${grandTotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+    </tr>
+  </table>
+
+  <!-- PAYMENTS -->
+  ${payments.length ? `
+  <div class="payments-section">
+    <div class="payments-title">Payments Received</div>
+    ${payments.map(p => `
+      <div class="pay-row">
+        <span>${escapeHtml(p.method || 'Payment')}${p.reference_number ? ` · #${escapeHtml(p.reference_number)}` : ''}</span>
+        <span>₹${parseFloat(p.amount || 0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
+      </div>`).join('')}
+    <div class="pay-row" style="border-top:1px solid #86efac;margin-top:6px;padding-top:6px;font-weight:700;">
+      <span>Balance Due</span>
+      <span style="color:${balance > 0 ? '#991b1b' : '#166534'};">₹${balance.toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
+    </div>
+  </div>` : ''}
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Thank you for staying at <strong>${escapeHtml(hotelName)}</strong>. We hope to welcome you again soon.
+    ${hotelEmail ? `<br>${escapeHtml(hotelEmail)}` : ''}
+    <br><em>This is a computer-generated invoice. No signature required.</em>
+  </div>
+
+</body>
+</html>`;
 }
 
-function printInvoiceDetail() {
-    const body = document.getElementById('invoiceDetailBody')?.innerHTML || '';
-    const win  = window.open('', '_blank');
-    win.document.write(`<html><head><title>Invoice</title><style>body{font-family:sans-serif;padding:20px;font-size:13px;} .inv-line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;} .inv-line-total{display:flex;justify-content:space-between;padding:10px 0 0;font-size:15px;font-weight:700;border-top:2px solid #333;margin-top:6px;}</style></head><body>${body}</body></html>`);
+async function printInvoiceDetail() {
+    const inv = window._lastInvoice;
+    if (!inv) { toast('No invoice loaded', 'error'); return; }
+
+    // If this invoice came from the sidebar list (may lack hotel info),
+    // try to re-fetch to get hotel details
+    let fullInv = inv;
+    if (!inv.hotel_name && inv.id) {
+        try {
+            const res  = await fetch(`/api/billing/invoice/${inv.id}/`, { headers: { 'X-CSRFToken': getCsrf() } });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && (data.success || data.invoice)) fullInv = data.invoice || data;
+        } catch (_) {}
+    }
+
+    const win = window.open('', '_blank');
+    win.document.write(_buildPrintableInvoice(fullInv));
     win.document.close();
-    win.print();
+    setTimeout(() => win.print(), 600);
 }
 
-function printSingleInvoice(id) { openInvoiceDetail(id); setTimeout(printInvoiceDetail, 900); }
+async function printSingleInvoice(invoiceId) {
+    try {
+        const res  = await fetch(`/api/billing/invoice/${invoiceId}/`, { headers: { 'X-CSRFToken': getCsrf() } });
+        const data = await res.json().catch(() => ({}));
+        const inv  = (res.ok && (data.invoice || data.success)) ? (data.invoice || data) : null;
+        if (!inv) { toast('Could not load invoice', 'error'); return; }
+        const win = window.open('', '_blank');
+        win.document.write(_buildPrintableInvoice(inv));
+        win.document.close();
+        setTimeout(() => win.print(), 600);
+    } catch (e) {
+        toast('Print failed: ' + e.message, 'error');
+    }
+}
 
 async function emailInvoice() {
     const btn   = document.getElementById('invDetailEmailBtn');

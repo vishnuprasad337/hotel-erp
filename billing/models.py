@@ -97,6 +97,13 @@ class Invoice(models.Model):
     grand_total = models.DecimalField(max_digits=12, decimal_places=2)
  
     status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    generated_by = models.ForeignKey(
+        'accounts.Staff',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_invoices'
+    )
     generated_at = models.DateTimeField(auto_now_add=True)
     notes        = models.TextField(blank=True)
  

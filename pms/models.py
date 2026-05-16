@@ -123,7 +123,21 @@ class Booking(models.Model):
 
     check_in = models.DateField()
     check_out = models.DateField()
+    checked_in_by = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bookings_checked_in"
+    )
 
+    checked_out_by = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bookings_checked_out"
+    )
     actual_check_in = models.DateTimeField(null=True, blank=True)
     actual_check_out = models.DateTimeField(null=True, blank=True)
 

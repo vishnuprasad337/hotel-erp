@@ -211,8 +211,9 @@ def stock_adjust(request):
 
 
 def list_stock_adjustments(request):
-   
-    qs = StockAdjustment.objects.select_related("item", "item__department", "adjusted_by")
+    qs = StockAdjustment.objects.select_related(
+        "item", "item__department", "adjusted_by", "adjusted_by__department"  # add this
+    )
 
     if request.GET.get("item_id"):
         qs = qs.filter(item_id=request.GET["item_id"])
@@ -221,23 +222,21 @@ def list_stock_adjustments(request):
 
     data = [
         {
-            "id":          a.id,
-            "item":        a.item.name,
-            "department":  a.item.department.name if a.item.department else None,
-            "type":        a.adjustment_type,
-            "quantity":    float(a.quantity),
-            "note":        a.note,
-            "adjusted_by": str(a.adjusted_by) if a.adjusted_by else None,
-            "date":        a.created_at.isoformat(),
+            "id":                      a.id,
+            "item":                    a.item.name,
+            "department":              a.item.department.name if a.item.department else None,
+            "type":                    a.adjustment_type,
+            "quantity":                float(a.quantity),
+            "note":                    a.note,
+            "adjusted_by":             str(a.adjusted_by) if a.adjusted_by else None,
+            "adjusted_by_department":  a.adjusted_by.department.name if a.adjusted_by and a.adjusted_by.department else None,  # add this
+            "date":                    a.created_at.isoformat(),
         }
         for a in qs.order_by("-created_at")[:100]
     ]
     return JsonResponse({"adjustments": data})
 
 
-# ══════════════════════════════════════════════════════════════
-# PURCHASE ORDERS
-# ══════════════════════════════════════════════════════════════
 
 @csrf_exempt
 def create_purchase_order(request):
@@ -252,7 +251,7 @@ def create_purchase_order(request):
         vendor_id=data["vendor_id"],
         department_id=data.get("department_id"),
         note=data.get("note", ""),
-        ordered_by=staff,            # FIX: model has ordered_by FK
+        ordered_by=staff,           
     )
 
     total = Decimal("0")
@@ -341,35 +340,46 @@ def update_po_status(request, po_id):
 
 
 def list_purchase_orders(request):
-   
-    qs = PurchaseOrder.objects.select_related("vendor", "department", "ordered_by", "approved_by")
+
+    qs = PurchaseOrder.objects.select_related(
+        "vendor", "department", "ordered_by", "approved_by"
+    ).prefetch_related("items__item")  
 
     if request.GET.get("department_id"):
         qs = qs.filter(department_id=request.GET["department_id"])
     if request.GET.get("status"):
         qs = qs.filter(status=request.GET["status"])
 
-    data = [
-        {
+    data = []
+    for po in qs.order_by("-ordered_at"):
+        lines = [
+            {
+                "id":         pi.id,
+                "item_id":    pi.item_id,
+                "item_name":  pi.item.name if pi.item else "—",
+                "quantity":   float(pi.quantity),
+                "unit":       pi.item.unit if pi.item else "",
+                "unit_price": float(pi.unit_price),
+                "total":      float(pi.subtotal),
+            }
+            for pi in po.items.all()
+        ]
+        data.append({
             "id":            po.id,
             "vendor":        po.vendor.name,
             "department":    po.department.name if po.department else None,
             "department_id": po.department_id,
             "status":        po.status,
             "total":         float(po.total_amount),
+            "note":          po.note,
             "ordered_by":    str(po.ordered_by) if po.ordered_by else None,
             "approved_by":   str(po.approved_by) if po.approved_by else None,
             "ordered_at":    po.ordered_at.isoformat(),
             "received_at":   po.received_at.isoformat() if po.received_at else None,
-        }
-        for po in qs.order_by("-ordered_at")
-    ]
+            "lines":         lines,
+        })
+
     return JsonResponse({"purchase_orders": data})
-
-
-# ══════════════════════════════════════════════════════════════
-# EXPENSE CATEGORIES
-# ══════════════════════════════════════════════════════════════
 
 @csrf_exempt
 def add_expense_category(request):
@@ -390,9 +400,6 @@ def list_expense_categories(request):
     return JsonResponse({"expense_categories": list(ExpenseCategory.objects.values())})
 
 
-# ══════════════════════════════════════════════════════════════
-# EXPENSES
-# ══════════════════════════════════════════════════════════════
 
 @csrf_exempt
 def add_expense(request):
@@ -401,7 +408,7 @@ def add_expense(request):
     if err:
         return err
     data  = _json(request)
-    staff = _get_staff(request)   # FIX: model has recorded_by FK
+    staff = _get_staff(request)   
 
     exp = Expense.objects.create(
         department_id=data.get("department_id"),
@@ -411,20 +418,20 @@ def add_expense(request):
         amount=Decimal(str(data["amount"])),
         description=data.get("description", ""),
         expense_date=data.get("expense_date", timezone.now().date()),
-        recorded_by=staff,         # FIX: was missing
+        recorded_by=staff,        
     )
     return JsonResponse({"id": exp.id}, status=201)
 
-
 def list_expenses(request):
     qs = Expense.objects.select_related(
-        "department", "expense_category", "purchase_order", "recorded_by"
+        "department", "expense_category", "purchase_order", 
+        "recorded_by", "recorded_by__department"
     )
 
     if request.GET.get("department_id"):
         qs = qs.filter(department_id=request.GET["department_id"])
 
-    # ── date filters ──
+    
     month = request.GET.get("month")   
     date  = request.GET.get("date")   
     if date:
@@ -433,10 +440,17 @@ def list_expenses(request):
         year, mon = month.split("-")
         qs = qs.filter(expense_date__year=year, expense_date__month=mon)
 
+    def get_department(e):
+        if e.department:
+            return e.department.name
+        if e.recorded_by and hasattr(e.recorded_by, 'department') and e.recorded_by.department:
+            return e.recorded_by.department.name
+        return ""
+
     data = [
         {
             "id":               e.id,
-            "department":       e.department.name if e.department else "",
+            "department":       get_department(e),
             "expense_category": e.expense_category.name if e.expense_category else "",
             "source":           e.source or "manual",
             "amount":           float(e.amount),
@@ -479,9 +493,7 @@ def expense_summary(request):
     })
 
 
-# ══════════════════════════════════════════════════════════════
-# ASSET CATEGORIES
-# ══════════════════════════════════════════════════════════════
+
 
 @csrf_exempt
 def add_asset_category(request):
@@ -499,9 +511,6 @@ def list_asset_categories(request):
     return JsonResponse({"asset_categories": list(AssetCategory.objects.values())})
 
 
-# ══════════════════════════════════════════════════════════════
-# HOTEL ASSETS
-# ══════════════════════════════════════════════════════════════
 
 @csrf_exempt
 def add_asset(request):
@@ -585,9 +594,7 @@ def update_asset_status(request, asset_id):
     return JsonResponse({"success": True})
 
 
-# ══════════════════════════════════════════════════════════════
-# MAINTENANCE LOGS
-# ══════════════════════════════════════════════════════════════
+
 from decimal import Decimal
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -667,10 +674,20 @@ def list_maintenance_logs(request):
         "asset__department",
         "department",
         "recorded_by",
+        "recorded_by__department",  
     )
 
     if request.GET.get("asset_id"):
         qs = qs.filter(asset_id=request.GET["asset_id"])
+
+    def get_department(log):
+        if log.department_id:
+            return log.department.name
+        if log.asset and log.asset.department:
+            return log.asset.department.name
+        if log.recorded_by and hasattr(log.recorded_by, 'department') and log.recorded_by.department:
+            return log.recorded_by.department.name
+        return None
 
     data = [
         {
@@ -678,10 +695,7 @@ def list_maintenance_logs(request):
             "asset":          log.asset.name if log.asset else None,
             "asset_id":       log.asset_id,
             "custom_asset":   log.custom_asset,
-            "department": (
-                log.department.name if log.department_id
-                else (log.asset.department.name if log.asset and log.asset.department else None)
-            ),
+            "department":     get_department(log),
             "type":           log.maintenance_type,
             "priority":       log.priority,
             "status":         log.status,
@@ -736,7 +750,16 @@ def update_maintenance_status(request, log_id):
         )
 
     log.status = status_value
-    log.save(update_fields=["status"])
+    if status_value=="completed" and not (log.performed_by or "").strip():
+        staff =_get_staff(request)
+        if staff:
+            log.performed_by=staff.name
+            log.save(update_fields=["status","performed_by"])
+        else:
+             log.save(update_fields=["status"])
+
+    else:
+        log.save(update_fields=["status"])
 
     return JsonResponse({
         "success": True,
@@ -892,38 +915,107 @@ def create_laundry_order(request):
         "total": float(total),
         "booking_id": booking.id if booking else None
     })
-
-
 def list_laundry_orders(request):
     data = []
-    for o in LaundryOrder.objects.all():
+
+    for o in LaundryOrder.objects.select_related(
+        'booking',
+        'delivered_by'
+    ).prefetch_related(
+        'items__service',
+        'logs__updated_by'
+    ).all().order_by('-id'):
+
+        logs = o.logs.all().order_by('-created_at')
+
+        delivered_log = logs.filter(status="delivered").first()
+
+        delivered_by = ""
+        if delivered_log and delivered_log.updated_by:
+            delivered_by = delivered_log.updated_by.name
+
+        last_log = logs.first()
+
+        # selected services/items
+        services = []
+
+        for item in o.items.all():
+            services.append({
+                "service_name": item.service.name if item.service else item.item_name,
+                "qty": float(item.quantity),
+            })
+
         data.append({
             "id": o.id,
-            "room": o.room_number,
+            "room_number": o.room_number,
+            "guest_name": o.guest_name or "",
             "status": o.status,
-            "total": float(o.total_amount)
-        })
-    return JsonResponse({"orders": data})
+            "order_type": o.order_type or "",
+            "total": float(o.total_amount),
+            "items_count": o.items.count(),
+            "created_at": o.created_at.isoformat() if o.created_at else "",
+            "delivered_by": delivered_by,
 
+           
+            "services": services,
+
+            "status_updated_by": (
+                last_log.updated_by.name
+                if last_log and last_log.updated_by else ""
+            ),
+        })
+
+    return JsonResponse({"orders": data})
+from accounts.models import Staff
 
 @csrf_exempt
-def update_laundry_status(request, pk):
+def update_laundry_status(request, order_id):
+
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
-    order = get_object_or_404(LaundryOrder, pk=pk)
     data = json.loads(request.body)
 
-    order.status = data["status"]
+    new_status = data.get("status")
+    staff_id   = data.get("staff_id")
+    note       = data.get("note", "")
+
+    try:
+        order = LaundryOrder.objects.get(id=order_id)
+
+    except LaundryOrder.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+
+    staff = None
+
+    # if frontend sends staff_id
+    if staff_id:
+        staff = Staff.objects.filter(id=staff_id).first()
+
+    # fallback → logged in user
+    if not staff and request.user.is_authenticated:
+        staff = Staff.objects.filter(user=request.user).first()
+
+    order.status = new_status
+
+    if new_status == "delivered" and staff:
+        order.delivered_by = staff
+
     order.save()
 
     LaundryStatusLog.objects.create(
         order=order,
-        status=data["status"],
-        note=data.get("note", "")
+        status=new_status,
+        note=note,
+        updated_by=staff
     )
 
-    return JsonResponse({"success": True})
+    return JsonResponse({
+        "success": True,
+        "status": order.status,
+        "updated_by": staff.name if staff else None,
+        "delivered_by": order.delivered_by.name if order.delivered_by else None,
+    })
 @csrf_exempt
 def update_inventory_item(request, pk):
        if request.method != 'POST': return JsonResponse({'error':'POST required'},status=405)

@@ -150,7 +150,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+TIME_ZONE = "Asia/Kolkata"
 
+USE_TZ = True
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
