@@ -712,10 +712,7 @@ from .models import (
     RestaurantOrder, Table, TableReservation,
     MenuCategory, MenuItem
 )
-
-
-@never_cache
-@login_required
+from django.db.models import Sum, Count, Q, F
 @never_cache
 @login_required
 def restaurant_dashboard(request):
@@ -949,38 +946,125 @@ def restaurant_dashboard(request):
         for o in pending_orders
     ]
 
+    from inventory.models import InventoryItem
+
+    RESTAURANT_Q = (
+        Q(category__is_restaurant=True)           |
+        Q(category__name__icontains='food')       |
+        Q(category__name__icontains='beverage')   |
+        Q(category__name__icontains='drink')      |
+        Q(category__name__icontains='ingredient') |
+        Q(category__name__icontains='kitchen')    |
+        Q(category__name__icontains='restaurant') |
+        Q(category__name__icontains='dining')     |
+        Q(category__name__icontains='pantry')     |
+        Q(category__name__icontains='grocery')    |
+        Q(category__name__icontains='spice')      |
+        Q(category__name__icontains='dairy')      |
+        Q(category__name__icontains='meat')       |
+        Q(category__name__icontains='snack')
+    )
+
+    EXCLUDE_Q = (
+        Q(category__name__icontains='cleaning')     |
+        Q(category__name__icontains='bedroom')      |
+        Q(category__name__icontains='amenities')    |
+        Q(category__name__icontains='aminities')    |
+        Q(category__name__icontains='housekeeping') |
+        Q(category__name__icontains='laundry')      |
+        Q(category__name__icontains='linen')        |
+        Q(category__name__icontains='toiletry')     |
+        Q(category__name__icontains='bathroom')     |
+        Q(category__name__icontains='maintenance')  |
+        Q(category__name__icontains='stationery')   |
+        Q(category__name__icontains='office')       |
+        Q(category__name__icontains='uniform')      |
+        Q(category__name__icontains='electrical')   |
+        Q(category__name__icontains='plumbing')
+    )
+
+    restaurant_stock = InventoryItem.objects.filter(
+        RESTAURANT_Q
+    ).exclude(
+        EXCLUDE_Q
+    ).exclude(
+        category__isnull=True
+    ).select_related("category", "vendor", "department").order_by("name").distinct()
+
+    low_stock_items = restaurant_stock.filter(
+        current_stock__lte=F("minimum_stock")
+    )
+
+    restaurant_stock_value = restaurant_stock.aggregate(
+        total=Sum(F("current_stock") * F("cost_per_unit"))
+    )["total"] or 0
+
+    restaurant_stock_data = [
+        {
+            "id":            item.id,
+            "name":          item.name,
+            "category":      item.category.name if item.category else "—",
+            "current_stock": float(item.current_stock),
+            "minimum_stock": float(item.minimum_stock),
+            "unit":          item.get_unit_display(),
+            "is_low_stock":  item.is_low_stock,
+            "cost_per_unit": float(item.cost_per_unit),
+            "stock_value":   float(item.stock_value),
+            "vendor":        item.vendor.name if item.vendor else "—",
+        }
+        for item in restaurant_stock
+    ]
+
+    low_stock_data = [
+        {
+            "id":            item.id,
+            "name":          item.name,
+            "category":      item.category.name if item.category else "—",
+            "current_stock": float(item.current_stock),
+            "minimum_stock": float(item.minimum_stock),
+            "unit":          item.get_unit_display(),
+            "vendor":        item.vendor.name if item.vendor else "—",
+        }
+        for item in low_stock_items
+    ]
+
     stats = {
-        "today_revenue":        float(today_revenue),
-        "total_revenue":        float(total_revenue),
-        "total_orders":         all_orders.count(),
-        "pending_orders":       order_status_counts["pending"] + order_status_counts["preparing"],
-        "completed_orders":     order_status_counts["served"],
-        "cancelled_orders":     order_status_counts["cancelled"],
-        "served_today":         today_orders.filter(status="served").count(),
-        "tables_total":         tables_qs.count(),
-        "tables_occupied":      tables_occupied,
-        "tables_available":     tables_available,
-        "reservations_today":   reservations_today.count(),
-        "total_menu_items":     total_menu_items,
-        "available_menu_items": available_menu_items,
-        "occupied_rooms":       occupied_rooms,
-        "total_staff":          hotel_staff.count(),
-        "total_departments":    departments.count(),
-        "present_days":         present_days,
-        "late_days":            late_days,
-        "absent_days":          absent_days,
-        "overtime_hours":       float(overtime_hours),
-        "pending_leaves":       pending_leaves,
-        "used_leave_days":      used_leave_days,
+        "today_revenue":            float(today_revenue),
+        "total_revenue":            float(total_revenue),
+        "total_orders":             all_orders.count(),
+        "pending_orders":           order_status_counts["pending"] + order_status_counts["preparing"],
+        "completed_orders":         order_status_counts["served"],
+        "cancelled_orders":         order_status_counts["cancelled"],
+        "served_today":             today_orders.filter(status="served").count(),
+        "tables_total":             tables_qs.count(),
+        "tables_occupied":          tables_occupied,
+        "tables_available":         tables_available,
+        "reservations_today":       reservations_today.count(),
+        "total_menu_items":         total_menu_items,
+        "available_menu_items":     available_menu_items,
+        "occupied_rooms":           occupied_rooms,
+        "total_staff":              hotel_staff.count(),
+        "total_departments":        departments.count(),
+        "present_days":             present_days,
+        "late_days":                late_days,
+        "absent_days":              absent_days,
+        "overtime_hours":           float(overtime_hours),
+        "pending_leaves":           pending_leaves,
+        "used_leave_days":          used_leave_days,
+        "restaurant_stock_items":   restaurant_stock.count(),
+        "low_stock_count":          low_stock_items.count(),
+        "restaurant_stock_value":   float(restaurant_stock_value),
     }
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
-            "stats":           stats,
-            "active_orders":   active_orders_data,
-            "tables":          tables,
-            "reservations":    reservations,
-            "recent_activity": recent_activity_data,
+            "stats":                stats,
+            "active_orders":        active_orders_data,
+            "tables":               tables,
+            "reservations":         reservations,
+            "recent_activity":      recent_activity_data,
+            "restaurant_stock":     restaurant_stock_data,
+            "low_stock_items":      low_stock_data,
             "chart": {
                 "labels":  chart_labels,
                 "counts":  chart_counts,
@@ -989,41 +1073,46 @@ def restaurant_dashboard(request):
         })
 
     return render(request, "pos.html", {
-        "staff":               staff,
-        "hotel":               hotel,
-        "hotel_staff":         hotel_staff,
-        "departments":         departments,
-        "occupied_bookings":   occupied_bookings,
-        "occupied_rooms":      occupied_rooms,
-        "rooms":               room_list,
-        "rooms_json":          rooms_json,
-        "room_units":          room_units,
-        "recent_tasks":        recent_tasks,
-        "my_tasks":            my_tasks,
-        "shifts":              shifts,
-        "my_shift_today":      my_shift_today,
-        "attendance_records":  attendance_records,
-        "today_attendance":    today_attendance,
-        "present_days":        present_days,
-        "late_days":           late_days,
-        "absent_days":         absent_days,
-        "overtime_hours":      overtime_hours,
-        "leave_requests":      leave_requests,
-        "all_leave_requests":  all_leave_requests,
-        "used_leave_days":     used_leave_days,
-        "pending_leaves":      pending_leaves,
-        "stats":               stats,
-        "active_orders":       active_orders_data,
-        "pending_orders":      pending_orders,
-        "recent_orders":       recent_orders,
-        "tables":              tables,
-        "tables_qs":           tables_qs,
-        "reservations":        reservations,
-        "reservations_today":  reservations_today,
-        "menu_categories":     menu_categories,
-        "recent_activity":     recent_activity_data,
-        "chart_labels":        json.dumps(chart_labels),
-        "chart_counts":        json.dumps(chart_counts),
-        "chart_revenue":       json.dumps(chart_revenue),
-        "today":               today,
+        "staff":                    staff,
+        "hotel":                    hotel,
+        "hotel_staff":              hotel_staff,
+        "departments":              departments,
+        "occupied_bookings":        occupied_bookings,
+        "occupied_rooms":           occupied_rooms,
+        "rooms":                    room_list,
+        "rooms_json":               rooms_json,
+        "room_units":               room_units,
+        "recent_tasks":             recent_tasks,
+        "my_tasks":                 my_tasks,
+        "shifts":                   shifts,
+        "my_shift_today":           my_shift_today,
+        "attendance_records":       attendance_records,
+        "today_attendance":         today_attendance,
+        "present_days":             present_days,
+        "late_days":                late_days,
+        "absent_days":              absent_days,
+        "overtime_hours":           overtime_hours,
+        "leave_requests":           leave_requests,
+        "all_leave_requests":       all_leave_requests,
+        "used_leave_days":          used_leave_days,
+        "pending_leaves":           pending_leaves,
+        "stats":                    stats,
+        "active_orders":            active_orders_data,
+        "pending_orders":           pending_orders,
+        "recent_orders":            recent_orders,
+        "tables":                   tables,
+        "tables_qs":                tables_qs,
+        "reservations":             reservations,
+        "reservations_today":       reservations_today,
+        "menu_categories":          menu_categories,
+        "recent_activity":          recent_activity_data,
+        "chart_labels":             json.dumps(chart_labels),
+        "chart_counts":             json.dumps(chart_counts),
+        "chart_revenue":            json.dumps(chart_revenue),
+        "today":                    today,
+        "restaurant_stock":         restaurant_stock,
+        "restaurant_stock_data":    json.dumps(restaurant_stock_data),
+        "low_stock_items":          low_stock_items,
+        "low_stock_data":           json.dumps(low_stock_data),
+        "restaurant_stock_value":   restaurant_stock_value,
     })

@@ -268,9 +268,6 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q
 from datetime import datetime
 from hotel.models import Attendance,LeaveRequest
-
-
-
 @never_cache
 @login_required
 def frontoffice_dashboard(request):
@@ -375,6 +372,94 @@ def frontoffice_dashboard(request):
     used_leave_days = leave_requests.filter(status="Approved").count()
     pending_leaves = leave_requests.filter(status="Pending").count()
 
+    # ── Payroll ───────────────────────────────────────────────────────────────
+    from hotel.models import Payroll
+
+    # Current month payroll for this staff member
+    payroll = Payroll.objects.filter(
+        staff=staff,
+        month=month,
+        year=year,
+    ).prefetch_related("line_items").first()
+
+    # Full payroll history for this staff member
+    payroll_history = Payroll.objects.filter(
+        staff=staff,
+    ).order_by("-year", "-month")
+
+    MONTH_NAMES = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    payroll_history_list = []
+    for p in payroll_history:
+        earnings = float(
+            p.line_items.filter(line_type="earning")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        deductions = float(
+            p.line_items.filter(line_type="deduction")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        payroll_history_list.append({
+            "id":               p.id,
+            "month":            p.month,
+            "year":             p.year,
+            "month_label":      MONTH_NAMES[p.month],
+            "basic_salary":     float(p.basic_salary),
+            "overtime_amount":  float(p.overtime_amount or 0),
+            "bonus":            float(p.bonus or 0),
+            "incentive":        float(p.incentive or 0),
+            "pf_amount":        float(p.pf_amount or 0),
+            "esi_amount":       float(p.esi_amount or 0),
+            "loan_deduction":   float(p.loan_deduction or 0),
+            "tax_deduction":    float(p.tax_deduction or 0),
+            "gross_salary":     earnings,
+            "deductions":       deductions,
+            "net_salary":       float(p.net_salary),
+            "paid_status":      p.paid_status,
+            "paid_at":          p.paid_at.strftime("%d %b %Y") if p.paid_at else None,
+        })
+
+    # Current month payroll detail
+    if payroll:
+        earnings_items = [
+            {
+                "label":  item.label,
+                "amount": float(item.amount),
+            }
+            for item in payroll.line_items.filter(line_type="earning").order_by("order")
+        ]
+        deductions_items = [
+            {
+                "label":  item.label,
+                "amount": float(item.amount),
+            }
+            for item in payroll.line_items.filter(line_type="deduction").order_by("order")
+        ]
+        current_payroll = {
+            "id":               payroll.id,
+            "month_label":      MONTH_NAMES[payroll.month],
+            "year":             payroll.year,
+            "basic_salary":     float(payroll.basic_salary),
+            "overtime_amount":  float(payroll.overtime_amount),
+            "bonus":            float(payroll.bonus),
+            "incentive":        float(payroll.incentive),
+            "pf_amount":        float(payroll.pf_amount),
+            "esi_amount":       float(payroll.esi_amount),
+            "loan_deduction":   float(payroll.loan_deduction),
+            "tax_deduction":    float(payroll.tax_deduction),
+            "deductions":       float(payroll.deductions),
+            "net_salary":       float(payroll.net_salary),
+            "paid_status":      payroll.paid_status,
+            "paid_at":          payroll.paid_at.strftime("%d %b %Y, %I:%M %p") if payroll.paid_at else None,
+            "earnings_items":   earnings_items,
+            "deductions_items": deductions_items,
+        }
+    else:
+        current_payroll = None
+
     return render(request, "frontoffice.html", {
         "hotel": hotel,
         "hotel_staff": hotel_staff,
@@ -400,6 +485,11 @@ def frontoffice_dashboard(request):
         "leave_requests": leave_requests,
         "used_leave_days": used_leave_days,
         "pending_leaves": pending_leaves,
+        
+        "current_payroll":      current_payroll,
+        "payroll_history":      payroll_history_list,
+        "payroll_month_label":  MONTH_NAMES[month],
+        "payroll_year":         year,
     })
 from django.db.models import Count
 

@@ -58,10 +58,10 @@ path('superadmin/trial/grant/<int:hotel_id>/',          grant_trial,            
 path('superadmin/trial/revoke/<int:hotel_id>/',         revoke_trial_eligibility,    name='revoke_trial_eligibility'),
 path('superadmin/trial/restore/<int:hotel_id>/',        restore_trial_eligibility,   name='restore_trial_eligibility'),
 path('superadmin/trial/end/<int:hotel_id>/',            end_trial_now,               name='end_trial_now'),
-
+path('get-staff-details/<int:staff_id>/', get_staff_details, name='get_staff_details'),
 path('superadmin/subscription/status/<int:hotel_id>/',  set_subscription_status,     name='set_subscription_status'),
 path('superadmin/subscription/upgrade/<int:hotel_id>/', upgrade_hotel_plan,          name='upgrade_hotel_plan'),
-
+ path('staff/upload-id-proof/', upload_staff_id_proof, name='upload_staff_id_proof'),
 path('hotel/start-trial/',                              hotel_start_trial,           name='hotel_start_trial'),
 path('superadmin/trial/days/<int:hotel_id>/',           set_hotel_trial_days,        name='set_hotel_trial_days'),
  path(

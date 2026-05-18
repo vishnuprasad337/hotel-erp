@@ -226,7 +226,38 @@ class Staff(models.Model):
 
    
     photo = models.ImageField(upload_to="staff_photos/", null=True, blank=True)
-
+    id_proof_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('aadhaar', 'Aadhaar Card'),
+            ('pan', 'PAN Card'),
+            ('passport', 'Passport'),
+            ('driving_license', 'Driving License'),
+            ('voter_id', 'Voter ID'),
+            ('other', 'Other'),
+        ],
+        null=True,
+        blank=True,
+        help_text="Type of ID proof provided"
+    )
+    
+    id_proof_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="ID proof number (e.g., Aadhaar number, PAN number)"
+    )
+    
+    id_proof_image = models.ImageField(
+        upload_to="staff_id_proofs/",
+        null=True,
+        blank=True,
+        help_text="Uploaded ID proof image/document"
+    )
+    
+    
+    
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -1247,7 +1247,7 @@ def staff_register(request):
 
         with schema_context(tenant_schema):
             user = User.objects.create_user(
-                username=unique_username,  # <-- fixed
+                username=unique_username,  
                 email=email,
                 password=password,
                 hotel=hotel,
@@ -1299,6 +1299,90 @@ Hotel Management
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 @csrf_exempt
+def get_staff_details(request, staff_id):
+    try:
+        current_tenant = connection.tenant
+
+        with schema_context('public'):
+            hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+
+        with schema_context(current_tenant.schema_name):
+            try:
+                staff = Staff.objects.select_related('department', 'user').get(id=staff_id, hotel=hotel)
+                
+                # Get hotel name
+                hotel_name = hotel.hotel_name if hotel else "N/A"
+                
+                # Build the full URL for images
+                request_host = request.get_host()
+                request_scheme = request.scheme
+                
+                photo_url = None
+                if staff.photo:
+                    photo_url = f"{request_scheme}://{request_host}{staff.photo.url}"
+                
+                id_proof_image_url = None
+                if staff.id_proof_image:
+                    id_proof_image_url = f"{request_scheme}://{request_host}{staff.id_proof_image.url}"
+                
+                # Get uploaded ID cards from StaffDocument model (if exists)
+                id_cards = []
+                if hasattr(staff, 'documents'):
+                    for doc in staff.documents.all():
+                        id_cards.append({
+                            'id': doc.id,
+                            'document_type': doc.document_type,
+                            'url': f"{request_scheme}://{request_host}{doc.document.url}" if doc.document else None,
+                            'uploaded_at': doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+                        })
+                
+                # Also add the ID proof image if exists
+                if staff.id_proof_image:
+                    id_cards.append({
+                        'id': staff.id,
+                        'document_type': dict(staff._meta.get_field('id_proof_type').choices).get(staff.id_proof_type, 'ID Proof'),
+                        'url': id_proof_image_url,
+                        'uploaded_at': staff.created_at.isoformat() if staff.created_at else None,
+                        'id_proof_number': staff.id_proof_number,
+                    })
+                
+                return JsonResponse({
+                    "success": True,
+                    "staff": {
+                        "id": staff.id,
+                        "employee_id": staff.employee_id,
+                        "name": staff.name,
+                        "email": staff.user.email if staff.user else "",
+                        "phone": staff.phone or "",
+                        "department_id": staff.department.id if staff.department else None,
+                        "department_name": staff.department.name if staff.department else "N/A",
+                        "role": staff.user.role.name if staff.user and staff.user.role else "Staff",
+                        "salary": float(staff.salary) if staff.salary else 0,
+                        "joining_date": staff.joining_date.strftime("%Y-%m-%d") if staff.joining_date else None,
+                        "created_at": staff.created_at.isoformat() if staff.created_at else None,
+                        "is_active": staff.is_active,
+                        "is_available": staff.is_available,
+                        "hotel_name": hotel_name,
+                        "hotel_id": hotel.id if hotel else None,
+                        "photo_url": photo_url,
+                        # ID proof fields
+                        "id_proof_type": staff.id_proof_type,
+                        "id_proof_type_label": dict(staff._meta.get_field('id_proof_type').choices).get(staff.id_proof_type, '') if staff.id_proof_type else '',
+                        "id_proof_number": staff.id_proof_number,
+                        "id_proof_image_url": id_proof_image_url,
+                    },
+                    "id_cards": id_cards
+                })
+                
+            except Staff.DoesNotExist:
+                return JsonResponse({"error": "Staff not found", "success": False}, status=404)
+                
+    except Hotel.DoesNotExist:
+        return JsonResponse({"error": "Hotel not found", "success": False}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e), "success": False}, status=500)
+
+@csrf_exempt
 def get_staff(request):
     try:
         current_tenant = connection.tenant
@@ -1319,6 +1403,9 @@ def get_staff(request):
 
             for s in staffs:
                 dept = s.department
+                
+                # Get hotel name from the hotel object
+                hotel_name = hotel.hotel_name if hotel else "N/A"
 
                 staff_list.append({
                     "id": s.id,
@@ -1327,8 +1414,8 @@ def get_staff(request):
                     "email": s.user.email if s.user else "",
                     "phone": s.phone or "",
                     "department_id": dept.id if dept else None,
-                    "department_name": dept.name if dept else "N/A",  # flat field for JS
-                    "department": {                                     # keep nested for other uses
+                    "department_name": dept.name if dept else "N/A",
+                    "department": {
                         "id": dept.id if dept else None,
                         "name": dept.name if dept else "N/A",
                         "permissions": dept_permissions_map.get(dept.id, []) if dept else []
@@ -1338,16 +1425,81 @@ def get_staff(request):
                     "joining_date": s.joining_date.strftime("%Y-%m-%d") if s.joining_date else "",
                     "photo": s.photo.url if s.photo else None,
                     "is_active": s.is_active,
+                    "is_available": s.is_available,
+                    "hotel_name": hotel_name,
+                    "hotel_id": hotel.id if hotel else None,
+                    # New ID proof fields
+                    "id_proof_type": s.id_proof_type,
+                    "id_proof_type_label": dict(s._meta.get_field('id_proof_type').choices).get(s.id_proof_type, '') if s.id_proof_type else '',
+                    "id_proof_number": s.id_proof_number,
+                    "id_proof_image_url": s.id_proof_image.url if s.id_proof_image else None,
                 })
 
         return JsonResponse({
             "success": True,
             "count": len(staff_list),
-            "staffs": staff_list
+            "staffs": staff_list,
+            "hotel_name": hotel_name  
         })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+@csrf_exempt
+def upload_staff_id_proof(request):
+    if request.method != 'POST':
+        return JsonResponse({"error": "POST required", "success": False}, status=405)
+    
+    try:
+        current_tenant = connection.tenant
+        
+        with schema_context('public'):
+            hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+        
+        with schema_context(current_tenant.schema_name):
+            staff_id = request.POST.get('staff_id')
+            id_proof_type = request.POST.get('id_proof_type', 'other')
+            id_proof_number = request.POST.get('id_proof_number', '')
+            id_proof_image = request.FILES.get('id_proof_image')
+            
+            if not staff_id:
+                return JsonResponse({"error": "Staff ID is required", "success": False}, status=400)
+            
+            if not id_proof_image:
+                return JsonResponse({"error": "ID proof image is required", "success": False}, status=400)
+            
+            try:
+                staff = Staff.objects.get(id=staff_id, hotel=hotel)
+                
+                # Update the ID proof fields
+                staff.id_proof_type = id_proof_type
+                staff.id_proof_number = id_proof_number
+                staff.id_proof_image = id_proof_image
+                staff.save()
+                
+                # Build full URL
+                request_host = request.get_host()
+                request_scheme = request.scheme
+                id_proof_image_url = f"{request_scheme}://{request_host}{staff.id_proof_image.url}"
+                
+                # Get display label for ID type
+                id_proof_type_display = dict(staff._meta.get_field('id_proof_type').choices).get(id_proof_type, 'ID Proof')
+                
+                return JsonResponse({
+                    "success": True,
+                    "message": "ID Proof uploaded successfully",
+                    "id_proof_image_url": id_proof_image_url,
+                    "id_proof_type": staff.id_proof_type,
+                    "id_proof_type_label": id_proof_type_display,
+                    "id_proof_number": staff.id_proof_number
+                })
+                
+            except Staff.DoesNotExist:
+                return JsonResponse({"error": "Staff not found", "success": False}, status=404)
+                
+    except Hotel.DoesNotExist:
+        return JsonResponse({"error": "Hotel not found", "success": False}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e), "success": False}, status=500)
 @require_POST
 def delete_staff(request):
     try:

@@ -294,7 +294,84 @@ class Payroll(models.Model):
     def computed_net(self):
         return self.total_earnings() - self.total_deductions()
 
+class PayrollLineItem(models.Model):
+    TYPE_CHOICES = [
+        ('earning',   'Earning'),
+        ('deduction', 'Deduction'),
+    ]
+    SOURCE_CHOICES = [
+      
+        ('basic',     'Basic Salary'),
+        ('overtime',  'Overtime'),
+        ('bonus',     'Bonus'),
+        ('incentive', 'Incentive'),
+        ('hra',       'HRA'),
+        ('da',        'DA'),
+        ('ta',        'Travel Allowance'),
+        ('medical',   'Medical Allowance'),
+        ('special',   'Special Allowance'),
+        ('custom',    'Custom'),
+       
+        ('leave',     'Leave/Absent Deduction'),
+        ('pf',        'PF (Employee)'),
+        ('esi',       'ESI (Employee)'),
+        ('pt',        'Professional Tax'),
+        ('tax',       'Tax/TDS'),
+        ('loan',      'Loan Deduction'),
+        ('advance',   'Salary Advance'),
+        ('uniform',   'Uniform Deduction'),
+    ]
 
+    payroll     = models.ForeignKey(
+        Payroll, on_delete=models.CASCADE, related_name='line_items'
+    )
+    line_type   = models.CharField(max_length=10, choices=TYPE_CHOICES)   
+    source      = models.CharField(max_length=30, choices=SOURCE_CHOICES) 
+    label       = models.CharField(max_length=100)   
+    amount      = models.DecimalField(max_digits=10, decimal_places=2)
+    pct         = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)  
+    pct_base    = models.CharField(max_length=20, blank=True, default='') 
+    is_auto     = models.BooleanField(default=False)  
+    note        = models.CharField(max_length=200, blank=True, default='')
+    order       = models.PositiveSmallIntegerField(default=0)  
+
+    class Meta:
+        ordering = ['line_type', 'order', 'id']
+
+    def __str__(self):
+        sign = '+' if self.line_type == 'earning' else '-'
+        return f"{sign}₹{self.amount} — {self.label} ({self.payroll.staff.name})"
+class EmployeeFinancialAccount(models.Model):
+    staff = models.OneToOneField(Staff, on_delete=models.CASCADE)
+
+    pf_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    esi_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    loan_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    advance_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    gratuity_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    updated_at = models.DateTimeField(auto_now=True)
+class FinalSettlement(models.Model):
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
+
+    last_working_day = models.DateField()
+
+    pending_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    leave_encashment = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    gratuity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    pf_payable = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    total_deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    final_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    settled_at = models.DateTimeField(null=True, blank=True)
 from django.db import models
 from django.conf import settings
 from django.utils import timezone

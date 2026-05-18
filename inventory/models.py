@@ -6,6 +6,7 @@ from django.utils import timezone
 
 class ItemCategory(models.Model):
     name = models.CharField(max_length=100)
+    is_restaurant = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

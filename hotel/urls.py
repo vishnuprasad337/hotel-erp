@@ -58,6 +58,16 @@ path('dashboard/leave/update/<int:leave_id>/', admin_leave_update,   name='admin
      path('payroll/mark-paid/<int:payroll_id>/',   mark_payroll_paid),
      path('payroll/payslip/<int:payroll_id>/',     payslip),
      path('payroll/payslip/<int:payroll_id>/pdf/', download_payslip_pdf),
+     path('payroll/<int:payroll_id>/',                      payroll_detail),
+path('payroll/<int:payroll_id>/line-items/',           payroll_line_items),
+path('payroll/line-items/<int:item_id>/',              payroll_line_item_detail),
+path('payroll/<int:payroll_id>/recalculate/',          recalculate_payroll),
+path('payroll/staff/<int:staff_id>/history/',          staff_payroll_history),
+path('payroll/staff/<int:staff_id>/financial-account/', financial_account),
+path('payroll/monthly-summary/',                       hotel_monthly_summary),
+path('payroll/export/csv/',                            payroll_export_csv),
+path('payroll/settlements/',                           final_settlements),
+path('payroll/settlements/<int:settlement_id>/',       final_settlement_detail),
     
 
 

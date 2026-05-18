@@ -1794,19 +1794,31 @@ def update_leave_status(request, leave_id):
     return JsonResponse({"success": True})
 import json
 import calendar
+import csv
 from decimal import Decimal
 from io import BytesIO
+from datetime import date, datetime, timedelta
 
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
+from django.views.decorators.http import require_GET, require_POST
+from django.shortcuts import get_object_or_404
+from django.db.models import Sum, Count, Q
+
 
 def _sf(v):
     try:
         return float(v) if v not in (None, '', 'None') else 0.0
     except (TypeError, ValueError):
         return 0.0
+
+
+def _dec(v):
+    try:
+        return Decimal(str(v)) if v not in (None, '', 'None') else Decimal("0")
+    except Exception:
+        return Decimal("0")
 
 
 def _total_days_in_month(month, year):
@@ -1841,23 +1853,16 @@ def _calculate_payroll(staff, month, year):
         from_date__month=month, from_date__year=year,
     ).count()
 
-    total_days = _total_days_in_month(month, year)
-    eligible   = _eligible_days(staff, month, year)
+    total_days   = _total_days_in_month(month, year)
+    eligible     = _eligible_days(staff, month, year)
     is_pro_rated = eligible < total_days
 
     basic_salary = Decimal(str(_sf(staff.salary)))
 
-    if is_pro_rated:
-       
-        pro_rated_basic = (basic_salary / Decimal(str(total_days))) * Decimal(str(eligible))
-    else:
-        pro_rated_basic = basic_salary
+    pro_rated_basic = (basic_salary / Decimal(str(total_days))) * Decimal(str(eligible)) if is_pro_rated else basic_salary
+    per_day         = basic_salary / Decimal(str(total_days)) if total_days else Decimal("0")
+    per_hour        = per_day / Decimal("8")
 
-    
-    per_day  = basic_salary / Decimal(str(total_days)) if total_days else Decimal("0")
-    per_hour = per_day / Decimal("8")
-
-    
     total_deduct_days  = absent_days + approved_leaves
     absent_deduction   = Decimal(str(total_deduct_days)) * per_day
     half_day_deduction = Decimal(str(half_days)) * (per_day / Decimal("2"))
@@ -1885,6 +1890,104 @@ def _calculate_payroll(staff, month, year):
 
 MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
                "July", "August", "September", "October", "November", "December"]
+
+
+def _build_auto_line_items(payroll, calc):
+    from hotel.models import PayrollLineItem
+    items = []
+
+    items.append(PayrollLineItem(
+        payroll=payroll, line_type="earning", source="basic",
+        label="Basic Salary", amount=payroll.basic_salary, is_auto=True, order=1
+    ))
+    if payroll.overtime_amount > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="earning", source="overtime",
+            label=f"Overtime ({calc['overtime_hours']} hrs)",
+            amount=payroll.overtime_amount, is_auto=True, order=2
+        ))
+    if payroll.bonus > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="earning", source="bonus",
+            label="Bonus", amount=payroll.bonus, is_auto=True, order=3
+        ))
+    if payroll.incentive > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="earning", source="incentive",
+            label="Incentive", amount=payroll.incentive, is_auto=True, order=4
+        ))
+    if payroll.deductions > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="deduction", source="leave",
+            label=f"Leave/Absent ({calc['absent_days']} absent + {calc['approved_leaves']} leave, {calc['half_days']} half days)",
+            amount=payroll.deductions, is_auto=True, order=1
+        ))
+    if payroll.pf_amount > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="deduction", source="pf",
+            label="PF (Employee)", amount=payroll.pf_amount, is_auto=True, order=2
+        ))
+    if payroll.esi_amount > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="deduction", source="esi",
+            label="ESI (Employee)", amount=payroll.esi_amount, is_auto=True, order=3
+        ))
+    if payroll.loan_deduction > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="deduction", source="loan",
+            label="Loan Deduction", amount=payroll.loan_deduction, is_auto=True, order=4
+        ))
+    if payroll.tax_deduction > 0:
+        items.append(PayrollLineItem(
+            payroll=payroll, line_type="deduction", source="tax",
+            label="Tax/TDS", amount=payroll.tax_deduction, is_auto=True, order=5
+        ))
+    for e in (payroll.custom_earnings or []):
+        if _sf(e.get("amount")) > 0:
+            items.append(PayrollLineItem(
+                payroll=payroll, line_type="earning", source="custom",
+                label=e.get("label", "Custom Earning"),
+                amount=Decimal(str(_sf(e.get("amount")))), is_auto=False, order=10
+            ))
+    for d in (payroll.custom_deductions or []):
+        if _sf(d.get("amount")) > 0:
+            items.append(PayrollLineItem(
+                payroll=payroll, line_type="deduction", source="custom",
+                label=d.get("label", "Custom Deduction"),
+                amount=Decimal(str(_sf(d.get("amount")))), is_auto=False, order=10
+            ))
+    return items
+
+
+def _sync_line_items(payroll, calc):
+    from hotel.models import PayrollLineItem
+    PayrollLineItem.objects.filter(payroll=payroll, is_auto=True).delete()
+    PayrollLineItem.objects.bulk_create(_build_auto_line_items(payroll, calc))
+
+
+def _recalculate_net(payroll):
+    from hotel.models import PayrollLineItem
+    earnings   = PayrollLineItem.objects.filter(payroll=payroll, line_type="earning").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    deductions = PayrollLineItem.objects.filter(payroll=payroll, line_type="deduction").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    net = max(earnings - deductions, Decimal("0"))
+    payroll.net_salary = net
+    payroll.save(update_fields=["net_salary"])
+    return {"gross": float(earnings), "total_deductions": float(deductions), "net_salary": float(net)}
+
+
+def _line_item_dict(item):
+    return {
+        "id":        item.id,
+        "line_type": item.line_type,
+        "source":    item.source,
+        "label":     item.label,
+        "amount":    float(item.amount),
+        "pct":       float(item.pct) if item.pct else None,
+        "pct_base":  item.pct_base,
+        "is_auto":   item.is_auto,
+        "note":      item.note,
+        "order":     item.order,
+    }
 
 
 def _ensure_payroll_records(hotel_id, month, year):
@@ -1916,6 +2019,8 @@ def _ensure_payroll_records(hotel_id, month, year):
                 "custom_deductions": [],
             },
         )
+        if created:
+            _sync_line_items(p, calc)
         results.append((p, created))
 
     return results
@@ -1963,7 +2068,7 @@ def payroll_dashboard(request):
     from hotel.models import Payroll, Staff
 
     staffs   = Staff.objects.filter(hotel_id=hotel_id).select_related("department", "user")
-    payrolls = Payroll.objects.filter(hotel_id=hotel_id, month=month, year=year)
+    payrolls = Payroll.objects.filter(hotel_id=hotel_id, month=month, year=year).prefetch_related("line_items")
     pmap     = {p.staff_id: p for p in payrolls}
 
     result = []
@@ -1971,51 +2076,333 @@ def payroll_dashboard(request):
         p    = pmap.get(staff.id)
         calc = _calculate_payroll(staff, month, year)
 
-        custom_earn_total   = sum(_sf(e.get("amount")) for e in (p.custom_earnings   or [])) if p else 0
-        custom_deduct_total = sum(_sf(d.get("amount")) for d in (p.custom_deductions or [])) if p else 0
+        earnings_items   = []
+        deductions_items = []
+        total_earnings   = Decimal("0")
+        total_deductions = Decimal("0")
+
+        if p:
+            for item in p.line_items.all():
+                d = _line_item_dict(item)
+                if item.line_type == "earning":
+                    earnings_items.append(d)
+                    total_earnings += item.amount
+                else:
+                    deductions_items.append(d)
+                    total_deductions += item.amount
 
         result.append({
-            "id":              p.id if p else None,
-            "staff":           staff.name,
-            "staff_id":        staff.id,
-            "employee_id":     getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
-            "department":      staff.department.name if staff.department else "—",
-            "email":           staff.user.email if (p and staff.user) else "",
-            "month":           month,
-            "year":            year,
-            "basic_salary":    _sf(p.basic_salary)    if p else float(calc["pro_rated_basic"]),
-            "original_basic":  _sf(staff.salary),
-            "is_pro_rated":    calc["is_pro_rated"],
-            "eligible_days":   calc["eligible_days"],
-            "total_days":      calc["total_days"],
-            "per_day_rate":    float(calc["per_day_rate"]),
-            "per_hour_rate":   float(calc["per_hour_rate"]),
-            "overtime_amount": _sf(p.overtime_amount) if p else float(calc["overtime_amount"]),
-            "bonus":           _sf(p.bonus)           if p else 0,
-            "incentive":       _sf(p.incentive)       if p else 0,
-            "pf_amount":       _sf(p.pf_amount)       if p else 0,
-            "esi_amount":      _sf(p.esi_amount)       if p else 0,
-            "loan_deduction":  _sf(p.loan_deduction)  if p else 0,
-            "tax_deduction":   _sf(p.tax_deduction)   if p else 0,
-            "leave_deduction": float(calc["absent_deduction"] + calc["half_day_deduction"]),
-            "absent_deduction":   float(calc["absent_deduction"]),
-            "half_day_deduction": float(calc["half_day_deduction"]),
-            "deductions":      _sf(p.deductions)      if p else float(calc["absent_deduction"] + calc["half_day_deduction"]),
-            "net_salary":      _sf(p.net_salary)      if p else 0,
-            "paid_status":     p.paid_status if p else "Unpaid",
-            "paid_at":         p.paid_at.strftime("%d %b %Y, %I:%M %p") if (p and p.paid_at) else None,
-            "notes":           p.notes if p else "",
+            "id":                 p.id if p else None,
+            "staff":              staff.name,
+            "staff_id":           staff.id,
+            "employee_id":        getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department":         staff.department.name if staff.department else "—",
+            "email":              staff.user.email if (p and staff.user) else "",
+            "month":              month,
+            "year":               year,
+            "month_label":        MONTH_NAMES[month],
+            "original_basic":     _sf(staff.salary),
+            "basic_salary":       _sf(p.basic_salary) if p else float(calc["pro_rated_basic"]),
+            "is_pro_rated":       calc["is_pro_rated"],
+            "eligible_days":      calc["eligible_days"],
+            "total_days":         calc["total_days"],
+            "per_day_rate":       float(calc["per_day_rate"]),
+            "per_hour_rate":      float(calc["per_hour_rate"]),
             "present_days":       calc["present_days"],
             "absent_days":        calc["absent_days"],
             "half_days":          calc["half_days"],
             "late_days":          calc["late_days"],
             "overtime_hours":     calc["overtime_hours"],
             "approved_leaves":    calc["approved_leaves"],
+            "overtime_amount":    _sf(p.overtime_amount) if p else float(calc["overtime_amount"]),
+            "bonus":              _sf(p.bonus)           if p else 0,
+            "incentive":          _sf(p.incentive)       if p else 0,
+            "pf_amount":          _sf(p.pf_amount)       if p else 0,
+            "esi_amount":         _sf(p.esi_amount)       if p else 0,
+            "loan_deduction":     _sf(p.loan_deduction)  if p else 0,
+            "tax_deduction":      _sf(p.tax_deduction)   if p else 0,
+            "absent_deduction":   float(calc["absent_deduction"]),
+            "half_day_deduction": float(calc["half_day_deduction"]),
+            "leave_deduction":    float(calc["absent_deduction"] + calc["half_day_deduction"]),
+            "deductions":         _sf(p.deductions) if p else float(calc["absent_deduction"] + calc["half_day_deduction"]),
+            "gross_salary":       float(total_earnings),
+            "total_deductions":   float(total_deductions),
+            "net_salary":         _sf(p.net_salary) if p else 0,
+            "paid_status":        p.paid_status if p else "Unpaid",
+            "paid_at":            p.paid_at.strftime("%d %b %Y, %I:%M %p") if (p and p.paid_at) else None,
+            "notes":              p.notes if p else "",
             "custom_earnings":    p.custom_earnings   if p else [],
             "custom_deductions":  p.custom_deductions if p else [],
+            "earnings_items":     earnings_items,
+            "deductions_items":   deductions_items,
         })
 
     return JsonResponse(result, safe=False)
+
+
+def payroll_detail(request, payroll_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll
+
+    try:
+        p = Payroll.objects.select_related(
+            "staff__user", "staff__department", "paid_by"
+        ).prefetch_related("line_items").get(id=payroll_id, hotel_id=hotel_id)
+    except Payroll.DoesNotExist:
+        return JsonResponse({"error": "Payroll not found"}, status=404)
+
+    calc = _calculate_payroll(p.staff, p.month, p.year)
+
+    earnings_items   = [_line_item_dict(i) for i in p.line_items.filter(line_type="earning").order_by("order", "id")]
+    deductions_items = [_line_item_dict(i) for i in p.line_items.filter(line_type="deduction").order_by("order", "id")]
+
+    total_earnings   = sum(i["amount"] for i in earnings_items)
+    total_deductions = sum(i["amount"] for i in deductions_items)
+
+    return JsonResponse({
+        "success":            True,
+        "id":                 p.id,
+        "staff":              p.staff.name,
+        "staff_id":           p.staff.id,
+        "employee_id":        getattr(p.staff, "employee_id", f"EMP{p.staff.id:03d}"),
+        "department":         p.staff.department.name if p.staff.department else "—",
+        "email":              p.staff.user.email if p.staff.user else "",
+        "month":              p.month,
+        "year":               p.year,
+        "month_label":        MONTH_NAMES[p.month],
+        "original_basic":     _sf(p.staff.salary),
+        "basic_salary":       float(p.basic_salary),
+        "is_pro_rated":       calc["is_pro_rated"],
+        "eligible_days":      calc["eligible_days"],
+        "total_days":         calc["total_days"],
+        "per_day_rate":       float(calc["per_day_rate"]),
+        "per_hour_rate":      float(calc["per_hour_rate"]),
+        "present_days":       calc["present_days"],
+        "absent_days":        calc["absent_days"],
+        "half_days":          calc["half_days"],
+        "late_days":          calc["late_days"],
+        "overtime_hours":     calc["overtime_hours"],
+        "approved_leaves":    calc["approved_leaves"],
+        "overtime_amount":    float(p.overtime_amount),
+        "bonus":              float(p.bonus),
+        "incentive":          float(p.incentive),
+        "pf_amount":          float(p.pf_amount),
+        "esi_amount":         float(p.esi_amount),
+        "loan_deduction":     float(p.loan_deduction),
+        "tax_deduction":      float(p.tax_deduction),
+        "absent_deduction":   float(calc["absent_deduction"]),
+        "half_day_deduction": float(calc["half_day_deduction"]),
+        "deductions":         float(p.deductions),
+        "custom_earnings":    p.custom_earnings or [],
+        "custom_deductions":  p.custom_deductions or [],
+        "earnings_items":     earnings_items,
+        "deductions_items":   deductions_items,
+        "gross_salary":       float(total_earnings),
+        "total_deductions":   float(total_deductions),
+        "net_salary":         float(p.net_salary),
+        "paid_status":        p.paid_status,
+        "paid_at":            p.paid_at.strftime("%d %b %Y, %I:%M %p") if p.paid_at else None,
+        "paid_by":            p.paid_by.name if p.paid_by else "—",
+        "notes":              p.notes or "",
+    })
+
+
+@csrf_exempt
+def payroll_line_items(request, payroll_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll, PayrollLineItem
+
+    try:
+        p = Payroll.objects.get(id=payroll_id, hotel_id=hotel_id)
+    except Payroll.DoesNotExist:
+        return JsonResponse({"error": "Payroll not found"}, status=404)
+
+    if request.method == "GET":
+        items    = p.line_items.all().order_by("line_type", "order", "id")
+        earnings = [_line_item_dict(i) for i in items if i.line_type == "earning"]
+        deductions = [_line_item_dict(i) for i in items if i.line_type == "deduction"]
+
+        total_earnings   = sum(i["amount"] for i in earnings)
+        total_deductions = sum(i["amount"] for i in deductions)
+
+        return JsonResponse({
+            "success":          True,
+            "payroll_id":       p.id,
+            "staff":            p.staff.name,
+            "month":            p.month,
+            "year":             p.year,
+            "month_label":      MONTH_NAMES[p.month],
+            "earnings":         earnings,
+            "deductions":       deductions,
+            "total_earnings":   float(total_earnings),
+            "total_deductions": float(total_deductions),
+            "net_salary":       float(p.net_salary),
+            "paid_status":      p.paid_status,
+        })
+
+    if request.method == "POST":
+        if p.paid_status == "Paid":
+            return JsonResponse({"error": "Cannot edit a paid payroll"}, status=400)
+
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        line_type = data.get("line_type", "").strip()
+        source    = data.get("source", "custom").strip()
+        label     = data.get("label", "").strip()
+        amount    = _dec(data.get("amount", 0))
+        pct       = _dec(data.get("pct")) if data.get("pct") else None
+        pct_base  = data.get("pct_base", "").strip()
+        note      = data.get("note", "").strip()
+        order     = int(data.get("order", 10))
+
+        if line_type not in ("earning", "deduction"):
+            return JsonResponse({"error": "line_type must be 'earning' or 'deduction'"}, status=400)
+        if not label:
+            return JsonResponse({"error": "label is required"}, status=400)
+        if amount <= 0 and not pct:
+            return JsonResponse({"error": "amount must be > 0"}, status=400)
+
+        if pct and pct > 0:
+            if pct_base == "basic":
+                base_val = p.basic_salary
+            elif pct_base == "gross":
+                base_val = p.line_items.filter(line_type="earning").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+            else:
+                base_val = p.basic_salary
+            amount = (base_val * pct / Decimal("100")).quantize(Decimal("0.01"))
+
+        item = PayrollLineItem.objects.create(
+            payroll=p, line_type=line_type, source=source,
+            label=label, amount=amount, pct=pct,
+            pct_base=pct_base, note=note, order=order, is_auto=False
+        )
+
+        result = _recalculate_net(p)
+
+        return JsonResponse({
+            "success":          True,
+            "item":             _line_item_dict(item),
+            "net_salary":       result["net_salary"],
+            "gross_salary":     result["gross"],
+            "total_deductions": result["total_deductions"],
+        }, status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def payroll_line_item_detail(request, item_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import PayrollLineItem
+
+    try:
+        item = PayrollLineItem.objects.select_related("payroll__staff").get(
+            id=item_id, payroll__hotel_id=hotel_id
+        )
+    except PayrollLineItem.DoesNotExist:
+        return JsonResponse({"error": "Line item not found"}, status=404)
+
+    p = item.payroll
+
+    if request.method == "GET":
+        return JsonResponse({"success": True, "item": _line_item_dict(item)})
+
+    if request.method in ("POST", "PATCH"):
+        if p.paid_status == "Paid":
+            return JsonResponse({"error": "Cannot edit a paid payroll"}, status=400)
+
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        if "label"  in data: item.label  = data["label"].strip()
+        if "note"   in data: item.note   = data["note"].strip()
+        if "order"  in data: item.order  = int(data["order"])
+        if "source" in data: item.source = data["source"].strip()
+
+        if "pct" in data and data["pct"]:
+            item.pct      = _dec(data["pct"])
+            item.pct_base = data.get("pct_base", item.pct_base)
+            if item.pct_base == "basic":
+                base_val = p.basic_salary
+            elif item.pct_base == "gross":
+                base_val = p.line_items.filter(line_type="earning").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+            else:
+                base_val = p.basic_salary
+            item.amount = (base_val * item.pct / Decimal("100")).quantize(Decimal("0.01"))
+        elif "amount" in data:
+            item.amount = _dec(data["amount"])
+
+        item.save()
+        result = _recalculate_net(p)
+
+        return JsonResponse({
+            "success":          True,
+            "item":             _line_item_dict(item),
+            "net_salary":       result["net_salary"],
+            "gross_salary":     result["gross"],
+            "total_deductions": result["total_deductions"],
+        })
+
+    if request.method == "DELETE":
+        if p.paid_status == "Paid":
+            return JsonResponse({"error": "Cannot edit a paid payroll"}, status=400)
+        if item.is_auto:
+            return JsonResponse({"error": "Auto-generated items cannot be deleted directly. Edit the payroll fields instead."}, status=400)
+        item.delete()
+        result = _recalculate_net(p)
+        return JsonResponse({
+            "success":          True,
+            "net_salary":       result["net_salary"],
+            "gross_salary":     result["gross"],
+            "total_deductions": result["total_deductions"],
+        })
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def recalculate_payroll(request, payroll_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll
+
+    try:
+        p = Payroll.objects.select_related("staff").get(id=payroll_id, hotel_id=hotel_id)
+    except Payroll.DoesNotExist:
+        return JsonResponse({"error": "Payroll not found"}, status=404)
+
+    if p.paid_status == "Paid":
+        return JsonResponse({"error": "Cannot edit a paid payroll"}, status=400)
+
+    calc = _calculate_payroll(p.staff, p.month, p.year)
+    _sync_line_items(p, calc)
+    result = _recalculate_net(p)
+
+    return JsonResponse({
+        "success":          True,
+        "net_salary":       result["net_salary"],
+        "gross_salary":     result["gross"],
+        "total_deductions": result["total_deductions"],
+    })
 
 
 @csrf_exempt
@@ -2061,31 +2448,217 @@ def update_payroll(request, payroll_id=None, pk=None):
 
     if "leave_deduction" in data:
         p.deductions = max(Decimal("0"), Decimal(str(_sf(data["leave_deduction"]))))
-
     if "custom_earnings"   in data: p.custom_earnings   = data["custom_earnings"]
     if "custom_deductions" in data: p.custom_deductions = data["custom_deductions"]
     if "notes"             in data: p.notes             = data["notes"]
 
-    custom_earn_total   = sum(_sf(e.get("amount")) for e in (p.custom_earnings   or []))
-    custom_deduct_total = sum(_sf(d.get("amount")) for d in (p.custom_deductions or []))
-
-    gross = (
-        p.basic_salary + p.overtime_amount + p.bonus + p.incentive
-        + Decimal(str(custom_earn_total))
-    )
-    total_deductions = (
-        p.deductions + p.pf_amount + p.esi_amount
-        + p.loan_deduction + p.tax_deduction
-        + Decimal(str(custom_deduct_total))
-    )
-    p.net_salary = max(gross - total_deductions, Decimal("0"))
     p.save()
+
+    calc = _calculate_payroll(p.staff, p.month, p.year)
+    _sync_line_items(p, calc)
+    result = _recalculate_net(p)
 
     return JsonResponse({
         "success":          True,
-        "net_salary":       float(p.net_salary),
-        "gross_salary":     float(gross),
-        "total_deductions": float(total_deductions),
+        "net_salary":       result["net_salary"],
+        "gross_salary":     result["gross"],
+        "total_deductions": result["total_deductions"],
+    })
+
+
+def staff_payroll_history(request, staff_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll
+    from accounts.models import Staff
+
+    try:
+        staff = Staff.objects.select_related("department", "user").get(id=staff_id, hotel_id=hotel_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    year = request.GET.get("year")
+    qs = Payroll.objects.filter(staff=staff, hotel_id=hotel_id).prefetch_related("line_items").order_by("-year", "-month")
+    if year:
+        qs = qs.filter(year=int(year))
+
+    history = []
+    for p in qs:
+        earnings_items   = [_line_item_dict(i) for i in p.line_items.filter(line_type="earning").order_by("order", "id")]
+        deductions_items = [_line_item_dict(i) for i in p.line_items.filter(line_type="deduction").order_by("order", "id")]
+
+        total_earnings   = sum(i["amount"] for i in earnings_items)
+        total_deductions = sum(i["amount"] for i in deductions_items)
+
+        earnings_by_source   = {}
+        deductions_by_source = {}
+        for i in earnings_items:
+            earnings_by_source.setdefault(i["source"], {"source": i["source"], "total": 0.0, "items": []})
+            earnings_by_source[i["source"]]["total"] += i["amount"]
+            earnings_by_source[i["source"]]["items"].append(i)
+        for i in deductions_items:
+            deductions_by_source.setdefault(i["source"], {"source": i["source"], "total": 0.0, "items": []})
+            deductions_by_source[i["source"]]["total"] += i["amount"]
+            deductions_by_source[i["source"]]["items"].append(i)
+
+        history.append({
+            "id":                    p.id,
+            "month":                 p.month,
+            "year":                  p.year,
+            "month_label":           MONTH_NAMES[p.month],
+            "basic_salary":          float(p.basic_salary),
+            "overtime_amount":       float(p.overtime_amount),
+            "bonus":                 float(p.bonus),
+            "incentive":             float(p.incentive),
+            "pf_amount":             float(p.pf_amount),
+            "esi_amount":            float(p.esi_amount),
+            "loan_deduction":        float(p.loan_deduction),
+            "tax_deduction":         float(p.tax_deduction),
+            "deductions":            float(p.deductions),
+            "gross_salary":          float(total_earnings),
+            "total_deductions":      float(total_deductions),
+            "net_salary":            float(p.net_salary),
+            "paid_status":           p.paid_status,
+            "paid_at":               p.paid_at.strftime("%d %b %Y, %I:%M %p") if p.paid_at else None,
+            "paid_by":               p.paid_by.name if p.paid_by else "—",
+            "notes":                 p.notes or "",
+            "earnings_items":        earnings_items,
+            "deductions_items":      deductions_items,
+            "earnings_by_source":    list(earnings_by_source.values()),
+            "deductions_by_source":  list(deductions_by_source.values()),
+        })
+
+    yearly_totals = {
+        "total_gross":      sum(h["gross_salary"]     for h in history),
+        "total_deductions": sum(h["total_deductions"] for h in history),
+        "total_net":        sum(h["net_salary"]        for h in history),
+        "paid_months":      sum(1 for h in history if h["paid_status"] == "Paid"),
+        "total_months":     len(history),
+    }
+
+    return JsonResponse({
+        "success":       True,
+        "staff_id":      staff.id,
+        "staff":         staff.name,
+        "employee_id":   getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+        "department":    staff.department.name if staff.department else "—",
+        "year_filter":   year,
+        "yearly_totals": yearly_totals,
+        "history":       history,
+    })
+
+
+def hotel_monthly_summary(request):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll
+
+    year     = int(request.GET.get("year", timezone.now().year))
+    payrolls = Payroll.objects.filter(hotel_id=hotel_id, year=year).prefetch_related("line_items", "staff__department")
+
+    monthly = {}
+    for p in payrolls:
+        key = p.month
+        if key not in monthly:
+            monthly[key] = {
+                "month":                 key,
+                "month_label":           MONTH_NAMES[key],
+                "year":                  year,
+                "staff_count":           0,
+                "paid_count":            0,
+                "unpaid_count":          0,
+                "total_basic":           0.0,
+                "total_overtime":        0.0,
+                "total_bonus":           0.0,
+                "total_incentive":       0.0,
+                "total_pf":              0.0,
+                "total_esi":             0.0,
+                "total_loan":            0.0,
+                "total_tax":             0.0,
+                "total_leave_deduction": 0.0,
+                "total_gross":           0.0,
+                "total_deductions":      0.0,
+                "total_net":             0.0,
+                "by_department":         {},
+                "staff_records":         [],
+            }
+
+        m = monthly[key]
+        m["staff_count"]          += 1
+        m["total_basic"]          += float(p.basic_salary)
+        m["total_overtime"]       += float(p.overtime_amount)
+        m["total_bonus"]          += float(p.bonus)
+        m["total_incentive"]      += float(p.incentive)
+        m["total_pf"]             += float(p.pf_amount)
+        m["total_esi"]            += float(p.esi_amount)
+        m["total_loan"]           += float(p.loan_deduction)
+        m["total_tax"]            += float(p.tax_deduction)
+        m["total_leave_deduction"] += float(p.deductions)
+        m["total_net"]            += float(p.net_salary)
+
+        if p.paid_status == "Paid":
+            m["paid_count"] += 1
+        else:
+            m["unpaid_count"] += 1
+
+        earnings   = p.line_items.filter(line_type="earning").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+        deductions = p.line_items.filter(line_type="deduction").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+        m["total_gross"]      += float(earnings)
+        m["total_deductions"] += float(deductions)
+
+        dept_name = p.staff.department.name if p.staff.department else "Unassigned"
+        if dept_name not in m["by_department"]:
+            m["by_department"][dept_name] = {
+                "department":  dept_name,
+                "staff_count": 0,
+                "total_gross": 0.0,
+                "total_net":   0.0,
+            }
+        m["by_department"][dept_name]["staff_count"] += 1
+        m["by_department"][dept_name]["total_gross"] += float(earnings)
+        m["by_department"][dept_name]["total_net"]   += float(p.net_salary)
+
+        m["staff_records"].append({
+            "payroll_id":  p.id,
+            "staff":       p.staff.name,
+            "staff_id":    p.staff.id,
+            "employee_id": getattr(p.staff, "employee_id", f"EMP{p.staff.id:03d}"),
+            "department":  dept_name,
+            "gross":       float(earnings),
+            "deductions":  float(deductions),
+            "net":         float(p.net_salary),
+            "paid_status": p.paid_status,
+        })
+
+    for m in monthly.values():
+        m["by_department"] = list(m["by_department"].values())
+
+    sorted_months = sorted(monthly.values(), key=lambda x: x["month"])
+
+    year_totals = {
+        "total_basic":           sum(m["total_basic"]           for m in sorted_months),
+        "total_overtime":        sum(m["total_overtime"]        for m in sorted_months),
+        "total_bonus":           sum(m["total_bonus"]           for m in sorted_months),
+        "total_incentive":       sum(m["total_incentive"]       for m in sorted_months),
+        "total_pf":              sum(m["total_pf"]              for m in sorted_months),
+        "total_esi":             sum(m["total_esi"]             for m in sorted_months),
+        "total_loan":            sum(m["total_loan"]            for m in sorted_months),
+        "total_tax":             sum(m["total_tax"]             for m in sorted_months),
+        "total_leave_deduction": sum(m["total_leave_deduction"] for m in sorted_months),
+        "total_gross":           sum(m["total_gross"]           for m in sorted_months),
+        "total_deductions":      sum(m["total_deductions"]      for m in sorted_months),
+        "total_net":             sum(m["total_net"]             for m in sorted_months),
+    }
+
+    return JsonResponse({
+        "success":     True,
+        "year":        year,
+        "monthly":     sorted_months,
+        "year_totals": year_totals,
     })
 
 
@@ -2166,29 +2739,23 @@ def payslip(request, payroll_id):
     if not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
 
-    from hotel.models import Payroll, Hotel
+    from hotel.models import Payroll
+    from accounts.models import Hotel
 
     try:
         p = Payroll.objects.select_related(
             "staff__user", "staff__department", "paid_by"
-        ).get(id=payroll_id, hotel_id=hotel_id)
+        ).prefetch_related("line_items").get(id=payroll_id, hotel_id=hotel_id)
     except Payroll.DoesNotExist:
         return JsonResponse({"error": "Payroll record not found.", "success": False}, status=404)
 
     calc = _calculate_payroll(p.staff, p.month, p.year)
 
-    custom_earn_total   = sum(_sf(e.get("amount")) for e in (p.custom_earnings   or []))
-    custom_deduct_total = sum(_sf(d.get("amount")) for d in (p.custom_deductions or []))
+    earnings_items   = [_line_item_dict(i) for i in p.line_items.filter(line_type="earning").order_by("order", "id")]
+    deductions_items = [_line_item_dict(i) for i in p.line_items.filter(line_type="deduction").order_by("order", "id")]
 
-    gross = (
-        p.basic_salary + p.overtime_amount + p.bonus + p.incentive
-        + Decimal(str(custom_earn_total))
-    )
-    total_deductions = (
-        p.deductions + p.pf_amount + p.esi_amount
-        + p.loan_deduction + p.tax_deduction
-        + Decimal(str(custom_deduct_total))
-    )
+    total_earnings   = sum(i["amount"] for i in earnings_items)
+    total_deductions = sum(i["amount"] for i in deductions_items)
 
     try:
         hotel          = Hotel.objects.get(id=hotel_id)
@@ -2203,6 +2770,7 @@ def payslip(request, payroll_id):
         "success":            True,
         "id":                 p.id,
         "staff":              p.staff.name,
+        "staff_id":           p.staff.id,
         "employee_id":        getattr(p.staff, "employee_id", f"EMP{p.staff.id:03d}"),
         "department":         p.staff.department.name if p.staff.department else "—",
         "email":              p.staff.user.email if p.staff.user else "",
@@ -2213,32 +2781,34 @@ def payslip(request, payroll_id):
         "hotel_logo_url":     hotel_logo_url,
         "hotel_address":      hotel_address,
         "hotel_email":        hotel_email,
-        "basic_salary":       float(p.basic_salary),
         "original_basic":     _sf(p.staff.salary),
+        "basic_salary":       float(p.basic_salary),
         "is_pro_rated":       calc["is_pro_rated"],
         "eligible_days":      calc["eligible_days"],
         "total_days":         calc["total_days"],
         "per_day_rate":       float(calc["per_day_rate"]),
         "per_hour_rate":      float(calc["per_hour_rate"]),
-        "overtime_amount":    float(p.overtime_amount),
-        "bonus":              float(p.bonus),
-        "incentive":          float(p.incentive),
-        "gross_salary":       float(gross),
-        "custom_earnings":    p.custom_earnings or [],
         "present_days":       calc["present_days"],
         "absent_days":        calc["absent_days"],
         "half_days":          calc["half_days"],
         "late_days":          calc["late_days"],
         "overtime_hours":     calc["overtime_hours"],
         "approved_leaves":    calc["approved_leaves"],
-        "leave_deduction":    float(p.deductions),
-        "absent_deduction":   float(calc["absent_deduction"]),
-        "half_day_deduction": float(calc["half_day_deduction"]),
+        "overtime_amount":    float(p.overtime_amount),
+        "bonus":              float(p.bonus),
+        "incentive":          float(p.incentive),
         "pf_amount":          float(p.pf_amount),
         "esi_amount":         float(p.esi_amount),
         "loan_deduction":     float(p.loan_deduction),
         "tax_deduction":      float(p.tax_deduction),
+        "absent_deduction":   float(calc["absent_deduction"]),
+        "half_day_deduction": float(calc["half_day_deduction"]),
+        "deductions":         float(p.deductions),
+        "custom_earnings":    p.custom_earnings or [],
         "custom_deductions":  p.custom_deductions or [],
+        "earnings_items":     earnings_items,
+        "deductions_items":   deductions_items,
+        "gross_salary":       float(total_earnings),
         "total_deductions":   float(total_deductions),
         "net_salary":         float(p.net_salary),
         "paid_status":        p.paid_status,
@@ -2253,12 +2823,13 @@ def download_payslip_pdf(request, payroll_id):
     if not hotel_id:
         return HttpResponse("Login required", status=401)
 
-    from hotel.models import Payroll, Hotel
+    from hotel.models import Payroll
+    from accounts.models import Hotel
 
     try:
         p = Payroll.objects.select_related(
             "staff__user", "staff__department", "paid_by"
-        ).get(id=payroll_id, hotel_id=hotel_id)
+        ).prefetch_related("line_items").get(id=payroll_id, hotel_id=hotel_id)
     except Payroll.DoesNotExist:
         return HttpResponse("Not found", status=404)
 
@@ -2282,28 +2853,20 @@ def _generate_payslip_pdf(payroll, hotel):
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.styles import getSampleStyleSheet
-    from io import BytesIO
-    from decimal import Decimal
 
-    p = payroll
+    p      = payroll
     styles = getSampleStyleSheet()
-    buf = BytesIO()
+    buf    = BytesIO()
 
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=20*mm,
-        rightMargin=20*mm,
-        topMargin=20*mm,
-        bottomMargin=20*mm
-    )
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        leftMargin=20*mm, rightMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
 
     month_label = MONTH_NAMES[p.month]
-    hotel_name = hotel.hotel_name if hotel else "Hotel ERP"
+    hotel_name  = hotel.hotel_name if hotel else "Hotel ERP"
 
-    story = []
+    story       = []
     header_data = []
-    logo_img = None
+    logo_img    = None
 
     if hotel and hotel.logo:
         try:
@@ -2313,13 +2876,8 @@ def _generate_payslip_pdf(payroll, hotel):
             pass
 
     title = Paragraph(f"<b>{hotel_name}</b>", styles["Title"])
-    if logo_img:
-        header_data.append([logo_img, title])
-    else:
-        header_data.append(["", title])
-
-    header_table = Table(header_data, colWidths=[60, 400])
-    story.append(header_table)
+    header_data.append([logo_img or "", title])
+    story.append(Table(header_data, colWidths=[60, 400]))
     story.append(Spacer(1, 5))
     story.append(Paragraph(f"Payslip - {month_label} {p.year}", styles["Heading2"]))
     story.append(Spacer(1, 10))
@@ -2329,59 +2887,30 @@ def _generate_payslip_pdf(payroll, hotel):
     story.append(Paragraph(f"Email: {p.staff.user.email if p.staff.user else '-'}", styles["Normal"]))
     story.append(Spacer(1, 12))
 
-    custom_earnings   = p.custom_earnings   or []
-    custom_deductions = p.custom_deductions or []
-    custom_earn_total   = sum(_sf(e.get("amount")) for e in custom_earnings)
-    custom_deduct_total = sum(_sf(d.get("amount")) for d in custom_deductions)
+    earnings_items   = list(p.line_items.filter(line_type="earning").order_by("order", "id"))
+    deductions_items = list(p.line_items.filter(line_type="deduction").order_by("order", "id"))
 
-    gross = float(
-        p.basic_salary + p.overtime_amount + p.bonus + p.incentive + Decimal(str(custom_earn_total))
-    )
-    total_deductions = float(
-        p.deductions + p.pf_amount + p.esi_amount +
-        p.loan_deduction + p.tax_deduction + Decimal(str(custom_deduct_total))
-    )
+    total_earnings   = sum(float(i.amount) for i in earnings_items)
+    total_deductions = sum(float(i.amount) for i in deductions_items)
 
     story.append(Paragraph("<b>Salary Details</b>", styles["Heading3"]))
     story.append(Spacer(1, 8))
 
-    earnings_rows = [
-        ["Basic Salary", f"{float(p.basic_salary):,.2f}"],
-        ["Overtime",     f"{float(p.overtime_amount):,.2f}"],
-        ["Bonus",        f"{float(p.bonus):,.2f}"],
-        ["Incentive",    f"{float(p.incentive):,.2f}"],
-    ]
-    for e in custom_earnings:
-        amt = _sf(e.get("amount"))
-        if amt > 0:
-            earnings_rows.append([e.get("label", "Allowance"), f"{amt:,.2f}"])
-    earnings_rows.append(["Gross Salary", f"{gross:,.2f}"])
+    earn_rows = [[i.label, f"{float(i.amount):,.2f}"] for i in earnings_items]
+    earn_rows.append(["Gross Salary", f"{total_earnings:,.2f}"])
 
-    deduction_rows = [
-        ["Leave/Absent Deduction", f"{float(p.deductions):,.2f}"],
-        ["PF",                     f"{float(p.pf_amount):,.2f}"],
-        ["ESI",                    f"{float(p.esi_amount):,.2f}"],
-        ["Loan",                   f"{float(p.loan_deduction):,.2f}"],
-        ["Tax",                    f"{float(p.tax_deduction):,.2f}"],
-    ]
-    for d in custom_deductions:
-        amt = _sf(d.get("amount"))
-        if amt > 0:
-            deduction_rows.append([d.get("label", "Deduction"), f"{amt:,.2f}"])
-    deduction_rows.append(["Total Deduction", f"{total_deductions:,.2f}"])
+    ded_rows = [[i.label, f"{float(i.amount):,.2f}"] for i in deductions_items]
+    ded_rows.append(["Total Deduction", f"{total_deductions:,.2f}"])
 
-    max_len = max(len(earnings_rows), len(deduction_rows))
-    while len(earnings_rows)   < max_len: earnings_rows.append(["", ""])
-    while len(deduction_rows)  < max_len: deduction_rows.append(["", ""])
+    max_len = max(len(earn_rows), len(ded_rows))
+    while len(earn_rows) < max_len: earn_rows.append(["", ""])
+    while len(ded_rows)  < max_len: ded_rows.append(["", ""])
 
-    table_data = [["Earnings", "Amount", "Deductions", "Amount"]]
+    table_data = [["Earnings", "Amount (₹)", "Deductions", "Amount (₹)"]]
     for i in range(max_len):
-        table_data.append([
-            earnings_rows[i][0],  earnings_rows[i][1],
-            deduction_rows[i][0], deduction_rows[i][1],
-        ])
+        table_data.append([earn_rows[i][0], earn_rows[i][1], ded_rows[i][0], ded_rows[i][1]])
 
-    main_table = Table(table_data, colWidths=[140, 80, 140, 80])
+    main_table = Table(table_data, colWidths=[145, 75, 145, 75])
     main_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
         ("TEXTCOLOR",  (0, 0), (-1, 0), colors.white),
@@ -2389,14 +2918,13 @@ def _generate_payslip_pdf(payroll, hotel):
         ("GRID",       (0, 0), (-1, -1), 0.5, colors.black),
         ("BACKGROUND", (0, 1), (1, -1), colors.HexColor("#ecfdf5")),
         ("BACKGROUND", (2, 1), (3, -1), colors.HexColor("#fef2f2")),
+        ("FONTNAME",   (0, max_len), (1, max_len), "Helvetica-Bold"),
+        ("FONTNAME",   (2, max_len), (3, max_len), "Helvetica-Bold"),
     ]))
 
     story.append(main_table)
     story.append(Spacer(1, 20))
-    story.append(Paragraph(
-        f"<b>Net Salary: Rs. {float(p.net_salary):,.2f}</b>",
-        styles["Heading2"]
-    ))
+    story.append(Paragraph(f"<b>Net Salary: ₹{float(p.net_salary):,.2f}</b>", styles["Heading2"]))
 
     doc.build(story)
     pdf = buf.getvalue()
@@ -2410,11 +2938,11 @@ def _send_payslip_email(payroll, hotel, payment_mode, reference, pdf_bytes):
     from email import encoders
     from django.conf import settings
 
-    p = payroll
+    p           = payroll
     month_label = MONTH_NAMES[p.month]
-    subject    = f"Salary Credited - {month_label} {p.year}"
-    from_email = settings.DEFAULT_FROM_EMAIL
-    to_email   = [p.staff.user.email]
+    subject     = f"Salary Credited - {month_label} {p.year}"
+    from_email  = settings.DEFAULT_FROM_EMAIL
+    to_email    = [p.staff.user.email]
 
     body = f"""Dear {p.staff.name},
 
@@ -2434,6 +2962,281 @@ HR"""
     part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
     msg.attach(part)
     msg.send()
+
+
+@csrf_exempt
+def financial_account(request, staff_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import EmployeeFinancialAccount
+    from accounts.models import Staff
+
+    try:
+        staff = Staff.objects.select_related("department").get(id=staff_id, hotel_id=hotel_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    account, _ = EmployeeFinancialAccount.objects.get_or_create(staff=staff)
+
+    if request.method == "GET":
+        return JsonResponse({
+            "success":          True,
+            "staff_id":         staff.id,
+            "staff":            staff.name,
+            "employee_id":      getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department":       staff.department.name if staff.department else "—",
+            "pf_balance":       float(account.pf_balance),
+            "esi_balance":      float(account.esi_balance),
+            "loan_balance":     float(account.loan_balance),
+            "advance_balance":  float(account.advance_balance),
+            "gratuity_balance": float(account.gratuity_balance),
+            "updated_at":       account.updated_at.strftime("%d %b %Y, %I:%M %p"),
+        })
+
+    if request.method in ("POST", "PATCH"):
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        if "pf_balance"       in data: account.pf_balance       = _dec(data["pf_balance"])
+        if "esi_balance"      in data: account.esi_balance       = _dec(data["esi_balance"])
+        if "loan_balance"     in data: account.loan_balance      = _dec(data["loan_balance"])
+        if "advance_balance"  in data: account.advance_balance   = _dec(data["advance_balance"])
+        if "gratuity_balance" in data: account.gratuity_balance  = _dec(data["gratuity_balance"])
+
+        account.save()
+
+        return JsonResponse({
+            "success":          True,
+            "pf_balance":       float(account.pf_balance),
+            "esi_balance":      float(account.esi_balance),
+            "loan_balance":     float(account.loan_balance),
+            "advance_balance":  float(account.advance_balance),
+            "gratuity_balance": float(account.gratuity_balance),
+            "updated_at":       account.updated_at.strftime("%d %b %Y, %I:%M %p"),
+        })
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def final_settlements(request):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import FinalSettlement
+    from accounts.models import Staff
+
+    if request.method == "GET":
+        qs = FinalSettlement.objects.filter(staff__hotel_id=hotel_id).select_related("staff__department").order_by("-last_working_day")
+
+        data = []
+        for s in qs:
+            data.append({
+                "id":               s.id,
+                "staff_id":         s.staff.id,
+                "staff":            s.staff.name,
+                "employee_id":      getattr(s.staff, "employee_id", f"EMP{s.staff.id:03d}"),
+                "department":       s.staff.department.name if s.staff.department else "—",
+                "last_working_day": str(s.last_working_day),
+                "pending_salary":   float(s.pending_salary),
+                "leave_encashment": float(s.leave_encashment),
+                "gratuity":         float(s.gratuity),
+                "pf_payable":       float(s.pf_payable),
+                "total_deductions": float(s.total_deductions),
+                "final_amount":     float(s.final_amount),
+                "settled_at":       s.settled_at.strftime("%d %b %Y, %I:%M %p") if s.settled_at else None,
+            })
+
+        return JsonResponse({"success": True, "count": len(data), "settlements": data})
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        staff_id = data.get("staff_id")
+        if not staff_id:
+            return JsonResponse({"error": "staff_id is required"}, status=400)
+
+        try:
+            staff = Staff.objects.get(id=staff_id, hotel_id=hotel_id)
+        except Staff.DoesNotExist:
+            return JsonResponse({"error": "Staff not found"}, status=404)
+
+        pending_salary   = _dec(data.get("pending_salary", 0))
+        leave_encashment = _dec(data.get("leave_encashment", 0))
+        gratuity         = _dec(data.get("gratuity", 0))
+        pf_payable       = _dec(data.get("pf_payable", 0))
+        total_deductions = _dec(data.get("total_deductions", 0))
+
+        final_amount = max(
+            pending_salary + leave_encashment + gratuity + pf_payable - total_deductions,
+            Decimal("0")
+        )
+
+        last_working_day_str = data.get("last_working_day")
+        try:
+            last_working_day = datetime.strptime(last_working_day_str, "%Y-%m-%d").date()
+        except Exception:
+            return JsonResponse({"error": "last_working_day is required (YYYY-MM-DD)"}, status=400)
+
+        settlement = FinalSettlement.objects.create(
+            staff=staff,
+            last_working_day=last_working_day,
+            pending_salary=pending_salary,
+            leave_encashment=leave_encashment,
+            gratuity=gratuity,
+            pf_payable=pf_payable,
+            total_deductions=total_deductions,
+            final_amount=final_amount,
+            settled_at=timezone.now() if data.get("mark_settled") else None,
+        )
+
+        return JsonResponse({
+            "success":          True,
+            "id":               settlement.id,
+            "staff":            staff.name,
+            "final_amount":     float(settlement.final_amount),
+            "last_working_day": str(settlement.last_working_day),
+            "settled_at":       settlement.settled_at.strftime("%d %b %Y, %I:%M %p") if settlement.settled_at else None,
+        }, status=201)
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def final_settlement_detail(request, settlement_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import FinalSettlement
+
+    try:
+        s = FinalSettlement.objects.select_related("staff__department").get(
+            id=settlement_id, staff__hotel_id=hotel_id
+        )
+    except FinalSettlement.DoesNotExist:
+        return JsonResponse({"error": "Settlement not found"}, status=404)
+
+    if request.method == "GET":
+        return JsonResponse({
+            "success":          True,
+            "id":               s.id,
+            "staff_id":         s.staff.id,
+            "staff":            s.staff.name,
+            "employee_id":      getattr(s.staff, "employee_id", f"EMP{s.staff.id:03d}"),
+            "department":       s.staff.department.name if s.staff.department else "—",
+            "last_working_day": str(s.last_working_day),
+            "pending_salary":   float(s.pending_salary),
+            "leave_encashment": float(s.leave_encashment),
+            "gratuity":         float(s.gratuity),
+            "pf_payable":       float(s.pf_payable),
+            "total_deductions": float(s.total_deductions),
+            "final_amount":     float(s.final_amount),
+            "settled_at":       s.settled_at.strftime("%d %b %Y, %I:%M %p") if s.settled_at else None,
+        })
+
+    if request.method in ("POST", "PATCH"):
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+        if "pending_salary"   in data: s.pending_salary   = _dec(data["pending_salary"])
+        if "leave_encashment" in data: s.leave_encashment = _dec(data["leave_encashment"])
+        if "gratuity"         in data: s.gratuity         = _dec(data["gratuity"])
+        if "pf_payable"       in data: s.pf_payable       = _dec(data["pf_payable"])
+        if "total_deductions" in data: s.total_deductions = _dec(data["total_deductions"])
+        if "last_working_day" in data:
+            try:
+                s.last_working_day = datetime.strptime(data["last_working_day"], "%Y-%m-%d").date()
+            except Exception:
+                pass
+        if data.get("mark_settled") and not s.settled_at:
+            s.settled_at = timezone.now()
+
+        s.final_amount = max(
+            s.pending_salary + s.leave_encashment + s.gratuity + s.pf_payable - s.total_deductions,
+            Decimal("0")
+        )
+        s.save()
+
+        return JsonResponse({
+            "success":      True,
+            "final_amount": float(s.final_amount),
+            "settled_at":   s.settled_at.strftime("%d %b %Y, %I:%M %p") if s.settled_at else None,
+        })
+
+    if request.method == "DELETE":
+        s.delete()
+        return JsonResponse({"success": True, "deleted": settlement_id})
+
+    return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+def payroll_export_csv(request):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    from hotel.models import Payroll
+
+    month = int(request.GET.get("month", timezone.now().month))
+    year  = int(request.GET.get("year",  timezone.now().year))
+
+    payrolls = Payroll.objects.filter(hotel_id=hotel_id, month=month, year=year).select_related(
+        "staff__department", "staff__user", "paid_by"
+    ).prefetch_related("line_items")
+
+    month_label = MONTH_NAMES[month]
+    filename    = f"Payroll_{month_label}_{year}.csv"
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "Employee ID", "Name", "Department", "Email",
+        "Basic", "Overtime", "Bonus", "Incentive",
+        "Gross", "Leave Deduction", "PF", "ESI",
+        "Loan", "Tax", "Custom Deductions", "Total Deductions",
+        "Net Salary", "Status", "Paid At",
+    ])
+
+    for p in payrolls:
+        earnings   = float(p.line_items.filter(line_type="earning").aggregate(t=Sum("amount"))["t"] or 0)
+        deductions = float(p.line_items.filter(line_type="deduction").aggregate(t=Sum("amount"))["t"] or 0)
+        custom_ded = sum(_sf(d.get("amount")) for d in (p.custom_deductions or []))
+
+        writer.writerow([
+            getattr(p.staff, "employee_id", f"EMP{p.staff.id:03d}"),
+            p.staff.name,
+            p.staff.department.name if p.staff.department else "—",
+            p.staff.user.email if p.staff.user else "",
+            float(p.basic_salary),
+            float(p.overtime_amount),
+            float(p.bonus),
+            float(p.incentive),
+            earnings,
+            float(p.deductions),
+            float(p.pf_amount),
+            float(p.esi_amount),
+            float(p.loan_deduction),
+            float(p.tax_deduction),
+            custom_ded,
+            deductions,
+            float(p.net_salary),
+            p.paid_status,
+            p.paid_at.strftime("%d %b %Y") if p.paid_at else "",
+        ])
+
+    return response
 #----------------------FRONTDESK MODULE----------------------
 
 from django.contrib.auth.decorators import login_required
