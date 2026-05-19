@@ -764,16 +764,31 @@ def update_staff_profile(request):
 #----------------------HOUSEKEEPING MODULE----------------------
 from django.shortcuts import render, redirect
 from django.utils import timezone
-
 from django.utils import timezone
-
 def housekeeping_dashboard(request):
     staff_id = request.session.get("staff_id")
+
     if not staff_id:
         return redirect("staff_login")
 
-    staff = Staff.objects.select_related("department").get(id=staff_id)
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department"
+        ).get(id=staff_id)
 
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
+    
+    HK_KEYWORDS = ['housekeeping', 'hk', 'cleaning', 'laundry']
+    dept_name = (staff.department.name.lower() if staff.department else "")
+    role      = (getattr(staff, 'role', '') or '').lower()
+    combined  = dept_name + " " + role
+
+    if not any(k in combined for k in HK_KEYWORDS):
+        return redirect("staff_login")
     my_tasks = Task.objects.filter(
         staff=staff
     ).select_related("room_unit", "room_unit__room")
@@ -796,60 +811,222 @@ def housekeeping_dashboard(request):
     tasks = my_tasks.filter(status="Pending")
     all_tasks = my_tasks
 
-   
     today = timezone.now().date()
 
-    # This month's attendance for the logged-in staff
     monthly_attendance = Attendance.objects.filter(
         staff=staff,
         date__month=today.month,
         date__year=today.year,
     ).order_by("date")
 
-    
-    present_days   = monthly_attendance.filter(status__in=["Present", "Late"]).count()
-    late_days      = monthly_attendance.filter(status="Late").count()
-    absent_days    = monthly_attendance.filter(status="Absent").count()
-    overtime_hours = sum(
-        float(a.overtime_hours or 0) for a in monthly_attendance
-    )
+    present_days = monthly_attendance.filter(status="Present").count()
+    half_days = monthly_attendance.filter(status="Half Day").count()
+    late_days = monthly_attendance.filter(status="Late").count()
+    absent_days = monthly_attendance.filter(status="Absent").count()
 
-    
+    overtime_hours = monthly_attendance.aggregate(
+        total=Sum("overtime_hours")
+    )["total"] or 0
+
     attendance_records = []
+
     for att in monthly_attendance:
         working_hours = 0.0
+
         if att.check_in and att.check_out:
             working_hours = round(
-                (att.check_out - att.check_in).total_seconds() / 3600, 2
+                (att.check_out - att.check_in).total_seconds() / 3600,
+                2
             )
+
         attendance_records.append({
-            "date":          att.date,
-            "check_in":      att.check_in.strftime("%H:%M") if att.check_in else "—",
-            "check_out":     att.check_out.strftime("%H:%M") if att.check_out else "—",
-            "status":        att.status,
+            "date": att.date,
+            "check_in": att.check_in.strftime("%H:%M") if att.check_in else "—",
+            "check_out": att.check_out.strftime("%H:%M") if att.check_out else "—",
+            "status": att.status,
             "working_hours": working_hours,
-            "overtime":      float(att.overtime_hours or 0),
+            "overtime": float(att.overtime_hours or 0),
         })
-   
+
+    leave_requests = LeaveRequest.objects.filter(
+        staff=staff
+    ).order_by("-applied_at")
+
+    used_leave_days = leave_requests.filter(status="Approved").count()
+    pending_leaves = leave_requests.filter(status="Pending").count()
+
+    from hotel.models import Payroll
+
+    month = today.month
+    year = today.year
+
+    MONTH_NAMES = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    payroll = Payroll.objects.filter(
+        staff=staff,
+        month=month,
+        year=year,
+    ).prefetch_related("line_items").first()
+
+    payroll_history = Payroll.objects.filter(
+        staff=staff
+    ).order_by("-year", "-month")
+
+    payroll_history_list = []
+
+    for p in payroll_history:
+        earnings = float(
+            p.line_items.filter(line_type="earning")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+
+        deductions = float(
+            p.line_items.filter(line_type="deduction")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+
+        payroll_history_list.append({
+            "id": p.id,
+            "month": p.month,
+            "year": p.year,
+            "month_label": MONTH_NAMES[p.month],
+            "basic_salary": float(p.basic_salary),
+            "overtime_amount": float(p.overtime_amount or 0),
+            "bonus": float(p.bonus or 0),
+            "incentive": float(p.incentive or 0),
+            "pf_amount": float(p.pf_amount or 0),
+            "esi_amount": float(p.esi_amount or 0),
+            "loan_deduction": float(p.loan_deduction or 0),
+            "tax_deduction": float(p.tax_deduction or 0),
+            "gross_salary": earnings,
+            "deductions": deductions,
+            "net_salary": float(p.net_salary),
+            "paid_status": p.paid_status,
+            "paid_at": p.paid_at.strftime("%d %b %Y") if p.paid_at else None,
+        })
+
+    if payroll:
+        earnings_items = [
+            {
+                "label": item.label,
+                "amount": float(item.amount)
+            }
+            for item in payroll.line_items.filter(
+                line_type="earning"
+            ).order_by("order")
+        ]
+
+        deductions_items = [
+            {
+                "label": item.label,
+                "amount": float(item.amount)
+            }
+            for item in payroll.line_items.filter(
+                line_type="deduction"
+            ).order_by("order")
+        ]
+
+        current_payroll = {
+            "id": payroll.id,
+            "month_label": MONTH_NAMES[payroll.month],
+            "year": payroll.year,
+            "basic_salary": float(payroll.basic_salary),
+            "overtime_amount": float(payroll.overtime_amount),
+            "bonus": float(payroll.bonus),
+            "incentive": float(payroll.incentive),
+            "pf_amount": float(payroll.pf_amount),
+            "esi_amount": float(payroll.esi_amount),
+            "loan_deduction": float(payroll.loan_deduction),
+            "tax_deduction": float(payroll.tax_deduction),
+            "deductions": float(payroll.deductions),
+            "net_salary": float(payroll.net_salary),
+            "paid_status": payroll.paid_status,
+            "paid_at": payroll.paid_at.strftime("%d %b %Y, %I:%M %p") if payroll.paid_at else None,
+            "earnings_items": earnings_items,
+            "deductions_items": deductions_items,
+        }
+
+    else:
+        current_payroll = None
+
+    if staff.department:
+        inventory_qs = InventoryItem.objects.filter(
+            Q(department=staff.department) |
+            Q(department__name__icontains="housekeeping") |
+            Q(department__name__icontains="cleaning") |
+            Q(department__name__icontains="laundry") |
+            Q(department__isnull=True)
+        ).select_related(
+            "category",
+            "department",
+            "vendor"
+        ).order_by("name").distinct()
+    else:
+        inventory_qs = InventoryItem.objects.filter(
+            Q(department__isnull=True) |
+            Q(department__name__icontains="housekeeping") |
+            Q(department__name__icontains="cleaning") |
+            Q(department__name__icontains="laundry")
+        ).select_related(
+            "category",
+            "department",
+            "vendor"
+        ).order_by("name").distinct()
+
+    inventory_items = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "department": item.department.name if item.department else "General",
+            "category": item.category.name if item.category else "General",
+            "unit": item.get_unit_display(),
+            "stock": float(item.current_stock),
+            "min_stock": float(item.minimum_stock),
+            "low_stock": item.is_low_stock,
+            "cost": float(item.cost_per_unit),
+            "stock_value": float(item.stock_value),
+            "vendor": item.vendor.name if item.vendor else "—",
+        }
+        for item in inventory_qs
+    ]
+
     context = {
-        "staff":        staff,
-        "rooms":        rooms,
-        "tasks":        tasks,
-        "all_tasks":    all_tasks,
-        "clean_rooms":  all_units.filter(status="Available").count(),
-        "dirty_rooms":  all_units.filter(status="Dirty").count(),
+        "staff": staff,
+        "rooms": rooms,
+        "tasks": tasks,
+        "all_tasks": all_tasks,
+        "clean_rooms": all_units.filter(status="Available").count(),
+        "dirty_rooms": all_units.filter(status="Dirty").count(),
         "cleaning_rooms": all_units.filter(status="Cleaning").count(),
         "pending_tasks": tasks.count(),
-        "departments":   Department.objects.filter(hotel=staff.hotel).order_by("name"),
+        "departments": Department.objects.filter(
+            hotel=staff.hotel
+        ).order_by("name"),
 
-       
-        "present_days":       present_days,
-        "late_days":          late_days,
-        "absent_days":        absent_days,
-        "overtime_hours":     round(overtime_hours, 2),
+        "present_days": present_days,
+        "half_days": half_days,
+        "late_days": late_days,
+        "absent_days": absent_days,
+        "overtime_hours": round(float(overtime_hours), 2),
         "attendance_records": attendance_records,
-        "current_month":      today.strftime("%B %Y"),
+        "current_month": today.strftime("%B %Y"),
+
+        "leave_requests": leave_requests,
+        "used_leave_days": used_leave_days,
+        "pending_leaves": pending_leaves,
+
+        "current_payroll": current_payroll,
+        "payroll_history": payroll_history_list,
+        "payroll_month_label": MONTH_NAMES[month],
+        "payroll_year": year,
+
+        "inventory_items": inventory_items,
     }
+
+    return render(request, "housekeeping.html", context)
 
     return render(request, "housekeeping.html", context)
  
@@ -1107,6 +1284,25 @@ from django.utils import timezone
 from django.db.models import Prefetch, Count
 def hr_dashboard(request):
     staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department"
+        ).get(id=staff_id)
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+    HR_KEYWORDS = ['hr', 'human resource', 'admin', 'manager', 'owner', 'hotel']
+    dept_name = (staff.department.name.lower() if staff.department else "")
+    role      = (getattr(staff, 'role', '') or '').lower()
+    combined  = dept_name + " " + role
+
+    if not any(k in combined for k in HR_KEYWORDS):
+        return redirect("staff_login") 
 
     if not staff_id:
         return redirect("staff_login")
@@ -6854,3 +7050,148 @@ class PinnedMessagesView(View):
             'message__sender', 'pinned_by'
         ).order_by('-pinned_at')[:10]
         return json_ok({'pinned': [_message_dict(p.message, request.user) for p in pins]})
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET, require_POST
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib import messages
+import json
+
+from .models import Staff, User, Hotel
+
+
+@login_required
+@require_GET
+def get_email_recipients(request):
+   
+    hotel = request.user.hotel
+
+    if hotel is None:
+        return JsonResponse({'error': 'No hotel associated with this user.'}, status=400)
+
+   
+    staff_qs = Staff.objects.filter(
+        hotel=hotel,
+        is_active=True,
+        user__email__isnull=False,
+    ).exclude(user=request.user).select_related('user', 'department')
+
+    staff_list = []
+    for s in staff_qs:
+        email = s.user.email.strip()
+        if email:
+            staff_list.append({
+                'id': s.user.id,
+                'name': s.name,
+                'email': email,
+                'department': s.department.name if s.department else 'No Department',
+                'type': 'staff',
+            })
+
+   
+    hotel_admin_ids = Staff.objects.filter(hotel=hotel).values_list('user_id', flat=True)
+
+    admin_qs = User.objects.filter(
+        hotel=hotel,
+        is_staff=True,       
+        is_active=True,
+    ).exclude(id=request.user.id).exclude(id__in=hotel_admin_ids)
+
+    admin_list = []
+    for admin in admin_qs:
+        email = (admin.email or '').strip()
+        if email:
+            admin_list.append({
+                'id': admin.id,
+                'name': admin.get_full_name() or admin.username,
+                'email': email,
+                'department': 'Hotel Admin',
+                'type': 'admin',
+            })
+
+    return JsonResponse({
+        'recipients': staff_list + admin_list,
+        'hotel_email': hotel.email or '',
+        'hotel_name': hotel.hotel_name,
+    })
+
+
+@login_required
+@require_POST
+def send_compose_email(request):
+   
+   
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    subject = (data.get('subject') or '').strip()
+    message = (data.get('message') or '').strip()
+    recipient_ids = data.get('recipient_ids', [])
+    include_hotel_admin = data.get('include_hotel_admin', False)
+
+    
+    if not subject:
+        return JsonResponse({'error': 'Subject is required.'}, status=400)
+    if not message:
+        return JsonResponse({'error': 'Message body is required.'}, status=400)
+    if not recipient_ids and not include_hotel_admin:
+        return JsonResponse({'error': 'Please select at least one recipient.'}, status=400)
+
+    hotel = request.user.hotel
+    if hotel is None:
+        return JsonResponse({'error': 'No hotel associated with this user.'}, status=400)
+
+    # --- Resolve recipient emails ---
+    to_emails = []
+
+    if recipient_ids:
+        users = User.objects.filter(
+            id__in=recipient_ids,
+            hotel=hotel,
+            is_active=True,
+        )
+        for u in users:
+            email = (u.email or '').strip()
+            if email and email not in to_emails:
+                to_emails.append(email)
+
+    if include_hotel_admin and hotel.email:
+        hotel_email = hotel.email.strip()
+        if hotel_email and hotel_email not in to_emails:
+            to_emails.append(hotel_email)
+
+    if not to_emails:
+        return JsonResponse({'error': 'No valid email addresses found for selected recipients.'}, status=400)
+
+    # --- Compose & send ---
+    sender_name = request.user.get_full_name() or request.user.username
+    from_email = settings.DEFAULT_FROM_EMAIL
+
+    full_message = (
+        f"Message from: {sender_name} ({request.user.email})\n"
+        f"Hotel: {hotel.hotel_name}\n"
+        f"{'─' * 40}\n\n"
+        f"{message}"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=full_message,
+            from_email=from_email,
+            recipient_list=to_emails,
+            fail_silently=False,
+        )
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to send email: {str(e)}'}, status=500)
+
+    return JsonResponse({
+        'success': True,
+        'sent_to': to_emails,
+        'count': len(to_emails),
+        'message': f'Email sent successfully to {len(to_emails)} recipient(s).',
+    })

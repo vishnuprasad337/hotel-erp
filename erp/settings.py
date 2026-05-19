@@ -183,3 +183,5 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'msvishnu673@gmail.com'
 EMAIL_HOST_PASSWORD = 'sjcf tyva aldr ashi'
 DEFAULT_FROM_EMAIL = 'msvishnu673@gmail.com'
+
+PASSWORD_RESET_TIMEOUT =900

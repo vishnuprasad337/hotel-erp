@@ -1,5 +1,19 @@
 from django.urls import path
 from . import views
+from .api_views import (
+    ItemCategoryListAPIView, ItemCategoryDetailAPIView,
+    VendorListAPIView, VendorDetailAPIView,
+    InventoryItemListAPIView, InventoryItemDetailAPIView, InventoryByDepartmentAPIView,
+    StockAdjustmentListAPIView,
+    PurchaseOrderListAPIView, PurchaseOrderDetailAPIView, PurchaseOrderItemsAPIView,
+    ExpenseCategoryListAPIView,
+    ExpenseListAPIView, ExpenseDetailAPIView, ExpenseSummaryAPIView,
+    AssetCategoryListAPIView,
+    HotelAssetListAPIView, HotelAssetDetailAPIView,
+    MaintenanceLogListAPIView, MaintenanceLogDetailAPIView,
+    LaundryServiceListAPIView,
+    LaundryOrderListAPIView, LaundryOrderDetailAPIView,
+)
 
 urlpatterns = [
     path("categories/",            views.list_categories,       name="list_categories"),
@@ -88,5 +102,38 @@ path(
     views.edit_maintenance_log,
     name="edit_maintenance_log"
 ),
-   
+ path("inv/categories/",                      ItemCategoryListAPIView.as_view(),       name="inv-category-list"),
+    path("inv/categories/<int:pk>/",             ItemCategoryDetailAPIView.as_view(),     name="inv-category-detail"),
+
+    path("inv/vendors/",                         VendorListAPIView.as_view(),             name="inv-vendor-list"),
+    path("inv/vendors/<int:pk>/",                VendorDetailAPIView.as_view(),           name="inv-vendor-detail"),
+
+    path("inv/items/",                           InventoryItemListAPIView.as_view(),      name="inv-item-list"),
+    path("inv/items/<int:pk>/",                  InventoryItemDetailAPIView.as_view(),    name="inv-item-detail"),
+    path("inv/items/by-department/",             InventoryByDepartmentAPIView.as_view(),  name="inv-item-by-dept"),
+
+    path("inv/adjustments/",                     StockAdjustmentListAPIView.as_view(),    name="inv-adjustment-list"),
+
+    path("inv/po/",                              PurchaseOrderListAPIView.as_view(),      name="inv-po-list"),
+    path("inv/po/<int:pk>/",                     PurchaseOrderDetailAPIView.as_view(),    name="inv-po-detail"),
+    path("inv/po/<int:pk>/items/",               PurchaseOrderItemsAPIView.as_view(),     name="inv-po-items"),
+
+    path("inv/expense-categories/",              ExpenseCategoryListAPIView.as_view(),    name="inv-expense-cat-list"),
+
+    path("inv/expenses/",                        ExpenseListAPIView.as_view(),            name="inv-expense-list"),
+    path("inv/expenses/<int:pk>/",               ExpenseDetailAPIView.as_view(),          name="inv-expense-detail"),
+    path("inv/expenses/summary/",                ExpenseSummaryAPIView.as_view(),         name="inv-expense-summary"),
+
+    path("inv/asset-categories/",               AssetCategoryListAPIView.as_view(),      name="inv-asset-cat-list"),
+
+    path("inv/assets/",                          HotelAssetListAPIView.as_view(),         name="inv-asset-list"),
+    path("inv/assets/<int:pk>/",                 HotelAssetDetailAPIView.as_view(),       name="inv-asset-detail"),
+
+    path("inv/maintenance/",                     MaintenanceLogListAPIView.as_view(),     name="inv-maintenance-list"),
+    path("inv/maintenance/<int:pk>/",            MaintenanceLogDetailAPIView.as_view(),   name="inv-maintenance-detail"),
+
+    path("inv/laundry/services/",                LaundryServiceListAPIView.as_view(),     name="inv-laundry-service-list"),
+
+    path("inv/laundry/orders/",                  LaundryOrderListAPIView.as_view(),       name="inv-laundry-order-list"),
+    path("inv/laundry/orders/<int:pk>/",         LaundryOrderDetailAPIView.as_view(),     name="inv-laundry-order-detail"),  
 ]

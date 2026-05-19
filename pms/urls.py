@@ -1,6 +1,19 @@
 from django.urls import path
 from .views import *
 from django.contrib.auth import views as auth_views
+from .api_views import (
+    RoomListAPIView,
+    RoomDetailAPIView,
+    RoomUnitStatusAPIView,
+    GuestListAPIView,
+    GuestDetailAPIView,
+    GuestPhotosAPIView,
+    BookingListAPIView,
+    BookingFullDetailAPIView,
+    CheckInAPIView,
+    CheckOutAPIView,
+    BillAPIView,
+)
 urlpatterns =[
     
    
@@ -36,6 +49,20 @@ path("fd/requests/", fd_view_requests, name="fd_view_requests"),
 path("fd/requests/update/", fd_update_request, name="fd_update_request"),
 path("api/update-room-status/", update_room_status),
 path('api/guest/<int:guest_id>/photos/', get_guest_photos, name='guest_photos'),
+
+path("pms/rooms/",                        RoomListAPIView.as_view(),           name="api-room-list"),
+path("pms/rooms/<int:pk>/",               RoomDetailAPIView.as_view(),         name="api-room-detail"),
+path("pms/rooms/unit/status/",            RoomUnitStatusAPIView.as_view(),     name="api-room-unit-status"),
+
+path("pms/guests/",                       GuestListAPIView.as_view(),          name="api-guest-list"),
+path("pms/guests/<int:pk>/",              GuestDetailAPIView.as_view(),        name="api-guest-detail"),
+path("pms/guests/<int:guest_id>/photos/", GuestPhotosAPIView.as_view(),        name="api-guest-photos"),
+
+path("pms/bookings/",                     BookingListAPIView.as_view(),        name="api-booking-list"),
+path("pms/bookings/<int:pk>/full/",       BookingFullDetailAPIView.as_view(),  name="api-booking-full-detail"),
+path("pms/bookings/check-in/",            CheckInAPIView.as_view(),            name="api-check-in"),
+path("pms/bookings/check-out/",           CheckOutAPIView.as_view(),           name="api-check-out"),
+path("pms/bookings/bill/",                BillAPIView.as_view(),               name="api-bill"),
 ]
     
     

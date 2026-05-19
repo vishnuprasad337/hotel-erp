@@ -272,8 +272,18 @@ from hotel.models import Attendance,LeaveRequest
 @login_required
 def frontoffice_dashboard(request):
     staff_id = request.session.get("staff_id")
+
     if not staff_id:
         return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department"
+        ).get(id=staff_id)
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login") 
 
     staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
     hotel = staff.hotel
@@ -1550,3 +1560,8 @@ def get_guest_photos(request, guest_id):
     except Exception as e:
         import traceback
         return JsonResponse({"photos": [], "error": str(e), "trace": traceback.format_exc()})
+    
+    
+  
+
+    

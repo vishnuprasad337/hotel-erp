@@ -1,5 +1,12 @@
 from django.urls import path
 from . import views
+from .api_views import (
+    GuestFolioListAPIView, GuestFolioDetailAPIView,
+    FolioChargeListAPIView, FolioChargeDetailAPIView,
+    InvoiceListAPIView, InvoiceDetailAPIView,
+    BillingPaymentListAPIView, BillingPaymentDetailAPIView,
+    FolioByBookingAPIView,
+)
 
 urlpatterns = [
    
@@ -26,4 +33,18 @@ urlpatterns = [
 
    
     path("api/billing/summary/",                             views.billing_summary,        name="billing_summary"),
+
+
+    path("billing/folios/",                          GuestFolioListAPIView.as_view(),        name="billing-folio-list"),
+    path("billing/folios/<int:pk>/",                 GuestFolioDetailAPIView.as_view(),      name="billing-folio-detail"),
+    path("billing/folios/booking/<int:booking_id>/", FolioByBookingAPIView.as_view(),        name="billing-folio-by-booking"),
+
+    path("billing/folios/<int:folio_id>/charges/",   FolioChargeListAPIView.as_view(),       name="billing-charge-list"),
+    path("billing/charges/<int:pk>/",                FolioChargeDetailAPIView.as_view(),     name="billing-charge-detail"),
+
+    path("billing/invoices/",                        InvoiceListAPIView.as_view(),           name="billing-invoice-list"),
+    path("billing/invoices/<int:pk>/",               InvoiceDetailAPIView.as_view(),         name="billing-invoice-detail"),
+
+    path("billing/payments/",                        BillingPaymentListAPIView.as_view(),    name="billing-payment-list"),
+    path("billing/payments/<int:pk>/",               BillingPaymentDetailAPIView.as_view(),  name="billing-payment-detail"),
 ]

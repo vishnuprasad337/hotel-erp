@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import api_views
 
 urlpatterns = [
 
@@ -36,4 +37,14 @@ urlpatterns = [
     path("api/reservations/<int:reservation_id>/delete/", views.delete_reservation, name="delete_reservation"),
     path('restaurant/dashboard/', views.restaurant_dashboard, name='restaurant_dashboard'),
     path('api/restaurant/orders/<int:order_id>/mark-paid/', views.mark_order_paid, name='mark_order_paid'),
+
+
+
+     path('api/restaurant/full/',              api_views.RestaurantFullAPIView.as_view(),        name='restaurant_full'),
+    path('api/restaurant/orders/',            api_views.RestaurantOrderListAPIView.as_view(),   name='restaurant_orders'),
+    path('api/restaurant/orders/<int:pk>/',   api_views.RestaurantOrderDetailAPIView.as_view(), name='restaurant_order_detail'),
+    path('api/restaurant/menu/',              api_views.RestaurantMenuAPIView.as_view(),        name='restaurant_menu'),
+    path('api/restaurant/tables/',            api_views.RestaurantTableAPIView.as_view(),       name='restaurant_tables'),
+    path('api/restaurant/reservations/',      api_views.RestaurantReservationAPIView.as_view(), name='restaurant_reservations'),
+    path('api/restaurant/stats/',             api_views.RestaurantStatsAPIView.as_view(),       name='restaurant_stats_api'),
 ]

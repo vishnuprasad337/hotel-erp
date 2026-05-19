@@ -948,48 +948,15 @@ def restaurant_dashboard(request):
 
     from inventory.models import InventoryItem
 
-    RESTAURANT_Q = (
-        Q(category__is_restaurant=True)           |
-        Q(category__name__icontains='food')       |
-        Q(category__name__icontains='beverage')   |
-        Q(category__name__icontains='drink')      |
-        Q(category__name__icontains='ingredient') |
-        Q(category__name__icontains='kitchen')    |
-        Q(category__name__icontains='restaurant') |
-        Q(category__name__icontains='dining')     |
-        Q(category__name__icontains='pantry')     |
-        Q(category__name__icontains='grocery')    |
-        Q(category__name__icontains='spice')      |
-        Q(category__name__icontains='dairy')      |
-        Q(category__name__icontains='meat')       |
-        Q(category__name__icontains='snack')
-    )
-
-    EXCLUDE_Q = (
-        Q(category__name__icontains='cleaning')     |
-        Q(category__name__icontains='bedroom')      |
-        Q(category__name__icontains='amenities')    |
-        Q(category__name__icontains='aminities')    |
-        Q(category__name__icontains='housekeeping') |
-        Q(category__name__icontains='laundry')      |
-        Q(category__name__icontains='linen')        |
-        Q(category__name__icontains='toiletry')     |
-        Q(category__name__icontains='bathroom')     |
-        Q(category__name__icontains='maintenance')  |
-        Q(category__name__icontains='stationery')   |
-        Q(category__name__icontains='office')       |
-        Q(category__name__icontains='uniform')      |
-        Q(category__name__icontains='electrical')   |
-        Q(category__name__icontains='plumbing')
-    )
-
     restaurant_stock = InventoryItem.objects.filter(
-        RESTAURANT_Q
-    ).exclude(
-        EXCLUDE_Q
-    ).exclude(
-        category__isnull=True
-    ).select_related("category", "vendor", "department").order_by("name").distinct()
+        Q(department__name__icontains='restaurant') |
+        Q(department__name__icontains='kitchen')    |
+        Q(department__name__icontains='dining')
+    ).select_related(
+        "category", "vendor", "department"
+    ).order_by(
+        "department__name", "name"
+    ).distinct()
 
     low_stock_items = restaurant_stock.filter(
         current_stock__lte=F("minimum_stock")
@@ -1004,6 +971,7 @@ def restaurant_dashboard(request):
             "id":            item.id,
             "name":          item.name,
             "category":      item.category.name if item.category else "—",
+            "department":    item.department.name if item.department else "—",
             "current_stock": float(item.current_stock),
             "minimum_stock": float(item.minimum_stock),
             "unit":          item.get_unit_display(),
@@ -1020,6 +988,7 @@ def restaurant_dashboard(request):
             "id":            item.id,
             "name":          item.name,
             "category":      item.category.name if item.category else "—",
+            "department":    item.department.name if item.department else "—",
             "current_stock": float(item.current_stock),
             "minimum_stock": float(item.minimum_stock),
             "unit":          item.get_unit_display(),

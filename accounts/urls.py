@@ -1,6 +1,18 @@
 from django.urls import path
 from .views import *
+from .api_views import (
+    HotelListCreateView, HotelDetailView, 
+    DepartmentListCreateView, DepartmentDetailView,
+    UserListCreateView, UserDetailView,
+    PermissionListCreateView, PermissionDetailView,
+    RolePermissionListCreateView, RolePermissionDetailView,
+    AmenityListCreateView, AmenityDetailView,
+    SubscriptionPlanListCreateView, SubscriptionPlanDetailView,
+    PlanPaymentListCreateView, PlanPaymentDetailView,
+    HotelModuleListCreateView, HotelModuleDetailView,
+    StaffListCreateView, StaffDetailView,HotelFullDetailsView, HotelAllFullDetailsView)
 from django.contrib.auth import views as auth_views
+
 urlpatterns =[
     # ADMIN
     path("superadmin/", admin_login, name="admin_login"),
@@ -102,6 +114,40 @@ path('superadmin/hotel/<int:hotel_id>/send-mail/', send_hotel_mail, name='send_h
              template_name='auth/password_reset_confirm.html'
          ),
          name='password_reset_complete'),
+
+
+ path('hotels/', HotelListCreateView.as_view()),
+    path('hotels/<int:pk>/', HotelDetailView.as_view()),
+  
+ 
+    path('departments/', DepartmentListCreateView.as_view()),
+    path('departments/<int:pk>/', DepartmentDetailView.as_view()),
+ 
+    path('users/', UserListCreateView.as_view()),
+    path('users/<int:pk>/', UserDetailView.as_view()),
+ 
+    path('permissions/', PermissionListCreateView.as_view()),
+    path('permissions/<int:pk>/', PermissionDetailView.as_view()),
+ 
+    path('role-permissions/', RolePermissionListCreateView.as_view()),
+    path('role-permissions/<int:pk>/', RolePermissionDetailView.as_view()),
+ 
+    path('amenities/', AmenityListCreateView.as_view()),
+    path('amenities/<int:pk>/', AmenityDetailView.as_view()),
+ 
+    path('subscription-plans/', SubscriptionPlanListCreateView.as_view()),
+    path('subscription-plans/<int:pk>/', SubscriptionPlanDetailView.as_view()),
+ 
+    path('payments/', PlanPaymentListCreateView.as_view()),
+    path('payments/<int:pk>/', PlanPaymentDetailView.as_view()),
+ 
+    path('hotel-modules/', HotelModuleListCreateView.as_view()),
+    path('hotel-modules/<int:pk>/', HotelModuleDetailView.as_view()),
+ 
+    path('staff/', StaffListCreateView.as_view()),
+    path('staff/<int:pk>/', StaffDetailView.as_view()),
+    path('hotels/<int:pk>/full/', HotelFullDetailsView.as_view()),
+    path('hotels/full/', HotelAllFullDetailsView.as_view()),
 ]
 
  

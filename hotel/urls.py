@@ -1,6 +1,24 @@
 from django.urls import path
 from .views import *
 from django.contrib.auth import views as auth_views
+from .api_views import (
+    AmenityListAPIView, AmenityDetailAPIView,
+    TaskListAPIView, TaskDetailAPIView,
+    ShiftTemplateListAPIView, ShiftTemplateDetailAPIView,
+    ShiftListAPIView, ShiftDetailAPIView,
+    InventoryItemListAPIView, InventoryItemDetailAPIView,
+    AttendanceListAPIView, AttendanceDetailAPIView,
+    LeaveRequestListAPIView, LeaveRequestDetailAPIView,
+    PayrollListAPIView, PayrollDetailAPIView,
+    EmployeeFinancialAccountAPIView,
+    FinalSettlementListAPIView, FinalSettlementDetailAPIView,
+    MessageThreadListAPIView, MessageThreadDetailAPIView,
+    MessageListAPIView, MessageDetailAPIView,
+    ReactionAPIView,
+    PinnedMessageListAPIView,
+    StarredMessageListAPIView,
+    PollAPIView, PollVoteAPIView,
+    NotificationListAPIView, NotificationMarkReadAPIView,)
 urlpatterns =[
     
     path("", index, name="index"),
@@ -69,7 +87,16 @@ path('payroll/export/csv/',                            payroll_export_csv),
 path('payroll/settlements/',                           final_settlements),
 path('payroll/settlements/<int:settlement_id>/',       final_settlement_detail),
     
-
+ path(
+        'email/recipients/',
+        get_email_recipients,
+        name='email_recipients',
+    ),
+    path(
+        'email/send/',
+        send_compose_email,
+        name='email_send',
+    ),
 
     path("staff/tasks/", staff_tasks, name="staff_tasks"),
     path("update-task-status/", update_task_status, name="update_task_status"),
@@ -164,4 +191,54 @@ path(
     path('messages/starred/', StarredMessageView.as_view()),
     path('messages/polls/<int:poll_id>/vote/', PollVoteView.as_view()),
     path('messages/search/', MessageSearchView.as_view()),
+
+    path("hotel/amenities/",                              AmenityListAPIView.as_view(),                name="amenity-list"),
+    path("hotel/amenities/<int:pk>/",                     AmenityDetailAPIView.as_view(),              name="amenity-detail"),
+
+    path("hotel/tasks/",                                  TaskListAPIView.as_view(),                   name="task-list"),
+    path("hotel/tasks/<int:pk>/",                         TaskDetailAPIView.as_view(),                 name="task-detail"),
+
+    path("hotel/shift-templates/",                        ShiftTemplateListAPIView.as_view(),          name="shift-template-list"),
+    path("hotel/shift-templates/<int:pk>/",               ShiftTemplateDetailAPIView.as_view(),        name="shift-template-detail"),
+
+    path("hotel/shifts/",                                 ShiftListAPIView.as_view(),                  name="shift-list"),
+    path("hotel/shifts/<int:pk>/",                        ShiftDetailAPIView.as_view(),                name="shift-detail"),
+
+    path("hotel/inventory/",                              InventoryItemListAPIView.as_view(),          name="inventory-list"),
+    path("hotel/inventory/<int:pk>/",                     InventoryItemDetailAPIView.as_view(),        name="inventory-detail"),
+
+    path("hotel/attendance/",                             AttendanceListAPIView.as_view(),             name="attendance-list"),
+    path("hotel/attendance/<int:pk>/",                    AttendanceDetailAPIView.as_view(),           name="attendance-detail"),
+
+    path("hotel/leave-requests/",                         LeaveRequestListAPIView.as_view(),           name="leave-request-list"),
+    path("hotel/leave-requests/<int:pk>/",                LeaveRequestDetailAPIView.as_view(),         name="leave-request-detail"),
+
+    path("hotel/payroll/",                                PayrollListAPIView.as_view(),                name="payroll-list"),
+    path("hotel/payroll/<int:pk>/",                       PayrollDetailAPIView.as_view(),              name="payroll-detail"),
+
+    path("hotel/employee-account/<int:staff_id>/",        EmployeeFinancialAccountAPIView.as_view(),   name="employee-account"),
+
+    path("hotel/final-settlements/",                      FinalSettlementListAPIView.as_view(),        name="final-settlement-list"),
+    path("hotel/final-settlements/<int:pk>/",             FinalSettlementDetailAPIView.as_view(),      name="final-settlement-detail"),
+
+    path("hotel/threads/",                                MessageThreadListAPIView.as_view(),          name="thread-list"),
+    path("hotel/threads/<int:pk>/",                       MessageThreadDetailAPIView.as_view(),        name="thread-detail"),
+
+    path("hotel/threads/<int:thread_id>/messages/",       MessageListAPIView.as_view(),                name="message-list"),
+    path("hotel/messages/<int:pk>/",                      MessageDetailAPIView.as_view(),              name="message-detail"),
+
+    path("hotel/reactions/",                              ReactionAPIView.as_view(),                   name="reaction"),
+
+    path("hotel/threads/<int:thread_id>/pinned/",         PinnedMessageListAPIView.as_view(),          name="pinned-messages"),
+
+    path("hotel/starred/",                                StarredMessageListAPIView.as_view(),         name="starred-messages"),
+
+    path("hotel/polls/",                                  PollAPIView.as_view(),                       name="poll-create"),
+    path("hotel/polls/<int:pk>/",                         PollAPIView.as_view(),                       name="poll-detail"),
+    path("hotel/polls/vote/",                             PollVoteAPIView.as_view(),                   name="poll-vote"),
+
+    path("hotel/notifications/",                          NotificationListAPIView.as_view(),           name="notification-list"),
+    path("hotel/notifications/<int:pk>/read/",            NotificationMarkReadAPIView.as_view(),       name="notification-mark-read"),
+
+
 ]
