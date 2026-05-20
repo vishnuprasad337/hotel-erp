@@ -268,6 +268,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q
 from datetime import datetime
 from hotel.models import Attendance,LeaveRequest
+from accounts.decorators import staff_login_required
+@staff_login_required
 @never_cache
 @login_required
 def frontoffice_dashboard(request):
@@ -382,10 +384,10 @@ def frontoffice_dashboard(request):
     used_leave_days = leave_requests.filter(status="Approved").count()
     pending_leaves = leave_requests.filter(status="Pending").count()
 
-    # ── Payroll ───────────────────────────────────────────────────────────────
+   
     from hotel.models import Payroll
 
-    # Current month payroll for this staff member
+    
     payroll = Payroll.objects.filter(
         staff=staff,
         month=month,

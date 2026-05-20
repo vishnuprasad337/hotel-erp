@@ -765,6 +765,9 @@ def update_staff_profile(request):
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils import timezone
+from accounts.decorators import staff_login_required
+
+@staff_login_required
 def housekeeping_dashboard(request):
     staff_id = request.session.get("staff_id")
 
@@ -1282,6 +1285,8 @@ import json
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.db.models import Prefetch, Count
+
+@staff_login_required
 def hr_dashboard(request):
     staff_id = request.session.get("staff_id")
 
@@ -4367,6 +4372,7 @@ from accounts.models import Staff, Department
 from hotel.models import Task, Shift, Attendance, LeaveRequest
 from pms.models import Booking, Room, RoomUnit
 from billing.models import GuestFolio, FolioCharge, Invoice, BillingPayment
+from accounts.decorators import staff_login_required
 
 
 def _get_hotel():
@@ -4378,7 +4384,7 @@ def _get_hotel():
             return Hotel.objects.filter(schema_name=tenant_schema).first()
     except Exception:
         return None
-
+@staff_login_required
 @never_cache
 @login_required
 def accountant_dashboard(request):
@@ -4389,6 +4395,15 @@ def accountant_dashboard(request):
     try:
         staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
     except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    ACCOUNTANT_KEYWORDS = ['accountant', 'account', 'finance', 'billing',
+                           'manager', 'owner', 'admin', 'hotel']
+    dept_name = (staff.department.name.lower() if staff.department else "")
+    role      = (getattr(staff, 'role', '') or '').lower()
+    combined  = dept_name + " " + role
+
+    if not any(k in combined for k in ACCOUNTANT_KEYWORDS):
         return redirect("staff_login")
 
     hotel = staff.hotel
@@ -4469,13 +4484,13 @@ def accountant_dashboard(request):
     ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
     dept_today_breakdown = [
-        {"type": "room",       "label": "Room Charges",  "total": float(room_charges_today),  "icon": "fa-bed"},
-        {"type": "restaurant", "label": "Restaurant",    "total": float(restaurant_today),     "icon": "fa-utensils"},
-        {"type": "laundry",    "label": "Laundry",       "total": float(laundry_today),        "icon": "fa-tshirt"},
-        {"type": "minibar",    "label": "Minibar",       "total": float(minibar_today),        "icon": "fa-wine-glass"},
-        {"type": "spa",        "label": "Spa",           "total": float(spa_today),            "icon": "fa-spa"},
-        {"type": "transport",  "label": "Transport",     "total": float(transport_today),      "icon": "fa-car"},
-        {"type": "other",      "label": "Other",         "total": float(other_charges_today),  "icon": "fa-tag"},
+        {"type": "room",       "label": "Room Charges", "total": float(room_charges_today),  "icon": "fa-bed"},
+        {"type": "restaurant", "label": "Restaurant",   "total": float(restaurant_today),    "icon": "fa-utensils"},
+        {"type": "laundry",    "label": "Laundry",      "total": float(laundry_today),       "icon": "fa-tshirt"},
+        {"type": "minibar",    "label": "Minibar",      "total": float(minibar_today),       "icon": "fa-wine-glass"},
+        {"type": "spa",        "label": "Spa",          "total": float(spa_today),           "icon": "fa-spa"},
+        {"type": "transport",  "label": "Transport",    "total": float(transport_today),     "icon": "fa-car"},
+        {"type": "other",      "label": "Other",        "total": float(other_charges_today), "icon": "fa-tag"},
     ]
 
     monthly_payments = BillingPayment.objects.filter(
@@ -4565,12 +4580,11 @@ def accountant_dashboard(request):
         ).aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
 
         expected_restaurant_income = restaurant_today
-
         total_expected = expected_room_income + expected_restaurant_income
     except Exception:
-        expected_room_income        = Decimal("0")
-        expected_restaurant_income  = Decimal("0")
-        total_expected              = Decimal("0")
+        expected_room_income       = Decimal("0")
+        expected_restaurant_income = Decimal("0")
+        total_expected             = Decimal("0")
 
     recent_invoices = []
     for inv in invoices_qs[:50]:
@@ -4601,9 +4615,7 @@ def accountant_dashboard(request):
         "folio__booking__guest", "received_by",
         "order", "order__table"
     ).order_by("-received_at")[:100]:
-
         local_time = timezone.localtime(pay.received_at)
-
         if pay.folio:
             booking    = pay.folio.booking
             guest      = booking.guest if booking else None
@@ -4665,6 +4677,84 @@ def accountant_dashboard(request):
                 for u in units_qs
             ],
         })
+
+    from hotel.models import Payroll
+
+    MONTH_NAMES = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    payroll = Payroll.objects.filter(
+        staff=staff,
+        month=month,
+        year=year,
+    ).prefetch_related("line_items").first()
+
+    payroll_history = Payroll.objects.filter(
+        staff=staff
+    ).order_by("-year", "-month")
+
+    payroll_history_list = []
+    for p in payroll_history:
+        earnings = float(
+            p.line_items.filter(line_type="earning")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        deductions = float(
+            p.line_items.filter(line_type="deduction")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        payroll_history_list.append({
+            "id":              p.id,
+            "month":           p.month,
+            "year":            p.year,
+            "month_label":     MONTH_NAMES[p.month],
+            "basic_salary":    float(p.basic_salary),
+            "overtime_amount": float(p.overtime_amount or 0),
+            "bonus":           float(p.bonus or 0),
+            "incentive":       float(p.incentive or 0),
+            "pf_amount":       float(p.pf_amount or 0),
+            "esi_amount":      float(p.esi_amount or 0),
+            "loan_deduction":  float(p.loan_deduction or 0),
+            "tax_deduction":   float(p.tax_deduction or 0),
+            "gross_salary":    earnings,
+            "deductions":      deductions,
+            "net_salary":      float(p.net_salary),
+            "paid_status":     p.paid_status,
+            "paid_at":         p.paid_at.strftime("%d %b %Y") if p.paid_at else None,
+        })
+
+    if payroll:
+        earnings_items = [
+            {"label": item.label, "amount": float(item.amount)}
+            for item in payroll.line_items.filter(line_type="earning").order_by("order")
+        ]
+        deductions_items = [
+            {"label": item.label, "amount": float(item.amount)}
+            for item in payroll.line_items.filter(line_type="deduction").order_by("order")
+        ]
+        current_payroll = {
+            "id":              payroll.id,
+            "month_label":     MONTH_NAMES[payroll.month],
+            "year":            payroll.year,
+            "basic_salary":    float(payroll.basic_salary),
+            "overtime_amount": float(payroll.overtime_amount),
+            "bonus":           float(payroll.bonus),
+            "incentive":       float(payroll.incentive),
+            "pf_amount":       float(payroll.pf_amount),
+            "esi_amount":      float(payroll.esi_amount),
+            "loan_deduction":  float(payroll.loan_deduction),
+            "tax_deduction":   float(payroll.tax_deduction),
+            "deductions":      float(payroll.deductions),
+            "net_salary":      float(payroll.net_salary),
+            "paid_status":     payroll.paid_status,
+            "paid_at":         payroll.paid_at.strftime("%d %b %Y, %I:%M %p") if payroll.paid_at else None,
+            "earnings_items":  earnings_items,
+            "deductions_items": deductions_items,
+        }
+    else:
+        current_payroll = None
 
     context = {
         "staff":          staff,
@@ -4729,6 +4819,11 @@ def accountant_dashboard(request):
         "overtime_hours": float(overtime_hours),
         "leave_requests": leave_requests,
 
+        "current_payroll":     current_payroll,
+        "payroll_history":     payroll_history_list,
+        "payroll_month_label": MONTH_NAMES[month],
+        "payroll_year":        year,
+
         "rooms_json":  json.dumps(room_list),
         "room_units":  room_units,
         "recent_tasks": recent_tasks,
@@ -4738,7 +4833,6 @@ def accountant_dashboard(request):
     }
 
     return render(request, "accountant.html", context)
-
 
 @require_GET
 def accountant_revenue_api(request):
@@ -4848,33 +4942,31 @@ def accountant_collections_api(request):
     staff_id = request.session.get("staff_id")
     if not staff_id:
         return JsonResponse({"success": False, "error": "Not authenticated"}, status=401)
- 
+
     try:
         staff = Staff.objects.select_related("hotel").get(id=staff_id)
     except Staff.DoesNotExist:
         return JsonResponse({"success": False, "error": "Staff not found"}, status=404)
- 
+
     filter_date  = request.GET.get("date")
     filter_month = request.GET.get("month")
     filter_staff = request.GET.get("staff_id")
- 
+
     payments_qs = BillingPayment.objects.select_related(
         "folio__booking__guest", "received_by",
         "received_by__department",
         "folio__booking__room_unit",
         "order", "order__table"
     )
-    charges_qs = FolioCharge.objects.all()
- 
+
     d = fm = fy = None
- 
+
     if filter_date:
         try:
             d = date.fromisoformat(filter_date)
         except ValueError:
             return JsonResponse({"success": False, "error": "Invalid date"})
         payments_qs = payments_qs.filter(received_at__date=d)
-        charges_qs  = charges_qs.filter(date=d)
     elif filter_month:
         try:
             parts  = filter_month.split("-")
@@ -4882,23 +4974,26 @@ def accountant_collections_api(request):
         except (ValueError, IndexError):
             return JsonResponse({"success": False, "error": "Invalid month"})
         payments_qs = payments_qs.filter(received_at__month=fm, received_at__year=fy)
-        charges_qs  = charges_qs.filter(date__month=fm, date__year=fy)
     else:
         d = timezone.now().date()
         payments_qs = payments_qs.filter(received_at__date=d)
-        charges_qs  = charges_qs.filter(date=d)
- 
+
     if filter_staff:
         payments_qs = payments_qs.filter(received_by__id=filter_staff)
- 
+
     total_collection  = float(payments_qs.aggregate(t=Sum("amount"))["t"] or 0)
     transaction_count = payments_qs.count()
-    tax_collected     = float(charges_qs.aggregate(t=Sum("tax_amount"))["t"] or 0)
- 
+
+    tax_collected = float(
+        payments_qs.aggregate(
+            t=Sum("folio__charges__tax_amount")
+        )["t"] or 0
+    )
+
     method_breakdown = {}
     for mp in payments_qs.values("method").annotate(total=Sum("amount")):
         method_breakdown[mp["method"]] = float(mp["total"])
- 
+
     DEPT_LABELS = {
         "room":       "Room Charges",
         "restaurant": "Restaurant",
@@ -4908,21 +5003,39 @@ def accountant_collections_api(request):
         "transport":  "Transport",
         "other":      "Other",
     }
- 
+
     charge_type_totals = {}
-    for item in charges_qs.values("charge_type").annotate(total=Sum("amount")):
-        charge_type_totals[item["charge_type"]] = float(item["total"])
- 
-    # ── RESTAURANT BLOCK ──────────────────────────────────────────────────────
-    # Collects all restaurant orders for the period, grouped by order_type
-    # (dine_in / room_service / takeaway). Room service entries carry room number,
-    # guest name, booking id, and a flag indicating the order was placed on the
-    # same day as the guest's check-out (is_checkout_charge).
+
+    room_collected = float(
+        payments_qs.filter(
+            folio__charges__charge_type="room"
+        ).distinct().aggregate(t=Sum("amount"))["t"] or 0
+    )
+    if room_collected:
+        charge_type_totals["room"] = room_collected
+
+    for ctype in ["laundry", "minibar", "spa", "transport"]:
+        collected = float(
+            payments_qs.filter(
+                folio__charges__charge_type=ctype
+            ).distinct().aggregate(t=Sum("amount"))["t"] or 0
+        )
+        if collected:
+            charge_type_totals[ctype] = collected
+
+    other_collected = float(
+        payments_qs.filter(folio__isnull=False).exclude(
+            folio__charges__charge_type__in=["room", "laundry", "minibar", "spa", "transport"]
+        ).distinct().aggregate(t=Sum("amount"))["t"] or 0
+    )
+    if other_collected:
+        charge_type_totals["other"] = other_collected
+
     restaurant_payments = []
     rest_total = 0
     try:
         from restaurant.models import RestaurantOrder
- 
+
         if d and not fm:
             rest_orders_qs = RestaurantOrder.objects.filter(
                 created_at__date=d
@@ -4939,21 +5052,21 @@ def accountant_collections_api(request):
             )
         else:
             rest_orders_qs = RestaurantOrder.objects.none()
- 
+
         rest_total = float(
             rest_orders_qs.filter(status="served")
             .aggregate(t=Sum("total_amount"))["t"] or 0
         )
- 
+
         for order in rest_orders_qs.order_by("-created_at")[:300]:
             local_time = timezone.localtime(order.created_at)
- 
+
             room_number        = None
             room_unit_id       = None
             booking_id         = None
             guest_name         = None
             is_checkout_charge = False
- 
+
             if order.order_type == "room_service" and order.booking:
                 bk         = order.booking
                 booking_id = bk.id
@@ -4974,7 +5087,7 @@ def accountant_collections_api(request):
                 guest_name = f"Table {order.table.number}" if order.table else "Dine-In"
             elif order.order_type == "takeaway":
                 guest_name = f"Takeaway #{order.order_number}"
- 
+
             restaurant_payments.append({
                 "time":               local_time.strftime("%I:%M %p"),
                 "guest":              guest_name or "—",
@@ -4998,25 +5111,24 @@ def accountant_collections_api(request):
                 "charge_to_room":     getattr(order, "charge_to_room", False),
                 "status":             order.status,
             })
- 
-        charge_type_totals["restaurant"] = rest_total
- 
+
+        if rest_total:
+            charge_type_totals["restaurant"] = rest_total
+
     except Exception:
         import traceback
         traceback.print_exc()
- 
-    # ── BUILD dept_breakdown ──────────────────────────────────────────────────
+
     dept_breakdown = []
- 
+
     for ctype, total in charge_type_totals.items():
- 
-        # ── RESTAURANT ───────────────────────────────────────────────────────
+
         if ctype == "restaurant":
             dine_in_list      = [t for t in restaurant_payments if t["order_type"] == "dine_in"]
             room_service_list = [t for t in restaurant_payments if t["order_type"] == "room_service"]
             takeaway_list     = [t for t in restaurant_payments if t["order_type"] == "takeaway"]
             checkout_list     = [t for t in restaurant_payments if t.get("is_checkout_charge")]
- 
+
             dept_breakdown.append({
                 "type":              "restaurant",
                 "label":             "Restaurant",
@@ -5044,18 +5156,15 @@ def accountant_collections_api(request):
                 },
             })
             continue
- 
-        # ── ROOM CHARGES — with restaurant-billed-to-room sub-breakdown ──────
+
         if ctype == "room":
-            # Collect all room-service orders that were charged to the room folio
             room_service_billed       = []
             room_service_billed_total = 0.0
-            # Group by room number so the UI can show per-room summaries
-            room_service_by_room      = {}   # room_number → {total, count, items[]}
- 
+            room_service_by_room      = {}
+
             try:
                 from restaurant.models import RestaurantOrder
- 
+
                 if d and not fm:
                     rs_qs = RestaurantOrder.objects.filter(
                         created_at__date=d,
@@ -5075,19 +5184,18 @@ def accountant_collections_api(request):
                     )
                 else:
                     rs_qs = RestaurantOrder.objects.none()
- 
+
                 room_service_billed_total = float(
                     rs_qs.aggregate(t=Sum("total_amount"))["t"] or 0
                 )
- 
+
                 for order in rs_qs.order_by("-created_at"):
                     local_time = timezone.localtime(order.created_at)
                     bk         = order.booking
                     room_num   = bk.room_unit.room_number if bk and bk.room_unit else None
                     guest_name = bk.guest.full_name if bk and bk.guest else "—"
                     amount     = float(order.total_amount or 0)
- 
-                    # Checkout flag
+
                     is_checkout = False
                     if bk and bk.check_out:
                         checkout_day = (
@@ -5096,7 +5204,7 @@ def accountant_collections_api(request):
                             else bk.check_out
                         )
                         is_checkout = (order.created_at.date() == checkout_day)
- 
+
                     row = {
                         "time":               local_time.strftime("%I:%M %p"),
                         "guest":              guest_name,
@@ -5110,8 +5218,7 @@ def accountant_collections_api(request):
                         "is_checkout_charge": is_checkout,
                     }
                     room_service_billed.append(row)
- 
-                    # Accumulate per-room summary
+
                     key = room_num or "Unknown"
                     if key not in room_service_by_room:
                         room_service_by_room[key] = {
@@ -5123,12 +5230,11 @@ def accountant_collections_api(request):
                     room_service_by_room[key]["total"] += amount
                     room_service_by_room[key]["count"] += 1
                     room_service_by_room[key]["items"].append(row)
- 
+
             except Exception:
                 import traceback
                 traceback.print_exc()
- 
-            # Standard room-charge payment transactions (existing logic)
+
             txs = []
             for pay in payments_qs.filter(
                 folio__charges__charge_type="room"
@@ -5146,22 +5252,20 @@ def accountant_collections_api(request):
                     "staff":        pay.received_by.name if pay.received_by else "—",
                     "reference":    pay.reference_number or "—",
                 })
- 
+
             dept_breakdown.append({
-                "type":              "room",
-                "label":             "Room Charges",
-                "total":             total,
-                "transaction_count": len(txs),
-                "transactions":      txs,
-                # ── new fields ────────────────────────────────────────────────
+                "type":                        "room",
+                "label":                       "Room Charges",
+                "total":                       total,
+                "transaction_count":           len(txs),
+                "transactions":                txs,
                 "room_service_billed":         room_service_billed,
                 "room_service_billed_total":   room_service_billed_total,
                 "room_service_billed_count":   len(room_service_billed),
                 "room_service_by_room":        list(room_service_by_room.values()),
             })
             continue
- 
-        # ── ALL OTHER CHARGE TYPES (laundry, minibar, spa, transport, other) ─
+
         txs = []
         for pay in payments_qs.filter(
             folio__charges__charge_type=ctype
@@ -5186,10 +5290,9 @@ def accountant_collections_api(request):
             "transaction_count": len(txs),
             "transactions":      txs,
         })
- 
+
     dept_breakdown.sort(key=lambda x: x["total"], reverse=True)
- 
-    # ── STAFF BREAKDOWN ───────────────────────────────────────────────────────
+
     staff_breakdown = []
     for row in payments_qs.values(
         "received_by__id",
@@ -5210,7 +5313,7 @@ def accountant_collections_api(request):
             "total":         float(row["total"]),
             "count":         payments_qs.filter(received_by__id=sid).count(),
         })
- 
+
     return JsonResponse({
         "success":           True,
         "total_collection":  total_collection,
@@ -5220,6 +5323,8 @@ def accountant_collections_api(request):
         "dept_breakdown":    dept_breakdown,
         "staff_breakdown":   staff_breakdown,
     })
+
+
 @login_required
 @require_GET
 def accountant_collections_export(request):
@@ -5268,9 +5373,9 @@ def accountant_collections_export(request):
         local_time = timezone.localtime(pay.received_at)
 
         if pay.folio:
-            booking    = pay.folio.booking
-            guest      = booking.guest if booking else None
-            guest_name = guest.full_name if guest else "—"
+            booking     = pay.folio.booking
+            guest       = booking.guest if booking else None
+            guest_name  = guest.full_name if guest else "—"
             booking_ref = f"#{booking.id}" if booking else "—"
         elif pay.order:
             guest_name  = f"Takeaway #{pay.order.order_number}"

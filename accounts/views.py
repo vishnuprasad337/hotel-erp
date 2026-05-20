@@ -56,30 +56,50 @@ def admin_login(request):
 
     return render(request, "admin/login.html", {"error": error})
 
+def _enable_plan_modules(hotel, plan):
+    with schema_context('public'):
+        core_ids = list(Amenity.objects.filter(is_core=True).values_list('id', flat=True))
+        plan_ids = list(plan.modules.values_list('id', flat=True))
+        all_ids  = list(set(core_ids + plan_ids))
+
+    with schema_context(hotel.schema_name):
+        # Delete all non-core modules
+        HotelModule.objects.filter(hotel=hotel).exclude(
+            module_id__in=core_ids
+        ).delete()
+
+        # Add missing ones
+        existing = set(
+            HotelModule.objects.filter(hotel=hotel)
+            .values_list('module_id', flat=True)
+        )
+        for mid in all_ids:
+            if mid not in existing:
+                HotelModule.objects.create(hotel=hotel, module_id=mid)
+
+
+def _disable_non_core_modules(hotel):
+    with schema_context('public'):
+        core_ids = list(Amenity.objects.filter(is_core=True).values_list('id', flat=True))
+
+    with schema_context(hotel.schema_name):
+        HotelModule.objects.filter(hotel=hotel).exclude(
+            module_id__in=core_ids
+        ).delete()
+
+
 def _enable_core_modules(hotel):
     with schema_context('public'):
         core_amenities = list(Amenity.objects.filter(is_core=True))
+
     with schema_context(hotel.schema_name):
+        existing = set(
+            HotelModule.objects.filter(hotel=hotel)
+            .values_list('module_id', flat=True)
+        )
         for amenity in core_amenities:
-            HotelModule.objects.get_or_create(hotel=hotel, module=amenity)
- 
- 
-def _enable_plan_modules(hotel, plan):
-    with schema_context('public'):
-        core_amenities = list(Amenity.objects.filter(is_core=True))
-        plan_amenities = list(plan.modules.all())
-        all_amenities  = core_amenities + plan_amenities
-    with schema_context(hotel.schema_name):
-        HotelModule.objects.filter(hotel=hotel, module__is_core=False).delete()
-        for amenity in all_amenities:
-            HotelModule.objects.get_or_create(hotel=hotel, module=amenity)
- 
- 
-def _disable_non_core_modules(hotel):
-    with schema_context(hotel.schema_name):
-        HotelModule.objects.filter(hotel=hotel, module__is_core=False).delete()
- 
- 
+            if amenity.id not in existing:
+                HotelModule.objects.create(hotel=hotel, module=amenity)
 def _sync_statuses():
     now   = timezone.now()
     today = now.date()
@@ -840,17 +860,29 @@ def delete_plan(request, plan_id):
 
 @require_POST
 def update_plan_modules(request, plan_id):
-   
     try:
         data       = json.loads(request.body)
         module_ids = data.get("module_ids", [])
         plan       = get_object_or_404(SubscriptionPlan, id=plan_id)
 
-       
         amenities = Amenity.objects.filter(id__in=module_ids, is_core=False)
         plan.modules.set(amenities)
 
-        return JsonResponse({"success": True, "plan": plan.name})
+        # Sync every hotel currently on this plan
+        with schema_context('public'):
+            hotels_on_plan = list(Hotel.objects.filter(
+                subscription_plan=plan,
+                subscription_status__in=['active', 'trial']
+            ))
+
+        for hotel in hotels_on_plan:
+            _enable_plan_modules(hotel, plan)
+
+        return JsonResponse({
+            "success":       True,
+            "plan":          plan.name,
+            "synced_hotels": len(hotels_on_plan)
+        })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 @require_POST
@@ -862,7 +894,22 @@ def save_hotel_modules(request, hotel_id):
         with schema_context('public'):
             hotel = get_object_or_404(Hotel, id=hotel_id)
             target_schema = hotel.schema_name
-            amenities = Amenity.objects.filter(id__in=module_ids, is_core=False)
+
+            # Only allow modules that are in the hotel's current plan
+            allowed_ids = set()
+            if hotel.subscription_plan:
+                allowed_ids = set(
+                    hotel.subscription_plan.modules.values_list('id', flat=True)
+                )
+            # Always allow core modules
+            core_ids = set(
+                Amenity.objects.filter(is_core=True).values_list('id', flat=True)
+            )
+            allowed_ids.update(core_ids)
+
+            
+            valid_ids = [mid for mid in module_ids if int(mid) in allowed_ids]
+            amenities = Amenity.objects.filter(id__in=valid_ids)
 
         with schema_context(target_schema):
             HotelModule.objects.filter(hotel=hotel, module__is_core=False).delete()
@@ -872,8 +919,6 @@ def save_hotel_modules(request, hotel_id):
         return JsonResponse({"success": True})
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 
 @require_POST
@@ -1031,34 +1076,97 @@ from django.views.decorators.cache import never_cache
 @never_cache
 @login_required
 def dashboard(request):
+    from pms.models import Room, RoomUnit, RoomImage
     current_tenant = connection.tenant
     _sync_statuses()
-    with schema_context('public'):
-        hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
 
-    modules = HotelModule.objects.select_related('module')
+    with schema_context('public'):
+        hotel = Hotel.objects.select_related('subscription_plan').get(
+            schema_name=current_tenant.schema_name
+        )
+
+    print(f"\n{'='*60}")
+    print(f"HOTEL: {hotel.hotel_name}")
+    print(f"SCHEMA: {hotel.schema_name}")
+    print(f"is_subscribed: {hotel.is_subscribed}")
+    print(f"is_on_trial: {hotel.is_on_trial}")
+    print(f"subscription_plan: {hotel.subscription_plan}")
+    print(f"subscription_status: {hotel.subscription_status}")
+
+    if hotel.subscription_plan:
+        with schema_context('public'):
+            plan_module_names = list(
+                hotel.subscription_plan.modules.values_list('name', flat=True)
+            )
+        print(f"PLAN MODULES ({len(plan_module_names)}): {plan_module_names}")
+    else:
+        print("PLAN MODULES: No plan assigned")
+
+    # Before sync
+    before_modules = list(
+        HotelModule.objects.filter(hotel=hotel)
+        .select_related('module')
+        .values_list('module__name', flat=True)
+    )
+    print(f"BEFORE SYNC — HotelModule records ({len(before_modules)}): {before_modules}")
+
+    # Sync
+    if hotel.subscription_plan and hotel.is_subscribed:
+        print(">>> Running _enable_plan_modules (subscribed)")
+        _enable_plan_modules(hotel, hotel.subscription_plan)
+    elif hotel.is_on_trial and hotel.subscription_plan:
+        print(">>> Running _enable_plan_modules (trial)")
+        _enable_plan_modules(hotel, hotel.subscription_plan)
+    elif not hotel.is_subscribed and not hotel.is_on_trial:
+        print(">>> Running _disable_non_core_modules")
+        _disable_non_core_modules(hotel)
+    else:
+        print(">>> WARNING: NO SYNC RAN — check conditions")
+
+    # After sync
+    after_modules = list(
+        HotelModule.objects.filter(hotel=hotel, is_enabled=True)
+        .select_related('module')
+        .values_list('module__name', flat=True)
+    )
+    print(f"AFTER SYNC — HotelModule records ({len(after_modules)}): {after_modules}")
+
+    # Final query with hotel filter
+    modules = HotelModule.objects.select_related('module').filter(
+        hotel=hotel,
+        is_enabled=True
+    )
+    print(f"MODULES QUERYSET COUNT: {modules.count()}")
+    print(f"MODULES LIST: {[m.module.name for m in modules]}")
+
     amenities = [m.module for m in modules]
+
+    active_module_names = set()
+    for m in modules:
+        name = m.module.name.lower().strip()
+        active_module_names.add(name)
+        active_module_names.add(name.replace(' ', '_'))
+        active_module_names.add(name.replace(' ', ''))
+        active_module_names.add(name.replace('-', '_'))
+
+    print(f"ACTIVE MODULE NAMES → TEMPLATE: {sorted(active_module_names)}")
+    print(f"{'='*60}\n")
 
     all_units = RoomUnit.objects.all()
     total_rooms = all_units.count()
     available_rooms = all_units.filter(status="Available").count()
     occupied_rooms = all_units.filter(status="Occupied").count()
-
     total_staff = Staff.objects.count()
     total_bookings = Booking.objects.count()
-    
     today = timezone.now().date()
-
     today_checkins = Booking.objects.filter(
         check_in=today,
         status="confirmed"
     ).count()
-
     today_checkouts = Booking.objects.filter(
         check_out=today,
         status="checked_in"
     ).count()
-
     reserved_count = Booking.objects.filter(
         status="confirmed"
     ).count()
@@ -1066,6 +1174,7 @@ def dashboard(request):
     return render(request, "property.html", {
         "hotel": hotel,
         "amenities": amenities,
+        "active_module_names": active_module_names,
         "total_rooms": total_rooms,
         "available_rooms": available_rooms,
         "occupied_rooms": occupied_rooms,
@@ -1074,7 +1183,6 @@ def dashboard(request):
         "reserved_count": reserved_count,
         "today_checkins": today_checkins,
         "today_checkouts": today_checkouts,
-        
     })
 ##----------------------Role & permissions----------------------
 def add_department(request):

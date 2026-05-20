@@ -713,6 +713,8 @@ from .models import (
     MenuCategory, MenuItem
 )
 from django.db.models import Sum, Count, Q, F
+from accounts.decorators import staff_login_required
+@staff_login_required
 @never_cache
 @login_required
 def restaurant_dashboard(request):
@@ -723,6 +725,15 @@ def restaurant_dashboard(request):
     try:
         staff = Staff.objects.select_related("department", "hotel").get(id=staff_id)
     except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    RESTAURANT_KEYWORDS = ['restaurant', 'kitchen', 'dining', 'food', 'bar',
+                           'manager', 'owner', 'admin', 'hotel']
+    dept_name = (staff.department.name.lower() if staff.department else "")
+    role      = (getattr(staff, 'role', '') or '').lower()
+    combined  = dept_name + " " + role
+
+    if not any(k in combined for k in RESTAURANT_KEYWORDS):
         return redirect("staff_login")
 
     hotel = staff.hotel
@@ -997,43 +1008,121 @@ def restaurant_dashboard(request):
         for item in low_stock_items
     ]
 
+    from hotel.models import Payroll
+
+    MONTH_NAMES = [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+    ]
+
+    payroll = Payroll.objects.filter(
+        staff=staff,
+        month=month,
+        year=year,
+    ).prefetch_related("line_items").first()
+
+    payroll_history = Payroll.objects.filter(
+        staff=staff
+    ).order_by("-year", "-month")
+
+    payroll_history_list = []
+    for p in payroll_history:
+        earnings = float(
+            p.line_items.filter(line_type="earning")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        deductions = float(
+            p.line_items.filter(line_type="deduction")
+            .aggregate(t=Sum("amount"))["t"] or 0
+        )
+        payroll_history_list.append({
+            "id":              p.id,
+            "month":           p.month,
+            "year":            p.year,
+            "month_label":     MONTH_NAMES[p.month],
+            "basic_salary":    float(p.basic_salary),
+            "overtime_amount": float(p.overtime_amount or 0),
+            "bonus":           float(p.bonus or 0),
+            "incentive":       float(p.incentive or 0),
+            "pf_amount":       float(p.pf_amount or 0),
+            "esi_amount":      float(p.esi_amount or 0),
+            "loan_deduction":  float(p.loan_deduction or 0),
+            "tax_deduction":   float(p.tax_deduction or 0),
+            "gross_salary":    earnings,
+            "deductions":      deductions,
+            "net_salary":      float(p.net_salary),
+            "paid_status":     p.paid_status,
+            "paid_at":         p.paid_at.strftime("%d %b %Y") if p.paid_at else None,
+        })
+
+    if payroll:
+        earnings_items = [
+            {"label": item.label, "amount": float(item.amount)}
+            for item in payroll.line_items.filter(line_type="earning").order_by("order")
+        ]
+        deductions_items = [
+            {"label": item.label, "amount": float(item.amount)}
+            for item in payroll.line_items.filter(line_type="deduction").order_by("order")
+        ]
+        current_payroll = {
+            "id":               payroll.id,
+            "month_label":      MONTH_NAMES[payroll.month],
+            "year":             payroll.year,
+            "basic_salary":     float(payroll.basic_salary),
+            "overtime_amount":  float(payroll.overtime_amount),
+            "bonus":            float(payroll.bonus),
+            "incentive":        float(payroll.incentive),
+            "pf_amount":        float(payroll.pf_amount),
+            "esi_amount":       float(payroll.esi_amount),
+            "loan_deduction":   float(payroll.loan_deduction),
+            "tax_deduction":    float(payroll.tax_deduction),
+            "deductions":       float(payroll.deductions),
+            "net_salary":       float(payroll.net_salary),
+            "paid_status":      payroll.paid_status,
+            "paid_at":          payroll.paid_at.strftime("%d %b %Y, %I:%M %p") if payroll.paid_at else None,
+            "earnings_items":   earnings_items,
+            "deductions_items": deductions_items,
+        }
+    else:
+        current_payroll = None
+
     stats = {
-        "today_revenue":            float(today_revenue),
-        "total_revenue":            float(total_revenue),
-        "total_orders":             all_orders.count(),
-        "pending_orders":           order_status_counts["pending"] + order_status_counts["preparing"],
-        "completed_orders":         order_status_counts["served"],
-        "cancelled_orders":         order_status_counts["cancelled"],
-        "served_today":             today_orders.filter(status="served").count(),
-        "tables_total":             tables_qs.count(),
-        "tables_occupied":          tables_occupied,
-        "tables_available":         tables_available,
-        "reservations_today":       reservations_today.count(),
-        "total_menu_items":         total_menu_items,
-        "available_menu_items":     available_menu_items,
-        "occupied_rooms":           occupied_rooms,
-        "total_staff":              hotel_staff.count(),
-        "total_departments":        departments.count(),
-        "present_days":             present_days,
-        "late_days":                late_days,
-        "absent_days":              absent_days,
-        "overtime_hours":           float(overtime_hours),
-        "pending_leaves":           pending_leaves,
-        "used_leave_days":          used_leave_days,
-        "restaurant_stock_items":   restaurant_stock.count(),
-        "low_stock_count":          low_stock_items.count(),
-        "restaurant_stock_value":   float(restaurant_stock_value),
+        "today_revenue":          float(today_revenue),
+        "total_revenue":          float(total_revenue),
+        "total_orders":           all_orders.count(),
+        "pending_orders":         order_status_counts["pending"] + order_status_counts["preparing"],
+        "completed_orders":       order_status_counts["served"],
+        "cancelled_orders":       order_status_counts["cancelled"],
+        "served_today":           today_orders.filter(status="served").count(),
+        "tables_total":           tables_qs.count(),
+        "tables_occupied":        tables_occupied,
+        "tables_available":       tables_available,
+        "reservations_today":     reservations_today.count(),
+        "total_menu_items":       total_menu_items,
+        "available_menu_items":   available_menu_items,
+        "occupied_rooms":         occupied_rooms,
+        "total_staff":            hotel_staff.count(),
+        "total_departments":      departments.count(),
+        "present_days":           present_days,
+        "late_days":              late_days,
+        "absent_days":            absent_days,
+        "overtime_hours":         float(overtime_hours),
+        "pending_leaves":         pending_leaves,
+        "used_leave_days":        used_leave_days,
+        "restaurant_stock_items": restaurant_stock.count(),
+        "low_stock_count":        low_stock_items.count(),
+        "restaurant_stock_value": float(restaurant_stock_value),
     }
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({
-            "stats":                stats,
-            "active_orders":        active_orders_data,
-            "tables":               tables,
-            "reservations":         reservations,
-            "recent_activity":      recent_activity_data,
-            "restaurant_stock":     restaurant_stock_data,
-            "low_stock_items":      low_stock_data,
+            "stats":            stats,
+            "active_orders":    active_orders_data,
+            "tables":           tables,
+            "reservations":     reservations,
+            "recent_activity":  recent_activity_data,
+            "restaurant_stock": restaurant_stock_data,
+            "low_stock_items":  low_stock_data,
             "chart": {
                 "labels":  chart_labels,
                 "counts":  chart_counts,
@@ -1042,46 +1131,50 @@ def restaurant_dashboard(request):
         })
 
     return render(request, "pos.html", {
-        "staff":                    staff,
-        "hotel":                    hotel,
-        "hotel_staff":              hotel_staff,
-        "departments":              departments,
-        "occupied_bookings":        occupied_bookings,
-        "occupied_rooms":           occupied_rooms,
-        "rooms":                    room_list,
-        "rooms_json":               rooms_json,
-        "room_units":               room_units,
-        "recent_tasks":             recent_tasks,
-        "my_tasks":                 my_tasks,
-        "shifts":                   shifts,
-        "my_shift_today":           my_shift_today,
-        "attendance_records":       attendance_records,
-        "today_attendance":         today_attendance,
-        "present_days":             present_days,
-        "late_days":                late_days,
-        "absent_days":              absent_days,
-        "overtime_hours":           overtime_hours,
-        "leave_requests":           leave_requests,
-        "all_leave_requests":       all_leave_requests,
-        "used_leave_days":          used_leave_days,
-        "pending_leaves":           pending_leaves,
-        "stats":                    stats,
-        "active_orders":            active_orders_data,
-        "pending_orders":           pending_orders,
-        "recent_orders":            recent_orders,
-        "tables":                   tables,
-        "tables_qs":                tables_qs,
-        "reservations":             reservations,
-        "reservations_today":       reservations_today,
-        "menu_categories":          menu_categories,
-        "recent_activity":          recent_activity_data,
-        "chart_labels":             json.dumps(chart_labels),
-        "chart_counts":             json.dumps(chart_counts),
-        "chart_revenue":            json.dumps(chart_revenue),
-        "today":                    today,
-        "restaurant_stock":         restaurant_stock,
-        "restaurant_stock_data":    json.dumps(restaurant_stock_data),
-        "low_stock_items":          low_stock_items,
-        "low_stock_data":           json.dumps(low_stock_data),
-        "restaurant_stock_value":   restaurant_stock_value,
+        "staff":                  staff,
+        "hotel":                  hotel,
+        "hotel_staff":            hotel_staff,
+        "departments":            departments,
+        "occupied_bookings":      occupied_bookings,
+        "occupied_rooms":         occupied_rooms,
+        "rooms":                  room_list,
+        "rooms_json":             rooms_json,
+        "room_units":             room_units,
+        "recent_tasks":           recent_tasks,
+        "my_tasks":               my_tasks,
+        "shifts":                 shifts,
+        "my_shift_today":         my_shift_today,
+        "attendance_records":     attendance_records,
+        "today_attendance":       today_attendance,
+        "present_days":           present_days,
+        "late_days":              late_days,
+        "absent_days":            absent_days,
+        "overtime_hours":         overtime_hours,
+        "leave_requests":         leave_requests,
+        "all_leave_requests":     all_leave_requests,
+        "used_leave_days":        used_leave_days,
+        "pending_leaves":         pending_leaves,
+        "stats":                  stats,
+        "active_orders":          active_orders_data,
+        "pending_orders":         pending_orders,
+        "recent_orders":          recent_orders,
+        "tables":                 tables,
+        "tables_qs":              tables_qs,
+        "reservations":           reservations,
+        "reservations_today":     reservations_today,
+        "menu_categories":        menu_categories,
+        "recent_activity":        recent_activity_data,
+        "chart_labels":           json.dumps(chart_labels),
+        "chart_counts":           json.dumps(chart_counts),
+        "chart_revenue":          json.dumps(chart_revenue),
+        "today":                  today,
+        "restaurant_stock":       restaurant_stock,
+        "restaurant_stock_data":  json.dumps(restaurant_stock_data),
+        "low_stock_items":        low_stock_items,
+        "low_stock_data":         json.dumps(low_stock_data),
+        "restaurant_stock_value": restaurant_stock_value,
+        "current_payroll":        current_payroll,
+        "payroll_history":        payroll_history_list,
+        "payroll_month_label":    MONTH_NAMES[month],
+        "payroll_year":           year,
     })
