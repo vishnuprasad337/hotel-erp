@@ -31,12 +31,14 @@ urlpatterns = [
     # ── Stock Adjustments ──────────────────────────────────────
     path("adjustments/",           views.list_stock_adjustments, name="list_stock_adjustments"),
     path("adjustments/add/",       views.stock_adjust,          name="stock_adjust"),
+    path("departments/",       views.departments,          name="departments"),
  
     # ── Purchase Orders ────────────────────────────────────────
     path("po/",                    views.list_purchase_orders,  name="list_purchase_orders"),
     path("po/create/",             views.create_purchase_order, name="create_purchase_order"),
     path("po/<int:po_id>/status/", views.update_po_status,      name="update_po_status"),
- 
+    path('inventory/modal-data/', views.get_modal_data, name='inventory_modal_data'),
+    path('inventory/meta/', views.inventory_meta, name='inventory_meta'),
     # ── Expense Categories ─────────────────────────────────────
     path("expense-categories/",      views.list_expense_categories, name="list_expense_categories"),
     path("expense-categories/add/",  views.add_expense_category,    name="add_expense_category"),
@@ -105,7 +107,7 @@ path(
  path("inv/categories/",                      ItemCategoryListAPIView.as_view(),       name="inv-category-list"),
     path("inv/categories/<int:pk>/",             ItemCategoryDetailAPIView.as_view(),     name="inv-category-detail"),
 
-    path("inv/vendors/",                         VendorListAPIView.as_view(),             name="inv-vendor-list"),
+    path("api/vendors/",                         VendorListAPIView.as_view(),             name="inv-vendor-list"),
     path("inv/vendors/<int:pk>/",                VendorDetailAPIView.as_view(),           name="inv-vendor-detail"),
 
     path("inv/items/",                           InventoryItemListAPIView.as_view(),      name="inv-item-list"),

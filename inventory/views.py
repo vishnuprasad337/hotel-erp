@@ -91,9 +91,6 @@ def list_vendors(request):
     return JsonResponse({"vendors": list(Vendor.objects.values())})
 
 
-# ══════════════════════════════════════════════════════════════
-# INVENTORY ITEMS
-# ══════════════════════════════════════════════════════════════
 
 
 
@@ -112,33 +109,46 @@ def _json(request):
 
 
 def _get_staff(request):
+    from accounts.models import Staff
+    # Try session first, fallback to authenticated user
     staff_id = request.session.get("staff_id")
-    if not staff_id:
-        return None, JsonResponse({"error": "Unauthorized"}, status=401)
-    try:
-        staff = Staff.objects.select_related("department", "user").get(id=staff_id)
-        return staff, None
-    except Staff.DoesNotExist:
-        return None, JsonResponse({"error": "Staff not found"}, status=404)
+    if staff_id:
+        try:
+            return Staff.objects.select_related("department", "user").get(id=staff_id)
+        except Staff.DoesNotExist:
+            pass
+    if request.user.is_authenticated:
+        try:
+            return Staff.objects.select_related("department", "user").get(user=request.user)
+        except Staff.DoesNotExist:
+            pass
+   
+    return None
 
 
+def departments(request):
+    departments = Department.objects.all().order_by('name')
+    result = [{"id": d.id, "name": d.name} for d in departments]
+    return JsonResponse({"departments": result})  # ← was missing return
 def _is_admin(staff):
-    ADMIN_DEPARTMENTS = ("hr", "admin", "management", "hotel admin")
+  
+    if not staff:
+        return True
+    ADMIN_DEPARTMENTS = ("hr", "admin", "management", "hotel")
     return (
-        staff.user.is_staff or
-        staff.user.is_superuser or
-        (staff.department and staff.department.name.lower() in ADMIN_DEPARTMENTS)
+        staff.user.is_staff
+        or staff.user.is_superuser
+        or (staff.department and staff.department.name.lower() in ADMIN_DEPARTMENTS)
     )
 
 
 def list_inventory(request):
-    staff, err = _get_staff(request)
-    if err:
-        return err
+    staff = _get_staff(request)
 
     qs = InventoryItem.objects.select_related("category", "department", "vendor")
 
     if _is_admin(staff):
+        # Hotel admin — see everything, optional dept filter
         dept_id = request.GET.get("department_id")
         if dept_id:
             qs = qs.filter(department_id=dept_id)
@@ -148,27 +158,37 @@ def list_inventory(request):
 
         dept_name = staff.department.name.lower()
 
-        if "housekeeping" in dept_name or "cleaning" in dept_name or "laundry" in dept_name:
+        # HR and management departments see ALL items
+        full_access_keywords = (
+            "hr", "human resource", "human resources",
+            "admin", "administration", "manager", "management",
+            "accounts", "finance", "front desk", "general"
+        )
+
+        if any(k in dept_name for k in full_access_keywords):
+            # No filter — see all inventory
+            pass
+
+        elif any(k in dept_name for k in ("housekeeping", "cleaning", "laundry")):
             qs = qs.filter(
-                Q(department=staff.department) |
-                Q(department__name__icontains="housekeeping") |
-                Q(department__name__icontains="cleaning") |
-                Q(department__name__icontains="laundry") |
-                Q(department__isnull=True)
+                Q(department=staff.department)
+                | Q(department__name__icontains="housekeeping")
+                | Q(department__name__icontains="cleaning")
+                | Q(department__name__icontains="laundry")
+                | Q(department__isnull=True)
             ).distinct()
 
-        elif "restaurant" in dept_name or "kitchen" in dept_name or "dining" in dept_name:
+        elif any(k in dept_name for k in ("restaurant", "kitchen", "dining", "food", "bar")):
             qs = qs.filter(
-                Q(department=staff.department) |
-                Q(department__name__icontains="restaurant") |
-                Q(department__name__icontains="kitchen") |
-                Q(department__name__icontains="dining")
+                Q(department=staff.department)
+                | Q(department__name__icontains="restaurant")
+                | Q(department__name__icontains="kitchen")
+                | Q(department__name__icontains="dining")
             ).distinct()
 
         else:
             qs = qs.filter(
-                Q(department=staff.department) 
-               
+                Q(department=staff.department) | Q(department__isnull=True)
             ).distinct()
 
     if request.GET.get("low_stock") == "1":
@@ -176,23 +196,116 @@ def list_inventory(request):
 
     data = [
         {
-            "id":            item.id,
-            "name":          item.name,
-            "category":      item.category.name if item.category else None,
-            "department":    item.department.name if item.department else None,
+            "id": item.id,
+            "name": item.name,
+            "category": item.category.name if item.category else None,
+            "category_id": item.category_id,
+            "department": item.department.name if item.department else None,
             "department_id": item.department_id,
-            "unit":          item.unit,
-            "stock":         float(item.current_stock),
-            "min_stock":     float(item.minimum_stock),
+            "vendor_id": item.vendor_id,
+            "unit": item.unit,
+            "stock": float(item.current_stock),
+            "min_stock": float(item.minimum_stock),
             "cost_per_unit": float(item.cost_per_unit),
-            "vendor":        item.vendor.name if item.vendor else None,
-            "low_stock":     item.is_low_stock,
-            "stock_value":   float(item.stock_value),
+            "vendor": item.vendor.name if item.vendor else None,
+            "low_stock": item.is_low_stock,
+            "stock_value": float(item.stock_value),
         }
         for item in qs
     ]
     return JsonResponse({"items": data})
+def inventory_by_department(request):
+    # Single return value — no tuple unpacking
+    staff = _get_staff(request)
 
+    qs = InventoryItem.objects.all()
+
+    if not _is_admin(staff):
+        # Regular staff — scope to their department only
+        if not staff.department:
+            return JsonResponse({"departments": []})
+        qs = qs.filter(department=staff.department)
+
+    rows = (
+        qs
+        .values("department__id", "department__name")
+        .annotate(
+            item_count=Count("id"),
+            total_value=Sum(F("current_stock") * F("cost_per_unit")),
+            low_stock_count=Count(
+                "id",
+                filter=Q(current_stock__lte=F("minimum_stock"))
+            ),
+        )
+        .order_by("department__name")
+    )
+
+    result = [
+        {
+            "department_id":   r["department__id"],
+            "department":      r["department__name"] or "Unassigned",
+            "item_count":      r["item_count"],
+            "total_value":     float(r["total_value"] or 0),
+            "low_stock_count": r["low_stock_count"],
+        }
+        for r in rows
+    ]
+    return JsonResponse({"departments": result})
+
+
+@csrf_exempt
+def add_inventory_item(request):
+    err = _require_post(request)
+    if err:
+        return err
+
+    
+    staff = _get_staff(request)
+    data = _json(request)
+
+    name = data.get("name", "").strip()
+    if not name:
+        return JsonResponse({"error": "Item name is required"}, status=400)
+
+    if _is_admin(staff):
+        # Hotel admin / superuser login — department must come from the form
+        department_id = data.get("department_id")
+        if not department_id:
+            return JsonResponse({"error": "department_id is required"}, status=400)
+    else:
+        # Regular staff — department is fixed to their own
+        if not staff.department:
+            return JsonResponse(
+                {"error": "You are not assigned to any department"}, status=403
+            )
+        department_id = staff.department.id
+
+    obj = InventoryItem.objects.create(
+        category_id=data.get("category_id"),
+        department_id=department_id,
+        name=name,
+        unit=data.get("unit", "piece"),
+        current_stock=data.get("current_stock", 0),
+        minimum_stock=data.get("minimum_stock", 10),
+        cost_per_unit=data.get("cost_per_unit", 0),
+        vendor_id=data.get("vendor_id"),
+    )
+
+    return JsonResponse(
+        {
+            "id":            obj.id,
+            "name":          obj.name,
+            "department":    obj.department.name if obj.department else None,
+            "department_id": obj.department_id,
+            "unit":          obj.unit,
+            "stock":         float(obj.current_stock),
+            "min_stock":     float(obj.minimum_stock),
+            "cost_per_unit": float(obj.cost_per_unit),
+            "low_stock":     obj.is_low_stock,
+            "stock_value":   float(obj.stock_value),
+        },
+        status=201,
+    )
 def inventory_by_department(request):
     staff, err = _get_staff(request)
     if err:
@@ -286,12 +399,11 @@ def add_inventory_item(request):
 
 @csrf_exempt
 def stock_adjust(request):
-    
     err = _require_post(request)
     if err:
         return err
-    data  = _json(request)
-    staff = _get_staff(request)  # FIX: was never set in original view
+    data = _json(request)
+    staff, _ = _get_staff(request) 
 
     item = InventoryItem.objects.get(id=data["item_id"])
     qty  = Decimal(str(data["quantity"]))
@@ -301,7 +413,7 @@ def stock_adjust(request):
         item.current_stock += qty
     elif typ == "out":
         item.current_stock -= qty
-    else:                          
+    else:
         item.current_stock = qty
 
     item.save()
@@ -311,10 +423,9 @@ def stock_adjust(request):
         adjustment_type=typ,
         quantity=qty,
         note=data.get("note", ""),
-        adjusted_by=staff,         # FIX: model has FK to accounts.Staff
+        adjusted_by=staff,
     )
     return JsonResponse({"success": True, "new_stock": float(item.current_stock)})
-
 
 def list_stock_adjustments(request):
     qs = StockAdjustment.objects.select_related(
@@ -446,15 +557,50 @@ def update_po_status(request, po_id):
 
 
 def list_purchase_orders(request):
+    staff = _get_staff(request)
 
     qs = PurchaseOrder.objects.select_related(
         "vendor", "department", "ordered_by", "approved_by"
-    ).prefetch_related("items__item")  
+    ).prefetch_related("items__item")
 
-    if request.GET.get("department_id"):
-        qs = qs.filter(department_id=request.GET["department_id"])
-    if request.GET.get("status"):
-        qs = qs.filter(status=request.GET["status"])
+    if not _is_admin(staff):
+        if not staff or not staff.department:
+            return JsonResponse({"purchase_orders": []})
+
+        dept_name = staff.department.name.lower()
+
+        # HR and management departments see ALL purchase orders
+        full_access_keywords = (
+            "hr", "human resource", "human resources",
+            "admin", "administration", "manager", "management",
+            "accounts", "finance", "front desk", "general"
+        )
+
+        if any(k in dept_name for k in full_access_keywords):
+            # No filter — see all POs
+            pass
+
+        elif any(k in dept_name for k in ("housekeeping", "cleaning", "laundry")):
+            qs = qs.filter(
+                Q(department=staff.department)
+                | Q(department__name__icontains="housekeeping")
+                | Q(department__name__icontains="cleaning")
+                | Q(department__name__icontains="laundry")
+                | Q(department__isnull=True)
+            ).distinct()
+
+        elif any(k in dept_name for k in ("restaurant", "kitchen", "dining", "food", "bar")):
+            qs = qs.filter(
+                Q(department=staff.department)
+                | Q(department__name__icontains="restaurant")
+                | Q(department__name__icontains="kitchen")
+                | Q(department__name__icontains="dining")
+            ).distinct()
+
+        else:
+            qs = qs.filter(
+                Q(department=staff.department) | Q(department__isnull=True)
+            ).distinct()
 
     data = []
     for po in qs.order_by("-ordered_at"):
@@ -466,13 +612,14 @@ def list_purchase_orders(request):
                 "quantity":   float(pi.quantity),
                 "unit":       pi.item.unit if pi.item else "",
                 "unit_price": float(pi.unit_price),
-                "total":      float(pi.subtotal),
+                "subtotal":   float(pi.subtotal),
             }
             for pi in po.items.all()
         ]
         data.append({
             "id":            po.id,
             "vendor":        po.vendor.name,
+            "vendor_id":     po.vendor_id,
             "department":    po.department.name if po.department else None,
             "department_id": po.department_id,
             "status":        po.status,
@@ -482,11 +629,10 @@ def list_purchase_orders(request):
             "approved_by":   str(po.approved_by) if po.approved_by else None,
             "ordered_at":    po.ordered_at.isoformat(),
             "received_at":   po.received_at.isoformat() if po.received_at else None,
-            "lines":         lines,
+            "items":         lines,
         })
 
     return JsonResponse({"purchase_orders": data})
-
 @csrf_exempt
 def add_expense_category(request):
     
@@ -1168,3 +1314,47 @@ def delete_expense(request, expense_id):
             "success": False,
             "error": "Expense not found"
         }, status=404)
+def get_modal_data(request):
+    from accounts.models import Department
+    staff = _get_staff(request)
+    categories = list(ItemCategory.objects.values('id', 'name').order_by('name'))
+    vendors    = list(Vendor.objects.values('id', 'name').order_by('name'))
+    if not staff or _is_admin(staff):
+        departments = list(Department.objects.values('id', 'name').order_by('name'))
+    elif staff.department:
+        departments = [{'id': staff.department.id, 'name': staff.department.name}]
+    else:
+        departments = []
+    return JsonResponse({'categories': categories, 'vendors': vendors, 'departments': departments})
+
+from django.http import JsonResponse
+from .models import Vendor, InventoryItem 
+from accounts.models import Department 
+
+def inventory_meta(request):
+    from accounts.models import Department
+    
+    vendors     = Vendor.objects.all().order_by('name')
+    departments = Department.objects.all().order_by('name')
+    items       = InventoryItem.objects.all().order_by('name')
+
+    return JsonResponse({
+        "vendors": [
+            {"id": v.id, "name": v.name}
+            for v in vendors
+        ],
+        "departments": [
+            {"id": d.id, "name": d.name}
+            for d in departments
+        ],
+        "items": [
+            {
+                "id":            i.id,
+                "name":          i.name,
+                "unit":          i.unit or "",
+                "stock":         float(i.current_stock or 0),  # ← was i.stock
+                "cost_per_unit": float(i.cost_per_unit or 0),
+            }
+            for i in items
+        ],
+    })

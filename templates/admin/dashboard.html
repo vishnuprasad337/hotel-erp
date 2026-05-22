@@ -1628,57 +1628,154 @@ async function createModule(){
 /* ═══════════════════════════════════════
    MODULE MANAGER (per hotel)
 ═══════════════════════════════════════ */
-let currentHotelId=null;
-window.openModuleModal=async function(hotelId,hotelName){
-  currentHotelId=hotelId;
-  document.getElementById('mmHotelName').innerHTML=`Managing modules for <strong style="color:var(--text);">${esc(hotelName)}</strong>`;
-  const list=document.getElementById('mmModulesList');
-  const meta=document.getElementById('mmHotelMeta');
-  const countBadge=document.getElementById('mmActiveCount');
-  countBadge.textContent='';
-  meta.style.display='none';
-  list.innerHTML=`<div style="text-align:center;padding:20px;color:var(--text3);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>`;
+window.openModuleModal = async function(hotelId, hotelName) {
+  currentHotelId = hotelId;
+  document.getElementById('mmHotelName').innerHTML =
+    `Managing modules for <strong style="color:var(--text);">${esc(hotelName)}</strong>`;
+  const list = document.getElementById('mmModulesList');
+  const meta = document.getElementById('mmHotelMeta');
+  const countBadge = document.getElementById('mmActiveCount');
+  countBadge.textContent = '';
+  meta.style.display = 'none';
+  list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3);">
+    <i class="fas fa-spinner fa-spin"></i> Loading...</div>`;
   openModal('moduleManagerModal');
-  try{
-    const [modulesData,hotelData]=await Promise.all([api('/get-amenities/'),api(`/get-hotel-modules/${hotelId}/`)]);
-    document.getElementById('mmSubStatus').textContent=hotelData.subscription_status||'—';
-    document.getElementById('mmSubPlan').textContent=hotelData.subscription_plan||'None';
-    document.getElementById('mmSubExpiry').textContent=hotelData.subscription_expiry||'Not set';
-    document.getElementById('mmOnTrial').textContent=hotelData.is_on_trial?'Yes':'No';
-    meta.style.display='block';
-    const activeIds=new Set((hotelData.modules||[]).filter(m=>m.is_enabled).map(m=>m.id));
-    const premiums=(modulesData.modules||[]).filter(m=>!m.is_core);
-    if(!premiums.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon"><i class="fas fa-gem"></i></div><h4>No premium modules</h4></div>`;return;}
-    const activeCount=premiums.filter(m=>activeIds.has(m.id)).length;
-    countBadge.textContent=`${activeCount} of ${premiums.length} active`;
-    list.innerHTML=premiums.map(m=>`
-      <div class="mm-item">
-        <div class="mm-item-info">
-          <div class="mm-item-name">${esc(m.name)}${activeIds.has(m.id)?'<span class="mm-item-active-badge"><i class="fas fa-check"></i> Active</span>':''}</div>
-          <div class="mm-item-desc">${esc(m.description||'Premium add-on')}</div>
-        </div>
-        <label class="switch" style="margin-left:16px;">
-          <input type="checkbox" class="mm-toggle" data-id="${m.id}" ${activeIds.has(m.id)?'checked':''}>
-          <span class="slider"></span>
-        </label>
-      </div>`).join('');
-    list.querySelectorAll('.mm-toggle').forEach(cb=>{
-      cb.addEventListener('change',()=>{
-        const checked=list.querySelectorAll('.mm-toggle:checked').length;
-        countBadge.textContent=`${checked} of ${premiums.length} active`;
+
+  try {
+    const [modulesData, hotelData] = await Promise.all([
+      api('/get-amenities/'),
+      api(`/get-hotel-modules/${hotelId}/`)
+    ]);
+
+    // Populate meta info
+    document.getElementById('mmSubStatus').textContent = hotelData.subscription_status || '—';
+    document.getElementById('mmSubPlan').textContent = hotelData.subscription_plan || 'None';
+    document.getElementById('mmSubExpiry').textContent = hotelData.subscription_expiry || 'Not set';
+    document.getElementById('mmOnTrial').textContent = hotelData.is_on_trial ? 'Yes' : 'No';
+    meta.style.display = 'block';
+
+    // Build set of currently active module IDs
+    const activeIds = new Set(
+      (hotelData.modules || [])
+        .filter(m => m.is_enabled)
+        .map(m => m.id)
+    );
+
+    // Separate core and premium
+    const allMods = modulesData.modules || [];
+    const coreMods = allMods.filter(m => m.is_core);
+    const premiumMods = allMods.filter(m => !m.is_core);
+
+    if (!allMods.length) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-puzzle-piece"></i></div>
+        <h4>No modules available</h4></div>`;
+      return;
+    }
+
+    const activeCount = premiumMods.filter(m => activeIds.has(m.id)).length;
+    countBadge.textContent = `${activeCount} of ${premiumMods.length} premium active`;
+
+    // Render core modules (read-only, always on)
+    const coreHTML = coreMods.length ? `
+      <div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;
+                  letter-spacing:0.08em;padding:8px 4px 6px;">
+        Core Modules (always enabled)
+      </div>
+      ${coreMods.map(m => `
+        <div class="mm-item" style="opacity:0.65;">
+          <div class="mm-item-info">
+            <div class="mm-item-name">
+              ${esc(m.name)}
+              <span class="mm-item-active-badge"><i class="fas fa-lock"></i> Core</span>
+            </div>
+            <div class="mm-item-desc">${esc(m.description || 'Always active')}</div>
+          </div>
+          <label class="switch" style="margin-left:16px;">
+            <input type="checkbox" checked disabled>
+            <span class="slider"></span>
+          </label>
+        </div>`).join('')}
+      <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">` : '';
+
+    // Render premium modules (toggleable)
+    const premHTML = premiumMods.length ? `
+      <div style="font-size:0.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;
+                  letter-spacing:0.08em;padding:8px 4px 6px;">
+        Premium Modules
+      </div>
+      ${premiumMods.map(m => `
+        <div class="mm-item">
+          <div class="mm-item-info">
+            <div class="mm-item-name">
+              ${esc(m.name)}
+              ${activeIds.has(m.id)
+                ? '<span class="mm-item-active-badge"><i class="fas fa-check"></i> Active</span>'
+                : ''}
+            </div>
+            <div class="mm-item-desc">${esc(m.description || 'Premium add-on')}</div>
+          </div>
+          <label class="switch" style="margin-left:16px;">
+            <input type="checkbox" class="mm-toggle" data-id="${m.id}"
+              ${activeIds.has(m.id) ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>`).join('')}` : `
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:0.8rem;">
+        No premium modules available
+      </div>`;
+
+    list.innerHTML = coreHTML + premHTML;
+
+    // Update badge count on toggle change
+    list.querySelectorAll('.mm-toggle').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checked = list.querySelectorAll('.mm-toggle:checked').length;
+        countBadge.textContent = `${checked} of ${premiumMods.length} premium active`;
       });
     });
-  }catch(e){list.innerHTML=`<div class="empty-state"><div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div><h4>Failed</h4><p>${esc(e.message)}</p></div>`;}
-};
-async function saveModules(){
-  const selected=Array.from(document.querySelectorAll('#mmModulesList .mm-toggle:checked')).map(t=>parseInt(t.dataset.id));
-  try{
-    const data=await api(`/save-hotel-modules/${currentHotelId}/`,'POST',{modules:selected});
-    if(data.success){toast('Modules updated');closeModal('moduleManagerModal');}
-    else toast(data.error||'Failed','err');
-  }catch(e){toast(e.message||'Network error','err');}
-}
 
+  } catch(e) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <h4>Failed to load</h4><p>${esc(e.message)}</p></div>`;
+  }
+};
+
+async function saveModules() {
+  // Collect only the checked premium module IDs (core modules are managed server-side)
+  const selected = Array.from(
+    document.querySelectorAll('#mmModulesList .mm-toggle:checked')
+  ).map(t => parseInt(t.dataset.id));
+
+  try {
+    const data = await api(
+      `/save-hotel-modules/${currentHotelId}/`,
+      'POST',
+      { modules: selected }
+    );
+    if (data.success) {
+      toast('Modules updated successfully');
+      closeModal('moduleManagerModal');
+    } else {
+      toast(data.error || 'Failed to save modules', 'err');
+    }
+  } catch(e) {
+    toast(e.message || 'Network error', 'err');
+  }
+}
+async function confirmUpgrade(){
+  const plan_id = document.getElementById('upgradePlanSelect').value;
+  try {
+    const data = await api(`/upgrade-hotel-plan/${upgradeHotelId}/`, 'POST', {plan_id: parseInt(plan_id)});
+    if (data.success) {
+      toast(`Upgraded to ${data.plan}`);
+      closeModal('upgradeModal');
+      // Reload to refresh hotel table data
+      setTimeout(() => location.reload(), 600);
+    } else toast(data.error || 'Failed', 'err');
+  } catch(e) { toast(e.message || 'Network error', 'err'); }
+}
 /* ═══════════════════════════════════════
    PLANS
 ═══════════════════════════════════════ */

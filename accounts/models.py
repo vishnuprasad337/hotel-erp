@@ -26,6 +26,7 @@ class Hotel(models.Model):
     is_subscribed = models.BooleanField(default=False)
     is_setup_complete = models.BooleanField(default=False)
     logo = models.ImageField(upload_to='hotel_logos/', blank=True, null=True)
+    modules_manually_configured = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     subscription_plan = models.ForeignKey(
