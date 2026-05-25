@@ -1,1611 +1,1479 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Setup — {{ hotel.hotel_name|default:"Your Hotel" }} · HotelCloud</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Hotel Setup — HotelCloud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --ink:#0d1117;--ink2:#1c2333;--ink3:#30363d;
-  --mist:#8b949e;--fog:#c9d1d9;--snow:#f0f6fc;--white:#ffffff;
-  --blue:#2f81f7;--blue-dim:#1f6feb;--blue-glow:rgba(47,129,247,.15);
-  --green:#3fb950;--green-dim:#238636;--green-glow:rgba(63,185,80,.12);
-  --amber:#d29922;--amber-dim:#bb8009;--amber-bg:rgba(210,153,34,.1);
-  --red:#f85149;--red-bg:rgba(248,81,73,.1);
-  --purple:#a371f7;--purple-bg:rgba(163,113,247,.1);
-  --border:#21262d;--border2:#30363d;
-  --r:8px;--r2:12px;--r3:16px;
-  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+  --bg:#0d1117;--ink:#161b22;--ink2:#1c2230;--ink3:#21262d;
+  --border:rgba(48,54,61,.8);--border2:rgba(48,54,61,1);
+  --snow:#e6edf3;--mist:#8b949e;--fog:#6e7681;
+  --green:#3fb950;--green-dim:#238636;
+  --blue:#2f81f7;--blue-dim:#1f6feb;--blue-glow:rgba(47,129,247,.08);
+  --amber:#d29922;--red:#f85149;
+  --sidebar:240px;--r:6px;--r2:10px;--r3:14px;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 8px 24px rgba(0,0,0,.5);
 }
-html{scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--ink);color:var(--snow);min-height:100vh;font-size:14px;line-height:1.6}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--ink2)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
-.trial-banner{border-bottom:1px solid rgba(47,129,247,.25);padding:10px 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:linear-gradient(90deg,rgba(47,129,247,.12),rgba(163,113,247,.08))}
-.trial-banner.warning{background:linear-gradient(90deg,rgba(210,153,34,.12),rgba(248,81,73,.08));border-color:rgba(210,153,34,.3)}
-.trial-banner.expired{background:rgba(248,81,73,.08);border-color:rgba(248,81,73,.3)}
-.trial-banner.active-plan{background:rgba(63,185,80,.05);border-color:rgba(63,185,80,.2)}
-.tb-left{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
-.tb-pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
-.tb-pill.trial{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.3)}
-.tb-pill.warning{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(210,153,34,.3)}
-.tb-pill.expired{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,.3)}
-.tb-pill.active{background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.3)}
-.tb-text{color:var(--fog)}
-.tb-text strong{color:var(--snow)}
-.tb-actions{display:flex;gap:8px;align-items:center}
-.tb-btn{font-size:12px;font-weight:600;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:var(--font);border:none;transition:all .15s}
-.tb-btn.primary{background:var(--blue);color:#fff}
-.tb-btn.primary:hover{background:var(--blue-dim)}
-.tb-btn.ghost{background:transparent;color:var(--mist);border:1px solid var(--border2)}
-.tb-btn.ghost:hover{color:var(--snow);border-color:var(--fog)}
-.tb-modules{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.tb-mod-chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.25)}
-.tb-expiry-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(63,185,80,.1);color:var(--green);border:1px solid rgba(63,185,80,.2)}
-.tb-expiry-badge.warn{background:rgba(210,153,34,.12);color:var(--amber);border-color:rgba(210,153,34,.3)}
-.subscription-gate{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.2);border-radius:var(--r2);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:14px}
-.gate-icon{font-size:22px;flex-shrink:0;margin-top:2px}
-.gate-body h4{font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px}
-.gate-body p{font-size:13px;color:var(--mist);line-height:1.5}
-.gate-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.topbar{background:var(--ink2);border-bottom:1px solid var(--border);padding:0 1.5rem;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-.brand-logo{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;letter-spacing:-.5px}
-.brand-name{font-size:16px;font-weight:700;color:var(--snow);letter-spacing:-.3px}
-.brand-name span{color:var(--blue)}
-.topbar-right{display:flex;align-items:center;gap:12px}
-.hotel-chip{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:20px;border:1px solid var(--border2);background:var(--ink3);cursor:pointer;transition:all .15s}
-.hotel-chip:hover{border-color:var(--blue)}
-.hc-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
-.hc-name{font-size:12px;font-weight:600;color:var(--fog)}
-.topbar-step-track{display:flex;align-items:center;gap:6px}
-.ts-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:all .3s}
-.ts-dot.done{background:var(--green)}
-.ts-dot.active{background:var(--blue);box-shadow:0 0 0 3px var(--blue-glow)}
-.ts-label{font-size:11px;color:var(--mist);margin:0 4px;font-weight:600}
-.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 58px)}
-.sidebar{background:var(--ink2);border-right:1px solid var(--border);padding:1.5rem 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
-.sidebar-group{padding:0 1rem;margin-bottom:1.5rem}
-.sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--mist);padding:0 8px;margin-bottom:8px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);font-size:13px;font-weight:600;color:var(--mist);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
-.nav-item:hover{background:rgba(255,255,255,.04);color:var(--fog)}
-.nav-item.active{background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.2)}
-.nav-item.done{color:var(--green)}
-.nav-item.done .ni-num{background:var(--green-glow);color:var(--green)}
-.nav-item.active .ni-num{background:var(--blue);color:#fff}
-.ni-num{width:22px;height:22px;border-radius:50%;background:var(--ink3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;transition:all .2s}
-.ni-check{width:22px;height:22px;border-radius:50%;background:var(--green-glow);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
-.sidebar-bottom{padding:1rem 1.5rem;border-top:1px solid var(--border);margin-top:auto}
-.sf-hotel{font-size:12px;color:var(--mist)}
-.sf-name{font-size:13px;font-weight:700;color:var(--fog);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sf-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;margin-top:5px;padding:2px 8px;border-radius:10px}
-.sf-status.trial{background:var(--blue-glow);color:var(--blue)}
-.sf-status.active{background:var(--green-glow);color:var(--green)}
-.sf-status.expired{background:var(--red-bg);color:var(--red)}
-.sf-status.pending{background:var(--amber-bg);color:var(--amber)}
-.sf-modules-wrap{margin-top:8px;display:flex;flex-wrap:wrap;gap:3px}
-.sf-mod-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.2)}
-.sf-expiry{font-size:9px;color:var(--mist);margin-top:5px}
-.sf-expiry strong{color:var(--fog)}
-.prog-bar{height:3px;background:var(--border);border-radius:3px;margin-top:12px;overflow:hidden}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:3px;transition:width .5s ease}
-.main{padding:2rem 2.5rem 5rem;max-width:720px}
-.step-section{display:none;animation:fadeUp .3s ease}
-.step-section.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.page-hd{margin-bottom:1.75rem}
-.page-hd h1{font-size:22px;font-weight:800;color:var(--snow);letter-spacing:-.5px;margin-bottom:4px}
-.page-hd p{font-size:13px;color:var(--mist)}
-.notice{border-radius:var(--r);padding:10px 14px;font-size:13px;display:flex;align-items:flex-start;gap:9px;margin-bottom:1.25rem}
-.notice.info{background:var(--blue-glow);border:1px solid rgba(47,129,247,.2);color:#7eb8f7}
-.notice.warn{background:var(--amber-bg);border:1px solid rgba(210,153,34,.2);color:var(--amber)}
-.notice.success{background:var(--green-glow);border:1px solid rgba(63,185,80,.2);color:var(--green)}
-.notice-icon{font-size:15px;margin-top:1px;flex-shrink:0}
-.card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:1rem;overflow:hidden}
-.card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.card-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.ci-blue{background:var(--blue-glow)}
-.ci-green{background:var(--green-glow)}
-.ci-amber{background:var(--amber-bg)}
-.ci-purple{background:var(--purple-bg)}
-.ci-red{background:var(--red-bg)}
-.card-hd-text h3{font-size:13px;font-weight:700;color:var(--snow)}
-.card-hd-text p{font-size:11px;color:var(--mist);margin-top:1px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--snow);min-height:100vh;display:flex;font-size:14px;line-height:1.5}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--ink);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;z-index:100}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.nav-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--fog);padding:0 8px;margin:16px 0 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:500;color:var(--mist);text-decoration:none;transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:var(--ink3);color:var(--snow);border-color:var(--border)}
+.nav-item.active{background:var(--blue-glow);color:var(--blue);border-color:rgba(47,129,247,.25)}
+.nav-item .ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-step-num{margin-left:auto;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;background:var(--ink3);color:var(--fog);border:1px solid var(--border)}
+.nav-item.done .nav-step-num{background:var(--green-dim);color:#fff;border-color:var(--green-dim)}
+.nav-item.active .nav-step-num{background:var(--blue);color:#fff;border-color:var(--blue)}
+.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border)}
+.dash-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border-radius:var(--r);background:linear-gradient(135deg,var(--blue-dim),var(--blue));color:#fff;font-family:var(--font);font-size:13px;font-weight:700;border:none;cursor:pointer;text-decoration:none;transition:all .2s}
+.dash-btn:hover{opacity:.88;transform:translateY(-1px);box-shadow:0 4px 16px rgba(47,129,247,.4)}
+.hotel-card{margin:10px;padding:12px;border-radius:var(--r2);background:var(--ink3);border:1px solid var(--border)}
+.hotel-card-name{font-size:12px;font-weight:700;color:var(--snow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hotel-card-type{font-size:10px;color:var(--mist);margin-top:2px}
+.hotel-badge{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-trial{background:rgba(210,153,34,.15);color:var(--amber);border:1px solid rgba(210,153,34,.3)}
+.badge-active{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.badge-free{background:var(--ink3);color:var(--fog);border:1px solid var(--border)}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:52px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.95);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:90}
+.topbar-breadcrumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mist)}
+.topbar-breadcrumb span{color:var(--snow);font-weight:600}
+.topbar-sep{color:var(--border2)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#0f4c99);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.progress-wrap{padding:20px 28px 0}
+.progress-steps{display:flex;align-items:center;gap:0;margin-bottom:28px}
+.ps-item{display:flex;align-items:center;flex:1}
+.ps-bubble{width:32px;height:32px;border-radius:50%;border:2px solid var(--border2);background:var(--ink2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--fog);flex-shrink:0;transition:all .3s}
+.ps-item.done .ps-bubble{background:var(--green-dim);border-color:var(--green);color:#fff}
+.ps-item.active .ps-bubble{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(47,129,247,.2)}
+.ps-label{margin-left:8px;font-size:12px;font-weight:600;color:var(--fog)}
+.ps-item.active .ps-label{color:var(--snow)}
+.ps-item.done .ps-label{color:var(--green)}
+.ps-line{flex:1;height:2px;background:var(--border2);margin:0 8px;border-radius:2px;transition:all .3s}
+.ps-item.done .ps-line{background:var(--green-dim)}
+.content{padding:0 28px 60px;max-width:960px}
+.step-section{display:none}
+.step-section.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page-hd{margin-bottom:24px}
+.page-hd h1{font-size:22px;font-weight:800;color:var(--snow);letter-spacing:-.4px}
+.page-hd p{font-size:13px;color:var(--mist);margin-top:4px}
+.card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-head h3{font-size:14px;font-weight:700;color:var(--snow)}
 .card-body{padding:18px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.section-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.full{grid-template-columns:1fr}
 .field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist)}
-.field input,.field select,.field textarea{padding:9px 12px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);background:var(--ink3);outline:none;width:100%;transition:all .15s;font-family:var(--font)}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-glow)}
-.field input::placeholder,.field textarea::placeholder{color:var(--mist)}
-.field textarea{resize:vertical;min-height:76px;line-height:1.5}
-.field select option{background:var(--ink2)}
-.field-note{font-size:11px;color:var(--mist);margin-top:3px}
-.prop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
-.prop-label{cursor:pointer;display:block}
-.prop-label input{display:none}
-.prop-box{border:1px solid var(--border2);border-radius:var(--r2);padding:16px 10px 13px;text-align:center;background:var(--ink2);transition:all .18s;position:relative}
-.prop-box:hover{border-color:var(--blue);background:var(--ink3)}
-.prop-label input:checked + .prop-box{border-color:var(--blue);background:var(--blue-glow);box-shadow:0 0 0 1px var(--blue)}
-.prop-check{position:absolute;top:7px;right:7px;width:15px;height:15px;border-radius:50%;background:var(--blue);display:none;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700}
-.prop-label input:checked + .prop-box .prop-check{display:flex}
-.prop-icon{font-size:26px;margin-bottom:6px;display:block}
-.prop-name{font-size:11px;font-weight:700;color:var(--fog)}
-.prop-desc{font-size:10px;color:var(--mist);margin-top:2px;line-height:1.3}
-.rt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem}
-.rt-label{cursor:pointer;display:block}
-.rt-label input{display:none}
-.rt-box{border:1px solid var(--border2);border-radius:var(--r);padding:12px 6px;text-align:center;background:var(--ink2);transition:all .15s}
-.rt-label input:checked + .rt-box{border-color:var(--blue);background:var(--blue-glow)}
-.rt-icon{font-size:20px;margin-bottom:5px}
-.rt-name{font-size:11px;font-weight:700;color:var(--fog)}
-.rt-cap{font-size:10px;color:var(--mist);margin-top:2px}
-.counter{display:flex;align-items:center;gap:8px;margin-top:5px}
-.cnt-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--ink3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--fog);transition:all .15s;font-weight:700}
-.cnt-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-glow)}
-.cnt-val{font-size:16px;font-weight:700;min-width:24px;text-align:center;color:var(--snow)}
-.cnt-lbl{font-size:11px;color:var(--mist)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{padding:5px 12px;border:1px solid var(--border2);border-radius:20px;font-size:11px;font-weight:600;color:var(--mist);cursor:pointer;background:var(--ink3);transition:all .15s;user-select:none}
-.chip.on{background:var(--blue-glow);border-color:rgba(47,129,247,.4);color:var(--blue)}
-.chip:hover:not(.on){border-color:var(--fog);color:var(--fog)}
-.price-preview{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-top:10px}
-.pp-row{display:flex;justify-content:space-between;font-size:12px;color:var(--mist);padding:3px 0}
-.pp-row.total{font-size:14px;font-weight:700;color:var(--snow);border-top:1px solid var(--border);margin-top:7px;padding-top:9px}
-.photo-drop{border:2px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;background:var(--ink3);transition:all .15s}
-.photo-drop:hover{border-color:var(--blue);background:var(--blue-glow)}
-.thumbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.thumb{width:80px;height:60px;object-fit:cover;border-radius:7px;border:1px solid var(--border2)}
-.thumb:first-child{border-color:var(--blue)}
-.upload-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
-.upload-ph{width:76px;height:76px;border-radius:var(--r);border:1px dashed var(--border2);background:var(--ink3);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--mist);gap:3px;flex-shrink:0;overflow:hidden}
-.upload-zone{flex:1;border:1px dashed var(--border2);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;background:var(--ink3);transition:all .15s}
+.field label{font-size:12px;font-weight:600;color:var(--mist)}
+.field input,.field select,.field textarea{background:var(--ink3);border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);font-family:var(--font);font-size:13px;padding:9px 12px;outline:none;transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,129,247,.12)}
+.field select option{background:var(--ink3)}
+.field textarea{resize:vertical;min-height:72px}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r2);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ink3)}
 .upload-zone:hover{border-color:var(--blue);background:var(--blue-glow)}
-.uz-icon{font-size:20px;margin-bottom:4px}
-.uz-main{font-size:13px;font-weight:600;color:var(--fog)}
-.uz-sub{font-size:11px;color:var(--mist);margin-top:2px}
-.room-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--ink3);margin-bottom:6px}
-.rr-left{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--fog)}
-.rr-badge{background:var(--blue-glow);color:var(--blue);font-size:10px;font-weight:700;padding:2px 9px;border-radius:6px;border:1px solid rgba(47,129,247,.2)}
-.rr-right{font-size:12px;color:var(--mist)}
-.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem}
-.plan-label{cursor:pointer;display:block}
-.plan-label input{display:none}
-.plan-card{border:1px solid var(--border2);border-radius:var(--r2);padding:18px 14px;background:var(--ink2);transition:all .2s;position:relative;overflow:hidden}
-.plan-card:hover{border-color:var(--blue);transform:translateY(-2px)}
-.plan-label input:checked + .plan-card{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue),0 8px 24px rgba(47,129,247,.15);transform:translateY(-2px);background:rgba(47,129,247,.04)}
-.plan-label input:checked + .plan-card .plan-tick{display:flex}
-.plan-popular{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:9px;font-weight:700;padding:2px 10px;border-radius:0 0 6px 6px;letter-spacing:.05em}
-.plan-card.has-badge{padding-top:26px}
-.plan-tick{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;background:var(--blue);display:none;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
-.plan-name{font-size:14px;font-weight:800;color:var(--snow);margin-bottom:2px}
-.plan-price{font-size:28px;font-weight:800;color:var(--snow);line-height:1;margin:8px 0 2px}
-.plan-price span{font-size:12px;font-weight:500;color:var(--mist)}
-.plan-tag{font-size:11px;color:var(--mist);margin-bottom:10px;line-height:1.4}
-.plan-divider{height:1px;background:var(--border);margin:10px 0}
-.plan-feats{display:flex;flex-direction:column;gap:5px}
-.pf-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fog)}
-.pf-yes{width:13px;height:13px;border-radius:50%;background:var(--green-glow);color:var(--green);font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.plan-summary{background:var(--blue-glow);border:1px solid rgba(47,129,247,.2);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px}
-.ps-left{font-size:13px;color:#7eb8f7}
-.ps-right{font-size:15px;font-weight:800;color:var(--snow)}
-.current-plan-box{background:var(--ink3);border:1px solid rgba(63,185,80,.25);border-radius:var(--r2);padding:14px 16px;margin-bottom:1.25rem}
-.cpb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.cpb-title{font-size:12px;font-weight:700;color:var(--green)}
-.cpb-expiry{font-size:11px;color:var(--mist)}
-.cpb-expiry strong{color:var(--snow)}
-.cpb-modules{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.cpb-mod{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--green-glow);color:var(--green);border:1px solid rgba(63,185,80,.2)}
-.cpb-mod-count{font-size:10px;color:var(--mist);margin-top:6px;font-weight:600}
-.trial-start-box{background:linear-gradient(135deg,rgba(47,129,247,.08),rgba(163,113,247,.06));border:1px solid rgba(47,129,247,.25);border-radius:var(--r2);padding:20px;margin-bottom:1.25rem;text-align:center}
-.trial-start-box h3{font-size:16px;font-weight:800;color:var(--snow);margin-bottom:6px}
-.trial-start-box p{font-size:13px;color:var(--mist);margin-bottom:16px;line-height:1.5}
-.trial-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}
-.trial-feat{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.2)}
-.trial-active-box{background:rgba(47,129,247,.06);border:1px solid rgba(47,129,247,.25);border-radius:var(--r2);padding:14px 16px;margin-bottom:1.25rem}
-.tab-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.tab-title{font-size:12px;font-weight:700;color:var(--blue)}
-.tab-expiry{font-size:11px;color:var(--mist)}
-.tab-expiry strong{color:var(--snow)}
-.action-bar{display:flex;justify-content:space-between;align-items:center;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--border);gap:10px;flex-wrap:wrap}
-.btn{padding:9px 20px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border2);background:var(--ink3);color:var(--fog)}
-.btn:hover{border-color:var(--fog);color:var(--snow)}
-.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-primary:hover{background:var(--blue-dim)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed}
-.btn-green{background:var(--green-dim);color:#fff;border-color:var(--green-dim)}
-.btn-green:hover{background:var(--green)}
-.btn-ghost{background:transparent;color:var(--blue);border-color:rgba(47,129,247,.3)}
-.btn-ghost:hover{background:var(--blue-glow)}
-.btn-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.skip-link{font-size:12px;color:var(--mist);text-decoration:none;cursor:pointer;transition:color .15s}
-.skip-link:hover{color:var(--fog)}
-.overlay{position:fixed;inset:0;background:rgba(1,4,9,.8);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px)}
-.overlay.show{display:flex}
-.modal{background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r3);width:100%;max-width:500px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);animation:modalIn .25s ease}
-@keyframes modalIn{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-.modal-hd{background:var(--ink3);border-bottom:1px solid var(--border);padding:18px 22px;display:flex;align-items:flex-start;justify-content:space-between}
-.modal-title{font-size:15px;font-weight:800;color:var(--snow);margin-bottom:2px}
-.modal-sub{font-size:11px;color:var(--mist)}
-.modal-amount{text-align:right}
-.modal-amt-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mist)}
-.modal-amt-val{font-size:22px;font-weight:800;color:var(--blue)}
-.modal-close{background:var(--ink3);border:1px solid var(--border);width:26px;height:26px;border-radius:50%;cursor:pointer;color:var(--mist);font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:10px}
-.modal-close:hover{color:var(--snow);border-color:var(--fog)}
-.pay-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--ink3)}
-.pay-tab{flex:1;padding:11px 6px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;color:var(--mist);transition:all .15s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px}
-.pay-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--ink2)}
-.pay-tab-icon{font-size:16px}
-.pay-panels{padding:18px 22px}
-.pay-panel{display:none}
-.pay-panel.active{display:block}
-.card-wrap{position:relative}
-.card-brands{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:3px}
-.cb{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.05em;opacity:.5;transition:opacity .15s}
-.cb.visa{background:#1a1f71;color:#fff}
-.cb.mc{background:#eb001b;color:#fff}
-.cb.rupay{background:#e60026;color:#fff}
-.cb.hi{opacity:1}
-.exp-cvv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.secure-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--mist);margin-top:10px;padding:8px 10px;background:var(--ink3);border-radius:var(--r);border:1px solid var(--border)}
-.upi-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:12px}
-.upi-row .field{flex:1;margin:0}
-.verify-btn{padding:9px 14px;background:var(--blue-glow);color:var(--blue);border:1px solid rgba(47,129,247,.3);border-radius:var(--r);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);transition:all .15s}
-.verify-btn:hover{background:rgba(47,129,247,.2)}
-.upi-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}
-.upi-app{border:1px solid var(--border2);border-radius:var(--r);padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;background:var(--ink3)}
-.upi-app:hover,.upi-app.sel{border-color:var(--blue);background:var(--blue-glow)}
-.upi-app-icon{font-size:22px;margin-bottom:4px}
-.upi-app-name{font-size:10px;font-weight:700;color:var(--fog)}
-.qr-box{border:1px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;margin-top:10px}
-.qr-ph{width:100px;height:100px;margin:0 auto 8px;background:var(--ink3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:36px}
-.bank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
-.bank-item{border:1px solid var(--border2);border-radius:var(--r);padding:9px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:all .15s;background:var(--ink3)}
-.bank-item:hover,.bank-item.sel{border-color:var(--blue);background:var(--blue-glow)}
-.bank-icon{font-size:18px;flex-shrink:0}
-.bank-name{font-size:11px;font-weight:700;color:var(--fog)}
-.wallet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.wallet-item{border:1px solid var(--border2);border-radius:var(--r);padding:10px 6px;text-align:center;cursor:pointer;transition:all .15s;background:var(--ink3)}
-.wallet-item:hover,.wallet-item.sel{border-color:var(--blue);background:var(--blue-glow)}
-.wallet-icon{font-size:22px;margin-bottom:4px}
-.wallet-name{font-size:10px;font-weight:700;color:var(--fog)}
-.wallet-bal{font-size:9px;color:var(--mist);margin-top:2px}
-.emi-item{border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:all .15s;background:var(--ink3);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
-.emi-item:hover,.emi-item.sel{border-color:var(--blue);background:var(--blue-glow)}
-.emi-left{font-size:13px;font-weight:700;color:var(--snow)}
-.emi-sub{font-size:10px;color:var(--mist);margin-top:2px}
-.emi-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px}
-.emi-free{background:var(--green-glow);color:var(--green)}
-.emi-std{background:var(--ink);color:var(--mist)}
-.modal-footer{padding:14px 22px;border-top:1px solid var(--border);background:var(--ink3)}
-.modal-coupon-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-end}
-.modal-coupon-row .field{flex:1;margin:0}
-.pay-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
-.pay-btn:hover{background:var(--blue-dim);transform:translateY(-1px);box-shadow:0 4px 20px rgba(47,129,247,.3)}
-.pay-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.security-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;flex-wrap:wrap}
-.sec-badge{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mist)}
-.trust-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap}
-.trust-pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--ink);border:1px solid var(--border);color:var(--mist)}
+.upload-zone .uz-icon{font-size:28px;margin-bottom:8px}
+.upload-zone p{font-size:12px;color:var(--mist)}
+.upload-zone strong{color:var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:5px 11px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--ink3);color:var(--mist);transition:all .15s}
+.chip.sel{background:rgba(47,129,247,.15);color:var(--blue);border-color:rgba(47,129,247,.4)}
+/* PLAN CARDS */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-bottom:18px}
+.plan-card{border:2px solid var(--border2);border-radius:var(--r3);padding:0;cursor:pointer;transition:all .22s;background:var(--ink2);position:relative;overflow:hidden;display:flex;flex-direction:column}
+.plan-card:hover{border-color:var(--blue);transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.plan-card.selected{border-color:var(--blue);box-shadow:0 0 0 4px rgba(47,129,247,.15),0 12px 32px rgba(0,0,0,.4)}
+.plan-card-top{padding:20px 20px 16px;flex:1}
+.plan-card-bottom{padding:12px 20px 16px;border-top:1px solid var(--border)}
+.plan-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:20px;margin-bottom:12px}
+.pb-popular{background:rgba(47,129,247,.2);color:var(--blue);border:1px solid rgba(47,129,247,.3)}
+.plan-name{font-size:17px;font-weight:800;color:var(--snow);margin-bottom:6px}
+.plan-price-row{display:flex;align-items:flex-end;gap:4px;margin-bottom:14px}
+.plan-price-amt{font-size:28px;font-weight:800;color:var(--blue);font-family:var(--mono);line-height:1}
+.plan-price-period{font-size:12px;color:var(--mist);font-weight:500;margin-bottom:4px}
+.plan-trial-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.25);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--green);margin-bottom:12px}
+.plan-trial-badge .tb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.plan-modules-preview{display:flex;flex-direction:column;gap:5px}
+.plan-mod-item{font-size:12px;color:var(--mist);display:flex;align-items:center;gap:6px}
+.plan-mod-item::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;font-size:11px}
+.plan-view-all{display:inline-flex;align-items:center;gap:4px;margin-top:8px;font-size:11px;color:var(--blue);font-weight:600}
+.plan-card input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.plan-select-btn{width:100%;padding:9px 0;border-radius:var(--r);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border2);transition:all .15s;background:transparent;color:var(--mist);letter-spacing:.02em}
+.plan-select-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-glow)}
+.plan-card.selected .plan-select-btn{background:var(--blue);color:#fff;border-color:var(--blue)}
+/* PLAN MODAL */
+.plan-modal-overlay{position:fixed;inset:0;background:rgba(1,4,9,.88);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)}
+@keyframes modalPop{from{opacity:0;transform:scale(.96) translateY(16px)}to{opacity:1;transform:none}}
+.plan-modal{background:var(--ink);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:860px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 100px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.04);animation:modalPop .26s cubic-bezier(.4,0,.2,1)}
+.pm-head{padding:22px 28px 18px;background:linear-gradient(135deg,rgba(47,129,247,.08),rgba(15,76,153,.04));border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.pm-head-title{font-size:19px;font-weight:800;color:var(--snow);letter-spacing:-.3px}
+.pm-head-sub{font-size:12px;color:var(--mist);margin-top:3px}
+.pm-close{background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--mist);cursor:pointer;font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:.15s;flex-shrink:0;margin-left:16px}
+.pm-close:hover{color:var(--snow);background:rgba(255,255,255,.1)}
+.pm-body{flex:1;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0}
+.pm-body::-webkit-scrollbar{width:4px}
+.pm-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.pm-left{padding:24px 24px 24px 28px;border-right:1px solid var(--border);overflow-y:auto}
+.pm-left::-webkit-scrollbar{width:3px}
+.pm-left::-webkit-scrollbar-thumb{background:var(--border2)}
+.pm-price-block{background:var(--ink2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:flex-end;justify-content:space-between}
+.pm-price-big{font-family:var(--mono);font-size:36px;font-weight:700;color:var(--blue);line-height:1}
+.pm-price-meta{text-align:right}
+.pm-price-period{font-size:11px;color:var(--mist);margin-bottom:6px}
+.pm-trial-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--green)}
+.pm-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--fog);margin-bottom:12px}
+.pm-modules-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.pm-mod-row{display:flex;align-items:center;gap:12px;padding:10px 13px;background:var(--ink2);border:1px solid var(--border);border-radius:10px;transition:border-color .15s}
+.pm-mod-row:hover{border-color:rgba(47,129,247,.25)}
+.pm-mod-icon{width:30px;height:30px;border-radius:7px;background:rgba(47,129,247,.1);border:1px solid rgba(47,129,247,.18);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.pm-mod-name{font-size:13px;font-weight:600;color:var(--snow)}
+.pm-mod-desc{font-size:11px;color:var(--mist);margin-top:1px}
+.pm-mod-check{margin-left:auto;color:var(--green);font-size:13px;font-weight:700;flex-shrink:0}
+.pm-right{padding:24px 28px 24px 24px;display:flex;flex-direction:column;overflow-y:auto}
+.pm-right::-webkit-scrollbar{width:3px}
+.pm-right::-webkit-scrollbar-thumb{background:var(--border2)}
+.pm-trial-cta{background:linear-gradient(135deg,rgba(63,185,80,.08),rgba(47,129,247,.05));border:1px solid rgba(63,185,80,.28);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.pm-trial-cta-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.pm-trial-cta-icon{width:36px;height:36px;background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.pm-trial-cta h4{font-size:14px;font-weight:800;color:var(--green)}
+.pm-trial-cta p{font-size:12px;color:var(--mist);margin-bottom:12px;line-height:1.6}
+.btn-start-trial{width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;border:none;background:linear-gradient(135deg,#1e7e34,var(--green-dim));color:#fff;font-family:var(--font);letter-spacing:.02em;transition:opacity .15s}
+.btn-start-trial:hover{opacity:.88}
+.btn-start-trial:disabled{opacity:.5;cursor:not-allowed}
+.pm-divider{display:flex;align-items:center;gap:10px;margin:10px 0}
+.pm-divider::before,.pm-divider::after{content:'';flex:1;height:1px;background:var(--border2)}
+.pm-divider span{font-size:11px;color:var(--fog);white-space:nowrap}
+.pm-order-strip{background:rgba(47,129,247,.06);border:1px solid rgba(47,129,247,.18);border-radius:10px;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pm-order-name{font-size:13px;font-weight:700;color:var(--snow)}
+.pm-order-period{font-size:11px;color:var(--mist);margin-top:1px}
+.pm-order-price{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--blue)}
+.pm-pay-tabs{display:flex;gap:5px;background:var(--ink3);border-radius:10px;padding:4px;margin-bottom:12px}
+.pm-pay-tab{flex:1;padding:8px 0;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--mist);transition:all .15s;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:5px}
+.pm-pay-tab.active{background:var(--ink2);color:var(--snow);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pm-card-visual{border-radius:13px;padding:18px 20px 16px;background:linear-gradient(135deg,#1a2d4e 0%,#0d1f3a 60%,#162640 100%);border:1px solid rgba(47,129,247,.15);position:relative;overflow:hidden;margin-bottom:14px}
+.pm-card-visual::before{content:'';position:absolute;top:-40px;right:-40px;width:130px;height:130px;background:radial-gradient(circle,rgba(47,129,247,.18),transparent 65%);pointer-events:none}
+.pcv-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;position:relative;z-index:1}
+.pcv-chip{width:34px;height:24px;background:linear-gradient(135deg,#d4a843,#f0c060);border-radius:4px}
+.pcv-network{font-family:var(--mono);font-size:11px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.05em}
+.pcv-number{font-family:var(--mono);font-size:15px;font-weight:600;color:rgba(255,255,255,.88);letter-spacing:.16em;margin-bottom:14px;position:relative;z-index:1;min-height:22px}
+.pcv-number.ph{color:rgba(255,255,255,.22)}
+.pcv-bottom{display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:1}
+.pcv-field-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:2px}
+.pcv-field-val{font-family:var(--mono);font-size:12px;font-weight:600;color:rgba(255,255,255,.82);min-height:16px}
+.pcv-field-val.ph{color:rgba(255,255,255,.22)}
+.pm-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.pm-field label{font-size:10px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:.08em}
+.pm-field input{background:var(--ink2);border:1.5px solid var(--border2);border-radius:10px;color:var(--snow);font-family:var(--mono);font-size:13px;padding:9px 12px;outline:none;transition:all .2s;letter-spacing:.04em}
+.pm-field input::placeholder{color:var(--fog);letter-spacing:normal;font-family:var(--font);font-size:13px}
+.pm-field input:focus{border-color:var(--blue);background:rgba(47,129,247,.04);box-shadow:0 0 0 3px rgba(47,129,247,.1)}
+.pm-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gpay-btn-main{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:11px;border:none;cursor:pointer;font-size:14px;font-weight:800;background:#000;color:#fff;font-family:var(--font);letter-spacing:.01em;margin-bottom:10px;transition:opacity .15s}
+.gpay-btn-main:hover{opacity:.85}
+.upi-id-wrap{background:var(--ink2);border:1.5px solid var(--border2);border-radius:10px;display:flex;align-items:center;overflow:hidden;margin-bottom:6px}
+.upi-id-wrap input{flex:1;background:transparent;border:none;color:var(--snow);font-size:13px;padding:9px 12px;outline:none;font-family:var(--font)}
+.upi-id-wrap span{padding:0 12px;font-size:11px;color:var(--mist);border-left:1px solid var(--border2);white-space:nowrap}
+.upi-quick-pill{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid var(--border2);background:var(--ink3);color:var(--mist);cursor:pointer;transition:all .12s;font-family:var(--font)}
+.upi-quick-pill:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-glow)}
+.gpay-qr-box{background:var(--ink2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.gpay-apps{display:flex;gap:7px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.gpay-app-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid var(--border2);background:var(--ink3);color:var(--mist);cursor:pointer;font-family:var(--font);transition:all .12s}
+.gpay-app-pill.active{background:rgba(47,129,247,.12);color:var(--blue);border-color:rgba(47,129,247,.35)}
+.pm-security{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(63,185,80,.05);border:1px solid rgba(63,185,80,.15);border-radius:8px;margin-top:10px}
+.pm-security span{font-size:11px;color:var(--mist)}
+.pm-security strong{color:var(--green)}
+.pm-what-box{background:var(--ink3);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.pm-what-item{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.pm-what-item:last-child{margin-bottom:0}
+.pm-what-icon{width:34px;height:34px;border-radius:9px;background:var(--ink2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.pm-foot{padding:14px 28px 18px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-shrink:0;background:var(--ink2)}
+.pm-select-btn{flex:1;padding:12px 20px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;border:none;transition:all .2s;background:linear-gradient(135deg,var(--blue-dim),var(--blue));color:#fff;letter-spacing:.02em;box-shadow:0 4px 16px rgba(47,129,247,.3)}
+.pm-select-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(47,129,247,.45)}
+.pm-select-btn:disabled{opacity:.42;cursor:not-allowed;transform:none;box-shadow:none}
+.pm-back-btn,.pm-cancel-btn{padding:12px 16px;border-radius:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:transparent;color:var(--mist);transition:all .15s}
+.pm-back-btn:hover,.pm-cancel-btn:hover{color:var(--snow);border-color:var(--fog)}
+.pm-trial-foot-btn{padding:12px 16px;border-radius:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid rgba(63,185,80,.4);background:rgba(63,185,80,.08);color:var(--green);transition:all .15s}
+.pm-trial-foot-btn:hover{background:rgba(63,185,80,.16);border-color:var(--green)}
+.pm-trial-foot-btn:disabled{opacity:.5;cursor:not-allowed}
+.action-bar{position:sticky;bottom:0;background:rgba(13,17,23,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:14px;margin:0 -28px}
+.plan-summary-bar{display:flex;align-items:center;gap:8px;flex:1}
+.psb-name{font-size:13px;font-weight:700;color:var(--snow)}
+.psb-price{font-size:12px;color:var(--mist)}
+.btn{padding:9px 20px;border-radius:var(--r);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dim);transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;color:var(--mist);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--snow);border-color:var(--fog)}
+.btn-green{background:var(--green-dim);color:#fff}
+.btn-green:hover{background:#1e7e34}
+.btn-sm{padding:6px 14px;font-size:12px}
+.banner{border-radius:var(--r2);padding:16px 18px;display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+.banner-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.banner-body h4{font-size:14px;font-weight:700;margin-bottom:3px}
+.banner-body p{font-size:12px;line-height:1.6}
+.banner-green{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.25)}
+.banner-green h4{color:var(--green)}
+.banner-amber{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.25)}
+.banner-amber h4{color:var(--amber)}
+.banner-blue{background:rgba(47,129,247,.08);border:1px solid rgba(47,129,247,.25)}
+.banner-blue h4{color:var(--blue)}
+.banner-red{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25)}
+.banner-red h4{color:var(--red)}
+.mod-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mod-tag{padding:3px 9px;background:var(--ink3);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--mist)}
+.coupon-row{display:flex;gap:8px;margin-bottom:14px}
+.coupon-row input{flex:1}
+#coupon-status{font-size:11px;margin-top:4px;min-height:16px}
+.done-card{text-align:center;padding:48px 28px}
+.done-icon{font-size:56px;margin-bottom:16px}
+.done-card h2{font-size:24px;font-weight:800;color:var(--snow);margin-bottom:8px}
+.done-card p{font-size:14px;color:var(--mist);max-width:360px;margin:0 auto 24px}
+.rooms-list{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.room-row{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r2);padding:12px 16px;display:flex;align-items:center;gap:12px}
+.room-row-info{flex:1}
+.room-row-info strong{font-size:13px;color:var(--snow)}
+.room-row-info p{font-size:11px;color:var(--mist)}
+.trial-box{background:linear-gradient(135deg,rgba(47,129,247,.08),rgba(63,185,80,.04));border:1px solid rgba(47,129,247,.25);border-radius:var(--r2);padding:20px 22px;margin-bottom:18px;display:flex;align-items:flex-start;gap:16px}
+.trial-box .tb-icon{font-size:28px;flex-shrink:0}
+.trial-box h4{font-size:15px;font-weight:800;color:var(--snow);margin-bottom:4px}
+.trial-box p{font-size:12px;color:var(--mist);line-height:1.7;margin-bottom:12px}
+.core-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:18px}
+.core-item{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;display:flex;align-items:center;gap:8px}
+.core-item span{font-size:12px;font-weight:600;color:var(--mist)}
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:11px 18px;border-radius:var(--r2);font-size:13px;font-weight:600;box-shadow:var(--shadow);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{background:#1a3d28;color:var(--green);border:1px solid rgba(63,185,80,.3)}
+#toast.err{background:#3d1a1a;color:var(--red);border:1px solid rgba(248,81,73,.3)}
+#toast.info{background:#1a2d3d;color:var(--blue);border:1px solid rgba(47,129,247,.3)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
-.pm-processing{text-align:center;padding:3rem 2rem}
-.pm-spinner{width:56px;height:56px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.25rem}
-.pm-success{text-align:center;padding:2.5rem 2rem}
-.success-ring{width:68px;height:68px;border-radius:50%;background:var(--green-glow);border:1px solid rgba(63,185,80,.3);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 1rem;animation:pop .4s ease}
-@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
-.receipt-box{background:var(--ink3);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin:14px 0;text-align:left}
-.receipt-row{display:flex;justify-content:space-between;font-size:12px;color:var(--mist);padding:3px 0}
-.receipt-row strong{color:var(--fog)}
-.receipt-id{font-family:var(--mono);font-size:10px;color:var(--blue)}
-.done-card{background:var(--ink2);border:1px solid var(--border);border-radius:var(--r3);padding:3rem 2rem;text-align:center;max-width:460px;margin:0 auto}
-.done-emoji{font-size:48px;margin-bottom:1rem;display:block}
-.done-card h2{font-size:20px;font-weight:800;color:var(--snow);margin-bottom:8px}
-.done-card p{font-size:13px;color:var(--mist);margin-bottom:1.75rem;line-height:1.6}
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--ink2);border:1px solid var(--border2);color:var(--fog);padding:10px 16px;border-radius:var(--r);font-size:12px;font-weight:700;z-index:9999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:300px}
-.toast.show{opacity:1;transform:translateY(0)}
-.toast.ok{border-color:rgba(63,185,80,.4);color:var(--green)}
-.toast.err{border-color:rgba(248,81,73,.4);color:var(--red)}
-.toast.warn{border-color:rgba(210,153,34,.4);color:var(--amber)}
-.field-mono input{font-family:var(--mono);letter-spacing:.06em}
-.offer-strip{background:linear-gradient(90deg,rgba(47,129,247,.08),rgba(163,113,247,.06));border:1px solid rgba(47,129,247,.2);border-radius:var(--r);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
-.offer-code{font-family:var(--mono);font-size:12px;color:var(--blue);font-weight:600;background:rgba(47,129,247,.1);padding:1px 7px;border-radius:4px;border:1px solid rgba(47,129,247,.2)}
-@media(max-width:768px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .main{padding:1.25rem 1rem 4rem}
-  .plans-grid{grid-template-columns:1fr}
-  .prop-grid{grid-template-columns:1fr 1fr}
-  .rt-grid{grid-template-columns:1fr 1fr}
-  .g2,.g3{grid-template-columns:1fr}
-  .bank-grid{grid-template-columns:1fr 1fr}
-}
+.modal-overlay-generic{position:fixed;inset:0;background:rgba(1,4,9,.88);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(10px)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalIn{from{transform:scale(.95) translateY(16px);opacity:0}to{transform:none;opacity:1}}
+
+/* ── ASSET PANEL STYLES ── */
+.asset-panel{background:var(--ink3);border:1px solid var(--border2);border-radius:var(--r2);overflow:hidden}
+.asset-panel-tabs{display:flex;border-bottom:1px solid var(--border2)}
+.apt{flex:1;padding:10px 0;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--mist);font-family:var(--font);transition:all .15s;border-bottom:2px solid transparent}
+.apt.active{color:var(--blue);border-bottom-color:var(--blue);background:rgba(47,129,247,.05)}
+.apt:hover:not(.active){color:var(--snow)}
+.asset-tab-pane{display:none;padding:14px}
+.asset-tab-pane.active{display:block}
+.asset-search-row{display:flex;gap:8px;margin-bottom:10px}
+.asset-search-row input{flex:1;background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);font-family:var(--font);font-size:12px;padding:7px 10px;outline:none}
+.asset-search-row input:focus{border-color:var(--blue)}
+.asset-list-scroll{max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--ink2)}
+.asset-list-scroll::-webkit-scrollbar{width:3px}
+.asset-list-scroll::-webkit-scrollbar-thumb{background:var(--border2)}
+.asset-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.asset-item:last-child{border-bottom:none}
+.asset-item:hover{background:rgba(47,129,247,.06)}
+.asset-item.checked{background:rgba(47,129,247,.08)}
+.asset-chkbox{width:16px;height:16px;border-radius:4px;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;transition:all .12s}
+.asset-chkbox.on{background:var(--blue);border-color:var(--blue)}
+.asset-item-name{font-size:12px;font-weight:600;color:var(--snow);flex:1}
+.asset-item-meta{font-size:11px;color:var(--mist)}
+.asset-status-pill{font-size:10px;padding:2px 7px;border-radius:20px}
+.asp-active{background:rgba(63,185,80,.15);color:var(--green)}
+.asp-inactive{background:rgba(210,153,34,.15);color:var(--amber)}
+.asset-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:0 5px;margin-left:5px}
+.selected-assets-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding:10px 14px;background:rgba(47,129,247,.06);border:1px solid rgba(47,129,247,.18);border-radius:var(--r);min-height:38px;align-items:center}
+.sel-asset-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(47,129,247,.15);border:1px solid rgba(47,129,247,.3);color:var(--blue);font-size:11px;font-weight:700}
+.sel-asset-chip button{background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;line-height:1;padding:0;opacity:.7}
+.sel-asset-chip button:hover{opacity:1}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;max-height:180px;overflow-y:auto}
+.cat-item{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-radius:var(--r);background:var(--ink2);border:1px solid var(--border);font-size:12px;color:var(--snow)}
+.cat-del-btn{background:none;border:none;color:var(--fog);cursor:pointer;font-size:13px;line-height:1;padding:0;transition:color .12s}
+.cat-del-btn:hover{color:var(--red)}
+.add-cat-row{display:flex;gap:8px}
+.add-cat-row input{flex:1;background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);font-family:var(--font);font-size:12px;padding:7px 10px;outline:none}
+.add-cat-row input:focus{border-color:var(--blue)}
+.new-asset-form .form-grid{gap:10px}
+.new-asset-form .field input,
+.new-asset-form .field select{background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r);color:var(--snow);font-family:var(--font);font-size:12px;padding:8px 10px;outline:none}
+.new-asset-form .field input:focus,
+.new-asset-form .field select:focus{border-color:var(--blue)}
+.new-asset-form .field label{font-size:11px;font-weight:600;color:var(--mist)}
 </style>
 </head>
 <body>
 
-{% if show_subscription_gate %}
-<div class="trial-banner expired">
-  <div class="tb-left">
-    <span class="tb-pill expired">Access Restricted</span>
-    <span class="tb-text">Your <strong>trial has ended</strong> and you have no active subscription. Some features are disabled.</span>
-  </div>
-  <div class="tb-actions">
-    <button class="tb-btn primary" onclick="switchStep('plan')">Subscribe Now</button>
-    <a href="{% url 'logout' %}" class="tb-btn ghost">Logout</a>
-  </div>
-</div>
-
-{% elif show_trial_banner %}
-  {% if trial_days_remaining <= 3 %}
-  <div class="trial-banner warning">
-    <div class="tb-left">
-      <span class="tb-pill warning">Trial Ending</span>
-      <span class="tb-text">
-        Only <strong>{{ trial_days_remaining }} day{{ trial_days_remaining|pluralize }}</strong> left on your free trial.
-        Subscribe to keep {% if active_modules_count %}your <strong>{{ active_modules_count }}</strong> premium module{{ active_modules_count|pluralize }}{% else %}premium features{% endif %}.
-      </span>
-    </div>
-    <div class="tb-actions">
-      <button class="tb-btn primary" onclick="switchStep('plan')">Choose a Plan</button>
-    </div>
-  </div>
-  {% else %}
-  <div class="trial-banner">
-    <div class="tb-left" style="flex-direction:column;align-items:flex-start;gap:6px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <span class="tb-pill trial">Free Trial</span>
-        <span class="tb-text">
-          <strong>{{ trial_days_remaining }} days</strong> remaining
-          {% if hotel.trial_end %} · Ends {{ hotel.trial_end|date:"d M Y" }}{% endif %}
-          {% if active_modules_count %} · <strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} active{% endif %}
-        </span>
-      </div>
-      {% if active_modules %}
-      <div class="tb-modules">
-        {% for mod in active_modules %}<span class="tb-mod-chip">{{ mod }}</span>{% endfor %}
-      </div>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:10px;font-size:20px;font-weight:700;">
+      {% if hotel.logo %}
+        <img src="{{ hotel.logo.url }}" style="height:60px;width:60px;border-radius:10px;object-fit:cover;">
       {% endif %}
-    </div>
-    <div class="tb-actions">
-      <button class="tb-btn primary" onclick="switchStep('plan')">Upgrade Now</button>
-    </div>
-  </div>
-  {% endif %}
-
-{% elif show_expiry_warning %}
-<div class="trial-banner warning">
-  <div class="tb-left">
-    <span class="tb-pill warning">Expiring Soon</span>
-    <span class="tb-text">
-      <strong>{{ active_plan_name|default:"Subscription" }}</strong> expires in
-      <strong>{{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }}</strong>
-      {% if subscription_expiry %} · {{ subscription_expiry|date:"d M Y" }}{% endif %}
-      {% if active_modules_count %} · {{ active_modules_count }} module{{ active_modules_count|pluralize }} at risk{% endif %}
-    </span>
-  </div>
-  <div class="tb-actions">
-    <button class="tb-btn primary" onclick="switchStep('plan')">Renew Now</button>
-  </div>
-</div>
-
-{% elif hotel.is_subscribed %}
-<div class="trial-banner active-plan">
-  <div class="tb-left" style="flex-direction:column;align-items:flex-start;gap:6px;">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span class="tb-pill active">● Active</span>
-      <span class="tb-text">
-        <strong>{{ active_plan_name|default:"Subscribed" }}</strong>
-        {% if active_modules_count %} · <strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} enabled{% endif %}
-      </span>
-      {% if subscription_expiry %}
-        <span class="tb-expiry-badge {% if expiry_days_remaining <= 7 %}warn{% endif %}">
-          📅 Renews {{ subscription_expiry|date:"d M Y" }}
-          {% if expiry_days_remaining %} · {{ expiry_days_remaining }}d left{% endif %}
-        </span>
-      {% endif %}
-    </div>
-    {% if active_modules %}
-    <div class="tb-modules">
-      {% for mod in active_modules %}<span class="tb-mod-chip">{{ mod }}</span>{% endfor %}
-    </div>
-    {% endif %}
-  </div>
-  <div class="tb-actions">
-    <button class="tb-btn primary" onclick="switchStep('plan')">Manage Plan</button>
-  </div>
-</div>
-{% endif %}
-
-<header class="topbar">
-  <a href="{% url 'dashboard' %}" class="brand">
-    <div class="brand-logo">HC</div>
-    <span class="brand-name">Hotel<span>Cloud</span></span>
-  </a>
-  <div class="topbar-right">
-    <div class="topbar-step-track">
-      <div class="ts-dot active" id="td-hotel"></div>
-      <span class="ts-label">Details</span>
-      <div class="ts-dot" id="td-rooms"></div>
-      <span class="ts-label">Rooms</span>
-      <div class="ts-dot" id="td-plan"></div>
-      <span class="ts-label">Plan</span>
-      <div class="ts-dot" id="td-done"></div>
-    </div>
-    <div class="hotel-chip">
-      <div class="hc-avatar">{{ hotel.hotel_name|default:"H"|slice:":2"|upper }}</div>
-      <span class="hc-name">{{ hotel.hotel_name|default:"Your Hotel"|truncatechars:18 }}</span>
+      <i class="fas fa-building" style="font-size:20px;"></i>
+      <span>{{ hotel.hotel_name }}</span>
     </div>
   </div>
-</header>
+  <div class="hotel-card">
+    <div class="hotel-card-name">{{ hotel.hotel_name|default:"Your Hotel" }}</div>
+    <div class="hotel-card-type">{{ hotel.property_type|default:"Hotel" }}</div>
+    {% if hotel.is_on_trial %}<span class="hotel-badge badge-trial">⏱ Trial</span>
+    {% elif hotel.is_subscribed %}<span class="hotel-badge badge-active">✓ Active</span>
+    {% else %}<span class="hotel-badge badge-free">Free</span>{% endif %}
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Setup Steps</div>
+    <a class="nav-item active" id="nav-1" href="#" onclick="goStep(1);return false">
+      <span class="ni">🏢</span> Hotel Details
+      <span class="nav-step-num" id="ns-1">1</span>
+    </a>
+    <a class="nav-item" id="nav-2" href="#" onclick="goStep(2);return false">
+      <span class="ni">🛏</span> Rooms
+      <span class="nav-step-num" id="ns-2">2</span>
+    </a>
+    <a class="nav-item" id="nav-3" href="#" onclick="goStep(3);return false">
+      <span class="ni">💳</span> Subscription
+      <span class="nav-step-num" id="ns-3">3</span>
+    </a>
+    <div class="nav-label" style="margin-top:24px">Quick Links</div>
+    <a class="nav-item" href="{% url 'dashboard' %}"><span class="ni">📊</span> Dashboard</a>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="{% url 'dashboard' %}" class="dash-btn"><span>🚀</span> Go to Dashboard</a>
+  </div>
+</aside>
 
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-group">
-      <div class="sidebar-label">Setup steps</div>
-      <button class="nav-item active" id="si-hotel" onclick="switchStep('hotel')">
-        <span class="ni-num" id="sn-hotel">1</span>Hotel Details
-      </button>
-      <button class="nav-item" id="si-rooms" onclick="switchStep('rooms')">
-        <span class="ni-num" id="sn-rooms">2</span>Add Rooms
-      </button>
-      <button class="nav-item" id="si-plan" onclick="switchStep('plan')">
-        <span class="ni-num" id="sn-plan">3</span>Choose Plan
-      </button>
-      <button class="nav-item" id="si-done" style="pointer-events:none;opacity:.4">
-        <span class="ni-num" id="sn-done">4</span>Finish Setup
-      </button>
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-breadcrumb">HotelCloud <span class="topbar-sep">/</span> <span>Setup Wizard</span></div>
+    <div class="topbar-right">
+      <a href="{% url 'dashboard' %}" class="btn btn-ghost" style="padding:6px 14px;font-size:12px">← Dashboard</a>
+      <div class="avatar">{{ request.user.username|first|upper }}</div>
     </div>
-    <div class="sidebar-bottom">
-      <div class="sf-hotel">Setting up</div>
-      <div class="sf-name">{{ hotel.hotel_name|default:"Your Hotel" }}</div>
-      {% if hotel.is_on_trial %}
-        <div class="sf-status trial">⏱ Trial — {{ trial_days_remaining }}d left</div>
-      {% elif hotel.is_subscribed %}
-        <div class="sf-status active">● {{ active_plan_name|default:"Active" }}</div>
-        {% if subscription_expiry %}
-          <div class="sf-expiry">
-            Expires <strong>{{ subscription_expiry|date:"d M Y" }}</strong>
-            {% if expiry_days_remaining %}
-              · <strong style="color:{% if expiry_days_remaining <= 7 %}var(--red){% else %}var(--green){% endif %}">{{ expiry_days_remaining }}d left</strong>
-            {% endif %}
-          </div>
-        {% endif %}
-        {% if active_modules %}
-        <div class="sf-modules-wrap">
-          {% for mod in active_modules %}<span class="sf-mod-badge">{{ mod }}</span>{% endfor %}
-        </div>
-        {% endif %}
-      {% elif hotel.subscription_status == 'expired' %}
-        <div class="sf-status expired">✕ Subscription expired</div>
-      {% elif can_start_trial %}
-        <div class="sf-status pending">○ Trial available</div>
-      {% else %}
-        <div class="sf-status pending">○ No active plan</div>
-      {% endif %}
-      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:25%"></div></div>
-    </div>
-  </aside>
+  </div>
 
-  <main class="main">
-
-    {% if show_subscription_gate %}
-    <div class="subscription-gate">
-      <div class="gate-icon">🔒</div>
-      <div class="gate-body">
-        <h4>Subscription required to complete setup</h4>
-        <p>Your free trial has ended. Core features like room management and staff remain active, but premium modules require an active subscription.</p>
-        <div class="gate-actions">
-          <button class="btn btn-primary" onclick="switchStep('plan')">View Plans →</button>
-          <button class="btn" onclick="switchStep('hotel')">Continue with Core</button>
-        </div>
+  <div class="progress-wrap">
+    <div class="progress-steps">
+      <div class="ps-item active" id="psi-1">
+        <div class="ps-bubble">1</div><span class="ps-label">Hotel Details</span><div class="ps-line"></div>
+      </div>
+      <div class="ps-item" id="psi-2">
+        <div class="ps-bubble">2</div><span class="ps-label">Rooms</span><div class="ps-line"></div>
+      </div>
+      <div class="ps-item" id="psi-3">
+        <div class="ps-bubble">3</div><span class="ps-label">Subscription</span>
       </div>
     </div>
-    {% endif %}
+  </div>
 
-    {# ═══ STEP 1: HOTEL DETAILS ═══ #}
-    <div class="step-section active" id="step-hotel">
-      <div class="page-hd">
-        <h1>List your property</h1>
-        <p>Select property type and fill in your details to get started.</p>
-      </div>
-      <div class="notice info">
-        <span class="notice-icon">ℹ</span>
-        <span>Your registration details are pre-filled — review and update anything needed before continuing.</span>
-      </div>
-      <div class="prop-grid">
-        <label class="prop-label">
-          <input type="radio" name="property_type" value="Hotel" {% if hotel.property_type == 'Hotel' or not hotel.property_type %}checked{% endif %}>
-          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏨</span><div class="prop-name">Hotel</div><div class="prop-desc">Full-service with staff</div></div>
-        </label>
-        <label class="prop-label">
-          <input type="radio" name="property_type" value="Resort" {% if hotel.property_type == 'Resort' %}checked{% endif %}>
-          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🌴</span><div class="prop-name">Resort</div><div class="prop-desc">Leisure & full-service</div></div>
-        </label>
-        <label class="prop-label">
-          <input type="radio" name="property_type" value="Guesthouse" {% if hotel.property_type == 'Guesthouse' %}checked{% endif %}>
-          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏡</span><div class="prop-name">Guesthouse</div><div class="prop-desc">B&Bs & small stays</div></div>
-        </label>
-        <label class="prop-label">
-          <input type="radio" name="property_type" value="Apartment" {% if hotel.property_type == 'Apartment' %}checked{% endif %}>
-          <div class="prop-box"><div class="prop-check">✓</div><span class="prop-icon">🏢</span><div class="prop-name">Apartment</div><div class="prop-desc">Self-catering & serviced</div></div>
-        </label>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-blue">📋</div>
-          <div class="card-hd-text"><h3>Basic information</h3><p>Pre-filled from your registration</p></div>
-        </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
-          <div class="g2">
-            <div class="field"><label>Hotel name *</label><input type="text" id="h-name" value="{{ hotel.hotel_name }}" placeholder="Grand Palace Hotel"></div>
-            <div class="field"><label>Owner / manager *</label><input type="text" id="h-owner" value="{{ hotel.owner_name }}" placeholder="Full name"></div>
-          </div>
-          <div class="g2">
-            <div class="field"><label>Email address *</label><input type="email" id="h-email" value="{{ hotel.email }}" placeholder="hotel@example.com"></div>
-            <div class="field"><label>Phone</label><input type="tel" id="h-phone" value="{{ hotel.phone|default:'' }}" placeholder="+91 98765 43210"></div>
-          </div>
-          <div class="g2">
-            <div class="field"><label>City</label><input type="text" id="h-city" value="{{ hotel.city }}" placeholder="Kochi"></div>
-            <div class="field"><label>State</label><input type="text" id="h-state" value="{{ hotel.state|default:'' }}" placeholder="Kerala"></div>
-          </div>
-          <div class="field"><label>Full address</label><textarea id="h-address" placeholder="Street, area, landmark...">{{ hotel.address }}</textarea></div>
-          <div class="field"><label>Property description</label><textarea id="h-desc" placeholder="What makes your property special...">{{ hotel.description }}</textarea></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-amber">📷</div>
-          <div class="card-hd-text"><h3>Logo & cover photo</h3><p>Used on invoices, guest portal, and booking confirmations</p></div>
-        </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:8px">Hotel logo</div>
-            <div class="upload-row">
-              <div class="upload-ph" id="logo-ph">
-                {% if hotel.logo %}<img src="{{ hotel.logo.url }}" style="width:100%;height:100%;object-fit:contain">{% else %}🏷️<span>No logo</span>{% endif %}
-              </div>
-              <img id="logo-prev" style="display:none;width:76px;height:76px;object-fit:contain;border-radius:8px;border:1px solid var(--border2)">
-              <div class="upload-zone" onclick="document.getElementById('logo-input').click()">
-                <div class="uz-icon">☁️</div><div class="uz-main">Upload logo</div><div class="uz-sub">PNG transparent · Max 2 MB</div>
-              </div>
-              <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="previewImg(this,'logo-prev','logo-ph')">
-            </div>
-          </div>
-          <div style="height:1px;background:var(--border)"></div>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:8px">Cover photo</div>
-            <div class="upload-row">
-              <div class="upload-ph" id="cover-ph" style="width:102px;height:72px;border-radius:8px">
-                {% if hotel.image %}<img src="{{ hotel.image.url }}" style="width:100%;height:100%;object-fit:cover">{% else %}🖼️<span>No photo</span>{% endif %}
-              </div>
-              <img id="cover-prev" style="display:none;width:102px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">
-              <div class="upload-zone" onclick="document.getElementById('cover-input').click()">
-                <div class="uz-icon">📷</div><div class="uz-main">Upload cover photo</div><div class="uz-sub">JPG, PNG · Max 5 MB · Landscape preferred</div>
-              </div>
-              <input type="file" id="cover-input" accept="image/*" style="display:none" onchange="previewImg(this,'cover-prev','cover-ph')">
+  <div class="content">
+
+    <!-- ══ STEP 1 ══ -->
+    <div class="step-section active" id="step-1">
+      <div class="page-hd"><h1>Hotel Details</h1><p>Tell us about your property.</p></div>
+      <form id="form-hotel" onsubmit="saveHotel(event)">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="hotel_details"/>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-head"><div class="section-icon" style="background:rgba(47,129,247,.12)">🏢</div><h3>Basic Information</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field"><label>Hotel Name *</label><input name="hotel_name" value="{{ hotel.hotel_name|default:'' }}" required placeholder="e.g. Grand Palace Hotel"/></div>
+              <div class="field"><label>Owner Name</label><input name="owner_name" value="{{ hotel.owner_name|default:'' }}" placeholder="Full name"/></div>
+              <div class="field"><label>Property Type</label><select name="property_type"><option>Hotel</option><option>Resort</option><option>Motel</option><option>Guest House</option><option>Villa</option></select></div>
+              <div class="field"><label>Phone</label><input name="phone" value="{{ hotel.phone|default:'' }}" placeholder="+91 98765 43210"/></div>
+              <div class="field full form-grid full"><label>Description</label><textarea name="description" placeholder="Brief description…">{{ hotel.description|default:'' }}</textarea></div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="action-bar">
-        <a href="?skip=true" class="skip-link" onclick="return confirm('Skip setup and go to dashboard?')">Skip setup →</a>
-        <button class="btn btn-primary" onclick="saveHotelDetails()">Save & continue →</button>
-      </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-head"><div class="section-icon" style="background:rgba(63,185,80,.1)">📍</div><h3>Location</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field" style="grid-column:1/-1"><label>Address</label><input name="address" value="{{ hotel.address|default:'' }}" placeholder="Street address"/></div>
+              <div class="field"><label>City</label><input name="city" value="{{ hotel.city|default:'' }}" placeholder="City"/></div>
+              <div class="field"><label>State</label><input name="state" value="{{ hotel.state|default:'' }}" placeholder="State"/></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-head"><div class="section-icon" style="background:rgba(210,153,34,.1)">🖼</div><h3>Branding</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="field"><label>Logo</label>
+                <div class="upload-zone" onclick="document.getElementById('inp-logo').click()"><div class="uz-icon">🏷</div><p><strong>Click to upload</strong> your hotel logo</p><p style="font-size:11px;margin-top:4px">PNG, JPG up to 5MB</p></div>
+                <input id="inp-logo" type="file" name="logo" accept="image/*" style="display:none" onchange="previewFile(this,'prev-logo')"/>
+                <img id="prev-logo" style="display:none;max-height:60px;margin-top:8px;border-radius:var(--r)"/>
+              </div>
+              <div class="field"><label>Cover Image</label>
+                <div class="upload-zone" onclick="document.getElementById('inp-img').click()"><div class="uz-icon">🌅</div><p><strong>Click to upload</strong> a cover photo</p></div>
+                <input id="inp-img" type="file" name="image" accept="image/*" style="display:none" onchange="previewFile(this,'prev-img')"/>
+                <img id="prev-img" style="display:none;max-height:60px;margin-top:8px;border-radius:var(--r)"/>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="action-bar">
+          <div style="flex:1;font-size:12px;color:var(--mist)">Step 1 of 3 — Hotel Details</div>
+          <button type="submit" class="btn btn-primary" id="btn-save-hotel">Save & Continue →</button>
+        </div>
+      </form>
     </div>
 
-    {# ═══ STEP 2: ROOMS ═══ #}
-    <div class="step-section" id="step-rooms">
-      <div class="page-hd">
-        <h1>Add room types</h1>
-        <p>Add each room category separately with pricing. Units will be auto-numbered.</p>
-      </div>
-      <div class="notice info">
-        <span class="notice-icon">💡</span>
-        <span>You can always add more room types later from the <strong>Rooms</strong> section in your dashboard.</span>
-      </div>
-      <div class="card" id="rooms-added-card" style="display:none">
-        <div class="card-hd">
-          <div class="card-icon ci-green">✅</div>
-          <div class="card-hd-text"><h3>Rooms added</h3><p>Saved to your property</p></div>
-        </div>
-        <div class="card-body" id="rooms-added-list" style="display:flex;flex-direction:column;gap:0"></div>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-blue">🛏️</div>
-          <div class="card-hd-text"><h3 id="room-form-title">Add a room type</h3><p>Fill in details below</p></div>
-        </div>
+    <!-- ══ STEP 2 ══ -->
+    <div class="step-section" id="step-2">
+      <div class="page-hd"><h1>Room Configuration</h1><p>Add room types, amenities, and assign assets to each room.</p></div>
+      <div id="rooms-list" class="rooms-list"></div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><div class="section-icon" style="background:rgba(47,129,247,.1)">🛏</div><h3>Add Room Type</h3></div>
         <div class="card-body">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:8px">Room category</div>
-          <div class="rt-grid">
-            <label class="rt-label"><input type="radio" name="room_type" value="Single" checked onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🛏️</div><div class="rt-name">Single</div><div class="rt-cap">1 adult</div></div></label>
-            <label class="rt-label"><input type="radio" name="room_type" value="Double" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🌙</div><div class="rt-name">Double</div><div class="rt-cap">2 adults</div></div></label>
-            <label class="rt-label"><input type="radio" name="room_type" value="Deluxe" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">⭐</div><div class="rt-name">Deluxe</div><div class="rt-cap">2+ guests</div></div></label>
-            <label class="rt-label"><input type="radio" name="room_type" value="Suite" onchange="updateRoomTitle(this)"><div class="rt-box"><div class="rt-icon">🌠</div><div class="rt-name">Suite</div><div class="rt-cap">Up to 4</div></div></label>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:12px">
-            <div class="g3">
-              <div class="field"><label>Max adults</label><input type="number" id="r-adults" value="2" min="1" max="10"></div>
-              <div class="field"><label>Max children</label><input type="number" id="r-children" value="0" min="0" max="10"></div>
-              <div class="field"><label>Size (sq ft)</label><input type="number" id="r-size" placeholder="250"></div>
-            </div>
-            <div class="field"><label>Room description</label><textarea id="r-desc" placeholder="Bed type, view, floor, special features..."></textarea></div>
+          <div class="form-grid">
             <div class="field">
-              <label>Number of units</label>
-              <div class="counter">
-                <button type="button" class="cnt-btn" onclick="changeUnits(-1)">−</button>
-                <span class="cnt-val" id="units-val">3</span>
-                <button type="button" class="cnt-btn" onclick="changeUnits(1)">+</button>
-                <span class="cnt-lbl">units · auto-numbered (S1, S2…)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-green">💰</div>
-          <div class="card-hd-text"><h3>Pricing</h3><p>Base nightly rates and charges</p></div>
-        </div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
-          <div class="g2">
-            <div class="field"><label>Base price / night (₹) *</label><input type="number" id="r-price" value="2500" min="0" oninput="calcPrice()"></div>
-            <div class="field"><label>Weekend price / night (₹)</label><input type="number" id="r-wprice" placeholder="Same as base if blank"></div>
-          </div>
-          <div class="g2">
-            <div class="field"><label>Extra adult charge (₹)</label><input type="number" id="r-eadult" value="500" min="0"></div>
-            <div class="field"><label>Extra child charge (₹)</label><input type="number" id="r-echild" value="200" min="0"></div>
-          </div>
-          <div class="g2">
-            <div class="field"><label>GST / Tax (%)</label><input type="number" id="r-tax" value="18" min="0" max="100" oninput="calcPrice()"></div>
-            <div class="field"><label>Cancellation policy</label>
-              <select id="r-cancel">
-                <option value="free_24h">Free cancellation (24h)</option>
-                <option value="free_48h">Free cancellation (48h)</option>
-                <option value="non_refundable">Non-refundable</option>
+              <label>Room Type *</label>
+              <select id="rt-type" onchange="toggleCustomType(this.value)">
+                <option value="Single">Single</option>
+                <option value="Double">Double</option>
+                <option value="Deluxe">Deluxe</option>
+                <option value="Suite">Suite</option>
+                <option value="Custom">Custom…</option>
               </select>
             </div>
-          </div>
-          <div class="price-preview">
-            <div class="pp-row"><span>Base rate</span><span id="s-base">₹2,500</span></div>
-            <div class="pp-row"><span id="s-tax-label">GST (18%)</span><span id="s-tax">₹450</span></div>
-            <div class="pp-row total"><span>Guest pays / night</span><span id="s-total">₹2,950</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-purple">✨</div>
-          <div class="card-hd-text"><h3>In-room amenities</h3><p>Select all that apply</p></div>
-        </div>
-        <div class="card-body">
-          <div class="chips" id="chip-grid">
-            <div class="chip" onclick="toggleChip(this)">AC</div>
-            <div class="chip" onclick="toggleChip(this)">Free Wi-Fi</div>
-            <div class="chip" onclick="toggleChip(this)">TV</div>
-            <div class="chip" onclick="toggleChip(this)">Hot water</div>
-            <div class="chip" onclick="toggleChip(this)">Mini bar</div>
-            <div class="chip" onclick="toggleChip(this)">Balcony</div>
-            <div class="chip" onclick="toggleChip(this)">Sea view</div>
-            <div class="chip" onclick="toggleChip(this)">Bathtub</div>
-            <div class="chip" onclick="toggleChip(this)">Room service</div>
-            <div class="chip" onclick="toggleChip(this)">Work desk</div>
-            <div class="chip" onclick="toggleChip(this)">In-room safe</div>
-            <div class="chip" onclick="toggleChip(this)">Hair dryer</div>
-            <div class="chip" onclick="toggleChip(this)">Kettle</div>
-            <div class="chip" onclick="toggleChip(this)">Breakfast included</div>
-            <div class="chip" onclick="toggleChip(this)">Housekeeping daily</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-icon ci-amber">📸</div>
-          <div class="card-hd-text"><h3>Room photos</h3><p>First photo becomes the primary image</p></div>
-        </div>
-        <div class="card-body">
-          <div class="photo-drop" onclick="document.getElementById('r-imgs').click()">
-            <div style="font-size:24px;margin-bottom:6px">📸</div>
-            <p style="font-weight:600;color:var(--fog);font-size:13px">Click to upload room photos</p>
-            <p style="font-size:11px;color:var(--mist);margin-top:3px">JPG, PNG up to 5 MB · Multiple files allowed</p>
-          </div>
-          <input type="file" id="r-imgs" multiple accept="image/*" style="display:none" onchange="previewRoomImgs(this)">
-          <div class="thumbs" id="r-thumbs"></div>
-        </div>
-      </div>
-      <div class="action-bar">
-        <button class="btn" onclick="switchStep('hotel')">← Back</button>
-        <div class="btn-group">
-          <button class="btn btn-ghost" onclick="saveRoom(false)">+ Save & add another</button>
-          <button class="btn btn-primary" onclick="saveRoom(true)">Save & choose plan →</button>
-        </div>
-      </div>
-    </div>
-
-    {# ═══ STEP 3: PLAN ═══ #}
-    <div class="step-section" id="step-plan">
-      <div class="page-hd">
-        <h1>Choose your plan</h1>
-        <p>Start with a free trial or pick a paid plan. Upgrade anytime from your dashboard.</p>
-      </div>
-
-      {# ── TRIAL START BOX — only when eligible and not yet on trial ── #}
-      {% if can_start_trial %}
-      <div class="trial-start-box">
-        <h3>🎁 Start your {{ trial_days }}-day free trial</h3>
-        <p>Get full access to all premium modules — no payment required. Your trial starts the moment you click the button below.</p>
-        <div class="trial-features">
-          <span class="trial-feat">✓ All premium modules</span>
-          <span class="trial-feat">✓ No credit card needed</span>
-          <span class="trial-feat">✓ {{ trial_days }} days free</span>
-          <span class="trial-feat">✓ Cancel anytime</span>
-        </div>
-        <button class="btn btn-green" style="width:100%;justify-content:center;padding:13px;font-size:14px" id="trial-start-btn" onclick="startTrial()">
-          🚀 Start Free Trial ({{ trial_days }} days)
-        </button>
-        <div style="font-size:11px;color:var(--mist);margin-top:10px">Or select a paid plan below to subscribe directly</div>
-      </div>
-      {% endif %}
-
-      {# ── ACTIVE TRIAL BOX — only when trial is running ── #}
-      {% if hotel.is_on_trial %}
-      <div class="trial-active-box">
-        <div class="tab-header">
-          <span class="tab-title">⏱ Free Trial Active</span>
-          <span class="tab-expiry">
-            Ends <strong>{{ hotel.trial_end|date:"d M Y" }}</strong>
-            · <strong style="color:var(--blue)">{{ trial_days_remaining }} day{{ trial_days_remaining|pluralize }} left</strong>
-          </span>
-        </div>
-        {% if active_modules %}
-        <div style="font-size:10px;color:var(--mist);font-weight:600;margin-bottom:6px">{{ active_modules_count }} module{{ active_modules_count|pluralize }} active:</div>
-        <div class="cpb-modules">
-          {% for mod in active_modules %}<span class="cpb-mod">{{ mod }}</span>{% endfor %}
-        </div>
-        {% endif %}
-        <div style="font-size:12px;color:var(--mist);margin-top:10px">Subscribe to a paid plan below to continue after your trial ends.</div>
-      </div>
-      {% endif %}
-
-      {# ── CURRENT PLAN BOX — only when subscribed ── #}
-      {% if hotel.is_subscribed and not hotel.is_on_trial and active_plan_name %}
-      <div class="current-plan-box">
-        <div class="cpb-header">
-          <span class="cpb-title">✅ Current plan: {{ active_plan_name }}</span>
-          <span class="cpb-expiry">
-            {% if subscription_expiry %}
-              Expires <strong>{{ subscription_expiry|date:"d M Y" }}</strong>
-              {% if expiry_days_remaining %}
-                · <strong style="color:{% if expiry_days_remaining <= 7 %}var(--red){% else %}var(--green){% endif %}">
-                    {{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }} left
-                  </strong>
-              {% endif %}
-            {% else %}
-              <strong style="color:var(--mist)">No expiry date set</strong>
-            {% endif %}
-          </span>
-        </div>
-        {% if active_modules %}
-          <div class="cpb-mod-count">{{ active_modules_count }} active module{{ active_modules_count|pluralize }}:</div>
-          <div class="cpb-modules">
-            {% for mod in active_modules %}<span class="cpb-mod">{{ mod }}</span>{% endfor %}
-          </div>
-        {% else %}
-          <div style="font-size:11px;color:var(--mist);margin-top:4px">
-            {% if active_plan_price and active_plan_price != '0' %}Modules are being provisioned — refresh if this persists.
-            {% else %}Core modules only on this plan.{% endif %}
-          </div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <div id="plans-loading" style="text-align:center;padding:2rem;color:var(--mist)">
-        <div style="width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>
-        <div style="font-size:13px">Loading plans...</div>
-      </div>
-      <div class="plans-grid" id="plan-cards-grid" style="display:none"></div>
-      <div id="plans-empty" style="display:none;text-align:center;padding:2rem;color:var(--mist)">
-        <div style="font-size:28px;margin-bottom:8px">📋</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px">No plans configured yet</div>
-        <div style="font-size:12px">Continue with the free tier — subscribe later from the dashboard.</div>
-      </div>
-
-      <div id="plan-summary" class="plan-summary" style="display:none">
-        <div class="ps-left">Selected: <strong id="ps-name">—</strong> · <span id="ps-mods">—</span> premium modules</div>
-        <div class="ps-right" id="ps-price">₹0/mo</div>
-      </div>
-
-      <div class="card" style="margin-top:1rem">
-        <div class="card-hd">
-          <div class="card-icon ci-amber">🏷️</div>
-          <div class="card-hd-text"><h3>Promo code</h3><p>Apply a discount coupon</p></div>
-        </div>
-        <div class="card-body">
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <div class="field field-mono" style="flex:1;margin:0">
-              <label>Enter code</label>
-              <input type="text" id="coupon-input" placeholder="e.g. LAUNCH30" style="text-transform:uppercase">
+            <div class="field" id="rt-custom-wrap" style="display:none">
+              <label>Custom Room Type Name *</label>
+              <input id="rt-custom-name" placeholder="e.g. Penthouse, Villa, Cottage"/>
             </div>
-            <button class="verify-btn" onclick="applyCoupon()">Apply</button>
+            <div class="field"><label>Total Units</label><input type="number" id="rt-units" value="1" min="1"/></div>
+            <div class="field"><label>Base Price (₹/night)</label><input type="number" id="rt-price" value="0" min="0" placeholder="1500"/></div>
+            <div class="field"><label>Max Adults</label><input type="number" id="rt-adults" value="2" min="1"/></div>
+            <div class="field"><label>Max Children</label><input type="number" id="rt-children" value="0" min="0"/></div>
+            <div class="field"><label>Extra Adult (₹)</label><input type="number" id="rt-extra-adult" value="0" min="0"/></div>
           </div>
-          <div id="coupon-result" style="display:none;margin-top:8px;font-size:13px;color:var(--green);font-weight:600"></div>
+          <div class="field" style="margin-top:12px">
+            <label>Description</label>
+            <textarea id="rt-desc" placeholder="Room description…"></textarea>
+          </div>
+          <div class="field" style="margin-top:12px">
+            <label>Amenities</label>
+            <div class="chips" id="amenity-chips">
+              {% for a in amenities %}<div class="chip" data-id="{{ a.id }}" onclick="toggleChip(this)">{{ a.name }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px">
+            <label>Room Images</label>
+            <div class="upload-zone" onclick="document.getElementById('rt-imgs').click()"><div class="uz-icon">📸</div><p><strong>Click to upload</strong> room photos</p></div>
+            <input id="rt-imgs" type="file" multiple accept="image/*" style="display:none"/>
+          </div>
         </div>
       </div>
 
-      <div class="card" style="margin-top:1rem">
-        <div class="card-hd">
-          <div class="card-icon ci-green">✅</div>
-          <div class="card-hd-text"><h3>Included in all plans</h3><p>Core features always on</p></div>
-        </div>
-        <div class="card-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="pf-row"><span class="pf-yes">✓</span>Property dashboard</div>
-            <div class="pf-row"><span class="pf-yes">✓</span>Room management</div>
-            <div class="pf-row"><span class="pf-yes">✓</span>Staff management</div>
-            <div class="pf-row"><span class="pf-yes">✓</span>Basic PMS & bookings</div>
-            <div class="pf-row"><span class="pf-yes">✓</span>Guest check-in / out</div>
-            <div class="pf-row"><span class="pf-yes">✓</span>Email notifications</div>
+      <!-- ══ ASSET MANAGEMENT CARD ══ -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-head" style="justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="section-icon" style="background:rgba(210,153,34,.1)">🏷</div>
+            <h3>Assets for this Room <span id="asset-count-badge" class="asset-count-badge" style="display:none">0</span></h3>
           </div>
+          <span style="font-size:11px;color:var(--mist)">Select existing · add new · manage categories</span>
         </div>
-      </div>
+        <div class="card-body" style="padding:0">
 
-      <div class="action-bar">
-        <button class="btn" onclick="switchStep('rooms')">← Back</button>
-        <div class="btn-group">
-          <a href="#" class="skip-link" onclick="skipPlan();return false">Continue free →</a>
-          <button class="btn btn-primary" id="proceed-btn" onclick="proceedToPayment()" disabled>Proceed to payment →</button>
-        </div>
-      </div>
-    </div>
-
-    {# ═══ STEP 4: DONE ═══ #}
-    <div class="step-section" id="step-done">
-      <div class="done-card">
-        <span class="done-emoji">🎉</span>
-        <h2>You're all set!</h2>
-        <p>
-          Your property is configured
-          {% if hotel.is_on_trial %}and your <strong>{{ trial_days_remaining }}-day free trial</strong> is active{% elif hotel.is_subscribed %}and your <strong>{{ active_plan_name }}</strong> subscription is active{% endif %}.
-          Head to your dashboard to start managing your hotel.
-        </p>
-        {% if hotel.is_subscribed and not hotel.is_on_trial %}
-          {% if subscription_expiry %}
-          <div class="notice success" style="text-align:left;margin-bottom:1.25rem">
-            <span class="notice-icon">📅</span>
-            <span>Subscription renews on <strong>{{ subscription_expiry|date:"d M Y" }}</strong>{% if expiry_days_remaining %} · {{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }} remaining{% endif %}</span>
+          <!-- Selected assets bar -->
+          <div id="sel-assets-bar" style="padding:12px 18px;border-bottom:1px solid var(--border);display:none">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:8px">Selected for this room</div>
+            <div id="sel-assets-chips" class="chips"></div>
           </div>
-          {% endif %}
-          {% if active_modules %}
-          <div class="notice success" style="text-align:left;margin-bottom:1.25rem">
-            <span class="notice-icon">🧩</span>
-            <span><strong>{{ active_modules_count }}</strong> module{{ active_modules_count|pluralize }} active: {% for mod in active_modules %}{{ mod }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
-          </div>
-          {% endif %}
-        {% endif %}
-        {% if hotel.is_on_trial %}
-        <div class="notice warn" style="text-align:left;margin-bottom:1.25rem">
-          <span class="notice-icon">⏱</span>
-          <span>Your <strong>{{ trial_days_remaining }}-day trial</strong> is active. Choose a paid plan before it ends to keep your premium modules.</span>
-        </div>
-        {% endif %}
-        {% if show_subscription_gate %}
-        <div class="notice" style="text-align:left;margin-bottom:1.25rem;background:var(--red-bg);border:1px solid rgba(248,81,73,.2);color:var(--red)">
-          <span class="notice-icon">🔒</span>
-          <span>Your trial has ended. Subscribe to re-enable premium modules.</span>
-        </div>
-        {% endif %}
-        <a href="{% url 'dashboard' %}" class="btn btn-primary" style="width:100%;justify-content:center">Go to dashboard →</a>
-      </div>
-    </div>
 
-  </main>
-</div>
-
-{# ═══ PAYMENT MODAL ═══ #}
-<div class="overlay" id="pay-overlay">
-  <div class="modal">
-    <div id="pm-processing" class="pm-processing" style="display:none">
-      <div class="pm-spinner"></div>
-      <div style="font-size:16px;font-weight:800;color:var(--snow);margin-bottom:6px">Processing payment...</div>
-      <div style="font-size:12px;color:var(--mist)">Please don't close this window</div>
-    </div>
-    <div id="pm-success" class="pm-success" style="display:none">
-      <div class="success-ring">✅</div>
-      <div style="font-size:18px;font-weight:800;color:var(--snow);margin-bottom:6px">Payment Successful!</div>
-      <div style="font-size:13px;color:var(--mist);margin-bottom:4px">
-        Your subscription is now active. Welcome to HotelCloud <strong id="suc-plan" style="color:var(--snow)">Pro</strong>!
-      </div>
-      <div class="receipt-box">
-        <div class="receipt-row"><span>Plan</span><strong id="rcpt-plan">—</strong></div>
-        <div class="receipt-row"><span>Amount paid</span><strong id="rcpt-amount">—</strong></div>
-        <div class="receipt-row"><span>Billing cycle</span><strong id="rcpt-cycle">Monthly</strong></div>
-        <div class="receipt-row"><span>Next billing</span><strong id="rcpt-next">—</strong></div>
-        <div class="receipt-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
-          <span>Transaction ID</span><span class="receipt-id" id="rcpt-txn">—</span>
-        </div>
-      </div>
-      <button class="btn btn-green" style="width:100%;justify-content:center" onclick="completeOnboarding()">Go to dashboard →</button>
-    </div>
-    <div id="pm-form">
-      <div class="modal-hd">
-        <div>
-          <div class="modal-title">Complete payment</div>
-          <div class="modal-sub" id="pm-plan-label">HotelCloud Pro · Monthly</div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:8px">
-          <div class="modal-amount">
-            <div class="modal-amt-label">Total due</div>
-            <div class="modal-amt-val" id="pm-amount-display">₹0</div>
+          <!-- Tabs -->
+          <div class="asset-panel-tabs">
+            <button class="apt active" onclick="switchAssetTab('select',this)">📦 Select Assets</button>
+            <button class="apt" onclick="switchAssetTab('create',this)">➕ New Asset</button>
+            <button class="apt" onclick="switchAssetTab('categories',this)">🗂 Categories</button>
           </div>
-          <button class="modal-close" onclick="closePaymentModal()">✕</button>
-        </div>
-      </div>
-      <div style="padding:10px 14px 0">
-        <div class="offer-strip">
-          <span style="font-size:12px;color:var(--mist)">🎁 First 3 months 30% off · Code <span class="offer-code">LAUNCH30</span></span>
-          <span style="font-size:11px;color:var(--green);font-weight:700">Save up to ₹2,700</span>
-        </div>
-      </div>
-      <div class="pay-tabs">
-        <div class="pay-tab active" onclick="switchPayTab('card',this)"><span class="pay-tab-icon">💳</span>Card</div>
-        <div class="pay-tab" onclick="switchPayTab('upi',this)"><span class="pay-tab-icon">📱</span>UPI</div>
-        <div class="pay-tab" onclick="switchPayTab('netbanking',this)"><span class="pay-tab-icon">🏦</span>Net Banking</div>
-        <div class="pay-tab" onclick="switchPayTab('wallet',this)"><span class="pay-tab-icon">👛</span>Wallet</div>
-        <div class="pay-tab" onclick="switchPayTab('emi',this)"><span class="pay-tab-icon">📅</span>EMI</div>
-      </div>
-      <div class="pay-panels">
-        <div class="pay-panel active" id="panel-card">
-          <div class="field field-mono" style="margin-bottom:10px">
-            <label>Card number</label>
-            <div class="card-wrap">
-              <input type="text" id="card-num" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this)" autocomplete="cc-number">
-              <div class="card-brands">
-                <span class="cb visa" id="cb-visa">VISA</span>
-                <span class="cb mc" id="cb-mc">MC</span>
-                <span class="cb rupay" id="cb-rupay">RuPay</span>
+
+          <!-- TAB: Select -->
+          <div class="asset-tab-pane active" id="atab-select">
+            <div class="asset-search-row">
+              <input id="asset-search" placeholder="Search assets by name…" oninput="filterAssets(this.value)"/>
+              <button class="btn btn-ghost btn-sm" onclick="loadAssets()">↻ Refresh</button>
+            </div>
+            <div class="asset-list-scroll" id="asset-list-scroll">
+              <div id="asset-list-inner" style="padding:8px">
+                <div style="text-align:center;padding:20px;color:var(--mist);font-size:12px">
+                  <span class="spin" style="margin:0 auto 8px;display:block"></span>Loading assets…
+                </div>
               </div>
             </div>
+            <div id="no-assets-hint" style="display:none;margin-top:10px;padding:12px;background:rgba(47,129,247,.05);border:1px solid rgba(47,129,247,.15);border-radius:var(--r);font-size:12px;color:var(--mist)">
+              No assets yet. Switch to <strong style="color:var(--blue)">New Asset</strong> tab to create your first one.
+            </div>
           </div>
-          <div class="field" style="margin-bottom:10px"><label>Cardholder name</label><input type="text" id="card-name" placeholder="Name as on card" autocomplete="cc-name"></div>
-          <div class="exp-cvv">
-            <div class="field field-mono"><label>Expiry (MM/YY)</label><input type="text" id="card-exp" placeholder="MM / YY" maxlength="7" oninput="formatExp(this)" autocomplete="cc-exp"></div>
-            <div class="field field-mono"><label>CVV</label><input type="password" id="card-cvv" placeholder="•••" maxlength="4" autocomplete="cc-csc"></div>
+
+          <!-- TAB: Create new asset -->
+          <div class="asset-tab-pane" id="atab-create">
+            <div class="new-asset-form">
+              <div class="form-grid" style="gap:10px;margin-bottom:10px">
+                <div class="field">
+                  <label>Asset Name *</label>
+                  <input id="na-name" placeholder="e.g. LED TV, Air Conditioner, Safe"/>
+                </div>
+                <div class="field">
+                  <label>Category</label>
+                  <select id="na-cat">
+                    <option value="">— select category —</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Serial Number</label>
+                  <input id="na-serial" placeholder="Optional"/>
+                </div>
+                <div class="field">
+                  <label>Purchase Cost (₹)</label>
+                  <input type="number" id="na-cost" value="0" min="0"/>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-primary btn-sm" onclick="createAsset(false)">Save Asset</button>
+                <button class="btn btn-green btn-sm" onclick="createAsset(true)">Save &amp; Select for this Room</button>
+              </div>
+              <div id="na-feedback" style="margin-top:8px;font-size:12px;min-height:16px"></div>
+            </div>
           </div>
-          <div class="secure-row">🔒 256-bit SSL encrypted · PCI DSS compliant · Card details never stored</div>
-          <div style="display:flex;align-items:center;gap:7px;margin-top:8px">
-            <input type="checkbox" id="save-card" style="width:auto;cursor:pointer;accent-color:var(--blue)">
-            <label for="save-card" style="font-size:12px;color:var(--mist);cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0">Save card for future payments</label>
+
+          <!-- TAB: Categories -->
+          <div class="asset-tab-pane" id="atab-categories">
+            <div style="font-size:11px;color:var(--mist);margin-bottom:10px">Manage asset categories used when creating new assets.</div>
+            <div class="cat-grid" id="cat-grid">
+              <div style="color:var(--mist);font-size:12px;grid-column:1/-1;text-align:center;padding:16px">
+                <span class="spin" style="margin:0 auto 6px;display:block"></span>Loading…
+              </div>
+            </div>
+            <div class="add-cat-row">
+              <input id="new-cat-name" placeholder="New category name e.g. Electronics, Furniture…" onkeydown="if(event.key==='Enter')addCategory()"/>
+              <button class="btn btn-primary btn-sm" onclick="addCategory()">+ Add</button>
+            </div>
+            <div id="cat-feedback" style="margin-top:6px;font-size:12px;min-height:14px"></div>
           </div>
-        </div>
-        <div class="pay-panel" id="panel-upi">
-          <div class="upi-row">
-            <div class="field"><label>UPI ID</label><input type="text" id="upi-id" placeholder="name@upi" oninput="validateUPI(this)"></div>
-            <button class="verify-btn" onclick="verifyUPI()">Verify</button>
-          </div>
-          <div id="upi-verified" style="font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px;display:none"></div>
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:7px">Or pay via app</div>
-          <div class="upi-apps">
-            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🟢</div><div class="upi-app-name">GPay</div></div>
-            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🟣</div><div class="upi-app-name">PhonePe</div></div>
-            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🔵</div><div class="upi-app-name">Paytm</div></div>
-            <div class="upi-app" onclick="selectUpiApp(this)"><div class="upi-app-icon">🇮🇳</div><div class="upi-app-name">BHIM</div></div>
-          </div>
-          <div class="qr-box" id="upi-qr" style="display:none">
-            <div class="qr-ph">📱</div>
-            <div style="font-size:12px;font-weight:600;color:var(--fog);margin-bottom:3px">Scan with any UPI app</div>
-            <div style="font-size:11px;color:var(--mist)">Expires in <span id="qr-timer" style="color:var(--red);font-weight:700">04:59</span></div>
-          </div>
-        </div>
-        <div class="pay-panel" id="panel-netbanking">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mist);margin-bottom:8px">Popular banks</div>
-          <div class="bank-grid">
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">SBI</div></div>
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">HDFC</div></div>
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">ICICI</div></div>
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Axis</div></div>
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Kotak</div></div>
-            <div class="bank-item" onclick="selectBank(this)"><div class="bank-icon">🏦</div><div class="bank-name">Bank of Baroda</div></div>
-          </div>
-          <div class="field" style="margin-top:10px"><label>Other bank</label>
-            <select id="bank-select">
-              <option value="">— Search bank —</option>
-              <option>Yes Bank</option><option>IndusInd Bank</option><option>PNB</option>
-              <option>Canara Bank</option><option>Federal Bank</option><option>South Indian Bank</option>
-            </select>
-          </div>
-        </div>
-        <div class="pay-panel" id="panel-wallet">
-          <div class="wallet-grid">
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🔵</div><div class="wallet-name">Paytm</div><div class="wallet-bal">₹0</div></div>
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🟣</div><div class="wallet-name">PhonePe</div><div class="wallet-bal">₹0</div></div>
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🟠</div><div class="wallet-name">Amazon Pay</div><div class="wallet-bal">₹0</div></div>
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">⚡</div><div class="wallet-name">JusPay</div><div class="wallet-bal">₹0</div></div>
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">🔴</div><div class="wallet-name">Airtel</div><div class="wallet-bal">₹0</div></div>
-            <div class="wallet-item" onclick="selectWallet(this)"><div class="wallet-icon">💙</div><div class="wallet-name">MobiKwik</div><div class="wallet-bal">₹0</div></div>
-          </div>
-        </div>
-        <div class="pay-panel" id="panel-emi">
-          <div style="font-size:12px;color:var(--mist);margin-bottom:12px">No-cost EMI available on select cards. Subject to bank approval.</div>
-          <div id="emi-options"></div>
+
         </div>
       </div>
-      <div class="modal-footer">
-        <div class="modal-coupon-row">
-          <div class="field field-mono" style="margin:0">
-            <label style="font-size:10px">Promo code</label>
-            <input type="text" id="pm-coupon" placeholder="Enter code" style="text-transform:uppercase">
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-ghost" onclick="saveRoom()" style="color:var(--blue);border-color:rgba(47,129,247,.3)">+ Add Room</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" onclick="goStep(3)">Continue to Plans →</button>
+      </div>
+    </div>
+
+    <!-- ══ STEP 3 ══ -->
+    <div class="step-section" id="step-3">
+      <div class="page-hd"><h1>Subscription Plan</h1><p>Choose the plan that fits your property.</p></div>
+
+      {% if is_actively_subscribed and not show_expiry_warning %}
+      <div class="banner banner-green" style="position:relative;overflow:hidden">
+        <div class="banner-icon">✅</div>
+        <div class="banner-body" style="flex:1">
+          <h4>You have an active subscription</h4>
+          <p>Currently on <strong style="color:var(--snow)">{{ active_plan_name }}</strong>{% if subscription_expiry %} — expires <strong style="color:var(--snow)">{{ subscription_expiry|date:"d M Y" }}</strong> ({{ expiry_days_remaining }} days remaining){% endif %}.</p>
+          {% if active_modules %}<div class="mod-tags">{% for m in active_modules %}<span class="mod-tag">{{ m }}</span>{% endfor %}</div>{% endif %}
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-green" style="flex-shrink:0;align-self:flex-start">Dashboard →</a>
+      </div>
+      {% endif %}
+
+      {% if show_expiry_warning %}
+      <div class="banner banner-amber">
+        <div class="banner-icon">⚠️</div>
+        <div class="banner-body">
+          <h4>Subscription expiring soon</h4>
+          <p>Your <strong style="color:var(--snow)">{{ active_plan_name }}</strong> plan expires in <strong style="color:var(--amber)">{{ expiry_days_remaining }} day{{ expiry_days_remaining|pluralize }}</strong>. Renew below.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if show_subscription_gate %}
+      <div class="banner banner-red">
+        <div class="banner-icon">🔒</div>
+        <div class="banner-body"><h4>Subscription required</h4><p>Your trial or subscription has expired. Choose a plan below to continue.</p></div>
+      </div>
+      {% endif %}
+
+      {% if show_trial_banner %}
+      <div class="banner banner-blue">
+        <div class="banner-icon">🚀</div>
+        <div class="banner-body"><h4>Trial active — {{ trial_days_remaining }} day{{ trial_days_remaining|pluralize }} remaining</h4><p>You're on a free trial. Pick a plan to keep access after it ends.</p></div>
+      </div>
+      {% endif %}
+
+      {% if can_start_trial %}
+      <div class="trial-box">
+        <div class="tb-icon">🎁</div>
+        <div>
+          <h4>Start your free {{ trial_days }}-day trial</h4>
+          <p>Full access for {{ trial_days }} days — no credit card required.</p>
+          <button class="btn btn-primary" onclick="startTrial()" id="trial-btn">Start Free Trial</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <div id="plans-wrap">
+        <div style="text-align:center;padding:30px;color:var(--mist);font-size:13px" id="plans-loading">
+          <div class="spin" style="margin:0 auto 10px"></div>Loading available plans…
+        </div>
+        <div class="plans-grid" id="plans-grid" style="display:none"></div>
+      </div>
+
+      <div id="coupon-wrap" style="margin-bottom:16px;display:none">
+        <div class="card">
+          <div class="card-head"><div class="section-icon" style="background:rgba(210,153,34,.1)">🏷</div><h3>Coupon Code</h3></div>
+          <div class="card-body">
+            <div class="coupon-row">
+              <div class="field" style="flex:1;margin:0"><input id="coupon-inp" placeholder="Enter coupon code" style="text-transform:uppercase"/></div>
+              <button class="btn btn-ghost" onclick="applyCoupon()" style="align-self:flex-end">Apply</button>
+            </div>
+            <div id="coupon-status"></div>
           </div>
-          <button class="verify-btn" onclick="applyModalCoupon()" style="padding:9px 12px;font-size:11px">Apply</button>
         </div>
-        <div id="pm-discount" style="display:none;font-size:12px;color:var(--green);font-weight:700;margin-bottom:8px;justify-content:space-between">
-          <span id="pm-disc-label">Discount</span><span id="pm-disc-val">-₹0</span>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+        <div class="plan-summary-bar" id="plan-summary" style="display:none">
+          <span class="psb-name" id="sum-name">—</span>
+          <span class="psb-price" id="sum-price"></span>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
-          <span style="color:var(--mist)">Total (incl. 18% GST)</span>
-          <span style="font-weight:800;color:var(--snow)" id="pm-total-display">₹0</span>
-        </div>
-        <button class="pay-btn" id="pm-pay-btn" onclick="processPayment()">
-          🔒 <span id="pm-pay-label">Pay securely</span>
-        </button>
-        <div class="security-row">
-          <span class="sec-badge">🛡 Secured by Razorpay</span>
-          <span class="sec-badge">🔐 256-bit SSL</span>
-          <span class="sec-badge">📋 PCI DSS</span>
-        </div>
-        <div class="trust-row">
-          <span class="trust-pill">🇮🇳 Indian payments</span>
-          <span class="trust-pill">✅ RBI approved</span>
-          <span class="trust-pill">↩️ Cancel anytime</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost" onclick="skipPlan()" id="skip-btn">Skip for now</button>
+        <button class="btn btn-primary" onclick="proceedToPayment()" id="proceed-btn" disabled>Proceed to Payment →</button>
+      </div>
+    </div>
+
+    <!-- ══ DONE ══ -->
+    <div class="step-section" id="step-done">
+      <div class="card">
+        <div class="done-card">
+          <div class="done-icon">🎉</div>
+          <h2>Setup Complete!</h2>
+          <p>Your hotel is ready. Head to the dashboard to start managing bookings, rooms, and guests.</p>
+          <a href="{% url 'dashboard' %}" class="btn btn-primary" style="font-size:15px;padding:12px 28px">🚀 Go to Dashboard</a>
+          <div style="margin-top:14px"><a href="?edit=true" class="btn btn-ghost" style="font-size:12px">Edit Setup</a></div>
         </div>
       </div>
     </div>
+
+  </div>
+</main>
+
+<!-- ══ PLAN MODAL ══ -->
+<div id="plan-modal" class="plan-modal-overlay" style="display:none" onclick="if(event.target===this)closePlanModal()">
+  <div class="plan-modal">
+    <div class="pm-head">
+      <div>
+        <div class="pm-head-title" id="pm-plan-name">Plan Details</div>
+        <div class="pm-head-sub" id="pm-head-sub">Review what's included</div>
+      </div>
+      <button class="pm-close" onclick="closePlanModal()">✕</button>
+    </div>
+    <div class="pm-body">
+      <div class="pm-left" id="pm-left">
+        <div class="pm-price-block">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--fog);margin-bottom:5px">Plan Price</div>
+            <div class="pm-price-big" id="pm-price-big">₹0</div>
+          </div>
+          <div class="pm-price-meta">
+            <div class="pm-price-period" id="pm-price-period">per month</div>
+            <div class="pm-trial-pill" id="pm-trial-pill" style="display:none">
+              <span>🎁</span><span id="pm-trial-text">14-day free trial</span>
+            </div>
+          </div>
+        </div>
+        <div class="pm-section-label" id="pm-mod-label">Included Modules</div>
+        <div class="pm-modules-grid" id="pm-modules-grid"></div>
+      </div>
+      <div class="pm-right" id="pm-right">
+        <div id="pm-view-select" style="display:flex;flex-direction:column;">
+          <div id="pm-trial-cta" class="pm-trial-cta" style="display:none">
+            <div class="pm-trial-cta-top">
+              <div class="pm-trial-cta-icon">🎁</div>
+              <h4 id="pm-trial-cta-title">Start free for 14 days</h4>
+            </div>
+            <p id="pm-trial-cta-desc">Full access, no credit card required. Upgrade anytime.</p>
+            <button class="btn-start-trial" id="pm-trial-modal-btn" onclick="startTrialFromModal()">Start Free Trial →</button>
+          </div>
+          <div class="pm-divider" id="pm-or-divider" style="display:none"><span>or pay now</span></div>
+          <div class="pm-what-box" id="pm-what-box">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--fog);margin-bottom:10px">What you get</div>
+            <div id="pm-whatyouget"></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+            <button class="pm-select-btn" id="pm-select-pay-btn" onclick="goToPayStep()">Select &amp; Pay →</button>
+            <button onclick="selectFreeAndClose()" id="pm-free-btn"
+              style="display:none;width:100%;padding:12px;border-radius:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:1px solid rgba(63,185,80,.3);background:rgba(63,185,80,.08);color:var(--green)">
+              ✓ Select Free Plan
+            </button>
+          </div>
+        </div>
+        <div id="pm-view-pay" style="display:none;flex-direction:column;">
+          <div class="pm-order-strip">
+            <div>
+              <div class="pm-order-name" id="pm-order-name">—</div>
+              <div class="pm-order-period">Monthly subscription</div>
+            </div>
+            <div class="pm-order-price" id="pm-order-price">₹0</div>
+          </div>
+          <div class="pm-pay-tabs">
+            <button class="pm-pay-tab active" id="pm-tab-card" onclick="pmSwitchTab('card')">💳 Card</button>
+            <button class="pm-pay-tab" id="pm-tab-gpay" onclick="pmSwitchTab('gpay')">⚡ GPay / UPI</button>
+          </div>
+          <div id="pm-card-tab">
+            <div class="pm-card-visual">
+              <div class="pcv-top"><div class="pcv-chip"></div><div class="pcv-network" id="pm-net">VISA</div></div>
+              <div class="pcv-number ph" id="pm-cnum">•••• •••• •••• ••••</div>
+              <div class="pcv-bottom">
+                <div><div class="pcv-field-lbl">Card Holder</div><div class="pcv-field-val ph" id="pm-cname">YOUR NAME</div></div>
+                <div><div class="pcv-field-lbl">Expires</div><div class="pcv-field-val ph" id="pm-cexp">MM/YY</div></div>
+                <div><div class="pcv-field-lbl">CVV</div><div class="pcv-field-val ph" id="pm-ccvv">•••</div></div>
+              </div>
+            </div>
+            <div class="pm-field"><label>Cardholder Name</label><input id="pf-name" placeholder="As printed on card" oninput="updatePmPreview()"/></div>
+            <div class="pm-field"><label>Card Number</label><input id="pf-card" placeholder="1234  5678  9012  3456" maxlength="19" oninput="pmFmtCard(this)"/></div>
+            <div class="pm-row">
+              <div class="pm-field"><label>Expiry</label><input id="pf-exp" placeholder="MM / YY" maxlength="7" oninput="pmFmtExpiry(this)"/></div>
+              <div class="pm-field"><label>CVV</label><input id="pf-cvv" placeholder="•••" maxlength="4" type="password" oninput="updatePmPreview()"/></div>
+            </div>
+            <div class="pm-security"><span>🔒</span><span><strong>256-bit SSL</strong> encrypted · PCI DSS compliant</span></div>
+          </div>
+          <div id="pm-gpay-tab" style="display:none">
+            <button class="gpay-btn-main" onclick="handleGPay()">
+              <svg height="20" viewBox="0 0 60 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="18" font-size="20" font-weight="700" fill="#4285F4" font-family="Arial,sans-serif">G</text>
+                <text x="14" y="18" font-size="20" font-weight="400" fill="#ffffff" font-family="Arial,sans-serif">Pay</text>
+              </svg>
+              Pay with Google Pay
+            </button>
+            <div class="pm-divider"><span>or enter UPI ID</span></div>
+            <div class="pm-field" style="margin-bottom:6px">
+              <label>UPI ID</label>
+              <div class="upi-id-wrap"><input id="pm-upi-id" placeholder="yourname@paytm" style="font-family:var(--font);letter-spacing:normal"/></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--fog)">Quick:</span>
+              <button class="upi-quick-pill" onclick="fillUpi('@oksbi')">@oksbi</button>
+              <button class="upi-quick-pill" onclick="fillUpi('@paytm')">@paytm</button>
+              <button class="upi-quick-pill" onclick="fillUpi('@gpay')">@gpay</button>
+              <button class="upi-quick-pill" onclick="fillUpi('@ybl')">@ybl</button>
+            </div>
+            <div class="pm-divider"><span>or scan QR</span></div>
+            <div class="gpay-qr-box">
+              <canvas id="pm-qr-canvas" width="110" height="110" style="border-radius:6px;background:#fff;padding:5px"></canvas>
+              <div style="margin-top:8px;font-size:12px;color:var(--mist)">Scan with any UPI app</div>
+              <div class="gpay-apps">
+                <button class="gpay-app-pill active" onclick="setQrApp(this,'GPay')">GPay</button>
+                <button class="gpay-app-pill" onclick="setQrApp(this,'PhonePe')">PhonePe</button>
+                <button class="gpay-app-pill" onclick="setQrApp(this,'Paytm')">Paytm</button>
+                <button class="gpay-app-pill" onclick="setQrApp(this,'BHIM')">BHIM</button>
+              </div>
+            </div>
+            <div class="pm-security" style="margin-top:10px"><span>🔒</span><span><strong>UPI secured</strong> · NPCI regulated</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pm-foot" id="pm-foot"></div>
   </div>
 </div>
-
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
-const CSRF        = '{{ csrf_token }}';
-const HOTEL_ID    = '{{ hotel.id }}';
-const UPGRADE_URL = '{% url "upgrade_hotel_plan" hotel.id %}';
-const TRIAL_URL   = '{% url "hotel_start_trial" %}';
-
 const HOTEL_STATE = {
-  isSubscribed:   {{ hotel.is_subscribed|yesno:"true,false" }},
-  isOnTrial:      {{ hotel.is_on_trial|yesno:"true,false" }},
-  activePlanName: '{{ active_plan_name|default:""|escapejs }}',
-  activeModules:  {{ active_modules|default:"[]"|safe }},
-  expiryDays:     {{ expiry_days_remaining|default:0 }},
-  trialDays:      {{ trial_days_remaining|default:0 }},
-  canStartTrial:  {{ can_start_trial|yesno:"true,false" }},
-  trialDaysTotal: {{ trial_days|default:14 }},
+  isSubscribed:         {{ hotel.is_subscribed|yesno:"true,false" }},
+  isOnTrial:            {{ hotel.is_on_trial|yesno:"true,false" }},
+  activePlanName:       '{{ active_plan_name|default:""|escapejs }}',
+  activeModules:        {{ active_modules|default:"[]"|safe }},
+  expiryDays:           {{ expiry_days_remaining|default:0 }},
+  trialDays:            {{ trial_days_remaining|default:0 }},
+  canStartTrial:        {{ can_start_trial|yesno:"true,false" }},
+  trialDaysTotal:       {{ trial_days|default:14 }},
+  isActivelySubscribed: {{ is_actively_subscribed|yesno:"true,false" }},
+  expiryDate:           '{{ subscription_expiry|date:"d M Y"|default:""|escapejs }}',
 };
 
-let roomsAdded = [], unitCount = 3, allPlans = [], selectedPlan = null;
-let couponDiscount = 0, payTab = 'card';
-let qrInterval = null;
+let currentStep    = 1;
+let selectedPlan   = null;
+let appliedCoupon  = null;
+let activePlanData = null;
+let pmCurrentTab   = 'card';
 
-const COUPONS = {
-  'LAUNCH30': {pct:30, label:'Launch offer'},
-  'HOTEL50':  {pct:50, label:'Hotel special'},
-  'FIRST20':  {pct:20, label:'First-time'}
-};
-
-const STEPS = ['hotel','rooms','plan','done'];
-function switchStep(step) {
-  STEPS.forEach(s => {
-    document.getElementById('step-'+s)?.classList.remove('active');
-    const si = document.getElementById('si-'+s);
-    if (si) si.classList.remove('active');
+/* ── STEP NAV ── */
+function goStep(n) {
+  document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item[id^=nav-]').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.ps-item').forEach(i => {
+    i.classList.remove('active');
+    if (parseInt(i.id.replace('psi-','')) < n) i.classList.add('done');
+    else i.classList.remove('done');
   });
-  document.getElementById('step-'+step)?.classList.add('active');
-  const si = document.getElementById('si-'+step);
-  if (si) { si.classList.add('active'); si.style.pointerEvents=''; si.style.opacity=''; }
-  updateProgress(step);
-  if (step === 'plan') loadPlans();
-  window.scrollTo(0,0);
+  if (n === 'done') {
+    document.getElementById('step-done').classList.add('active');
+  } else {
+    const sec = document.getElementById(`step-${n}`);
+    if (sec) sec.classList.add('active');
+    const nav = document.getElementById(`nav-${n}`);
+    if (nav) nav.classList.add('active');
+    const psi = document.getElementById(`psi-${n}`);
+    if (psi) psi.classList.add('active');
+    if (n === 2) { loadAssets(); loadCategories(); populateCatDropdown(); }
+    if (n === 3) loadPlans();
+  }
+  currentStep = n;
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function updateProgress(step) {
-  const idx = STEPS.indexOf(step);
-  const pct = Math.round((idx / (STEPS.length-1)) * 100);
-  document.getElementById('prog-fill').style.width = pct + '%';
-  STEPS.forEach((s, i) => {
-    const dot = document.getElementById('td-'+s);
-    if (!dot) return;
-    dot.classList.remove('active','done');
-    if (i < idx) dot.classList.add('done');
-    else if (i === idx) dot.classList.add('active');
-  });
-  STEPS.forEach((s, i) => {
-    const ni   = document.getElementById('sn-'+s);
-    const item = document.getElementById('si-'+s);
-    if (!ni || !item) return;
-    if (i < idx) {
-      item.classList.add('done');
-      ni.innerHTML = '✓'; ni.className = 'ni-check';
-    } else {
-      item.classList.remove('done');
-      if (ni.className === 'ni-check') { ni.className = 'ni-num'; ni.innerHTML = i+1; }
-    }
-  });
-}
-
+/* ── TOAST ── */
+let toastTimer;
 function showToast(msg, type='ok') {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast '+type+' show';
-  setTimeout(() => t.classList.remove('show'), 3200);
+  t.textContent = msg; t.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function previewImg(input, prevId, phId) {
-  if (!input.files || !input.files[0]) return;
-  const prev = document.getElementById(prevId);
-  const ph   = document.getElementById(phId);
-  prev.src = URL.createObjectURL(input.files[0]);
-  prev.style.display = 'block';
-  if (ph) ph.style.display = 'none';
+function previewFile(inp, pid) {
+  const f = inp.files[0]; if (!f) return;
+  const img = document.getElementById(pid);
+  img.src = URL.createObjectURL(f); img.style.display = 'block';
 }
-function previewRoomImgs(input) {
-  const c = document.getElementById('r-thumbs'); c.innerHTML = '';
-  Array.from(input.files).forEach(f => {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(f); img.className = 'thumb';
-    c.appendChild(img);
-  });
+function toggleChip(el) { el.classList.toggle('sel'); }
+
+/* ── STEP 1 ── */
+function saveHotel(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-save-hotel');
+  btn.innerHTML = '<span class="spin"></span> Saving…'; btn.disabled = true;
+  const fd = new FormData(e.target);
+  const logo = document.getElementById('inp-logo').files[0];
+  const img  = document.getElementById('inp-img').files[0];
+  if (logo) fd.append('logo', logo);
+  if (img)  fd.append('image', img);
+  fetch(window.location.href, {method:'POST',body:fd})
+    .then(r=>r.json()).then(d=>{
+      if (d.success) {
+        showToast('Hotel details saved!');
+        document.getElementById('nav-1').classList.add('done');
+        document.getElementById('ns-1').textContent = '✓';
+        document.getElementById('ns-1').closest('.nav-item').classList.add('done');
+        goStep(2);
+      } else showToast(d.error||'Save failed','err');
+    }).catch(()=>showToast('Network error','err'))
+    .finally(()=>{ btn.innerHTML='Save & Continue →'; btn.disabled=false; });
 }
 
-function changeUnits(d) {
-  unitCount = Math.max(1, unitCount+d);
-  document.getElementById('units-val').textContent = unitCount;
+/* ══════════════════════════════════════════
+   STEP 2 — ROOM TYPE TOGGLE
+══════════════════════════════════════════ */
+function toggleCustomType(val) {
+  const wrap = document.getElementById('rt-custom-wrap');
+  wrap.style.display = val === 'Custom' ? 'flex' : 'none';
+  if (val !== 'Custom') document.getElementById('rt-custom-name').value = '';
 }
 
-function calcPrice() {
-  const base = parseFloat(document.getElementById('r-price').value) || 0;
-  const tax  = parseFloat(document.getElementById('r-tax').value)   || 0;
-  const ta   = Math.round(base * tax / 100);
-  document.getElementById('s-base').textContent      = '₹' + base.toLocaleString('en-IN');
-  document.getElementById('s-tax').textContent       = '₹' + ta.toLocaleString('en-IN');
-  document.getElementById('s-total').textContent     = '₹' + (base+ta).toLocaleString('en-IN');
-  document.getElementById('s-tax-label').textContent = 'GST (' + tax + '%)';
+/* ══════════════════════════════════════════
+   ASSET PANEL — STATE
+══════════════════════════════════════════ */
+let allAssets      = [];
+let allCategories  = [];
+let selectedAssets = {};  // { id: { id, name } }
+
+function switchAssetTab(tab, btn) {
+  document.querySelectorAll('.apt').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.asset-tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`atab-${tab}`).classList.add('active');
+  if (tab === 'categories') loadCategories();
 }
 
-function toggleChip(el) { el.classList.toggle('on'); }
-function updateRoomTitle(el) {
-  document.getElementById('room-form-title').textContent = 'Add ' + el.value + ' room';
-}
-
-function saveHotelDetails() {
-  const name  = document.getElementById('h-name').value.trim();
-  const email = document.getElementById('h-email').value.trim();
-  if (!name)  { showToast('Enter hotel name', 'err'); return; }
-  if (!email) { showToast('Enter email address', 'err'); return; }
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('form_type',   'hotel_details');
-  fd.append('hotel_name',  name);
-  fd.append('owner_name',  document.getElementById('h-owner').value);
-  fd.append('email',       email);
-  fd.append('phone',       document.getElementById('h-phone').value);
-  fd.append('city',        document.getElementById('h-city').value);
-  fd.append('state',       document.getElementById('h-state').value);
-  fd.append('address',     document.getElementById('h-address').value);
-  fd.append('description', document.getElementById('h-desc').value);
-  const pt = document.querySelector('input[name="property_type"]:checked');
-  if (pt) fd.append('property_type', pt.value);
-  const logo  = document.getElementById('logo-input').files[0];
-  if (logo)  fd.append('logo', logo);
-  const cover = document.getElementById('cover-input').files[0];
-  if (cover) fd.append('image', cover);
-  fetch(window.location.href, {method:'POST', body:fd})
+/* ── Load existing assets from API ── */
+function loadAssets() {
+  document.getElementById('asset-list-inner').innerHTML =
+    '<div style="text-align:center;padding:20px;color:var(--mist);font-size:12px"><span class="spin" style="margin:0 auto 8px;display:block"></span>Loading assets…</div>';
+  fetch('/inventory/assets/')
     .then(r => r.json())
     .then(d => {
-      if (d.success) { showToast('Hotel details saved ✓'); setTimeout(() => switchStep('rooms'), 500); }
-      else showToast(d.error || 'Error saving', 'err');
+      allAssets = d.assets || [];
+      renderAssetList(allAssets);
     })
-    .catch(() => { showToast('Saved ✓'); setTimeout(() => switchStep('rooms'), 500); });
+    .catch(() => {
+      document.getElementById('asset-list-inner').innerHTML =
+        '<div style="padding:12px;font-size:12px;color:var(--mist)">Could not load assets. Check your inventory URL.</div>';
+    });
 }
 
-function saveRoom(goToPlan) {
-  const rt = document.querySelector('input[name="room_type"]:checked');
-  if (!rt) { showToast('Select a room type', 'err'); return; }
-  const price = document.getElementById('r-price').value;
-  if (!price) { showToast('Enter a base price', 'err'); return; }
+/* ── Render asset list with checkboxes ── */
+function renderAssetList(assets) {
+  const el    = document.getElementById('asset-list-inner');
+  const hint  = document.getElementById('no-assets-hint');
+
+  if (!assets.length) {
+    el.innerHTML = '';
+    hint.style.display = 'block';
+    return;
+  }
+  hint.style.display = 'none';
+
+  el.innerHTML = assets.map(a => {
+    const checked  = !!selectedAssets[a.id];
+    const statusCls = a.status === 'active' ? 'asp-active' : 'asp-inactive';
+    return `
+    <div class="asset-item${checked?' checked':''}" id="ai-row-${a.id}" onclick="toggleAsset(${a.id},'${escQ(a.name)}')">
+      <div class="asset-chkbox${checked?' on':''}" id="ai-chk-${a.id}">${checked?'✓':''}</div>
+      <div style="flex:1;min-width:0">
+        <div class="asset-item-name">${a.name}</div>
+        <div class="asset-item-meta">${a.type||'No category'} ${a.serial_number?'· '+a.serial_number:''}</div>
+      </div>
+      <span class="asset-status-pill ${statusCls}">${a.status||'active'}</span>
+    </div>`;
+  }).join('');
+}
+
+function escQ(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+/* ── Toggle asset selection ── */
+function toggleAsset(id, name) {
+  if (selectedAssets[id]) {
+    delete selectedAssets[id];
+  } else {
+    selectedAssets[id] = { id, name };
+  }
+  // Update row highlight
+  const row = document.getElementById(`ai-row-${id}`);
+  const chk = document.getElementById(`ai-chk-${id}`);
+  if (row) row.classList.toggle('checked', !!selectedAssets[id]);
+  if (chk) {
+    chk.classList.toggle('on', !!selectedAssets[id]);
+    chk.textContent = selectedAssets[id] ? '✓' : '';
+  }
+  renderSelectedBar();
+}
+
+/* ── Render selected assets bar ── */
+function renderSelectedBar() {
+  const vals  = Object.values(selectedAssets);
+  const bar   = document.getElementById('sel-assets-bar');
+  const chips = document.getElementById('sel-assets-chips');
+  const badge = document.getElementById('asset-count-badge');
+
+  if (!vals.length) {
+    bar.style.display = 'none';
+    badge.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+  badge.style.display = 'inline-flex';
+  badge.textContent = vals.length;
+
+  chips.innerHTML = vals.map(a => `
+    <div class="sel-asset-chip">
+      ${a.name}
+      <button onclick="toggleAsset(${a.id},'${escQ(a.name)}')" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+/* ── Search filter ── */
+function filterAssets(q) {
+  const filtered = q.trim()
+    ? allAssets.filter(a => a.name.toLowerCase().includes(q.toLowerCase()))
+    : allAssets;
+  renderAssetList(filtered);
+}
+
+/* ══════════════════════════════════════════
+   CREATE NEW ASSET
+══════════════════════════════════════════ */
+function createAsset(andSelect) {
+  const name = document.getElementById('na-name').value.trim();
+  if (!name) { showFeedback('na-feedback','Asset name is required','err'); return; }
+
+  const btn1 = document.querySelector('[onclick="createAsset(false)"]');
+  const btn2 = document.querySelector('[onclick="createAsset(true)"]');
+  [btn1,btn2].forEach(b=>{ if(b){b.disabled=true;} });
+
+  fetch('/inventory/assets/add/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({
+      name,
+      asset_category_id: document.getElementById('na-cat').value || null,
+      serial_number:     document.getElementById('na-serial').value.trim(),
+      purchase_cost:     document.getElementById('na-cost').value || 0,
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.id) {
+      const cat = allCategories.find(c => c.id == document.getElementById('na-cat').value);
+      const newA = { id: d.id, name, type: cat ? cat.name : null, status: 'active', serial_number: document.getElementById('na-serial').value.trim() };
+      allAssets.unshift(newA);
+
+      if (andSelect) {
+        selectedAssets[d.id] = { id: d.id, name };
+        renderSelectedBar();
+        showToast(`${name} created & selected!`);
+      } else {
+        showToast(`${name} saved!`);
+      }
+
+      renderAssetList(allAssets);
+      showFeedback('na-feedback', `✓ "${name}" saved${andSelect?' and selected':''}`, 'ok');
+
+      document.getElementById('na-name').value   = '';
+      document.getElementById('na-serial').value = '';
+      document.getElementById('na-cost').value   = '0';
+      document.getElementById('na-cat').value    = '';
+    } else {
+      showFeedback('na-feedback', d.error || 'Failed to create asset', 'err');
+    }
+  })
+  .catch(() => showFeedback('na-feedback','Network error','err'))
+  .finally(() => { [btn1,btn2].forEach(b=>{ if(b){b.disabled=false;} }); });
+}
+
+/* ══════════════════════════════════════════
+   CATEGORIES
+══════════════════════════════════════════ */
+function loadCategories() {
+  document.getElementById('cat-grid').innerHTML =
+    '<div style="color:var(--mist);font-size:12px;grid-column:1/-1;text-align:center;padding:16px"><span class="spin" style="margin:0 auto 6px;display:block"></span>Loading…</div>';
+
+  fetch('/inventory/asset-categories/')
+    .then(r => r.json())
+    .then(d => {
+      allCategories = d.asset_categories || [];
+      renderCatGrid();
+      populateCatDropdown();
+    })
+    .catch(() => {
+      document.getElementById('cat-grid').innerHTML =
+        '<div style="color:var(--mist);font-size:12px;grid-column:1/-1">Could not load categories.</div>';
+    });
+}
+
+function renderCatGrid() {
+  const el = document.getElementById('cat-grid');
+  if (!allCategories.length) {
+    el.innerHTML = '<div style="color:var(--mist);font-size:12px;grid-column:1/-1;padding:8px">No categories yet. Add one below.</div>';
+    return;
+  }
+  el.innerHTML = allCategories.map(c => `
+    <div class="cat-item">
+      <span>${c.name}</span>
+      <button class="cat-del-btn" onclick="deleteCategory(${c.id},'${escQ(c.name)}')" title="Delete">✕</button>
+    </div>`).join('');
+}
+
+function populateCatDropdown() {
+  const sel = document.getElementById('na-cat');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select category —</option>' +
+    allCategories.map(c => `<option value="${c.id}"${c.id==cur?' selected':''}>${c.name}</option>`).join('');
+}
+
+function addCategory() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name) { showFeedback('cat-feedback','Enter a category name','err'); return; }
+
+  fetch('/inventory/asset-categories/add/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({ name })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.id) {
+      allCategories.push({ id: d.id, name });
+      renderCatGrid();
+      populateCatDropdown();
+      document.getElementById('new-cat-name').value = '';
+      showFeedback('cat-feedback', `✓ "${name}" added`, 'ok');
+      showToast(`Category "${name}" added!`);
+    } else {
+      showFeedback('cat-feedback', d.error || 'Failed', 'err');
+    }
+  })
+  .catch(() => showFeedback('cat-feedback','Network error','err'));
+}
+
+function deleteCategory(id, name) {
+  if (!confirm(`Delete category "${name}"?`)) return;
+  fetch(`/inventory/asset-categories/${id}/delete/`, {
+    method: 'DELETE',
+    headers: {'X-CSRFToken':'{{ csrf_token }}'}
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      allCategories = allCategories.filter(c => c.id !== id);
+      renderCatGrid();
+      populateCatDropdown();
+      showToast(`"${name}" deleted`,'info');
+    } else {
+      showToast(d.error || 'Could not delete','err');
+    }
+  })
+  .catch(() => showToast('Network error','err'));
+}
+
+function showFeedback(elId, msg, type) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'ok' ? 'var(--green)' : 'var(--red)';
+  setTimeout(() => { el.textContent = ''; }, 3500);
+}
+
+/* ══════════════════════════════════════════
+   SAVE ROOM (updated)
+══════════════════════════════════════════ */
+const addedRooms = [];
+
+function saveRoom() {
+  const roomType   = document.getElementById('rt-type').value;
+  const customName = document.getElementById('rt-custom-name').value.trim();
+
+  if (roomType === 'Custom' && !customName) {
+    showToast('Enter a custom room type name','err'); return;
+  }
+
   const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('form_type',         'room_details');
-  fd.append('room_type',         rt.value);
-  fd.append('base_price',        price);
-  fd.append('max_adults',        document.getElementById('r-adults').value);
-  fd.append('max_children',      document.getElementById('r-children').value);
-  fd.append('description',       document.getElementById('r-desc').value);
-  fd.append('total_units',       unitCount);
-  fd.append('extra_adult_price', document.getElementById('r-eadult').value || 0);
-  fd.append('extra_child_price', document.getElementById('r-echild').value || 0);
-  document.querySelectorAll('.chip.on').forEach(c => { if (c.dataset.id) fd.append('amenities', c.dataset.id); });
-  Array.from(document.getElementById('r-imgs').files).forEach(img => fd.append('images', img));
+  fd.append('csrfmiddlewaretoken','{{ csrf_token }}');
+  fd.append('form_type','room_details');
+  fd.append('room_type', roomType);
+  fd.append('custom_room_type', customName);
+  fd.append('total_units', document.getElementById('rt-units').value);
+  fd.append('base_price', document.getElementById('rt-price').value);
+  fd.append('max_adults', document.getElementById('rt-adults').value);
+  fd.append('max_children', document.getElementById('rt-children').value);
+  fd.append('extra_adult_price', document.getElementById('rt-extra-adult').value);
+  fd.append('description', document.getElementById('rt-desc').value);
+
+  document.querySelectorAll('.chip.sel').forEach(c => {
+    if (c.dataset.id) fd.append('amenities', c.dataset.id);
+  });
+
+  Object.keys(selectedAssets).forEach(id => fd.append('asset_ids', id));
+  Array.from(document.getElementById('rt-imgs').files).forEach(f => fd.append('images', f));
+
   fetch(window.location.href, {method:'POST', body:fd})
     .then(r => r.json())
     .then(d => {
       if (d.success) {
-        roomsAdded.push({type:rt.value, units:unitCount, price});
+        const displayType = roomType === 'Custom' ? customName : roomType;
+        addedRooms.push({
+          type:   displayType,
+          units:  document.getElementById('rt-units').value,
+          price:  document.getElementById('rt-price').value,
+          assets: Object.values(selectedAssets).map(a => a.name),
+        });
         renderRoomsList();
-        showToast(rt.value + ' room added ✓');
-        if (goToPlan) switchStep('plan'); else resetRoomForm();
-      } else showToast(d.error || 'Error saving room', 'err');
+        showToast('Room added!');
+
+        // Reset form
+        document.getElementById('rt-type').value    = 'Single';
+        document.getElementById('rt-custom-name').value = '';
+        document.getElementById('rt-desc').value    = '';
+        document.getElementById('rt-imgs').value    = '';
+        document.getElementById('rt-units').value   = '1';
+        document.getElementById('rt-price').value   = '0';
+        document.getElementById('rt-adults').value  = '2';
+        document.getElementById('rt-children').value = '0';
+        document.getElementById('rt-extra-adult').value = '0';
+        toggleCustomType('Single');
+        document.querySelectorAll('#amenity-chips .chip.sel').forEach(c => c.classList.remove('sel'));
+
+        // Reset assets
+        selectedAssets = {};
+        renderSelectedBar();
+        renderAssetList(allAssets);
+      } else {
+        showToast(d.error || 'Failed','err');
+      }
     })
-    .catch(() => showToast('Error saving', 'err'));
+    .catch(() => showToast('Network error','err'));
 }
 
 function renderRoomsList() {
-  const card = document.getElementById('rooms-added-card');
-  const list = document.getElementById('rooms-added-list');
-  card.style.display = 'block';
-  const icons = {Single:'🛏️', Double:'🌙', Deluxe:'⭐', Suite:'🌠'};
-  list.innerHTML = roomsAdded.map(r => `
+  document.getElementById('rooms-list').innerHTML = addedRooms.map(r => `
     <div class="room-row">
-      <div class="rr-left">
-        <span style="font-size:18px">${icons[r.type]||'🛏️'}</span>
-        <span class="rr-badge">${r.type}</span>
+      <span style="font-size:24px">🛏</span>
+      <div class="room-row-info">
+        <strong>${r.type}</strong>
+        <p>${r.units} unit${r.units>1?'s':''} · ₹${parseInt(r.price).toLocaleString('en-IN')}/night</p>
+        ${r.assets && r.assets.length
+          ? `<p style="color:var(--mist);font-size:11px;margin-top:3px">🏷 ${r.assets.join(', ')}</p>`
+          : ''}
       </div>
-      <div class="rr-right">${r.units} unit${r.units>1?'s':''} · ₹${parseInt(r.price).toLocaleString('en-IN')}/night</div>
+      <span style="color:var(--green);font-size:12px;font-weight:700">✓ Added</span>
     </div>`).join('');
 }
 
-function resetRoomForm() {
-  document.querySelector('input[name="room_type"][value="Single"]').checked = true;
-  document.getElementById('room-form-title').textContent = 'Add another room type';
-  ['r-price','r-eadult','r-echild','r-tax','r-adults','r-children'].forEach((id,i) => {
-    document.getElementById(id).value = [2500,500,200,18,2,0][i];
-  });
-  document.getElementById('r-size').value = '';
-  document.getElementById('r-desc').value = '';
-  document.getElementById('r-thumbs').innerHTML = '';
-  document.getElementById('r-imgs').value = '';
-  unitCount = 3; document.getElementById('units-val').textContent = 3;
-  document.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
-  calcPrice(); window.scrollTo(0,0);
+/* ══════════════════════════════════════════
+   STEP 3: PLANS
+══════════════════════════════════════════ */
+function loadPlans() {
+  const grid=document.getElementById('plans-grid'), loading=document.getElementById('plans-loading');
+  loading.style.display='block'; grid.style.display='none';
+  fetch('{% url "get_plans" %}').then(r=>r.json()).then(data=>{
+    loading.style.display='none';
+    if(!data.plans||data.plans.length===0){
+      grid.innerHTML='<div style="color:var(--mist);font-size:13px;grid-column:1/-1">No plans available right now.</div>';
+      grid.style.display='grid'; return;
+    }
+    const plansToShow = HOTEL_STATE.isSubscribed
+      ? data.plans.filter(p=>p.name!==HOTEL_STATE.activePlanName)
+      : data.plans;
+    if(!plansToShow.length){
+      grid.innerHTML='<div style="color:var(--mist);font-size:13px;grid-column:1/-1">You are already on the only available plan.</div>';
+      grid.style.display='grid';
+      document.getElementById('proceed-btn').style.display='none'; return;
+    }
+    grid.innerHTML = plansToShow.map(p=>buildPlanCard(p)).join('');
+    grid.style.display='grid';
+    document.getElementById('coupon-wrap').style.display='block';
+  }).catch(()=>{ loading.innerHTML='<span style="color:var(--red)">Failed to load plans.</span>'; });
 }
 
-async function loadPlans() {
-  const grid = document.getElementById('plan-cards-grid');
-  document.getElementById('plans-loading').style.display = 'block';
-  grid.style.display = 'none';
-  document.getElementById('plans-empty').style.display = 'none';
-  try {
-    const r    = await fetch('/get-plans/', {headers:{'X-Requested-With':'XMLHttpRequest'}});
-    const data = await r.json();
-    allPlans   = data.plans || [];
-  } catch(e) {
-    console.error('loadPlans error:', e);
-    allPlans = [];
-  }
-  document.getElementById('plans-loading').style.display = 'none';
-  if (!allPlans.length) { document.getElementById('plans-empty').style.display = 'block'; return; }
-  grid.style.display = 'grid';
-  renderPlans();
-  buildEmi();
-}
+const MOD_ICONS={'Booking':'📅','Rooms':'🛏','Guests':'👥','Reports':'📊','Housekeeping':'🧹','Billing':'💰','Inventory':'📦','Restaurant':'🍽','Analytics':'📈','Staff':'👔','Channel':'🔗','Laundry':'👕','Maintenance':'🔧','POS':'🖥','Notifications':'🔔'};
+function modIcon(name){for(const[k,v] of Object.entries(MOD_ICONS)){if(name.toLowerCase().includes(k.toLowerCase()))return v;}return '✦';}
 
-function renderPlans() {
-  const grid   = document.getElementById('plan-cards-grid');
-  const popIdx = allPlans.length > 1 ? 1 : 0;
-  grid.innerHTML = allPlans.map((p, i) => {
-    const price     = parseFloat(p.price || 0);
-    const isFree    = price === 0;
-    const isPop     = i === popIdx && !isFree && allPlans.length > 1;
-    const isCurrent = HOTEL_STATE.activePlanName && p.name === HOTEL_STATE.activePlanName;
-    const priceStr  = isFree ? 'Free' : '₹' + price.toLocaleString('en-IN');
-    const period    = isFree ? 'forever' : '/month';
-    const mods      = p.module_names || [];
-    const feats     = mods.length
-      ? mods.slice(0,5).map(m => `<div class="pf-row"><span class="pf-yes">✓</span>${m}</div>`).join('')
-        + (mods.length > 5 ? `<div style="font-size:10px;color:var(--mist);margin-top:3px">+${mods.length-5} more</div>` : '')
-      : `<div style="font-size:11px;color:var(--mist);font-style:italic">Core modules only</div>`;
-    const currentBadge = isCurrent
-      ? `<div style="position:absolute;top:0;right:0;background:var(--green-dim);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:0 var(--r2) 0 6px;letter-spacing:.04em">Current</div>`
-      : '';
-    return `
-    <label class="plan-label">
-      <input type="radio" name="sub_plan" value="${p.name}"
-        onchange="onPlanSelect(this,'${p.name}',${price},${mods.length})"
-        ${isCurrent ? 'checked' : ''}>
-      <div class="plan-card ${isPop?'has-badge':''}" style="${isCurrent?'border-color:var(--green);box-shadow:0 0 0 1px var(--green);':''}">
-        ${isPop ? '<div class="plan-popular">🔥 Most Popular</div>' : ''}
-        ${currentBadge}
-        <div class="plan-tick">✓</div>
-        <div class="plan-name">${p.name}</div>
-        <div class="plan-price">${priceStr}<span> ${period}</span></div>
-        <div class="plan-tag">${p.tagline || 'Upgrade your property'}</div>
-        <div class="plan-divider"></div>
-        <div class="plan-feats">${feats}</div>
+function buildPlanCard(p) {
+  const price = parseFloat(p.price);
+  const priceStr = price===0 ? '<span style="font-size:16px;color:var(--green);font-family:var(--font)">Free</span>' : `₹${price.toLocaleString('en-IN')}`;
+  const modsJson = encodeURIComponent(JSON.stringify(p));
+  const trialDays = p.trial_days || 0;
+  const trialBadge = trialDays>0 ? `<div class="plan-trial-badge"><div class="tb-dot"></div>${trialDays}-day free trial</div>` : '';
+  const topMods = (p.module_names||[]).slice(0,3).map(m=>`<div class="plan-mod-item">${m}</div>`).join('');
+  const moreCount = (p.module_names||[]).length - 3;
+  const moreLabel = moreCount>0 ? `<div class="plan-view-all">+${moreCount} more →</div>` : '';
+  return `
+  <div class="plan-card" id="pc-${p.name}" onclick="openPlanModal('${modsJson}')">
+    <input type="radio" name="sub_plan" value="${p.name}"/>
+    <div class="plan-card-top">
+      ${p.is_popular ? '<div class="plan-badge pb-popular">⭐ Most Popular</div>' : ''}
+      <div class="plan-name">${p.name}</div>
+      <div class="plan-price-row">
+        <div class="plan-price-amt">${priceStr}</div>
+        ${price>0?'<div class="plan-price-period">/month</div>':''}
       </div>
-    </label>`;
-  }).join('');
-  if (HOTEL_STATE.activePlanName) {
-    const current = allPlans.find(p => p.name === HOTEL_STATE.activePlanName);
-    if (current) {
-      selectedPlan = {name: current.name, price: parseFloat(current.price || 0), mods: (current.module_names || []).length};
-      updatePlanSummary();
-      document.getElementById('proceed-btn').disabled = false;
-    }
+      ${trialBadge}
+      <div class="plan-modules-preview">${topMods}${moreLabel}</div>
+    </div>
+    <div class="plan-card-bottom">
+      <button class="plan-select-btn" onclick="event.stopPropagation();openPlanModal('${modsJson}')">View Details →</button>
+    </div>
+  </div>`;
+}
+
+function openPlanModal(encodedPlan) {
+  activePlanData = JSON.parse(decodeURIComponent(encodedPlan));
+  const p=activePlanData, price=parseFloat(p.price||0), trialDays=p.trial_days||0, modules=p.module_names||[];
+  document.getElementById('pm-plan-name').textContent = p.name+' Plan';
+  document.getElementById('pm-head-sub').textContent  = `${modules.length} modules included`;
+  document.getElementById('pm-price-big').textContent  = price===0?'Free':'₹'+price.toLocaleString('en-IN');
+  document.getElementById('pm-price-period').textContent = price>0?'per month · billed monthly':'forever free';
+  const trialPill=document.getElementById('pm-trial-pill');
+  if(trialDays>0){trialPill.style.display='inline-flex';document.getElementById('pm-trial-text').textContent=`${trialDays}-day free trial`;}
+  else{trialPill.style.display='none';}
+  document.getElementById('pm-mod-label').textContent=`Included Modules (${modules.length})`;
+  document.getElementById('pm-modules-grid').innerHTML=modules.map(m=>`
+    <div class="pm-mod-row"><div class="pm-mod-icon">${modIcon(m)}</div>
+    <div><div class="pm-mod-name">${m}</div><div class="pm-mod-desc">Full access included</div></div>
+    <div class="pm-mod-check">✓</div></div>`).join('');
+  const trialCta=document.getElementById('pm-trial-cta'), orDivider=document.getElementById('pm-or-divider');
+  const userHasUsedTrial=!!p.user_has_used_trial;
+  const showTrial=trialDays>0&&!userHasUsedTrial&&!HOTEL_STATE.isOnTrial&&!HOTEL_STATE.isActivelySubscribed&&!HOTEL_STATE.isSubscribed;
+  if(showTrial){
+    trialCta.style.display='block';
+    document.getElementById('pm-trial-cta-title').textContent=`Start free for ${trialDays} days`;
+    document.getElementById('pm-trial-cta-desc').textContent=`Try ${p.name} free — no credit card required. Upgrade anytime.`;
+    orDivider.style.display=price>0?'flex':'none';
+  }else{trialCta.style.display='none';orDivider.style.display='none';}
+  const highlights=[];
+  if(price===0)highlights.push({icon:'🆓',label:'Always free',sub:'No credit card needed'});
+  else highlights.push({icon:'💳',label:`₹${price.toLocaleString('en-IN')}/month`,sub:'Cancel anytime'});
+  if(trialDays>0)highlights.push({icon:'🎁',label:`${trialDays}-day free trial`,sub:'Full access, no charge'});
+  highlights.push({icon:'📦',label:`${modules.length} modules`,sub:'Everything in this plan'});
+  highlights.push({icon:'⚡',label:'Instant activation',sub:'Access in seconds'});
+  document.getElementById('pm-whatyouget').innerHTML=highlights.map(h=>`
+    <div class="pm-what-item"><div class="pm-what-icon">${h.icon}</div>
+    <div><div style="font-size:13px;font-weight:700;color:var(--snow)">${h.label}</div>
+    <div style="font-size:11px;color:var(--mist);margin-top:1px">${h.sub}</div></div></div>`).join('');
+  if(price===0){document.getElementById('pm-select-pay-btn').style.display='none';document.getElementById('pm-free-btn').style.display='block';}
+  else{document.getElementById('pm-select-pay-btn').style.display='block';document.getElementById('pm-select-pay-btn').textContent=`Pay ₹${price.toLocaleString('en-IN')} →`;document.getElementById('pm-free-btn').style.display='none';}
+  showPmView('select');
+  document.getElementById('plan-modal').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closePlanModal(){document.getElementById('plan-modal').style.display='none';document.body.style.overflow='';}
+
+function showPmView(view) {
+  const selView=document.getElementById('pm-view-select'), payView=document.getElementById('pm-view-pay');
+  if(view==='select'){
+    selView.style.display='flex';payView.style.display='none';
+    document.getElementById('pm-head-sub').textContent=`${(activePlanData.module_names||[]).length} modules included`;
+    renderPmFoot('select');
+  }else{
+    selView.style.display='none';payView.style.display='flex';
+    document.getElementById('pm-head-sub').textContent='Complete your payment';
+    const price=parseFloat(activePlanData.price||0);
+    const discount=appliedCoupon?(appliedCoupon.discount_pct?price*appliedCoupon.discount_pct/100:appliedCoupon.discount_flat||0):0;
+    document.getElementById('pm-order-name').textContent=activePlanData.name+' Plan';
+    document.getElementById('pm-order-price').textContent=`₹${(price-discount).toLocaleString('en-IN')}`;
+    ['pf-name','pf-card','pf-exp','pf-cvv'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pm-upi-id').value='';
+    updatePmPreview();pmSwitchTab('card');renderPmFoot('pay');drawQR();
   }
 }
 
-function onPlanSelect(el, name, price, mods) {
-  selectedPlan = {name, price, mods};
-  updatePlanSummary();
-  document.getElementById('proceed-btn').disabled = false;
-}
-
-function updatePlanSummary() {
-  if (!selectedPlan) return;
-  document.getElementById('ps-name').textContent  = selectedPlan.name;
-  document.getElementById('ps-mods').textContent  = selectedPlan.mods;
-  document.getElementById('ps-price').textContent = selectedPlan.price === 0 ? 'Free' : '₹' + selectedPlan.price.toLocaleString('en-IN') + '/mo';
-  document.getElementById('plan-summary').style.display = 'flex';
-  document.getElementById('proceed-btn').textContent = selectedPlan.price === 0 ? 'Continue free →' : 'Proceed to payment →';
-}
-
-async function startTrial() {
-  const btn = document.getElementById('trial-start-btn');
-  btn.disabled = true;
-  btn.textContent = 'Starting trial...';
-  const foundPlan = selectedPlan ? allPlans.find(p => p.name === selectedPlan.name) : null;
-  try {
-    const r = await fetch(TRIAL_URL, {
-      method:  'POST',
-      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'},
-      body:    JSON.stringify({plan_id: foundPlan?.id || null}),
-    });
-    const data = await r.json();
-    if (data.success) {
-      showToast(`🎉 Trial started! ${data.days} days free · Ends ${data.trial_end}`, 'ok');
-      setTimeout(() => window.location.reload(), 1500);
-    } else {
-      showToast(data.error || 'Could not start trial', 'err');
-      btn.disabled = false;
-      btn.textContent = `🚀 Start Free Trial (${HOTEL_STATE.trialDaysTotal} days)`;
-    }
-  } catch(e) {
-    console.error('startTrial error:', e);
-    showToast('Network error — please try again', 'err');
-    btn.disabled = false;
-    btn.textContent = `🚀 Start Free Trial (${HOTEL_STATE.trialDaysTotal} days)`;
+function renderPmFoot(view) {
+  const foot=document.getElementById('pm-foot');
+  const trialDays=activePlanData?(activePlanData.trial_days||0):0;
+  const userHasUsedTrial=activePlanData?!!activePlanData.user_has_used_trial:false;
+  const showTrial=trialDays>0&&!userHasUsedTrial&&!HOTEL_STATE.isOnTrial&&!HOTEL_STATE.isActivelySubscribed&&!HOTEL_STATE.isSubscribed;
+  if(view==='select'){
+    foot.innerHTML=`<button class="pm-cancel-btn" onclick="closePlanModal()">Cancel</button><div style="flex:1"></div><span style="font-size:11px;color:var(--mist)">24/7 support included</span>`;
+  }else{
+    const trialBtn=showTrial?`<button class="pm-trial-foot-btn" id="pm-foot-trial-btn" onclick="startTrialFromModal()">🎁 Free Trial</button>`:'';
+    foot.innerHTML=`<button class="pm-back-btn" onclick="showPmView('select')">← Back</button>${trialBtn}<button class="pm-select-btn" onclick="submitPmPayment()" id="pm-pay-submit-btn" style="flex:1">Pay Now 🔐</button>`;
   }
 }
 
-function applyCoupon() {
-  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
-  const c    = COUPONS[code];
-  const res  = document.getElementById('coupon-result');
-  if (c) {
-    couponDiscount = c.pct;
-    res.textContent = `✅ ${c.label} — ${c.pct}% off applied`;
-    res.style.display = 'block';
-    showToast(`${c.pct}% off applied! 🎉`);
-  } else {
-    showToast('Invalid coupon code', 'err');
-    res.style.display = 'none';
-    couponDiscount = 0;
-  }
+function pmSwitchTab(tab){
+  pmCurrentTab=tab;
+  document.getElementById('pm-tab-card').className='pm-pay-tab'+(tab==='card'?' active':'');
+  document.getElementById('pm-tab-gpay').className='pm-pay-tab'+(tab==='gpay'?' active':'');
+  document.getElementById('pm-card-tab').style.display=tab==='card'?'block':'none';
+  document.getElementById('pm-gpay-tab').style.display=tab==='gpay'?'block':'none';
+  if(tab==='gpay')drawQR();
+}
+function handleGPay(){showToast('Opening Google Pay…','info');}
+function fillUpi(suffix){const inp=document.getElementById('pm-upi-id');const base=inp.value.includes('@')?inp.value.split('@')[0]:inp.value;inp.value=base+suffix;}
+function setQrApp(el,name){document.querySelectorAll('.gpay-app-pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');drawQR(name);}
+function drawQR(appName){
+  const canvas=document.getElementById('pm-qr-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,110,110);ctx.fillStyle='#161b22';
+  const pat=[[1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1],[1,0,0,0,0,0,1,0,0,1,1,0,0,0,0,0,1],[1,0,1,1,1,0,1,0,1,0,1,0,1,1,1,0,1],[1,0,1,1,1,0,1,0,0,1,0,0,1,1,1,0,1],[1,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,1],[1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1],[0,1,0,0,1,0,1,0,0,1,0,1,0,0,1,0,0],[1,0,1,1,0,1,0,1,0,0,1,0,1,1,0,1,0],[0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,0,0,0,1,0,1,1,1,1,1],[1,0,0,0,0,0,1,0,1,0,0,0,1,0,0,0,1],[1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1],[1,0,1,1,1,0,1,0,1,0,0,1,1,0,0,0,1],[1,0,0,0,0,0,1,0,0,1,1,0,1,1,1,0,1],[1,1,1,1,1,1,1,0,1,0,0,1,1,0,0,1,1]];
+  const s=5,off=5;pat.forEach((row,r)=>{row.forEach((cell,c)=>{if(cell){ctx.fillRect(off+c*s,off+r*s,s-1,s-1);}});});
+  ctx.fillStyle='#2f81f7';ctx.beginPath();ctx.roundRect(78,78,26,26,4);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('UPI',91,91);
+}
+function updatePmPreview(){
+  const name=document.getElementById('pf-name').value.trim(),card=document.getElementById('pf-card').value.replace(/\s/g,''),exp=document.getElementById('pf-exp').value,cvv=document.getElementById('pf-cvv').value;
+  const nameEl=document.getElementById('pm-cname'),numEl=document.getElementById('pm-cnum'),expEl=document.getElementById('pm-cexp'),cvvEl=document.getElementById('pm-ccvv'),netEl=document.getElementById('pm-net');
+  nameEl.textContent=name||'YOUR NAME';nameEl.className=`pcv-field-val${name?'':' ph'}`;
+  if(card.length>0){numEl.textContent=card.padEnd(16,'•').replace(/(.{4})/g,'$1 ').trim();numEl.className='pcv-number';}
+  else{numEl.textContent='•••• •••• •••• ••••';numEl.className='pcv-number ph';}
+  expEl.textContent=exp||'MM/YY';expEl.className=`pcv-field-val${exp?'':' ph'}`;
+  cvvEl.textContent=cvv?'•'.repeat(cvv.length):'•••';cvvEl.className=`pcv-field-val${cvv?'':' ph'}`;
+  if(card.startsWith('4'))netEl.textContent='VISA';
+  else if(/^5[1-5]/.test(card))netEl.textContent='MASTERCARD';
+  else if(/^3[47]/.test(card))netEl.textContent='AMEX';
+  else netEl.textContent='CARD';
+}
+function pmFmtCard(inp){let v=inp.value.replace(/\D/g,'').slice(0,16);inp.value=v.replace(/(.{4})/g,'$1 ').trim();updatePmPreview();}
+function pmFmtExpiry(inp){let v=inp.value.replace(/[^\d]/g,'').slice(0,4);if(v.length>2)v=v.slice(0,2)+' / '+v.slice(2);inp.value=v;updatePmPreview();}
+
+function submitPmPayment(){
+  if(pmCurrentTab==='gpay'){const upi=document.getElementById('pm-upi-id').value.trim();if(!upi||!upi.includes('@')){showToast('Enter a valid UPI ID','err');return;}}
+  else{const name=document.getElementById('pf-name').value.trim(),card=document.getElementById('pf-card').value.replace(/\s/g,''),exp=document.getElementById('pf-exp').value,cvv=document.getElementById('pf-cvv').value;if(!name||card.length<16||!exp||cvv.length<3){showToast('Please fill all payment fields','err');return;}}
+  const btn=document.getElementById('pm-pay-submit-btn');
+  btn.innerHTML='<span class="spin"></span> Processing…';btn.disabled=true;
+  fetch('{% url "payment" %}',{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/json'},body:JSON.stringify({plan_name:activePlanData.name,coupon:appliedCoupon?.code||null,payment_method:pmCurrentTab==='gpay'?'upi':'card',upi_id:pmCurrentTab==='gpay'?document.getElementById('pm-upi-id').value.trim():null})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){closePlanModal();showToast('Payment successful! 🎉','ok');selectedPlan={name:activePlanData.name,price:parseFloat(activePlanData.price||0)};updatePlanSummary();document.getElementById('proceed-btn').disabled=false;setTimeout(()=>{fetch(window.location.href,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`csrfmiddlewaretoken={{ csrf_token }}&form_type=finish`}).then(()=>goStep('done'));},1000);}
+      else{showToast(d.error||'Payment failed','err');btn.innerHTML='Pay Now 🔐';btn.disabled=false;}
+    }).catch(()=>{showToast('Network error','err');if(btn){btn.innerHTML='Pay Now 🔐';btn.disabled=false;}});
 }
 
-function proceedToPayment() {
-  if (!selectedPlan) { showToast('Please select a plan', 'err'); return; }
-  if (selectedPlan.price === 0) { skipPlan(); return; }
-  openPaymentModal();
+function goToPayStep(){
+  if(!activePlanData)return;
+  if(HOTEL_STATE.isActivelySubscribed&&HOTEL_STATE.activePlanName){showSubscriptionConfirm(activePlanData.name,parseFloat(activePlanData.price||0));return;}
+  const price=parseFloat(activePlanData.price||0);
+  if(price===0){selectFreeAndClose();return;}
+  showPmView('pay');
+}
+function selectFreeAndClose(){
+  if(!activePlanData)return;
+  const p=activePlanData;
+  document.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+  const card=document.getElementById(`pc-${p.name}`);if(card)card.classList.add('selected');
+  selectedPlan={name:p.name,price:parseFloat(p.price||0)};
+  updatePlanSummary();document.getElementById('proceed-btn').disabled=false;
+  closePlanModal();showToast(`${p.name} plan selected!`);skipPlan();
+}
+function updatePlanSummary(){
+  if(!selectedPlan)return;
+  document.getElementById('plan-summary').style.display='flex';
+  document.getElementById('sum-name').textContent=selectedPlan.name;
+  document.getElementById('sum-price').textContent=selectedPlan.price===0?'Free':'₹'+parseFloat(selectedPlan.price).toLocaleString('en-IN')+'/mo';
 }
 
-function skipPlan() {
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('form_type', 'finish');
-  fetch(window.location.href, {method:'POST', body:fd})
-    .then(() => { window.location.href = "{% url 'dashboard' %}"; })
-    .catch(() => { window.location.href = "{% url 'dashboard' %}"; });
+function startTrialFromModal(){
+  const btns=['pm-trial-modal-btn','pm-foot-trial-btn'].map(id=>document.getElementById(id)).filter(Boolean);
+  btns.forEach(b=>{b.innerHTML='<span class="spin"></span> Starting…';b.disabled=true;});
+  const planId=activePlanData?.id||null;
+  fetch('{% url "hotel_start_trial" %}',{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/json'},body:JSON.stringify({plan_id:planId})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){closePlanModal();showToast('Trial started! 🎉 Redirecting…');setTimeout(()=>window.location.reload(),1200);}
+      else{showToast(d.error||'Failed to start trial','err');btns.forEach(b=>{b.innerHTML=b.id==='pm-foot-trial-btn'?'🎁 Free Trial':'Start Free Trial →';b.disabled=false;});}
+    }).catch(()=>{showToast('Network error','err');btns.forEach(b=>{b.innerHTML=b.id==='pm-foot-trial-btn'?'🎁 Free Trial':'Start Free Trial →';b.disabled=false;});});
 }
-
-function openPaymentModal() {
-  const price = selectedPlan.price;
-  const disc  = Math.round(price * couponDiscount / 100);
-  const after = price - disc;
-  const gst   = Math.round(after * 0.18);
-  const total = after + gst;
-  document.getElementById('pm-plan-label').textContent     = `HotelCloud ${selectedPlan.name} · Monthly`;
-  document.getElementById('pm-amount-display').textContent = '₹' + total.toLocaleString('en-IN');
-  document.getElementById('pm-total-display').textContent  = '₹' + total.toLocaleString('en-IN');
-  document.getElementById('pm-pay-label').textContent      = `Pay ₹${total.toLocaleString('en-IN')} securely`;
-  document.getElementById('pm-form').style.display       = 'block';
-  document.getElementById('pm-processing').style.display = 'none';
-  document.getElementById('pm-success').style.display    = 'none';
-  document.getElementById('pay-overlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-  buildEmi(total);
+function startTrial(){
+  const btn=document.getElementById('trial-btn');btn.innerHTML='<span class="spin"></span> Starting…';btn.disabled=true;
+  fetch('{% url "hotel_start_trial" %}',{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/json'},body:JSON.stringify({})})
+    .then(r=>r.json()).then(d=>{if(d.success){showToast('Trial started! 🎉');setTimeout(()=>window.location.reload(),1200);}else{showToast(d.error||'Failed','err');btn.innerHTML='Start Free Trial';btn.disabled=false;}})
+    .catch(()=>{showToast('Network error','err');btn.innerHTML='Start Free Trial';btn.disabled=false;});
 }
-
-function closePaymentModal() {
-  document.getElementById('pay-overlay').classList.remove('show');
-  document.body.style.overflow = '';
-  if (qrInterval) { clearInterval(qrInterval); qrInterval = null; }
+function skipPlan(){
+  fetch(window.location.href,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`csrfmiddlewaretoken={{ csrf_token }}&form_type=finish`})
+    .then(r=>r.json()).then(d=>{if(d.success)goStep('done');else showToast(d.error||'Error','err');});
 }
+function applyCoupon(){
+  const code=document.getElementById('coupon-inp').value.trim().toUpperCase();
+  const el=document.getElementById('coupon-status');
+  if(!code){el.textContent='Enter a coupon code.';el.style.color='var(--red)';return;}
+  el.innerHTML='<span class="spin"></span> Checking…';
+  fetch(`/accounts/apply-coupon/?code=${code}`).then(r=>r.json()).then(d=>{
+    if(d.valid){appliedCoupon=d;el.textContent=`✓ ${d.message||'Coupon applied!'}`;el.style.color='var(--green)';showToast('Coupon applied!');}
+    else{el.textContent=d.message||'Invalid coupon.';el.style.color='var(--red)';}
+  }).catch(()=>{el.textContent='Check failed.';el.style.color='var(--red)';});
+}
+function proceedToPayment(){
+  if(!selectedPlan){showToast('Please select a plan','err');return;}
+  if(selectedPlan.price===0){skipPlan();return;}
+  if(!activePlanData||activePlanData.name!==selectedPlan.name){showToast('Please select a plan from the cards above','info');return;}
+  openPlanModal(encodeURIComponent(JSON.stringify(activePlanData)));
+  setTimeout(()=>showPmView('pay'),50);
+}
+function showSubscriptionConfirm(name,price){
+  document.getElementById('sub-confirm-overlay')?.remove();
+  const currentPlan=HOTEL_STATE.activePlanName||'your current plan',expiryDays=HOTEL_STATE.expiryDays,priceStr=price===0?'Free':'₹'+parseFloat(price).toLocaleString('en-IN')+'/mo';
+  const html=`<div id="sub-confirm-overlay" class="modal-overlay-generic" style="animation:fadeIn .2s ease;z-index:4000" onclick="if(event.target===this)this.remove()"><div style="background:var(--ink2);border:1px solid var(--border2);border-radius:var(--r3);width:100%;max-width:440px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.7);animation:modalIn .25s ease"><div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(210,153,34,.08),rgba(248,81,73,.04))"><div style="display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:10px;background:rgba(210,153,34,.15);border:1px solid rgba(210,153,34,.3);display:flex;align-items:center;justify-content:center;font-size:20px">⚠️</div><div><div style="font-size:16px;font-weight:800;color:var(--snow)">Switch to "${name}"?</div><div style="font-size:11px;color:var(--mist);margin-top:2px">Subscription change confirmation</div></div></div></div><div style="padding:20px"><p style="font-size:13px;color:var(--mist);line-height:1.7;margin-bottom:16px">You're on <strong style="color:var(--snow)">${currentPlan}</strong>${expiryDays?` with <strong style="color:var(--green)">${expiryDays} days remaining</strong>`:''} . Switching replaces it with <strong style="color:var(--blue)">${name}</strong> immediately.</p><div style="background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.2);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--amber);display:flex;gap:8px;align-items:flex-start"><span>⚡</span><span>Current plan replaced <strong>immediately</strong>. Unused days are non-refundable.</span></div></div><div style="padding:14px 20px;border-top:1px solid var(--border);background:var(--ink3);display:flex;gap:10px;justify-content:flex-end"><button onclick="document.getElementById('sub-confirm-overlay').remove()" style="padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);background:transparent;color:var(--mist);border:1px solid var(--border2)">Cancel</button><button onclick="confirmPlanSwitch()" style="padding:9px 20px;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);color:#fff;border:none;background:var(--blue)">🔄 Yes, Switch Plan</button></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+function confirmPlanSwitch(){document.getElementById('sub-confirm-overlay')?.remove();if(!activePlanData)return;const price=parseFloat(activePlanData.price||0);if(price===0){selectFreeAndClose();}else{showPmView('pay');}}
 
-document.getElementById('pay-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closePaymentModal();
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  {% if hotel.is_setup_complete %}goStep(3);{% endif %}
 });
-
-function switchPayTab(tab, el) {
-  payTab = tab;
-  document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-'+tab).classList.add('active');
-  if (tab === 'upi' && document.querySelector('.upi-app.sel')) showQR();
-}
-
-function formatCard(el) {
-  let v = el.value.replace(/\D/g,''), f = '';
-  for (let i=0; i<v.length; i++) { if (i>0 && i%4===0) f+=' '; f+=v[i]; }
-  el.value = f;
-  ['cb-visa','cb-mc','cb-rupay'].forEach(id => document.getElementById(id).classList.remove('hi'));
-  if (v[0]==='4') document.getElementById('cb-visa').classList.add('hi');
-  else if (v[0]==='5') document.getElementById('cb-mc').classList.add('hi');
-  else if (v.startsWith('60')) document.getElementById('cb-rupay').classList.add('hi');
-}
-function formatExp(el) {
-  let v = el.value.replace(/\D/g,'');
-  if (v.length >= 2) v = v.slice(0,2) + ' / ' + v.slice(2);
-  el.value = v;
-}
-
-function validateUPI(el) {
-  el.style.borderColor = el.value.includes('@') ? 'var(--green)' : 'var(--border2)';
-}
-function verifyUPI() {
-  const id = document.getElementById('upi-id').value.trim();
-  if (!id.includes('@')) { showToast('Enter valid UPI ID', 'err'); return; }
-  const el = document.getElementById('upi-verified');
-  el.textContent = 'Verifying...'; el.style.display='block'; el.style.color='var(--mist)';
-  setTimeout(() => { el.textContent = '✅ Verified: ' + id; el.style.color='var(--green)'; }, 900);
-}
-function selectUpiApp(el) {
-  document.querySelectorAll('.upi-app').forEach(a => a.classList.remove('sel'));
-  el.classList.add('sel'); showQR();
-}
-function showQR() {
-  document.getElementById('upi-qr').style.display = 'block';
-  if (qrInterval) clearInterval(qrInterval);
-  let s = 299;
-  qrInterval = setInterval(() => {
-    s--;
-    if (s < 0) { clearInterval(qrInterval); document.getElementById('qr-timer').textContent = 'Expired'; return; }
-    const m = Math.floor(s/60), sec = s%60;
-    document.getElementById('qr-timer').textContent = m + ':' + (sec<10?'0':'') + sec;
-  }, 1000);
-}
-function selectBank(el)   { document.querySelectorAll('.bank-item').forEach(b => b.classList.remove('sel')); el.classList.add('sel'); }
-function selectWallet(el) { document.querySelectorAll('.wallet-item').forEach(w => w.classList.remove('sel')); el.classList.add('sel'); }
-
-function buildEmi(amt) {
-  amt = amt || (selectedPlan ? selectedPlan.price * 1.18 : 3540);
-  const opts = [{m:3,r:0,label:'No-cost EMI'},{m:6,r:1.5,label:'Standard'},{m:9,r:2,label:'Standard'},{m:12,r:2.5,label:'Standard'}];
-  document.getElementById('emi-options').innerHTML = opts.map(o => {
-    const mo = Math.ceil((amt*(1+o.r/100))/o.m);
-    return `<div class="emi-item" onclick="selectEmi(this,${mo})">
-      <div><div class="emi-left">₹${mo.toLocaleString('en-IN')}/mo × ${o.m}</div><div class="emi-sub">${o.r===0?'HDFC, ICICI, SBI, Axis':'All major cards'}</div></div>
-      <span class="emi-badge ${o.r===0?'emi-free':'emi-std'}">${o.label}</span>
-    </div>`;
-  }).join('');
-}
-function selectEmi(el, mo) {
-  document.querySelectorAll('.emi-item').forEach(e => e.classList.remove('sel'));
-  el.classList.add('sel');
-  document.getElementById('pm-pay-label').textContent = `Pay ₹${mo.toLocaleString('en-IN')}/mo`;
-}
-
-function applyModalCoupon() {
-  const code = document.getElementById('pm-coupon').value.trim().toUpperCase();
-  const c    = COUPONS[code];
-  if (c) {
-    couponDiscount = c.pct;
-    const price = selectedPlan.price;
-    const disc  = Math.round(price * c.pct / 100);
-    const after = price - disc, gst = Math.round(after*0.18), total = after+gst;
-    const dl = document.getElementById('pm-discount');
-    dl.style.display = 'flex';
-    document.getElementById('pm-disc-label').textContent     = 'Discount ('+c.pct+'%)';
-    document.getElementById('pm-disc-val').textContent       = '-₹'+disc.toLocaleString('en-IN');
-    document.getElementById('pm-total-display').textContent  = '₹'+total.toLocaleString('en-IN');
-    document.getElementById('pm-amount-display').textContent = '₹'+total.toLocaleString('en-IN');
-    document.getElementById('pm-pay-label').textContent      = `Pay ₹${total.toLocaleString('en-IN')} securely`;
-    showToast(`${c.pct}% off applied! 🎉`);
-  } else showToast('Invalid coupon code', 'err');
-}
-
-function processPayment() {
-  if (payTab === 'card') {
-    const num = document.getElementById('card-num').value.replace(/\s/g,'');
-    if (num.length < 16)                                               { showToast('Enter valid card number','err'); return; }
-    if (!document.getElementById('card-name').value.trim())           { showToast('Enter cardholder name','err'); return; }
-    if (document.getElementById('card-exp').value.trim().length < 5)  { showToast('Enter expiry date','err'); return; }
-    if (document.getElementById('card-cvv').value.trim().length < 3)  { showToast('Enter CVV','err'); return; }
-  } else if (payTab === 'upi') {
-    const id = document.getElementById('upi-id').value.trim();
-    if (!id.includes('@') && !document.querySelector('.upi-app.sel')) { showToast('Enter UPI ID or select app','err'); return; }
-  } else if (payTab === 'netbanking') {
-    if (!document.querySelector('.bank-item.sel') && !document.getElementById('bank-select').value) { showToast('Select a bank','err'); return; }
-  } else if (payTab === 'wallet') {
-    if (!document.querySelector('.wallet-item.sel')) { showToast('Select a wallet','err'); return; }
-  }
-  document.getElementById('pm-form').style.display       = 'none';
-  document.getElementById('pm-processing').style.display = 'block';
-  setTimeout(callUpgradeAPI, 2200);
-}
-
-async function callUpgradeAPI() {
-  const foundPlan = allPlans.find(p => p.name === selectedPlan.name);
-  if (!foundPlan) { showToast('Plan not found — please try again', 'err'); resetModal(); return; }
-  try {
-    const r = await fetch(UPGRADE_URL, {
-      method:  'POST',
-      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'},
-      body:    JSON.stringify({plan_id: foundPlan.id, billing: 'monthly'})
-    });
-    const data = await r.json();
-    console.log('upgrade response:', data);
-    if (data.success) showSuccess();
-    else { showToast(data.error || 'Payment failed — please try again', 'err'); resetModal(); }
-  } catch(e) {
-    console.error('callUpgradeAPI error:', e);
-    showToast('Network error — please check connection and try again', 'err');
-    resetModal();
-  }
-}
-
-function showSuccess() {
-  document.getElementById('pm-processing').style.display = 'none';
-  document.getElementById('pm-success').style.display    = 'block';
-  const price = selectedPlan.price;
-  const disc  = Math.round(price * couponDiscount / 100);
-  const after = price - disc, gst = Math.round(after*0.18), total = after+gst;
-  document.getElementById('suc-plan').textContent    = selectedPlan.name;
-  document.getElementById('rcpt-plan').textContent   = 'HotelCloud ' + selectedPlan.name;
-  document.getElementById('rcpt-amount').textContent = '₹' + total.toLocaleString('en-IN');
-  document.getElementById('rcpt-cycle').textContent  = 'Monthly';
-  const next = new Date(); next.setMonth(next.getMonth()+1);
-  document.getElementById('rcpt-next').textContent = next.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  document.getElementById('rcpt-txn').textContent  = 'HC' + Date.now().toString(36).toUpperCase().slice(-8);
-}
-
-function resetModal() {
-  document.getElementById('pm-processing').style.display = 'none';
-  document.getElementById('pm-form').style.display       = 'block';
-  document.getElementById('pm-pay-btn').disabled         = false;
-}
-
-function completeOnboarding() {
-  closePaymentModal();
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('form_type', 'finish');
-  fetch(window.location.href, {method:'POST', body:fd})
-    .then(() => { window.location.href = "{% url 'dashboard' %}"; })
-    .catch(() => { window.location.href = "{% url 'dashboard' %}"; });
-}
-
-calcPrice();
-
-{% if show_subscription_gate %}
-setTimeout(() => showToast('Your trial ended — choose a plan to continue', 'warn'), 1000);
-{% endif %}
-{% if can_start_trial %}
-setTimeout(() => showToast('🎁 You have a free trial available — click to start!', 'ok'), 800);
-{% endif %}
 </script>
 </body>
 </html>
+

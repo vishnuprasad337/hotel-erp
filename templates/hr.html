@@ -1060,6 +1060,30 @@
             .msg-layout { grid-template-columns: 1fr; height: auto; }
             .msg-threads-col { height: 300px; border-right: none; border-bottom: 1px solid var(--border); }
         }
+        .sb-section-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.sb-chevron {
+  transition: transform 0.25s ease;
+  font-size: 11px;
+}
+
+.sb-section-items {
+  overflow: hidden;
+  max-height: 500px;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+
+.sb-section-items.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
         /* ── PAYSLIP ── */
         .payslip-wrap { background: var(--surface-2); border-radius: 10px; padding: 14px; }
         .ps-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
@@ -2418,9 +2442,6 @@
         <div class="sb-section-label">Front Office</div>
         <button class="sb-btn active" data-panel="dashboard"><i class="fas fa-th-large"></i> Dashboard</button>
         <button class="sb-btn" data-panel="bookings"><i class="fas fa-calendar-check"></i> Bookings</button>
-        <button class="sb-btn" data-panel="checkin"><i class="fas fa-sign-in-alt"></i> Check-In</button>
-        <button class="sb-btn" data-panel="checkout"><i class="fas fa-sign-out-alt"></i> Check-Out</button>
-        <button class="sb-btn" data-panel="guests"><i class="fas fa-users"></i> Guests</button>
         <button class="sb-btn" data-panel="rooms"><i class="fas fa-door-open"></i> Rooms</button>
 
         <div class="sb-section-label">Billing</div>
@@ -2434,8 +2455,7 @@
 
         <div class="sb-section-label">Workforce</div>
         <button class="sb-btn" data-panel="employees"><i class="fas fa-users"></i> Employees</button>
-        <button class="sb-btn" data-panel="shifts"><i class="fas fa-rotate"></i> Shifts</button>
-        <button class="sb-btn" data-panel="workreport"><i class="fas fa-chart-bar"></i> Work Reports</button>
+        
         <div class="sb-section-label">Inventory</div>
         <button class="sb-btn" data-panel="inventory-overview"><i class="fas fa-chart-pie"></i> Overview</button>
         <button class="sb-btn" data-panel="inventory-items"><i class="fas fa-cubes"></i> Items & Stock</button>
@@ -2453,11 +2473,21 @@
             <i class="fas fa-comments"></i> Messages
             <span class="nav-badge" id="msgUnreadBadge" style="display:none">0</span>
         </button>
-       <div class="sb-section-label">HR Operations</div>
-        <button class="sb-btn" data-panel="leave"><i class="fas fa-umbrella-beach"></i> Leave
-            <span class="badge-dot" id="pendingLeaveBadge" style="display:none;">0</span>
-        </button>
-        <button class="sb-btn" data-panel="payroll"><i class="fas fa-money-bill-wave"></i> Payroll</button>
+       <div class="sb-section-group">
+       <div class="sb-section-label sb-section-toggle" onclick="toggleSection(this)">
+       HR Operations
+       <i class="fas fa-chevron-down sb-chevron"></i>
+     </div>
+       <div class="sb-section-items">
+    <button class="sb-btn" data-panel="leave">
+      <i class="fas fa-umbrella-beach"></i> Leave
+      <span class="badge-dot" id="pendingLeaveBadge" style="display:none;">0</span>
+    </button>
+    <button class="sb-btn" data-panel="shifts"><i class="fas fa-rotate"></i> Shifts</button>
+    <button class="sb-btn" data-panel="workreport"><i class="fas fa-chart-bar"></i> Work Reports</button>
+    <button class="sb-btn" data-panel="payroll"><i class="fas fa-money-bill-wave"></i> Payroll</button>
+  </div>
+</div>
     </nav>
 
     <div class="sb-footer">
@@ -2572,7 +2602,6 @@
             <h1>Bookings</h1>
             <p>Manage all reservations</p>
         </div>
-
         <div class="topbar-actions">
             <button class="btn btn-primary btn-sm" onclick="openNewBookingModal()">
                 <i class="fas fa-plus"></i> New Booking
@@ -2671,7 +2700,6 @@
                 <span id="bkRowCount" style="font-size:12px;color:var(--text-3);"></span>
 
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <!-- Search -->
                     <input type="text"
                            id="bkSearchInput"
                            class="form-control"
@@ -2809,33 +2837,52 @@
 
                             <!-- ACTIONS -->
                             <td>
-                                {% if booking.status == "confirmed" %}
-                                <button class="btn btn-sm btn-success"
-                                        onclick="checkInGuest(
-                                            '{{ booking.id }}',
-                                            '{{ booking.guest.full_name|escapejs }}',
-                                            '{{ booking.room.room_type|escapejs }}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}'
-                                        )">
-                                    <i class="fas fa-sign-in-alt"></i> Check In
-                                </button>
-                                {% endif %}
+                                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    {% if booking.status == "confirmed" %}
+                                    <button class="btn btn-sm btn-success"
+                                            onclick="checkInGuest(
+                                                '{{ booking.id }}',
+                                                '{{ booking.guest.full_name|escapejs }}',
+                                                '{{ booking.room.room_type|escapejs }}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}'
+                                            )">
+                                        <i class="fas fa-sign-in-alt"></i> Check In
+                                    </button>
+                                    {% endif %}
 
-                                {% if booking.status == "checked_in" %}
-                                <button class="btn btn-sm btn-warning"
-                                        onclick="startCheckout(
-                                            '{{ booking.id }}',
-                                            '{{ booking.guest.full_name|escapejs }}',
-                                            '{{ booking.room.room_type|escapejs }}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
-                                        )">
-                                    <i class="fas fa-sign-out-alt"></i> Check Out
-                                </button>
-                                {% endif %}
+                                    {% if booking.status == "checked_in" %}
+                                    <button class="btn btn-sm btn-warning"
+                                            onclick="startCheckout(
+                                                '{{ booking.id }}',
+                                                '{{ booking.guest.full_name|escapejs }}',
+                                                '{{ booking.room.room_type|escapejs }}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+                                            )">
+                                        <i class="fas fa-sign-out-alt"></i> Check Out
+                                    </button>
+                                    {% endif %}
 
-                                
+                                    <button class="btn btn-sm btn-outline"
+                                            onclick="openGuestDetail({
+                                                bookingId:  '{{ booking.id }}',
+                                                guestId:    '{{ booking.guest.id }}',
+                                                name:       '{{ booking.guest.full_name|escapejs }}',
+                                                phone:      '{{ booking.guest.phone|default:""|escapejs }}',
+                                                email:      '{{ booking.guest.email|default:""|escapejs }}',
+                                                idType:     '{{ booking.guest.id_type|default:""|escapejs }}',
+                                                idNumber:   '{{ booking.guest.id_number|default:""|escapejs }}',
+                                                roomType:   '{{ booking.room.room_type|escapejs }}',
+                                                roomNumber: '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
+                                                checkIn:    '{{ booking.check_in|date:"Y-m-d" }}',
+                                                checkOut:   '{{ booking.check_out|date:"Y-m-d" }}',
+                                                status:     '{{ booking.status }}'
+                                            })">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </div>
                             </td>
+
                         </tr>
 
                         {% empty %}
@@ -4795,6 +4842,10 @@
     <div class="topbar-left"><h1>Asset Tracking</h1><p>Hotel equipment and asset register</p></div>
     <div class="topbar-actions">
       <button class="btn btn-primary btn-sm" onclick="openModal('invAddAssetModal')"><i class="fas fa-plus"></i> Add Asset</button>
+      <button class="btn btn-outline btn-sm"
+        onclick="openModal('invAddAssetCategoryModal')">
+        <i class="fas fa-tags"></i> Add Category
+       </button>
     </div>
   </div>
   <div class="content">
@@ -5912,6 +5963,15 @@
             </div>
         </div>
     </div>
+</div>
+<div class="modal-backdrop" id="invAddAssetCategoryModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-header-title">Add Category</div><button class="modal-close" onclick="closeModal('invAddCatModal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Category Name *</label><input class="form-control" id="inv-cat-name" placeholder="e.g. Cleaning Supplies"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('invAddAssetCategoryModal')">Cancel</button><button class="btn btn-primary" onclick="invSubmitAddCategory()">Save</button></div>
+  </div>
 </div>
 <!-- Add Category -->
 <div class="modal-backdrop" id="invAddCatModal">
@@ -7255,6 +7315,7 @@
         </div>
     </div>
 </div>
+
 <!-- ─── Apply Leave Modal ─── -->
 <div class="modal-backdrop" id="applyLeaveModal">
     <div class="modal">
@@ -19923,22 +19984,76 @@ function bkApplyFilters() {
   const q = (document.getElementById('bkSearchInput')?.value || '').toLowerCase();
 
   const filtered = allRows.filter(r => {
+    // 1. STATUS FILTER
     const stOk = BK.status === 'all' || r.dataset.status === BK.status;
-    const qOk  = !q
+    if (!stOk) return false;
+
+    // 2. SEARCH FILTER
+    const qOk = !q
       || (r.dataset.guest   || '').includes(q)
       || (r.dataset.room    || '').includes(q)
       || (r.dataset.roomnum || '').includes(q);
+    if (!qOk) return false;
 
-    // Inline date check — no shared helper
+    // 3. DATE RANGE FILTER - CONSISTENT RULES PER TAB
     let dateOk = true;
-    const d = (r.dataset.created || '').split('T')[0];
-    if (BK.from && d && d < BK.from) dateOk = false;
-    if (BK.to   && d && d > BK.to)   dateOk = false;
-    if (BK.from && !d) dateOk = false; // hide rows with no date when filtering
+    if (BK.from || BK.to) {
+      const checkIn  = (r.dataset.checkin  || '').split('T')[0];
+      const checkOut = (r.dataset.checkout || '').split('T')[0];
+      
+      // Helper: check if a date is within range
+      const isInRange = (date) => {
+        if (!date) return false;
+        if (BK.from && date < BK.from) return false;
+        if (BK.to && date > BK.to) return false;
+        return true;
+      };
 
-    return stOk && qOk && dateOk;
+      // RULE 1: CONFIRMED tab → Show bookings where check-in date is in range
+      if (BK.status === 'confirmed') {
+        dateOk = isInRange(checkIn);
+      }
+      
+      // RULE 2: IN-HOUSE (checked_in) tab → Show bookings where check-in date is in range
+      // (These guests are currently staying, so their check-in is the relevant date)
+      else if (BK.status === 'checked_in') {
+        dateOk = isInRange(checkIn);
+      }
+      
+      // RULE 3: CHECKED OUT tab → Show bookings where check-out date is in range
+      else if (BK.status === 'checked_out') {
+        dateOk = isInRange(checkOut);
+      }
+      
+      // RULE 4: CANCELLED tab → Show bookings where cancellation date OR original dates are in range
+      else if (BK.status === 'cancelled') {
+        // Use check-in date as reference (when the booking was supposed to happen)
+        // This shows cancelled bookings from the selected period
+        dateOk = isInRange(checkIn);
+      }
+      
+      // RULE 5: ALL tab → Show bookings that were ACTIVE during any part of the date range
+      // A booking is "active" if: its stay period overlaps with the selected date range
+      else {
+        // Overlap logic: booking is active if it started BEFORE range end AND ended AFTER range start
+        const rangeStart = BK.from || '0000-01-01';
+        const rangeEnd   = BK.to   || '9999-12-31';
+        
+        if (!checkIn || !checkOut) {
+          dateOk = false;
+        } else {
+          // Does the booking period intersect with the selected date range?
+          const bookingEndsAfterRangeStart = checkOut >= rangeStart;
+          const bookingStartsBeforeRangeEnd = checkIn <= rangeEnd;
+          dateOk = bookingEndsAfterRangeStart && bookingStartsBeforeRangeEnd;
+        }
+      }
+    }
+
+    return dateOk;
   });
 
+  // PAGINATION (unchanged)
   BK.pageSize = parseInt(document.getElementById('bkPageSize')?.value || 10);
   const total = filtered.length;
   const maxPg = Math.max(1, Math.ceil(total / BK.pageSize));
@@ -19961,7 +20076,11 @@ function bkApplyFilters() {
   if (prev) prev.disabled = BK.page <= 1;
   if (next) next.disabled = BK.page >= maxPg;
 }
-
+function bkGoPage(p) {
+  BK.pageSize = parseInt(document.getElementById('bkPageSize')?.value || 10);
+  BK.page = Math.max(1, p);
+  bkApplyFilters();
+}
 // ═══════════════════════════════════════════════════════════════
 // HK TASKS — Status filter + Date filter + Pagination
 // KEY FIX: template renders .hk-task-row with data-status & data-date
@@ -20942,6 +21061,62 @@ function openInvoices()             { openInvoiceSidebar(); }
   }
 
 })();
+function toggleSection(el) {
+  const items = el.nextElementSibling;
+  const chevron = el.querySelector('.sb-chevron');
+  items.classList.toggle('collapsed');
+  chevron.style.transform = items.classList.contains('collapsed') 
+    ? 'rotate(-90deg)' 
+    : 'rotate(0deg)';
+}
+/* =========================================================
+   ADD ASSET CATEGORY
+========================================================= */
+window.invSubmitAddCategory = async function () {
+  const name = document.getElementById('inv-cat-name')?.value.trim();
+
+  if (!name) {
+    toast('Enter category name', 'error');
+    return;
+  }
+
+  const btn  = document.querySelector('#invAddAssetCategoryModal .btn-primary');
+  const orig = btn?.innerHTML || '';
+
+  if (btn) {
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+  }
+
+  try {
+    const data = await _invPost('/asset-categories/add/', { name });
+
+    if (data.id || data.success) {
+      toast('Category added successfully', 'success');
+      closeModal('invAddAssetCategoryModal');
+
+      const input = document.getElementById('inv-cat-name');
+      if (input) input.value = '';
+
+      // Refresh category list using the existing helper
+      await invFetchAssetCats();
+      _invPopulateSelects();
+
+    } else {
+      toast(data.error || 'Failed to add category', 'error');
+    }
+
+  } catch (e) {
+    console.error('ADD CATEGORY ERROR:', e);
+    toast('Network error', 'error');
+
+  } finally {
+    if (btn) {
+      btn.disabled  = false;
+      btn.innerHTML = orig;
+    }
+  }
+};
 // ─────────────────────────────────────────────────────────────────────────
 // SECTION 21 — END / ALIASES for template compatibility
 // ─────────────────────────────────────────────────────────────────────────

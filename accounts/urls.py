@@ -48,7 +48,8 @@ urlpatterns =[
         path('staff-logout/', staff_logout, name='staff_logout'),
         path('setup/', hotel_setup, name='hotel_setup'),
         
-   
+   # urls.py
+path('plan/<int:plan_id>/set-trial-days/', set_plan_trial_days, name='set_plan_trial_days'),
     path('add-amenity/',                        add_amenity,            name='add_amenity'),
     path('delete-amenity/<int:amenity_id>/',    delete_amenity,         name='delete_amenity'),
     path('get-hotel-modules/<int:hotel_id>/', get_hotel_modules, name='get_hotel_modules'),
@@ -63,6 +64,7 @@ urlpatterns =[
     path('get-payments/',                       get_payments,           name='get_payments'),
     path('create-payment/',                     create_payment,         name='create_payment'),
     path('mark-payment-paid/<int:payment_id>/', mark_payment_paid,      name='mark_payment_paid'),
+    path('payment/', tenant_create_payment, name='payment'),
     path('cancel-payment/<int:payment_id>/',    cancel_payment,         name='cancel_payment'),
    path('superadmin/subscription/summary/',                hotel_subscription_summary,  name='hotel_subscription_summary'),
 
@@ -88,6 +90,9 @@ path('superadmin/trial/days/<int:hotel_id>/',           set_hotel_trial_days,   
     ),
 path('start-trial/', hotel_start_trial, name='hotel_start_trial'),  
 path('superadmin/hotel/<int:hotel_id>/send-mail/', send_hotel_mail, name='send_hotel_mail'),
+path('rejected-hotels/', get_rejected_hotels, name='get_rejected_hotels'),
+path('plan/<int:plan_id>/toggle/',     toggle_plan_status, name='toggle_plan_status'),
+path('plan/<int:plan_id>/set-expiry/', set_plan_expiry,    name='set_plan_expiry'),
     # forgot password
 
     

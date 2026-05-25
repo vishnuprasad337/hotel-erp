@@ -162,6 +162,7 @@ def get_room(request, room_id):
         return JsonResponse({
             "id": room.id,
             "room_type": room.room_type,
+            "room_type": room.display_type(),
             "price": str(room.base_price),
             "max_adults": room.max_adults,
             "max_children": room.max_children,

@@ -116,7 +116,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'postgresql://postgres:vishnu123@localhost:5432/hoterp'),
+        default=os.environ.get('DATABASE_URL', 'postgresql://postgres:vishnu123@localhost:5432/erp'),
         conn_max_age=600,
     )
 }

@@ -1245,9 +1245,6 @@ table.pr-bd-table tfoot td:first-child {
         <div class="sb-section-label">Front Office</div>
         <button class="sb-btn active" data-panel="dashboard"><i class="fas fa-th-large"></i> Dashboard</button>
         <button class="sb-btn" data-panel="bookings"><i class="fas fa-calendar-check"></i> Bookings</button>
-        <button class="sb-btn" data-panel="checkin"><i class="fas fa-sign-in-alt"></i> Check-In</button>
-        <button class="sb-btn" data-panel="checkout"><i class="fas fa-sign-out-alt"></i> Check-Out</button>
-        <button class="sb-btn" data-panel="guests"><i class="fas fa-users"></i> Guests</button>
         <button class="sb-btn" data-panel="rooms"><i class="fas fa-door-open"></i> Rooms</button>
 
         <div class="sb-section-label">Billing</div>
@@ -1384,7 +1381,6 @@ table.pr-bd-table tfoot td:first-child {
             <h1>Bookings</h1>
             <p>Manage all reservations</p>
         </div>
-
         <div class="topbar-actions">
             <button class="btn btn-primary btn-sm" onclick="openNewBookingModal()">
                 <i class="fas fa-plus"></i> New Booking
@@ -1483,7 +1479,6 @@ table.pr-bd-table tfoot td:first-child {
                 <span id="bkRowCount" style="font-size:12px;color:var(--text-3);"></span>
 
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <!-- Search -->
                     <input type="text"
                            id="bkSearchInput"
                            class="form-control"
@@ -1621,33 +1616,52 @@ table.pr-bd-table tfoot td:first-child {
 
                             <!-- ACTIONS -->
                             <td>
-                                {% if booking.status == "confirmed" %}
-                                <button class="btn btn-sm btn-success"
-                                        onclick="checkInGuest(
-                                            '{{ booking.id }}',
-                                            '{{ booking.guest.full_name|escapejs }}',
-                                            '{{ booking.room.room_type|escapejs }}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}'
-                                        )">
-                                    <i class="fas fa-sign-in-alt"></i> Check In
-                                </button>
-                                {% endif %}
+                                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                                    {% if booking.status == "confirmed" %}
+                                    <button class="btn btn-sm btn-success"
+                                            onclick="checkInGuest(
+                                                '{{ booking.id }}',
+                                                '{{ booking.guest.full_name|escapejs }}',
+                                                '{{ booking.room.room_type|escapejs }}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}'
+                                            )">
+                                        <i class="fas fa-sign-in-alt"></i> Check In
+                                    </button>
+                                    {% endif %}
 
-                                {% if booking.status == "checked_in" %}
-                                <button class="btn btn-sm btn-warning"
-                                        onclick="startCheckout(
-                                            '{{ booking.id }}',
-                                            '{{ booking.guest.full_name|escapejs }}',
-                                            '{{ booking.room.room_type|escapejs }}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
-                                            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
-                                        )">
-                                    <i class="fas fa-sign-out-alt"></i> Check Out
-                                </button>
-                                {% endif %}
+                                    {% if booking.status == "checked_in" %}
+                                    <button class="btn btn-sm btn-warning"
+                                            onclick="startCheckout(
+                                                '{{ booking.id }}',
+                                                '{{ booking.guest.full_name|escapejs }}',
+                                                '{{ booking.room.room_type|escapejs }}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
+                                                '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+                                            )">
+                                        <i class="fas fa-sign-out-alt"></i> Check Out
+                                    </button>
+                                    {% endif %}
 
-                                
+                                    <button class="btn btn-sm btn-outline"
+                                            onclick="openGuestDetail({
+                                                bookingId:  '{{ booking.id }}',
+                                                guestId:    '{{ booking.guest.id }}',
+                                                name:       '{{ booking.guest.full_name|escapejs }}',
+                                                phone:      '{{ booking.guest.phone|default:""|escapejs }}',
+                                                email:      '{{ booking.guest.email|default:""|escapejs }}',
+                                                idType:     '{{ booking.guest.id_type|default:""|escapejs }}',
+                                                idNumber:   '{{ booking.guest.id_number|default:""|escapejs }}',
+                                                roomType:   '{{ booking.room.room_type|escapejs }}',
+                                                roomNumber: '{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% endif %}',
+                                                checkIn:    '{{ booking.check_in|date:"Y-m-d" }}',
+                                                checkOut:   '{{ booking.check_out|date:"Y-m-d" }}',
+                                                status:     '{{ booking.status }}'
+                                            })">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </div>
                             </td>
+
                         </tr>
 
                         {% empty %}
@@ -1699,7 +1713,6 @@ table.pr-bd-table tfoot td:first-child {
         </div>
     </div>
 </div>
-
     <!-- ══════════ CHECK-IN ══════════ -->
     <!-- ─── Check-In Modal ─── -->
 <div class="panel" id="panel-checkin">
@@ -7220,13 +7233,69 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ─── Status filter (tab buttons) ───────────────────────── */
-function filterBookings(status, btn) {
-    BK.status = status;
-    BK.page   = 1;
-    document.querySelectorAll('#bookingFilterBar .tab-btn')
-            .forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    bkRender();
+function bkApplyFilters() {
+  const allRows = Array.from(document.querySelectorAll('#bookingsTableBody tr[data-status]'));
+  const q = (document.getElementById('bkSearchInput')?.value || '').toLowerCase();
+
+  const filtered = allRows.filter(r => {
+    const stOk = BK.status === 'all' || r.dataset.status === BK.status;
+    const qOk  = !q
+      || (r.dataset.guest   || '').includes(q)
+      || (r.dataset.room    || '').includes(q)
+      || (r.dataset.roomnum || '').includes(q);
+
+    // Pick which date field to filter against based on status tab
+    let dateOk = true;
+    if (BK.from || BK.to) {
+      const checkIn  = (r.dataset.checkin  || '').split('T')[0];
+      const checkOut = (r.dataset.checkout || '').split('T')[0];
+
+      if (BK.status === 'checked_out') {
+        // Checkout tab → filter by checkout date
+        if (!checkOut) { dateOk = false; }
+        else {
+          if (BK.from && checkOut < BK.from) dateOk = false;
+          if (BK.to   && checkOut > BK.to)   dateOk = false;
+        }
+      } else if (BK.status === 'confirmed' || BK.status === 'checked_in') {
+        // Confirmed / In-House → filter by check-in date
+        if (!checkIn) { dateOk = false; }
+        else {
+          if (BK.from && checkIn < BK.from) dateOk = false;
+          if (BK.to   && checkIn > BK.to)   dateOk = false;
+        }
+      } else {
+        // "All" or "cancelled" → match if EITHER check-in OR check-out falls in range
+        const ciOk = checkIn  && (!BK.from || checkIn  >= BK.from) && (!BK.to || checkIn  <= BK.to);
+        const coOk = checkOut && (!BK.from || checkOut >= BK.from) && (!BK.to || checkOut <= BK.to);
+        dateOk = !!(ciOk || coOk);
+      }
+    }
+
+    return stOk && qOk && dateOk;
+  });
+
+  BK.pageSize = parseInt(document.getElementById('bkPageSize')?.value || 10);
+  const total = filtered.length;
+  const maxPg = Math.max(1, Math.ceil(total / BK.pageSize));
+  BK.page     = Math.max(1, Math.min(BK.page, maxPg));
+  const start = (BK.page - 1) * BK.pageSize;
+
+  allRows.forEach(r => r.style.display = 'none');
+  filtered.slice(start, start + BK.pageSize).forEach(r => r.style.display = '');
+
+  const rc = document.getElementById('bkRowCount');
+  if (rc) rc.textContent = `${total} booking${total !== 1 ? 's' : ''}`;
+
+  _buildPgNums('bkPageNums', BK.page, maxPg, 'bkGoPage');
+
+  const pi = document.getElementById('bkPgInfo');
+  if (pi) pi.textContent = total > 0 ? `Page ${BK.page} of ${maxPg}` : '';
+
+  const prev = document.getElementById('bkPrevBtn');
+  const next = document.getElementById('bkNextBtn');
+  if (prev) prev.disabled = BK.page <= 1;
+  if (next) next.disabled = BK.page >= maxPg;
 }
 
 /* ─── Quick date chips ───────────────────────────────────── */
@@ -7306,16 +7375,11 @@ function resetBkFilters() {
 }
 
 /* ─── Page navigation ────────────────────────────────────── */
-function bkGoPage(n) {
-    /* also read search + page-size from DOM each time */
-    BK.search   = document.getElementById('bkSearchInput').value.trim().toLowerCase();
-    BK.pageSize = parseInt(document.getElementById('bkPageSize').value) || 10;
-
-    const totalPages = Math.max(1, Math.ceil(BK.filtered.length / BK.pageSize));
-    BK.page = Math.min(Math.max(1, n), totalPages);
-    bkRender();
+function bkGoPage(p) {
+  BK.pageSize = parseInt(document.getElementById('bkPageSize')?.value || 10);
+  BK.page = Math.max(1, p);
+  bkApplyFilters();
 }
-
 /* ─── Core render ────────────────────────────────────────── */
 function bkRender() {
     BK.search   = document.getElementById('bkSearchInput').value.trim().toLowerCase();

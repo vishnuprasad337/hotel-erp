@@ -154,6 +154,9 @@ class SubscriptionPlan(models.Model):
     is_trial_plan   = models.BooleanField(default=False)
     trial_days      = models.PositiveIntegerField(default=14)
     tagline       = models.CharField(max_length=200, blank=True, null=True) 
+    is_active     = models.BooleanField(default=True)
+    valid_until   = models.DateField(null=True, blank=True)
+    trial_days = models.PositiveIntegerField(default=14, help_text="Default trial duration for this plan in days")
     def __str__(self):
         return self.name
 
@@ -285,3 +288,22 @@ class Staff(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.employee_id})"
+class RejectedHotel(models.Model):
+  
+    hotel_name    = models.CharField(max_length=100)
+    email         = models.EmailField(null=True, blank=True)
+    owner_name    = models.CharField(max_length=100)
+    address       = models.TextField(max_length=200)
+    city          = models.CharField(max_length=100)
+    property_type = models.CharField(max_length=50)
+    description   = models.TextField(blank=True, null=True)
+    schema_name   = models.CharField(max_length=100, null=True, blank=True)
+    image         = models.ImageField(upload_to="rejected_hotel_images/", null=True, blank=True)
+
+    
+    rejection_reason  = models.TextField(blank=True, null=True)
+    rejected_at       = models.DateTimeField(auto_now_add=True)
+    rejected_by       = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.hotel_name} (rejected)"

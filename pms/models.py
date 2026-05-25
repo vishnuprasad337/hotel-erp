@@ -14,9 +14,11 @@ class Room(models.Model):
         ('Double', 'Double'),
         ('Deluxe', 'Deluxe'),
         ('Suite', 'Suite'),
+        ('Custom', 'Custom'),
     ]
 
     room_type = models.CharField(max_length=20, choices=ROOM_TYPES)
+    custom_room_type = models.CharField(max_length=100, blank=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
 
     max_adults = models.IntegerField(default=2)
@@ -30,6 +32,9 @@ class Room(models.Model):
     extra_child_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     is_active = models.BooleanField(default=True)
+   
+    def display_type(self):
+         return self.custom_room_type if self.custom_room_type else self.room_type
 
     def total_units(self):
         return self.units.count()

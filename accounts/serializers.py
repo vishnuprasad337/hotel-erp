@@ -32,11 +32,11 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 class DepartmentSerializer(serializers.ModelSerializer):
     permissions = serializers.SerializerMethodField()
+    hotel_name = serializers.CharField(source='hotel.hotel_name', read_only=True)
 
     class Meta:
         model = Department
-        fields = ['id', 'name', 'permissions']
-
+        fields = ['id', 'hotel', 'hotel_name', 'name', 'permissions']
     def get_permissions(self, obj):
         return list(
             RolePermission.objects.filter(role=obj)
@@ -53,11 +53,12 @@ class UserSerializer(serializers.ModelSerializer):
 class StaffSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     department = DepartmentSerializer(read_only=True)
+    hotel_name = serializers.CharField(source='hotel.hotel_name', read_only=True)
 
     class Meta:
         model = Staff
         fields = [
-            'id', 'name', 'employee_id', 'phone', 'salary',
+            'id', 'hotel', 'hotel_name', 'name', 'employee_id', 'phone', 'salary',
             'is_active', 'is_available', 'department', 'user'
         ]
 

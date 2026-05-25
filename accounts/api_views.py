@@ -83,17 +83,15 @@ class HotelAllFullDetailsView(APIView):
 class DepartmentListCreateView(APIView):
     def get(self, request):
         hotel_id = request.query_params.get('hotel_id')
-        qs = Department.objects.filter(hotel_id=hotel_id) if hotel_id else Department.objects.all()
+        hotel_name = request.query_params.get('hotel_name')
+        
+        qs = Department.objects.all()
+        if hotel_id:
+            qs = qs.filter(hotel_id=hotel_id)
+        if hotel_name:
+            qs = qs.filter(hotel__hotel_name__icontains=hotel_name)
+        
         return Response(DepartmentSerializer(qs, many=True).data)
-
-    def post(self, request):
-        serializer = DepartmentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class DepartmentDetailView(APIView):
     def get_object(self, pk):
         return get_object_or_404(Department, pk=pk)
@@ -122,7 +120,9 @@ class DepartmentDetailView(APIView):
 
 class UserListCreateView(APIView):
     def get(self, request):
-        return Response(UserSerializer(User.objects.all(), many=True).data)
+        hotel_id = request.query_params.get('hotel_id')
+        qs = User.objects.filter(hotel_id=hotel_id) if hotel_id else User.objects.all()
+        return Response(UserSerializer(qs, many=True).data)
 
     def post(self, request):
         serializer = UserSerializer(data=request.data)
@@ -160,7 +160,9 @@ class UserDetailView(APIView):
 
 class PermissionListCreateView(APIView):
     def get(self, request):
-        return Response(PermissionSerializer(Permission.objects.all(), many=True).data)
+        hotel_id = request.query_params.get('hotel_id')
+        qs = Permission.objects.filter(hotel_id=hotel_id) if hotel_id else Permission.objects.all()
+        return Response(PermissionSerializer(qs, many=True).data)
 
     def post(self, request):
         serializer = PermissionSerializer(data=request.data)
@@ -198,8 +200,13 @@ class PermissionDetailView(APIView):
 
 class RolePermissionListCreateView(APIView):
     def get(self, request):
+        hotel_id = request.query_params.get('hotel_id')
         role_id = request.query_params.get('role_id')
-        qs = RolePermission.objects.filter(role_id=role_id) if role_id else RolePermission.objects.all()
+        qs = RolePermission.objects.all()
+        if hotel_id:
+            qs = qs.filter(hotel_id=hotel_id)
+        if role_id:
+            qs = qs.filter(role_id=role_id)
         return Response(RolePermissionSerializer(qs, many=True).data)
 
     def post(self, request):
@@ -238,7 +245,9 @@ class RolePermissionDetailView(APIView):
 
 class AmenityListCreateView(APIView):
     def get(self, request):
-        return Response(AmenitySerializer(Amenity.objects.all(), many=True).data)
+        hotel_id = request.query_params.get('hotel_id')
+        qs = Amenity.objects.filter(hotel_id=hotel_id) if hotel_id else Amenity.objects.all()
+        return Response(AmenitySerializer(qs, many=True).data)
 
     def post(self, request):
         serializer = AmenitySerializer(data=request.data)
@@ -276,7 +285,9 @@ class AmenityDetailView(APIView):
 
 class SubscriptionPlanListCreateView(APIView):
     def get(self, request):
-        return Response(SubscriptionPlanSerializer(SubscriptionPlan.objects.all(), many=True).data)
+        hotel_id = request.query_params.get('hotel_id')
+        qs = SubscriptionPlan.objects.filter(hotel_id=hotel_id) if hotel_id else SubscriptionPlan.objects.all()
+        return Response(SubscriptionPlanSerializer(qs, many=True).data)
 
     def post(self, request):
         serializer = SubscriptionPlanSerializer(data=request.data)
@@ -395,9 +406,15 @@ class HotelModuleDetailView(APIView):
 class StaffListCreateView(APIView):
     def get(self, request):
         hotel_id = request.query_params.get('hotel_id')
-        qs = Staff.objects.filter(hotel_id=hotel_id) if hotel_id else Staff.objects.all()
-        return Response(StaffSerializer(qs, many=True).data)
+        hotel_name = request.query_params.get('hotel_name')
 
+        qs = Staff.objects.all()
+        if hotel_id:
+            qs = qs.filter(hotel_id=hotel_id)
+        if hotel_name:
+            qs = qs.filter(hotel__hotel_name__icontains=hotel_name)
+
+        return Response(StaffSerializer(qs, many=True).data)
     def post(self, request):
         serializer = StaffSerializer(data=request.data)
         if serializer.is_valid():
@@ -407,26 +424,54 @@ class StaffListCreateView(APIView):
 
 
 class StaffDetailView(APIView):
-    def get_object(self, pk):
-        return get_object_or_404(Staff, pk=pk)
+    def get_object(self, pk, hotel_id):
+        return get_object_or_404(Staff, pk=pk, hotel_id=hotel_id)
 
     def get(self, request, pk):
-        return Response(StaffSerializer(self.get_object(pk)).data)
+        hotel_id = request.query_params.get('hotel_id')
+        if not hotel_id:
+            return Response(
+                {"error": "hotel_id query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        staff = self.get_object(pk, hotel_id)
+        return Response(StaffSerializer(staff).data)
 
     def put(self, request, pk):
-        serializer = StaffSerializer(self.get_object(pk), data=request.data)
+        hotel_id = request.data.get('hotel') or request.query_params.get('hotel_id')
+        if not hotel_id:
+            return Response(
+                {"error": "hotel_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        staff = self.get_object(pk, hotel_id)
+        serializer = StaffSerializer(staff, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
-        serializer = StaffSerializer(self.get_object(pk), data=request.data, partial=True)
+        hotel_id = request.data.get('hotel') or request.query_params.get('hotel_id')
+        if not hotel_id:
+            return Response(
+                {"error": "hotel_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        staff = self.get_object(pk, hotel_id)
+        serializer = StaffSerializer(staff, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        self.get_object(pk).delete()
+        hotel_id = request.query_params.get('hotel_id')
+        if not hotel_id:
+            return Response(
+                {"error": "hotel_id query parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        staff = self.get_object(pk, hotel_id)
+        staff.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

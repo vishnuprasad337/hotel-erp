@@ -403,17 +403,33 @@ def stock_adjust(request):
     if err:
         return err
     data = _json(request)
-    staff, _ = _get_staff(request) 
 
-    item = InventoryItem.objects.get(id=data["item_id"])
-    qty  = Decimal(str(data["quantity"]))
-    typ  = data["type"]
+    # _get_staff may return None — handle both tuple and None
+    staff_result = _get_staff(request)
+    if staff_result is None:
+        staff = None
+    else:
+        staff, _ = staff_result
+
+    try:
+        item = InventoryItem.objects.get(id=data["item_id"])
+    except InventoryItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+
+    try:
+        qty = Decimal(str(data["quantity"]))
+    except Exception:
+        return JsonResponse({"error": "Invalid quantity"}, status=400)
+
+    # Support both "type" and "adjustment_type" keys from frontend
+    typ = data.get("adjustment_type") or data.get("type", "in")
 
     if typ == "in":
         item.current_stock += qty
     elif typ == "out":
-        item.current_stock -= qty
+        item.current_stock = max(Decimal("0"), item.current_stock - qty)
     else:
+        # "adjust" / "set" — set exact value
         item.current_stock = qty
 
     item.save()
@@ -425,34 +441,57 @@ def stock_adjust(request):
         note=data.get("note", ""),
         adjusted_by=staff,
     )
-    return JsonResponse({"success": True, "new_stock": float(item.current_stock)})
+
+    return JsonResponse({
+        "success":   True,
+        "new_stock": float(item.current_stock),
+        "item_id":   item.id,
+        "item_name": item.name,
+    })
+
 
 def list_stock_adjustments(request):
     qs = StockAdjustment.objects.select_related(
-        "item", "item__department", "adjusted_by", "adjusted_by__department"  # add this
+        "item",
+        "item__department",
+        "adjusted_by",
+        "adjusted_by__department",
     )
 
     if request.GET.get("item_id"):
         qs = qs.filter(item_id=request.GET["item_id"])
     if request.GET.get("department_id"):
         qs = qs.filter(item__department_id=request.GET["department_id"])
+    if request.GET.get("limit"):
+        try:
+            limit = int(request.GET["limit"])
+        except ValueError:
+            limit = 100
+    else:
+        limit = 100
 
     data = [
         {
-            "id":                      a.id,
-            "item":                    a.item.name,
-            "department":              a.item.department.name if a.item.department else None,
-            "type":                    a.adjustment_type,
-            "quantity":                float(a.quantity),
-            "note":                    a.note,
-            "adjusted_by":             str(a.adjusted_by) if a.adjusted_by else None,
-            "adjusted_by_department":  a.adjusted_by.department.name if a.adjusted_by and a.adjusted_by.department else None,  # add this
-            "date":                    a.created_at.isoformat(),
+            "id":                     a.id,
+            "item":                   a.item.name,
+            "item_id":                a.item.id,
+            "department":             a.item.department.name if a.item.department else None,
+            "type":                   a.adjustment_type,
+            "adjustment_type":        a.adjustment_type,
+            "quantity":               float(a.quantity),
+            "note":                   a.note,
+            "adjusted_by":            str(a.adjusted_by) if a.adjusted_by else None,
+            "adjusted_by_department": (
+                a.adjusted_by.department.name
+                if a.adjusted_by and a.adjusted_by.department
+                else None
+            ),
+            "date":                   a.created_at.isoformat(),
+            "created_at":             a.created_at.isoformat(),
         }
-        for a in qs.order_by("-created_at")[:100]
+        for a in qs.order_by("-created_at")[:limit]
     ]
     return JsonResponse({"adjustments": data})
-
 
 
 @csrf_exempt
@@ -746,18 +785,16 @@ def expense_summary(request):
 
 
 
-
-@csrf_exempt
 def add_asset_category(request):
-    
     err = _require_post(request)
     if err:
         return err
     data = _json(request)
-    obj = AssetCategory.objects.create(name=data["name"])
-    return JsonResponse({"id": obj.id, "name": obj.name}, status=201)
-
-
+    name = data.get("name", "").strip()
+    if not name:
+        return JsonResponse({"success": False, "error": "Category name is required"}, status=400)
+    obj = AssetCategory.objects.create(name=name)
+    return JsonResponse({"success": True, "id": obj.id, "name": obj.name}, status=201)
 def list_asset_categories(request):
    
     return JsonResponse({"asset_categories": list(AssetCategory.objects.values())})
@@ -790,7 +827,7 @@ def add_asset(request):
     )
     return JsonResponse({"id": asset.id}, status=201)
 
-
+@csrf_exempt
 def list_assets(request):
     
     qs = HotelAsset.objects.select_related(
@@ -805,32 +842,55 @@ def list_assets(request):
     if request.GET.get("type_id"):
         qs = qs.filter(asset_category_id=request.GET["type_id"])
 
-    data = [
-        {
-            "id":               a.id,
-            "name":             a.name,
-            "type":             a.asset_category.name if a.asset_category else None,
-            "department":       a.department.name if a.department else None,
-            "department_id":    a.department_id,
-           
-            "location":         a.location_display,
-            "room_unit_id":     a.room_unit_id,
-            "room_id":          a.room_id,
-            "area":             a.area,
-            "status":           a.status,
-            "serial_number":    a.serial_number,
-            "purchase_date":    str(a.purchase_date) if a.purchase_date else None,
-            "purchase_cost":    float(a.purchase_cost),
-            "vendor":           a.vendor.name if a.vendor else None,
-            "warranty_end":     str(a.warranty_end) if a.warranty_end else None,
-            "warranty_active":  a.is_warranty_active,
-            "next_maintenance": str(a.next_maintenance) if a.next_maintenance else None,
-            "maintenance_due":  a.maintenance_due,
-            "assigned_to":      str(a.assigned_to) if a.assigned_to else None,
-        }
-        for a in qs.order_by("name")
-    ]
-    return JsonResponse({"assets": data})
+   
+    asset_map = {}
+    
+    for a in qs.order_by("name"):
+        
+        unique_key = f"{a.serial_number or a.name}_{a.department_id or ''}"
+        
+        if unique_key not in asset_map:
+          
+            asset_map[unique_key] = {
+                "id": a.id,
+                "name": a.name,
+                "type": a.asset_category.name if a.asset_category else None,
+                "department": a.department.name if a.department else None,
+                "department_id": a.department_id,
+                "status": a.status,
+                "serial_number": a.serial_number,
+                "purchase_date": str(a.purchase_date) if a.purchase_date else None,
+                "purchase_cost": float(a.purchase_cost),
+                "vendor": a.vendor.name if a.vendor else None,
+                "warranty_end": str(a.warranty_end) if a.warranty_end else None,
+                "warranty_active": a.is_warranty_active,
+                "next_maintenance": str(a.next_maintenance) if a.next_maintenance else None,
+                "maintenance_due": a.maintenance_due,
+                "assigned_to": str(a.assigned_to) if a.assigned_to else None,
+              
+                "locations": [],
+            }
+        
+       
+        asset_map[unique_key]["locations"].append({
+            "room_unit_id": a.room_unit_id,
+            "room_id": a.room_id,
+            "area": a.area,
+            "location": a.location_display,
+            "asset_id": a.id, 
+        })
+        
+        
+        if len(asset_map[unique_key]["locations"]) == 1:
+            asset_map[unique_key]["room_unit_id"] = a.room_unit_id
+            asset_map[unique_key]["room_id"] = a.room_id
+            asset_map[unique_key]["area"] = a.area
+            asset_map[unique_key]["location"] = a.location_display
+    
+    
+    assets = list(asset_map.values())
+    
+    return JsonResponse({"assets": assets})
 
 
 @csrf_exempt
@@ -1334,9 +1394,12 @@ from accounts.models import Department
 def inventory_meta(request):
     from accounts.models import Department
     
-    vendors     = Vendor.objects.all().order_by('name')
-    departments = Department.objects.all().order_by('name')
-    items       = InventoryItem.objects.all().order_by('name')
+    vendors        = Vendor.objects.all().order_by('name')
+    departments    = Department.objects.all().order_by('name')
+    items          = InventoryItem.objects.all().order_by('name')
+    item_cats      = ItemCategory.objects.all().order_by('name')
+    asset_cats     = AssetCategory.objects.all().order_by('name')
+    expense_cats   = ExpenseCategory.objects.all().order_by('name')
 
     return JsonResponse({
         "vendors": [
@@ -1352,9 +1415,21 @@ def inventory_meta(request):
                 "id":            i.id,
                 "name":          i.name,
                 "unit":          i.unit or "",
-                "stock":         float(i.current_stock or 0),  # ← was i.stock
+                "stock":         float(i.current_stock or 0),
                 "cost_per_unit": float(i.cost_per_unit or 0),
             }
             for i in items
+        ],
+        "categories": [
+            {"id": c.id, "name": c.name}
+            for c in item_cats
+        ],
+        "asset_categories": [
+            {"id": c.id, "name": c.name}
+            for c in asset_cats
+        ],
+        "expense_categories": [
+            {"id": c.id, "name": c.name}
+            for c in expense_cats
         ],
     })

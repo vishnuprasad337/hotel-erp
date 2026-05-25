@@ -12,7 +12,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 from pms.models import Booking
-from .models import Hotel, Department, Permission, RolePermission, Amenity, HotelModule
+from .models import Hotel, Department, Permission, RolePermission, Amenity, HotelModule,RejectedHotel
 from .models import SubscriptionPlan,PlanPayment
 
 from django.db import transaction
@@ -153,6 +153,7 @@ def superuser_dashboard(request):
         pending        = all_hotels.filter(is_approved=False)
         amenities      = Amenity.objects.all()
         plans          = SubscriptionPlan.objects.prefetch_related('modules').all()
+        rejected         = RejectedHotel.objects.all().order_by("-rejected_at")
  
     return render(request, "admin/dashboard.html", {
         "hotels":             all_hotels,
@@ -163,6 +164,9 @@ def superuser_dashboard(request):
         "pending_hotels":     pending.count(),
         "amenities":          amenities,
         "plans":              plans,
+        "rejected_hotels":    rejected,
+        "rejected_count" :    rejected.count()
+
     })
 from django.core.mail import send_mail
 from django.contrib import messages  
@@ -204,33 +208,48 @@ Admin Team
 
     return redirect("superuser_dashboard")
 
-
 @login_required
 def reject_hotel(request, id):
     if not request.user.is_superuser:
         return redirect("admin_login")
 
-    
     with schema_context('public'):
         hotel = get_object_or_404(Hotel, id=id)
 
-    reason = request.GET.get("reason", "Not meeting requirements")
+    if request.method == "POST":
+        data = json.loads(request.body) if request.content_type == "application/json" else {}
+        reason = data.get("reason", "").strip() or "Not meeting requirements"
+    else:
+        reason = request.GET.get("reason", "Not meeting requirements")
+
+    with schema_context('public'):
+        RejectedHotel.objects.create(
+            hotel_name       = hotel.hotel_name,
+            email            = hotel.email,
+            owner_name       = hotel.owner_name,
+            address          = hotel.address,
+            city             = hotel.city,
+            property_type    = hotel.property_type,
+            description      = hotel.description or "",
+            schema_name      = hotel.schema_name,
+            image            = hotel.image,
+            rejection_reason = reason,
+            rejected_by      = request.user.username,
+        )
 
     try:
         send_mail(
-            subject="Hotel Rejected ❌",
-            message=f"""
-Hello {hotel.hotel_name},
+            subject="Hotel Registration Rejected ❌",
+            message=f"""Hello {hotel.hotel_name},
 
-Your hotel registration has been REJECTED.
+Your hotel registration has been rejected.
 
 Reason: {reason}
 
-You can update your details and register again.
+You may update your details and register again.
 
 Regards,
-Admin Team
-""",
+Admin Team""",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[hotel.email],
             fail_silently=False
@@ -239,35 +258,26 @@ Admin Team
     except Exception as e:
         messages.warning(request, f"Hotel rejected, but email failed: {e}")
 
-    
     with schema_context('public'):
         try:
             client = Client.objects.get(schema_name=hotel.schema_name)
-            with schema_context(client.schema_name):
-                Hotel.objects.filter(id=id).delete()
+
+            # Drop the tenant schema directly to avoid cross-schema ORM collector errors
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'DROP SCHEMA IF EXISTS "{}" CASCADE'.format(client.schema_name)
+                )
+
+           
+            client.domain_set.all().delete()
+            client.delete()
+
         except Client.DoesNotExist:
-            hotel.delete()
-
-    return redirect("superuser_dashboard")
-def save_hotel_modules(request, hotel_id):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            module_names = data.get("modules", [])
-
             
-            hotel = request.tenant
+            with schema_context('public'):
+                hotel.delete()
 
-            amenities = Amenity.objects.filter(name__in=module_names)
-
-            hotel.properties.set(amenities)
-
-            return JsonResponse({"success": True})
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    return JsonResponse({"success": True})
 @require_POST
 @login_required
 def send_hotel_mail(request, hotel_id):
@@ -298,9 +308,35 @@ def send_hotel_mail(request, hotel_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@login_required
+def get_rejected_hotels(request):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Forbidden"}, status=403)
 
+    with schema_context('public'):
+        rejected = RejectedHotel.objects.all().order_by('-rejected_at')
+        data = [
+            {
+                "id":               r.id,
+                "hotel_name":       r.hotel_name,
+                "email":            r.email,
+                "owner_name":       r.owner_name,
+                "address":          r.address,
+                "city":             r.city,
+                "property_type":    r.property_type,
+                "description":      r.description,
+                "rejection_reason": r.rejection_reason,
+                "rejected_by":      r.rejected_by,
+                "rejected_at":      r.rejected_at.strftime("%d %b %Y %H:%M"),
+                "image":            r.image.url if r.image else None,
+            }
+            for r in rejected
+        ]
+    return JsonResponse({"rejected_hotels": data, "total": len(data)})
 ##----------------------Hotel Authentication----------------------
 def hotel_register(request):
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if request.method == "POST":
         form = HotelForm(request.POST, request.FILES)
 
@@ -322,6 +358,16 @@ def hotel_register(request):
                             name=hotel.hotel_name
                         )
                         hotel.schema_name = schema_name
+
+                        # ── Superadmin extra fields ──────────────────────
+                        auto_approve  = request.POST.get('auto_approve') == '1'
+                        grant_trial   = request.POST.get('grant_trial')  == '1'
+                        trial_days    = int(request.POST.get('trial_days') or 14)
+                        plan_id       = request.POST.get('plan_id', '').strip()
+
+                        if auto_approve:
+                            hotel.is_approved = True
+
                         hotel.save()
 
                         domain = Domain.objects.create(
@@ -330,8 +376,18 @@ def hotel_register(request):
                             is_primary=True
                         )
 
+                        # Assign plan if provided
+                        plan = None
+                        if plan_id:
+                            try:
+                                plan = SubscriptionPlan.objects.get(id=int(plan_id))
+                                hotel.subscription_plan = plan
+                                hotel.save(update_fields=['subscription_plan'])
+                            except SubscriptionPlan.DoesNotExist:
+                                pass
+
                     with schema_context(schema_name):
-                        email = form.cleaned_data.get("email")
+                        email    = form.cleaned_data.get("email")
                         password = form.cleaned_data.get("password")
 
                         user = User.objects.create_user(
@@ -341,32 +397,84 @@ def hotel_register(request):
                             hotel=hotel,
                         )
 
-                
+                    # Grant trial after tenant user is created
+                    if grant_trial:
+                        with schema_context('public'):
+                            try:
+                                hotel.trial_days = trial_days
+                                hotel.save(update_fields=['trial_days'])
+                                hotel.start_trial(granted_by="superadmin")
+                                if plan:
+                                    _enable_plan_modules(hotel, plan)
+                                else:
+                                    _enable_core_modules(hotel)
+                            except Exception as trial_err:
+                                logger.warning("Trial grant failed during registration: %s", trial_err)
+
+                # Send registration email
                 try:
-                    send_mail(
-                        subject="Registration Received - Pending Approval",
-                        message=f"""
-Hello {hotel.hotel_name},
+                    if auto_approve:
+                        subject = "Hotel Registration Approved ✅"
+                        message = f"""Hello {hotel.hotel_name},
+
+Your hotel has been registered and approved by the admin.
+
+You can now login and start using the system.
+
+Login URL: http://{domain.domain}{settings.PORT}
+
+Regards,
+Admin Team"""
+                    else:
+                        subject = "Registration Received - Pending Approval"
+                        message = f"""Hello {hotel.hotel_name},
 
 Thank you for registering! Your application is pending admin approval.
 
 You will receive another email once approved.
 
 Regards,
-Admin Team
-""",
+Admin Team"""
+
+                    send_mail(
+                        subject=subject,
+                        message=message,
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[hotel.email],
-                        fail_silently=False
+                        fail_silently=True
                     )
                 except Exception as e:
-                    print(f"Registration email error: {e}")  
+                    logger.warning("Registration email error: %s", e)
+
+                if is_ajax:
+                    return JsonResponse({
+                        "success": True,
+                        "hotel_name": hotel.hotel_name,
+                        "schema_name": schema_name,
+                        "domain": domain.domain,
+                        "is_approved": hotel.is_approved,
+                        "trial_granted": grant_trial,
+                        "plan": plan.name if plan else None,
+                    })
 
                 return redirect(f"http://{domain.domain}{settings.PORT}")
 
             except Exception as e:
-                print("ERROR:", e)
+                logger.error("Hotel registration error: %s", e)
+                import traceback; traceback.print_exc()
+                if is_ajax:
+                    return JsonResponse({"success": False, "error": str(e)}, status=400)
                 form.add_error(None, "Something went wrong")
+
+        else:
+            # Form invalid
+            if is_ajax:
+                errors = {field: errs.as_text() for field, errs in form.errors.items()}
+                readable = "; ".join(
+                    f"{field}: {msg.replace('* ', '')}"
+                    for field, msg in errors.items()
+                )
+                return JsonResponse({"success": False, "error": readable, "form_errors": errors}, status=400)
 
     return render(request, "register.html", {"tenant_form": HotelForm()})
 from django.contrib.auth import update_session_auth_hash
@@ -591,7 +699,7 @@ def add_amenity(request):
         data        = json.loads(request.body)
         name        = data.get("name", "").strip()
         description = data.get("description", "").strip()
-        is_core     = bool(data.get("is_core", False))   # ← read from request
+        is_core     = bool(data.get("is_core", False))   
 
         if not name:
             return JsonResponse({"error": "Module name is required."}, status=400)
@@ -633,23 +741,88 @@ def delete_amenity(request, amenity_id):
         return JsonResponse({"success": True, "id": amenity_id})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+from django.views.decorators.http import require_GET
+from django_tenants.utils import schema_context
+from django.http import JsonResponse
+from .models import SubscriptionPlan
+from django.db.models import Q
+
+@require_GET
 def get_plans(request):
     try:
         with schema_context('public'):
             plans = SubscriptionPlan.objects.prefetch_related('modules').all()
-            data  = [
+
+            is_superadmin = request.user.is_authenticated and request.user.is_superuser
+            hotel = None
+            hotel_used_trial_plan_id = None
+
+            if not is_superadmin:
+                today = timezone.now().date()
+
+                current_tenant = connection.tenant
+                try:
+                    hotel = Hotel.objects.select_related('subscription_plan').get(
+                        schema_name=current_tenant.schema_name
+                    )
+                except Hotel.DoesNotExist:
+                    hotel = None
+
+                if hotel:
+                    is_actively_subscribed = (
+                        hotel.subscription_status == 'active'
+                        and hotel.is_subscribed
+                        and hotel.subscription_expiry
+                        and hotel.subscription_expiry >= today
+                    )
+                    if is_actively_subscribed:
+                        return JsonResponse({
+                            "plans":         [],
+                            "total":         0,
+                            "is_superadmin": False,
+                            "subscribed":    True,
+                            "current_plan":  hotel.subscription_plan.name if hotel.subscription_plan else None,
+                            "expiry":        str(hotel.subscription_expiry),
+                            "message":       "You already have an active subscription.",
+                        })
+
+                    if hotel.is_on_trial or hotel.trial_has_expired:
+                        hotel_used_trial_plan_id = (
+                            hotel.subscription_plan.id
+                            if hotel.subscription_plan
+                            else -1
+                        )
+
+                plans = plans.filter(is_active=True).filter(
+                    Q(valid_until__isnull=True) | Q(valid_until__gte=today)
+                )
+
+            data = [
                 {
-                    "id":           p.id,
-                    "name":         p.name,
-                    "price":        str(p.price),
-                    "tagline":      p.tagline or "",
-                    "module_ids":   list(p.modules.values_list("id", flat=True)),
-                    "module_names": list(p.modules.values_list("name", flat=True)),
+                    "id":                  p.id,
+                    "name":                p.name,
+                    "price":               str(p.price),
+                    "tagline":             getattr(p, 'tagline', '') or '',
+                    "is_active":           p.is_active,
+                    "valid_until":         str(p.valid_until) if getattr(p, 'valid_until', None) else None,
+                    "trial_days":          getattr(p, 'trial_days', 14) or 14,
+                    "module_ids":          list(p.modules.values_list("id", flat=True)),
+                    "module_names":        list(p.modules.values_list("name", flat=True)),
+                    "user_has_used_trial": (hotel_used_trial_plan_id == p.id) if hotel else False,
                 }
                 for p in plans
             ]
-        return JsonResponse({"plans": data})
+
+        return JsonResponse({
+            "plans":         data,
+            "total":         len(data),
+            "is_superadmin": is_superadmin,
+            "subscribed":    False,
+        })
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 @require_POST
 @login_required
@@ -665,7 +838,7 @@ def hotel_start_trial(request):
         if hotel.subscription_status in ('active', 'trial'):
             return JsonResponse({"error": "Already on trial or subscribed."}, status=400)
 
-        # Get the plan_id if hotel wants trial on a specific plan
+      
         data    = json.loads(request.body) if request.body else {}
         plan_id = data.get("plan_id")
         plan    = None
@@ -1180,45 +1353,8 @@ def dashboard(request):
 
     if manually_configured:
         print(">>> modules_manually_configured=True — preserving manual assignments")
-
         _enable_core_modules(hotel)
-        print(">>> Core modules ensured")
-
-        if hotel.subscription_plan and (hotel.is_subscribed or hotel.is_on_trial):
-            print(">>> Hotel has active plan — merging plan modules into existing (no deletions)")
-            with schema_context('public'):
-                plan_module_ids = list(
-                    hotel.subscription_plan.modules.values_list('id', flat=True)
-                )
-            print(f">>> Plan module IDs to merge: {plan_module_ids}")
-
-            with schema_context(hotel.schema_name):
-                existing_ids = set(
-                    HotelModule.objects.filter(hotel=hotel)
-                    .values_list('module_id', flat=True)
-                )
-                print(f">>> Existing module IDs before merge: {existing_ids}")
-
-                for mid in plan_module_ids:
-                    if mid not in existing_ids:
-                        HotelModule.objects.get_or_create(
-                            hotel=hotel,
-                            module_id=mid,
-                            defaults={'is_enabled': True}
-                        )
-                        print(f">>> Added missing plan module id={mid}")
-                    else:
-                        updated = HotelModule.objects.filter(
-                            hotel=hotel,
-                            module_id=mid,
-                            is_enabled=False
-                        ).update(is_enabled=True)
-                        if updated:
-                            print(f">>> Re-enabled plan module id={mid}")
-                        else:
-                            print(f">>> Plan module id={mid} already enabled — no change")
-        else:
-            print(">>> No active plan/trial — keeping manual modules as-is, no merge needed")
+        print(">>> Core modules ensured, manual module choices preserved")
 
     else:
         if hotel.subscription_plan and hotel.is_subscribed:
@@ -1318,10 +1454,8 @@ def dashboard(request):
         "today_checkouts": today_checkouts,
         "departments": departments,
         "departments_json": json.dumps(list(departments)),
-
         "categories": categories,
         "categories_json": json.dumps(categories),
-
         "vendors": vendors,
         "vendors_json": json.dumps(vendors),
     })
@@ -1961,6 +2095,7 @@ def hotel_setup(request):
 
     current_tenant = connection.tenant
     _sync_statuses()
+
     with schema_context('public'):
         hotel = get_object_or_404(
             Hotel.objects.select_related('subscription_plan'),
@@ -1988,20 +2123,25 @@ def hotel_setup(request):
                 hotel.phone         = request.POST.get('phone',         getattr(hotel, 'phone', ''))
                 hotel.description   = request.POST.get('description',   hotel.description)
                 hotel.property_type = request.POST.get('property_type', hotel.property_type)
-
                 if request.FILES.get('logo'):
                     hotel.logo = request.FILES['logo']
                 if request.FILES.get('image'):
                     hotel.image = request.FILES['image']
-
                 hotel.save()
             return JsonResponse({'success': True})
 
         elif form_type == 'room_details':
             try:
                 with transaction.atomic():
+                    room_type        = request.POST.get('room_type')
+                    custom_room_type = request.POST.get('custom_room_type', '').strip()
+
+                    if room_type == 'Custom' and not custom_room_type:
+                        return JsonResponse({'success': False, 'error': 'Custom room type name is required.'}, status=400)
+
                     room = Room.objects.create(
-                        room_type=request.POST.get('room_type'),
+                        room_type=room_type,
+                        custom_room_type=custom_room_type if room_type == 'Custom' else '',
                         base_price=request.POST.get('base_price') or 0,
                         max_adults=request.POST.get('max_adults') or 2,
                         max_children=request.POST.get('max_children') or 0,
@@ -2015,19 +2155,16 @@ def hotel_setup(request):
                         room.amenities.set(amenity_ids)
 
                     total_units = int(request.POST.get('total_units') or 1)
-
-                    prefix_map = {
+                    prefix_map  = {
                         'Single': 'S',
                         'Double': 'D',
                         'Deluxe': 'DL',
                         'Suite':  'SU',
+                        'Custom': (custom_room_type[:2].upper() if custom_room_type else 'CR'),
                     }
-                    prefix = prefix_map.get(room.room_type, 'R')
+                    prefix = prefix_map.get(room_type, 'R')
 
-                    existing_numbers = set(
-                        RoomUnit.objects.values_list('room_number', flat=True)
-                    )
-
+                    existing_numbers = set(RoomUnit.objects.values_list('room_number', flat=True))
                     units, counter = [], 1
                     while len(units) < total_units:
                         number = f'{prefix}{counter}'
@@ -2040,8 +2177,19 @@ def hotel_setup(request):
                     for i, img in enumerate(request.FILES.getlist('images')):
                         RoomImage.objects.create(room=room, image=img, is_primary=(i == 0))
 
-                return JsonResponse({'success': True, 'room_id': room.id})
+                    asset_ids = request.POST.getlist('asset_ids')
+                    if asset_ids:
+                        from inventory.models import HotelAsset
+                        HotelAsset.objects.filter(id__in=asset_ids).update(
+                            room=room,
+                            room_unit=None,
+                        )
 
+                return JsonResponse({
+                    'success':      True,
+                    'room_id':      room.id,
+                    'display_type': room.display_type(),
+                })
             except Exception as e:
                 return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -2053,7 +2201,6 @@ def hotel_setup(request):
 
         return JsonResponse({'success': False, 'error': 'Invalid form type'}, status=400)
 
-   
     with schema_context('public'):
         hotel = Hotel.objects.select_related('subscription_plan').get(
             schema_name=current_tenant.schema_name
@@ -2071,10 +2218,12 @@ def hotel_setup(request):
         trial_days_remaining = max(0, (trial_end_date - today).days)
 
     subscription_plan = hotel.subscription_plan
+    if subscription_plan and not subscription_plan.is_active:
+        subscription_plan = None
+
     active_plan_name  = subscription_plan.name  if subscription_plan else None
     active_plan_price = subscription_plan.price if subscription_plan else None
 
-    # Active modules from tenant schema
     active_modules = []
     try:
         with schema_context(current_tenant.schema_name):
@@ -2101,31 +2250,53 @@ def hotel_setup(request):
         except Exception:
             pass
 
-    active_modules_count = len(active_modules)
-
-  
+    active_modules_count     = len(active_modules)
     subscription_expiry      = hotel.subscription_expiry
     subscription_expiry_date = None
     expiry_days_remaining    = 0
 
     if subscription_expiry:
-        subscription_expiry_date = subscription_expiry  # already a date
+        subscription_expiry_date = subscription_expiry
         expiry_days_remaining    = max(0, (subscription_expiry_date - today).days)
 
     subscription_status = hotel.subscription_status or ''
+
+    is_actively_subscribed = (
+        subscription_status == 'active'
+        and hotel.is_subscribed
+        and subscription_expiry_date is not None
+        and subscription_expiry_date >= today
+    )
+
+    should_show_plans = (
+        not is_actively_subscribed
+        or (subscription_expiry_date and (subscription_expiry_date - today).days <= 7)
+    )
 
     show_subscription_gate = (
         not hotel.is_on_trial
         and not hotel.is_subscribed
         and subscription_status == 'expired'
     )
-    show_trial_banner   = hotel.is_on_trial and not show_subscription_gate
+
+    show_trial_banner  = hotel.is_on_trial and not show_subscription_gate
+
     show_expiry_warning = (
         hotel.is_subscribed
         and not show_subscription_gate
         and not show_trial_banner
         and 0 < expiry_days_remaining <= 7
     )
+
+    can_start_trial = (
+        hotel.trial_eligible
+        and not hotel.is_on_trial
+        and not hotel.is_subscribed
+        and subscription_status not in ('active',)
+    )
+
+    from inventory.models import AssetCategory
+    asset_categories = list(AssetCategory.objects.values('id', 'name').order_by('name'))
 
     context = {
         'hotel':                  hotel,
@@ -2140,6 +2311,12 @@ def hotel_setup(request):
         'active_modules':         active_modules,
         'active_modules_count':   active_modules_count,
         'subscription_plan':      subscription_plan,
+        'is_actively_subscribed': is_actively_subscribed,
+        'should_show_plans':      should_show_plans,
+        'can_start_trial':        can_start_trial,
+        'trial_days':             hotel.trial_days or 14,
+        'show_plan':              not hotel.is_subscribed and not hotel.is_on_trial,
+        'asset_categories':       asset_categories,
     }
 
     return render(request, 'setup.html', context)
@@ -2487,4 +2664,160 @@ def set_subscription_expiry(request, hotel_id):
         "old_expiry":          str(old_expiry) if old_expiry else None,
         "subscription_expiry": str(hotel.subscription_expiry),
     })
- 
+@require_POST
+@login_required
+def set_plan_trial_days(request, plan_id):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    try:
+        data = json.loads(request.body)
+        days = data.get("trial_days")
+
+        if not days or int(days) < 1:
+            return JsonResponse({"error": "trial_days must be at least 1."}, status=400)
+
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        plan.trial_days = int(days)
+        plan.save(update_fields=['trial_days'])
+
+        return JsonResponse({
+            "success":    True,
+            "plan":       plan.name,
+            "trial_days": plan.trial_days,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+@require_POST
+@login_required
+def toggle_plan_status(request, plan_id):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    try:
+        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        plan.is_active = not plan.is_active
+        plan.save(update_fields=['is_active'])
+        return JsonResponse({
+            "success":   True,
+            "plan":      plan.name,
+            "is_active": plan.is_active,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_POST
+@login_required
+def set_plan_expiry(request, plan_id):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    try:
+        from datetime import date
+        data            = json.loads(request.body)
+        expiry_str      = data.get("valid_until", "").strip()
+        plan            = get_object_or_404(SubscriptionPlan, id=plan_id)
+
+        if expiry_str:
+            expiry = date.fromisoformat(expiry_str)
+            if expiry < date.today():
+                return JsonResponse({"error": "Expiry date cannot be in the past."}, status=400)
+            plan.valid_until = expiry
+        else:
+            plan.valid_until = None   
+
+        plan.save(update_fields=['valid_until'])
+        return JsonResponse({
+            "success":     True,
+            "plan":        plan.name,
+            "valid_until": str(plan.valid_until) if plan.valid_until else None,
+        })
+    except ValueError:
+        return JsonResponse({"error": "Date must be YYYY-MM-DD format."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+@require_POST
+@login_required
+def tenant_create_payment(request):
+    """
+    Called from the hotel setup wizard (tenant side).
+    Identifies the hotel via the current tenant schema — no hotel_id needed.
+    """
+    try:
+        data = json.loads(request.body)
+        current_tenant = connection.tenant
+
+        with schema_context('public'):
+            hotel = get_object_or_404(Hotel, schema_name=current_tenant.schema_name)
+
+            plan_name = data.get('plan_name', '').strip()
+            if not plan_name:
+                return JsonResponse({"error": "No plan selected."}, status=400)
+
+            plan = SubscriptionPlan.objects.filter(name=plan_name, is_active=True).first()
+            if not plan:
+                return JsonResponse({"error": "Plan not found."}, status=400)
+
+            
+            price = plan.price
+            coupon_code = data.get('coupon')
+            discount = 0
+            if coupon_code:
+               
+                pass
+
+            final_amount = price - discount
+
+           
+            hotel.subscription_plan   = plan
+            hotel.subscription_status = 'active'
+            hotel.is_subscribed       = True
+            hotel.is_on_trial         = False
+            hotel.subscription_expiry = timezone.now().date() + relativedelta(months=1)
+            hotel.save(update_fields=[
+                'subscription_plan',
+                'subscription_status',
+                'is_subscribed',
+                'is_on_trial',
+                'subscription_expiry',
+            ])
+
+            _enable_plan_modules(hotel, plan)
+
+            # Record the payment
+            payment = PlanPayment.objects.create(
+                hotel    = hotel,
+                plan     = plan,
+                amount   = final_amount,
+                status   = 'paid',
+                due_date = timezone.now().date() + relativedelta(months=1),
+                paid_date = timezone.now().date(),
+                notes    = f"payment_method={data.get('payment_method','card')}",
+            )
+
+        try:
+            send_mail(
+                subject="Subscription Activated 🎉",
+                message=(
+                    f"Hello {hotel.hotel_name},\n\n"
+                    f"Your subscription to the {plan.name} plan is now active.\n"
+                    f"Amount paid: ₹{final_amount}\n"
+                    f"Valid until: {hotel.subscription_expiry.strftime('%d %b %Y')}\n\n"
+                    "Regards,\nHotelCloud Team"
+                ),
+                from_email=None,
+                recipient_list=[hotel.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        return JsonResponse({
+            "success":  True,
+            "plan":     plan.name,
+            "expiry":   hotel.subscription_expiry.strftime("%d %b %Y"),
+            "payment_id": payment.id,
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
