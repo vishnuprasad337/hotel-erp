@@ -7,7 +7,8 @@ from django.utils import timezone
 from .models import (
     ItemCategory, Vendor, InventoryItem,
     StockAdjustment, PurchaseOrder, PurchaseItem,
-    LaundryService, LaundryOrder, LaundryOrderItem, LaundryStatusLog
+    LaundryService, LaundryOrder, LaundryOrderItem, LaundryStatusLog,HotelLinenBatch, HotelLinenBatchItem,LinenMissingReason
+
 )
 
 import json
@@ -1248,7 +1249,7 @@ def list_laundry_orders(request):
 
         last_log = logs.first()
 
-        # selected services/items
+        
         services = []
 
         for item in o.items.all():
@@ -1432,4 +1433,407 @@ def inventory_meta(request):
             {"id": c.id, "name": c.name}
             for c in expense_cats
         ],
+    })
+
+
+import json
+from decimal import Decimal
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import now
+
+
+def _batch_dict(b):
+    items = list(b.items.select_related('missing_reason').all())
+
+    total_pieces    = sum(i.quantity for i in items)
+    received_pieces = sum(i.received_quantity for i in items)
+    missing_pieces  = sum(
+        i.quantity - i.received_quantity
+        for i in items
+        if i.received_quantity < i.quantity
+    )
+    missing_cost = sum(
+        (i.quantity - i.received_quantity) * i.item_price
+        for i in items
+        if i.received_quantity < i.quantity
+    )
+
+    total_cost = sum(i.quantity * i.item_price for i in items)
+
+    return {
+        'id':               b.id,
+        'batch_code':       f'LB{str(b.id).zfill(3)}',
+        'dispatched_by':    b.dispatched_by.name if b.dispatched_by else '',
+        'dispatched_by_id': b.dispatched_by_id,
+        'sent_to_laundry':  b.sent_to_laundry,
+        'laundry_contact':  b.laundry_contact,
+        'laundry_phone':    b.laundry_phone,
+        'note':             b.note,
+        'status':           b.status,
+
+        'total_pieces':     total_pieces,
+        'received_pieces':  received_pieces,
+        'missing_pieces':   missing_pieces,
+        'total_cost':       float(total_cost),
+        'missing_cost':     float(missing_cost),
+        'payable_amount': float(total_cost - missing_cost),
+        'dispatched_at':    b.dispatched_at.isoformat() if b.dispatched_at else '',
+        'received_at':      b.received_at.isoformat() if b.received_at else '',
+        'received_by':      b.received_by.name if b.received_by else '',
+        'received_by_id':   b.received_by_id,
+
+        # FIXED
+        'expected_return_date': (
+            b.expected_return_date.isoformat()
+            if hasattr(b.expected_return_date, 'isoformat')
+            else (b.expected_return_date or '')
+        ),
+
+        'items': [
+            {
+                'id':                i.id,
+                'label':             i.item_label,
+                'quantity':          i.quantity,
+                'item_price':        float(i.item_price),
+                'received_quantity': i.received_quantity,
+                'missing':           i.quantity - i.received_quantity,
+                'missing_cost':      float((i.quantity - i.received_quantity) * i.item_price),
+                'damaged_quantity':  i.damaged_quantity,
+                'missing_reason_id': i.missing_reason_id,
+                'missing_reason':    i.missing_reason.label if i.missing_reason else None,
+                'missing_note':      i.missing_note,
+                'received':          i.received,
+                'is_partial':        i.is_partial,
+                'received_at':       i.received_at.isoformat() if i.received_at else '',
+            }
+            for i in items
+        ],
+    }
+
+def _resolve_staff(data, request):
+    if data.get('staff_id'):
+        return Staff.objects.filter(id=data['staff_id']).first()
+    if request.user.is_authenticated:
+        return Staff.objects.filter(user=request.user).first()
+    return None
+
+
+def _update_batch_status(batch, data, request):
+    all_items = list(batch.items.all())
+    total    = sum(i.quantity for i in all_items)
+    received = sum(i.received_quantity for i in all_items)
+
+    if received == 0:
+        batch.status      = 'dispatched'
+        batch.received_at = None
+        batch.received_by = None
+    elif received < total:
+        batch.status      = 'partial'
+        
+        if not batch.received_at:
+            batch.received_at = now()
+            batch.received_by = _resolve_staff(data, request)
+    else:
+        batch.status      = 'received'
+        if not batch.received_at:
+            batch.received_at = now()
+        batch.received_by = _resolve_staff(data, request)
+
+    batch.save()
+    _sync_linen_expense(batch, _resolve_staff(data, request))
+    return total, received
+
+def _sync_linen_expense(batch, recorded_by_staff):
+    items = list(batch.items.all())
+
+    total_cost   = sum(i.quantity * i.item_price for i in items)
+    missing_cost = sum(
+        (i.quantity - i.received_quantity) * i.item_price
+        for i in items
+        if i.received_quantity < i.quantity
+    )
+    payable = total_cost - missing_cost
+
+    if total_cost <= 0:
+        return
+
+    if batch.status == 'dispatched':
+        Expense.objects.filter(linen_batch=batch).delete()
+        return
+
+    # Fetch or create the "Laundry" category
+    laundry_category, _ = ExpenseCategory.objects.get_or_create(
+        name='Laundry',
+        defaults={'budget': 0}
+    )
+
+    Expense.objects.update_or_create(
+        linen_batch=batch,
+        defaults=dict(
+            source           = 'laundry',
+            expense_category = laundry_category,
+            amount           = Decimal(str(payable)),
+            description      = (
+                f"Laundry payment — Batch LB{str(batch.id).zfill(3)} | "
+                f"{batch.sent_to_laundry} ({batch.laundry_contact} {batch.laundry_phone}) | "
+                f"Total: {total_cost}, Missing deduction: {missing_cost}, Payable: {payable}"
+            ),
+            expense_date     = now().date(),
+            recorded_by      = recorded_by_staff,
+        )
+    )
+@csrf_exempt
+def dispatch_linen_batch(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+
+    raw_items = [
+        i for i in data.get('items', [])
+        if i.get('label', '').strip() and int(i.get('quantity', 0)) > 0
+    ]
+    if not raw_items:
+        return JsonResponse({'error': 'At least one item with quantity > 0 required'}, status=400)
+
+    staff = _resolve_staff(data, request)
+
+    batch = HotelLinenBatch.objects.create(
+        dispatched_by   = staff,
+        sent_to_laundry = data.get('sent_to_laundry', '').strip(),
+        laundry_contact = data.get('laundry_contact', '').strip(),
+        laundry_phone   = data.get('laundry_phone', '').strip(),
+        note            = data.get('note', '').strip(),
+        expected_return_date = data.get('expected_return_date') or None,
+    )
+
+    for i in raw_items:
+        HotelLinenBatchItem.objects.create(
+            batch      = batch,
+            item_label = i['label'].strip(),
+            quantity   = int(i['quantity']),
+            item_price = Decimal(str(i.get('item_price', 0))),
+        )
+
+    return JsonResponse(_batch_dict(batch), status=201)
+
+
+def list_linen_batches(request):
+    qs = HotelLinenBatch.objects.select_related(
+            'dispatched_by', 'received_by'
+         ).prefetch_related('items__missing_reason')
+
+    status = request.GET.get('status')
+    if status:
+        qs = qs.filter(status=status)
+
+    return JsonResponse({'batches': [_batch_dict(b) for b in qs]})
+
+
+def linen_batch_detail(request, batch_id):
+    try:
+        b = HotelLinenBatch.objects.select_related(
+                'dispatched_by', 'received_by'
+            ).prefetch_related('items__missing_reason').get(id=batch_id)
+    except HotelLinenBatch.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    return JsonResponse(_batch_dict(b))
+
+
+@csrf_exempt
+def mark_item_received(request, batch_id, item_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+
+    try:
+        item = HotelLinenBatchItem.objects.select_related('batch').get(
+            id=item_id, batch_id=batch_id
+        )
+    except HotelLinenBatchItem.DoesNotExist:
+        return JsonResponse({'error': 'Item not found'}, status=404)
+
+    # ── Only update received_quantity when explicitly provided ──
+    if 'received_quantity' in data:
+        recv_qty = max(0, min(int(data['received_quantity']), item.quantity))
+        item.received_quantity = recv_qty
+        item.received_at       = now() if recv_qty > 0 else None
+
+        if recv_qty < item.quantity:
+            reason_id             = data.get('missing_reason_id')
+            item.missing_reason   = LinenMissingReason.objects.filter(id=reason_id, is_active=True).first() if reason_id else item.missing_reason
+            item.missing_note     = data.get('missing_note', item.missing_note)
+            item.missing_quantity = item.quantity - recv_qty
+            item.damaged_quantity = max(0, int(data.get('damaged_quantity', item.damaged_quantity or 0)))
+        else:
+            item.missing_reason   = None
+            item.missing_note     = ''
+            item.missing_quantity = 0
+            item.damaged_quantity = 0
+
+        item.save()
+        total, received = _update_batch_status(item.batch, data, request)
+
+    else:
+        # ── Reason / note only update — never touch received_quantity ──
+        if 'missing_reason_id' in data:
+            reason_id           = data.get('missing_reason_id')
+            item.missing_reason = LinenMissingReason.objects.filter(id=reason_id, is_active=True).first() if reason_id else None
+        if 'missing_note' in data:
+            item.missing_note = data.get('missing_note', '')
+        item.save()
+
+        # Recompute totals without changing any status
+        all_items = list(item.batch.items.all())
+        total     = sum(i.quantity for i in all_items)
+        received  = sum(i.received_quantity for i in all_items)
+
+    return JsonResponse({
+        'item_id':           item.id,
+        'received_quantity': item.received_quantity,
+        'missing':           item.quantity - item.received_quantity,
+        'missing_cost':      float(item.missing_cost),
+        'damaged_quantity':  item.damaged_quantity,
+        'missing_reason':    item.missing_reason.label if item.missing_reason else None,
+        'received':          item.received,
+        'is_partial':        item.is_partial,
+        'batch_status':      item.batch.status,
+        'batch_missing':     total - received,
+        'batch_received_at': item.batch.received_at.isoformat() if item.batch.received_at else None,
+        'batch_received_by': item.batch.received_by.name if item.batch.received_by else None,
+    })
+
+
+@csrf_exempt
+def confirm_batch_received(request, batch_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data = json.loads(request.body)
+
+    try:
+        batch = HotelLinenBatch.objects.prefetch_related('items').get(id=batch_id)
+    except HotelLinenBatch.DoesNotExist:
+        return JsonResponse({'error': 'Batch not found'}, status=404)
+
+    if batch.status == 'received':
+        return JsonResponse({'error': 'Already marked received'}, status=400)
+
+    staff = _resolve_staff(data, request)
+    stamp = now()
+
+    for item in batch.items.all():
+        if item.received_quantity < item.quantity:
+            item.received_quantity = item.quantity
+            item.received_at       = stamp
+            item.missing_quantity  = 0
+            item.save()
+
+    batch.status      = 'received'
+    batch.received_at = stamp
+    batch.received_by = staff
+    batch.save()
+
+    _sync_linen_expense(batch, staff)
+
+    return JsonResponse(_batch_dict(batch))
+
+
+def list_missing_reasons(request):
+    reasons = LinenMissingReason.objects.filter(is_active=True)
+    return JsonResponse({
+        'reasons': [
+            {'id': r.id, 'label': r.label, 'order': r.order, 'is_active': r.is_active}
+            for r in reasons
+        ]
+    })
+
+
+@csrf_exempt
+def manage_missing_reason(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    data  = json.loads(request.body)
+    label = data.get('label', '').strip()
+
+    if not label:
+        return JsonResponse({'error': 'label is required'}, status=400)
+    if LinenMissingReason.objects.filter(label__iexact=label).exists():
+        return JsonResponse({'error': 'Reason already exists'}, status=400)
+
+    reason = LinenMissingReason.objects.create(
+        label = label,
+        order = int(data.get('order', 0)),
+    )
+    return JsonResponse(
+        {'id': reason.id, 'label': reason.label, 'order': reason.order, 'is_active': reason.is_active},
+        status=201
+    )
+
+
+@csrf_exempt
+def update_missing_reason(request, reason_id):
+    try:
+        reason = LinenMissingReason.objects.get(id=reason_id)
+    except LinenMissingReason.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+
+    if request.method == 'DELETE':
+        reason.is_active = False
+        reason.save()
+        return JsonResponse({'deleted': True})
+
+    if request.method == 'PATCH':
+        data = json.loads(request.body)
+        if 'label' in data:
+            new_label = data['label'].strip()
+            if not new_label:
+                return JsonResponse({'error': 'label cannot be empty'}, status=400)
+            if new_label.lower() != reason.label.lower():
+                if LinenMissingReason.objects.filter(label__iexact=new_label).exists():
+                    return JsonResponse({'error': 'Reason already exists'}, status=400)
+            reason.label = new_label
+        if 'order' in data:
+            reason.order = int(data['order'])
+        if 'is_active' in data:
+            reason.is_active = bool(data['is_active'])
+        reason.save()
+        return JsonResponse({
+            'id': reason.id, 'label': reason.label,
+            'order': reason.order, 'is_active': reason.is_active
+        })
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@csrf_exempt
+def seed_missing_reasons(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    defaults = [
+        ('Damaged at laundry',  1),
+        ('Lost in transit',     2),
+        ('Suspected stolen',    3),
+        ('Left in room',        4),
+        ('Held for re-washing', 5),
+        ('Laundry error',       6),
+    ]
+
+    created = []
+    skipped = []
+    for label, order in defaults:
+        obj, was_created = LinenMissingReason.objects.get_or_create(
+            label=label,
+            defaults={'order': order, 'is_active': True}
+        )
+        (created if was_created else skipped).append(label)
+
+    return JsonResponse({
+        'created': created,
+        'skipped': skipped,
+        'message': f'{len(created)} added, {len(skipped)} already existed',
     })

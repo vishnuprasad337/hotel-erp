@@ -86,7 +86,13 @@ path('payroll/monthly-summary/',                       hotel_monthly_summary),
 path('payroll/export/csv/',                            payroll_export_csv),
 path('payroll/settlements/',                           final_settlements),
 path('payroll/settlements/<int:settlement_id>/',       final_settlement_detail),
-    
+path('attendance/today/', today_attendance),  
+path(
+    "staff/attendance/",
+    get_attendance,
+    name="staff_attendance_dashboard"
+),
+path("staff/attendance/history/", get_attendance_history, name="attendance_history"),
  path(
         'email/recipients/',
         get_email_recipients,

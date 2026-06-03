@@ -13,6 +13,8 @@ from .api_views import (
     CheckInAPIView,
     CheckOutAPIView,
     BillAPIView,
+    BookingFullListAPIView,
+    RoomWithBookingsAPIView
 )
 urlpatterns =[
     
@@ -32,7 +34,7 @@ urlpatterns =[
     path("api/check-in/", check_in, name="check_in"),
     path("api/check-out/", check_out, name="check_out"),
 
-    
+    path("api/record-payment/",record_payment,name="record_payment"),
     path("api/assign-housekeeping-task/", assign_housekeeping_task, name="assign_housekeeping_task"),
     path("api/get-bill/", get_bill, name="get_bill"),
     path("get-bookings/", get_bookings, name="get_bookings"),
@@ -63,6 +65,16 @@ path("pms/bookings/<int:pk>/full/",       BookingFullDetailAPIView.as_view(),  n
 path("pms/bookings/check-in/",            CheckInAPIView.as_view(),            name="api-check-in"),
 path("pms/bookings/check-out/",           CheckOutAPIView.as_view(),           name="api-check-out"),
 path("pms/bookings/bill/",                BillAPIView.as_view(),               name="api-bill"),
+path(
+    "pms/bookings/full/",
+    BookingFullListAPIView.as_view(),
+    name="api-booking-full-list"
+),
+path(
+    "pms/rooms/bookings/",
+    RoomWithBookingsAPIView.as_view(),
+    name="api-room-bookings",
+),
 ]
     
     

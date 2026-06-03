@@ -47,6 +47,7 @@ urlpatterns =[
       path('logout/', logout_view, name='logout'),
         path('staff-logout/', staff_logout, name='staff_logout'),
         path('setup/', hotel_setup, name='hotel_setup'),
+        path('get-staff-details/<int:staff_id>/', get_staff_details, name='get_staff_details'),
         
    # urls.py
 path('plan/<int:plan_id>/set-trial-days/', set_plan_trial_days, name='set_plan_trial_days'),
@@ -151,7 +152,11 @@ path('plan/<int:plan_id>/set-expiry/', set_plan_expiry,    name='set_plan_expiry
  
     path('staff/', StaffListCreateView.as_view()),
     path('staff/<int:pk>/', StaffDetailView.as_view()),
-    path('hotels/<int:pk>/full/', HotelFullDetailsView.as_view()),
+   path(
+    'hotels/<str:hotel_name>/full/',
+    HotelFullDetailsView.as_view(),
+    name='hotel-full-details'
+),
     path('hotels/full/', HotelAllFullDetailsView.as_view()),
 ]
 

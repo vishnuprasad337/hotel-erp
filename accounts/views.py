@@ -1587,100 +1587,179 @@ def delete_department(request, dept_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 ##----------------------Staff authentication----------------------
-
 @csrf_exempt
 @require_POST
 def staff_register(request):
     try:
-        data = json.loads(request.body) if request.content_type == "application/json" else request.POST
-
-        name = data.get("name")
-        email = data.get("email")
-        password = data.get("password")
-        phone = data.get("phone")
-        department_id = data.get("department_id")
-        salary = data.get("salary") or 0
-
+        if request.content_type and 'application/json' in request.content_type:
+            data  = json.loads(request.body)
+            files = {}
+        else:
+            data  = request.POST
+            files = request.FILES
+ 
+       
+        def get_field(key, default=None):
+            v = data.get(key, default or "")
+            if hasattr(v, 'strip'):
+                v = v.strip()
+            return v if v else None
+ 
+        name          = get_field("name")
+        email         = get_field("email")
+        password      = data.get("password", "").strip()
+        phone         = get_field("phone")
+        department_id = get_field("department_id") or get_field("department")
+        salary        = get_field("salary") or 0
+        employee_id   = get_field("employee_id")
+        joining_date  = get_field("joining_date")
+        role_name     = get_field("role") or "Staff"
+ 
+        nickname = get_field("nickname")
+        dob      = get_field("dob")
+        gender   = get_field("gender")
+        address  = get_field("address")
+ 
+        emergency_contact_name  = get_field("emergency_contact_name")
+        emergency_contact_phone = get_field("emergency_contact_phone")
+ 
+        employment_type = get_field("employment_type")
+ 
+        bank_account = get_field("bank_account")
+        ifsc         = get_field("ifsc")
+        pf_number    = get_field("pf_number")
+        esi_number   = get_field("esi_number")
+        notes        = get_field("notes")
+ 
+        id_proof_type   = get_field("id_proof_type")
+        id_proof_number = get_field("id_proof_number")
+        id_proof_image  = files.get("id_proof_image") or files.get("id_proof")
+        photo           = files.get("photo")
+ 
         if not all([name, email, password]):
-            return JsonResponse({"error": "Missing required fields"}, status=400)
-
+            return JsonResponse({"error": "Name, email, and password are required"}, status=400)
+ 
         hotel_id = request.session.get("hotel_id")
         if not hotel_id:
             return JsonResponse({"error": "Session expired. Please login again."}, status=401)
-
+ 
         with schema_context('public'):
             try:
                 hotel = Hotel.objects.get(id=hotel_id)
             except Hotel.DoesNotExist:
                 return JsonResponse({"error": "Hotel not found"}, status=404)
-
-        tenant_schema = hotel.schema_name
-        unique_username = f"{email}_{hotel.id}"  # unique across all hotels
-
+ 
+        tenant_schema   = hotel.schema_name
+        unique_username = f"{email}_{hotel.id}"
+ 
         with schema_context(tenant_schema):
             if User.objects.filter(username=unique_username).exists():
-                return JsonResponse({"error": "User already exists in this hotel"}, status=400)
-
+                return JsonResponse({"error": "A staff member with this email already exists"}, status=400)
+ 
         department = None
         if department_id:
             with schema_context(tenant_schema):
                 department = Department.objects.filter(id=int(department_id)).first()
                 if not department:
                     return JsonResponse({"error": "Department not found"}, status=400)
-
+ 
         with schema_context(tenant_schema):
             user = User.objects.create_user(
-                username=unique_username,  
+                username=unique_username,
                 email=email,
                 password=password,
                 hotel=hotel,
-                role=None
+                role=None,
             )
-
-            staff = Staff.objects.create(
+ 
+            staff_kwargs = dict(
                 user=user,
                 hotel=hotel,
                 name=name,
-                phone=phone or "",
+                phone=phone,
                 department=department,
                 salary=salary,
+ 
+                nickname=nickname,
+                dob=dob,
+                gender=gender,
+                address=address,
+ 
+                emergency_contact_name=emergency_contact_name,
+                emergency_contact_phone=emergency_contact_phone,
+ 
+                employment_type=employment_type,
+ 
+                bank_account=bank_account,
+                ifsc=ifsc,
+                pf_number=pf_number,
+                esi_number=esi_number,
+                notes=notes,
             )
-
+ 
+            if employee_id:
+                if Staff.objects.filter(hotel=hotel, employee_id=employee_id).exists():
+                    user.delete()
+                    return JsonResponse(
+                        {"error": f"Employee ID '{employee_id}' is already in use"},
+                        status=400,
+                    )
+                staff_kwargs["employee_id"] = employee_id
+ 
+            if joining_date:
+                staff_kwargs["joining_date"] = joining_date
+ 
+            if id_proof_type:
+                staff_kwargs["id_proof_type"] = id_proof_type
+ 
+            if id_proof_number:
+                staff_kwargs["id_proof_number"] = id_proof_number
+ 
+            staff = Staff(**staff_kwargs)
+ 
+            if photo:
+                staff.photo = photo
+ 
+            if id_proof_image:
+                staff.id_proof_image = id_proof_image
+ 
+            staff.save()
+ 
         try:
             send_mail(
                 subject="Staff Account Created",
-                message=f"""
-Hello {name},
-
-Your staff account has been created.
-
-Login Details:
-Email: {email}
-Password: {password}
-
-Please login and change your password after first login.
-
-Regards,
-Hotel Management
-""",
+                message=(
+                    f"Hello {name},\n\n"
+                    f"Your staff account has been created.\n\n"
+                    f"Login Details:\n"
+                    f"Email:    {email}\n"
+                    f"Password: {password}\n\n"
+                    f"Please change your password after your first login.\n\n"
+                    f"Regards,\n{hotel.hotel_name} Management"
+                ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=True
+                fail_silently=True,
             )
         except Exception as e:
-            print("Email error:", e)
-
+            print("Email send error:", e)
+ 
         return JsonResponse({
-            "success": True,
-            "staff_id": staff.id,
-            "name": staff.name,
-            "department": staff.department.name if staff.department else None
+            "success":      True,
+            "staff_id":     staff.id,
+            "employee_id":  staff.employee_id,
+            "name":         staff.name,
+            "department":   staff.department.name if staff.department else None,
+            "joining_date": str(staff.joining_date) if staff.joining_date else None,
+            "has_photo":    bool(staff.photo),
+            "has_id_proof": bool(staff.id_proof_image),
         })
-
+ 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+
 @csrf_exempt
 def get_staff_details(request, staff_id):
     try:
@@ -1692,79 +1771,158 @@ def get_staff_details(request, staff_id):
         with schema_context(current_tenant.schema_name):
             try:
                 staff = Staff.objects.select_related('department', 'user').get(id=staff_id, hotel=hotel)
-                
-                # Get hotel name
-                hotel_name = hotel.hotel_name if hotel else "N/A"
-                
-                # Build the full URL for images
-                request_host = request.get_host()
+
+                hotel_name     = hotel.hotel_name if hotel else "N/A"
+                request_host   = request.get_host()
                 request_scheme = request.scheme
-                
-                photo_url = None
-                if staff.photo:
-                    photo_url = f"{request_scheme}://{request_host}{staff.photo.url}"
-                
-                id_proof_image_url = None
-                if staff.id_proof_image:
-                    id_proof_image_url = f"{request_scheme}://{request_host}{staff.id_proof_image.url}"
-                
-                # Get uploaded ID cards from StaffDocument model (if exists)
+
+                def abs_url(field):
+                    if field:
+                        try:
+                            return f"{request_scheme}://{request_host}{field.url}"
+                        except Exception:
+                            pass
+                    return None
+
+                def get_field_value(obj, field_name):
+                    try:
+                        val = obj.__dict__.get(field_name)
+                        if val is None:
+                            return ""
+                        return str(val)
+                    except Exception:
+                        return ""
+
+                def fmt_date(val):
+                    if not val:
+                        return None
+                    if isinstance(val, str):
+                        return val
+                    try:
+                        return val.strftime("%Y-%m-%d")
+                    except Exception:
+                        return str(val)
+
+                def fmt_datetime(val):
+                    if not val:
+                        return None
+                    if isinstance(val, str):
+                        return val
+                    try:
+                        return val.isoformat()
+                    except Exception:
+                        return str(val)
+
+                def get_id_proof_label(s):
+                    try:
+                        field   = s._meta.get_field('id_proof_type')
+                        choices = getattr(field, 'choices', None)
+                        if choices:
+                            val = get_field_value(s, 'id_proof_type')
+                            return dict(choices).get(val, val) or 'ID Proof'
+                    except Exception:
+                        pass
+                    return get_field_value(s, 'id_proof_type') or 'ID Proof'
+
+                photo_url = abs_url(staff.photo)
+                id_proof_image_url = abs_url(staff.id_proof_image)
+                hotel_logo_url = abs_url(hotel.logo)
+
                 id_cards = []
+
                 if hasattr(staff, 'documents'):
                     for doc in staff.documents.all():
                         id_cards.append({
-                            'id': doc.id,
+                            'id':            doc.id,
                             'document_type': doc.document_type,
-                            'url': f"{request_scheme}://{request_host}{doc.document.url}" if doc.document else None,
-                            'uploaded_at': doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+                            'url':           abs_url(doc.document),
+                            'uploaded_at':   fmt_datetime(doc.uploaded_at),
                         })
-                
-                # Also add the ID proof image if exists
+
                 if staff.id_proof_image:
                     id_cards.append({
-                        'id': staff.id,
-                        'document_type': dict(staff._meta.get_field('id_proof_type').choices).get(staff.id_proof_type, 'ID Proof'),
-                        'url': id_proof_image_url,
-                        'uploaded_at': staff.created_at.isoformat() if staff.created_at else None,
-                        'id_proof_number': staff.id_proof_number,
+                        'id':              staff.id,
+                        'document_type':   get_id_proof_label(staff),
+                        'url':             id_proof_image_url,
+                        'uploaded_at':     fmt_datetime(staff.created_at),
+                        'id_proof_number': get_field_value(staff, 'id_proof_number'),
                     })
-                
+
+                created_at_val = None
+
+                for field_name in ('created_at', 'date_joined', 'updated_at'):
+                    val = staff.__dict__.get(field_name)
+                    if val:
+                        created_at_val = fmt_datetime(val)
+                        break
+
+                if not created_at_val and staff.user:
+                    val = getattr(staff.user, 'date_joined', None)
+                    if val:
+                        created_at_val = fmt_datetime(val)
+
+                dob_val = staff.__dict__.get('dob')
+
                 return JsonResponse({
                     "success": True,
                     "staff": {
-                        "id": staff.id,
-                        "employee_id": staff.employee_id,
-                        "name": staff.name,
-                        "email": staff.user.email if staff.user else "",
-                        "phone": staff.phone or "",
-                        "department_id": staff.department.id if staff.department else None,
-                        "department_name": staff.department.name if staff.department else "N/A",
-                        "role": staff.user.role.name if staff.user and staff.user.role else "Staff",
-                        "salary": float(staff.salary) if staff.salary else 0,
-                        "joining_date": staff.joining_date.strftime("%Y-%m-%d") if staff.joining_date else None,
-                        "created_at": staff.created_at.isoformat() if staff.created_at else None,
-                        "is_active": staff.is_active,
-                        "is_available": staff.is_available,
-                        "hotel_name": hotel_name,
-                        "hotel_id": hotel.id if hotel else None,
-                        "photo_url": photo_url,
-                        # ID proof fields
-                        "id_proof_type": staff.id_proof_type,
-                        "id_proof_type_label": dict(staff._meta.get_field('id_proof_type').choices).get(staff.id_proof_type, '') if staff.id_proof_type else '',
-                        "id_proof_number": staff.id_proof_number,
-                        "id_proof_image_url": id_proof_image_url,
+                        "id":           staff.id,
+                        "employee_id":  get_field_value(staff, 'employee_id'),
+                        "name":         get_field_value(staff, 'name'),
+                        "email":        str(staff.user.email) if staff.user else "",
+                        "phone":        get_field_value(staff, 'phone'),
+
+                        "nickname":     get_field_value(staff, 'nickname'),
+                        "dob":          fmt_date(dob_val),
+                        "gender":       get_field_value(staff, 'gender'),
+                        "address":      get_field_value(staff, 'address'),
+
+                        "emergency_contact_name":  get_field_value(staff, 'emergency_contact_name'),
+                        "emergency_contact_phone": get_field_value(staff, 'emergency_contact_phone'),
+
+                        "employment_type": get_field_value(staff, 'employment_type'),
+
+                        "bank_account": get_field_value(staff, 'bank_account'),
+                        "ifsc":         get_field_value(staff, 'ifsc'),
+                        "pf_number":    get_field_value(staff, 'pf_number'),
+                        "esi_number":   get_field_value(staff, 'esi_number'),
+
+                        "notes":        get_field_value(staff, 'notes'),
+
+                        "department_id":   staff.department.id if staff.department else None,
+                        "department_name": str(staff.department.name) if staff.department else "N/A",
+                        "role":            str(staff.user.role.name) if staff.user and staff.user.role else "Staff",
+                        "salary":          float(staff.salary) if staff.salary else 0,
+                        "joining_date":    fmt_date(staff.__dict__.get('joining_date')),
+                        "created_at":      created_at_val,
+                        "is_active":       staff.is_active,
+                        "is_available":    staff.is_available,
+
+                        "hotel_name":      str(hotel_name),
+                        "hotel_id":        hotel.id if hotel else None,
+                        "hotel_logo_url":  hotel_logo_url,
+
+                        "photo_url":       photo_url,
+
+                        "id_proof_type":       get_field_value(staff, 'id_proof_type'),
+                        "id_proof_type_label": get_id_proof_label(staff),
+                        "id_proof_number":     get_field_value(staff, 'id_proof_number'),
+                        "id_proof_image_url":  id_proof_image_url,
                     },
+
                     "id_cards": id_cards
                 })
-                
+
             except Staff.DoesNotExist:
                 return JsonResponse({"error": "Staff not found", "success": False}, status=404)
-                
+
     except Hotel.DoesNotExist:
         return JsonResponse({"error": "Hotel not found", "success": False}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e), "success": False}, status=500)
 
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e), "success": False}, status=500)
 @csrf_exempt
 def get_staff(request):
     try:
@@ -1776,56 +1934,70 @@ def get_staff(request):
         with schema_context(current_tenant.schema_name):
             staffs = Staff.objects.filter(hotel=hotel).select_related('department', 'user')
 
-            role_permissions = RolePermission.objects.select_related('permission', 'role')
-
+            role_permissions    = RolePermission.objects.select_related('permission', 'role')
             dept_permissions_map = {}
             for rp in role_permissions:
                 dept_permissions_map.setdefault(rp.role_id, []).append(rp.permission.name)
 
+            def safe_str(val):
+                if val is None:
+                    return ""
+                if isinstance(val, str):
+                    return val
+                return str(val)
+
+            def get_id_proof_label(s):
+                try:
+                    field   = s._meta.get_field('id_proof_type')
+                    choices = getattr(field, 'choices', None)
+                    if choices:
+                        return dict(choices).get(safe_str(s.id_proof_type), safe_str(s.id_proof_type))
+                except Exception:
+                    pass
+                return safe_str(s.id_proof_type)
+
+            hotel_name = hotel.hotel_name if hotel else "N/A"
             staff_list = []
 
             for s in staffs:
                 dept = s.department
-                
-                # Get hotel name from the hotel object
-                hotel_name = hotel.hotel_name if hotel else "N/A"
-
                 staff_list.append({
-                    "id": s.id,
-                    "employee_id": s.employee_id,
-                    "name": s.name,
-                    "email": s.user.email if s.user else "",
-                    "phone": s.phone or "",
-                    "department_id": dept.id if dept else None,
-                    "department_name": dept.name if dept else "N/A",
+                    "id":          s.id,
+                    "employee_id": safe_str(s.employee_id),
+                    "name":        safe_str(s.name),
+                    "email":       safe_str(s.user.email) if s.user else "",
+                    "phone":       safe_str(s.phone),
+                    "department_id":   dept.id   if dept else None,
+                    "department_name": safe_str(dept.name) if dept else "N/A",
                     "department": {
-                        "id": dept.id if dept else None,
-                        "name": dept.name if dept else "N/A",
-                        "permissions": dept_permissions_map.get(dept.id, []) if dept else []
+                        "id":          dept.id   if dept else None,
+                        "name":        safe_str(dept.name) if dept else "N/A",
+                        "permissions": dept_permissions_map.get(dept.id, []) if dept else [],
                     },
-                    "role": s.user.role.name if s.user and s.user.role else "Staff",
-                    "salary": str(s.salary),
+                    "role":         safe_str(s.user.role.name) if s.user and s.user.role else "Staff",
+                    "salary":       str(s.salary),
                     "joining_date": s.joining_date.strftime("%Y-%m-%d") if s.joining_date else "",
-                    "photo": s.photo.url if s.photo else None,
-                    "is_active": s.is_active,
+                    "photo":        s.photo.url if s.photo else None,
+                    "is_active":    s.is_active,
                     "is_available": s.is_available,
-                    "hotel_name": hotel_name,
-                    "hotel_id": hotel.id if hotel else None,
-                    # New ID proof fields
-                    "id_proof_type": s.id_proof_type,
-                    "id_proof_type_label": dict(s._meta.get_field('id_proof_type').choices).get(s.id_proof_type, '') if s.id_proof_type else '',
-                    "id_proof_number": s.id_proof_number,
-                    "id_proof_image_url": s.id_proof_image.url if s.id_proof_image else None,
+                    "hotel_name":   safe_str(hotel_name),
+                    "hotel_id":     hotel.id if hotel else None,
+                    "id_proof_type":       safe_str(s.id_proof_type),
+                    "id_proof_type_label": get_id_proof_label(s),
+                    "id_proof_number":     safe_str(s.id_proof_number),
+                    "id_proof_image_url":  s.id_proof_image.url if s.id_proof_image else None,
                 })
 
         return JsonResponse({
-            "success": True,
-            "count": len(staff_list),
-            "staffs": staff_list,
-            "hotel_name": hotel_name  
+            "success":    True,
+            "count":      len(staff_list),
+            "staffs":     staff_list,
+            "hotel_name": safe_str(hotel_name),
         })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 @csrf_exempt
 def upload_staff_id_proof(request):
@@ -1922,70 +2094,221 @@ def delete_staff(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
-
-
+@csrf_exempt
 @require_POST
 def update_staff(request):
     try:
         staff_id = request.POST.get("staff_id")
-
         if not staff_id:
             return JsonResponse({"error": "Staff ID required"}, status=400)
-
-        
+ 
         tenant = connection.tenant
+ 
         with schema_context('public'):
             hotel = Hotel.objects.get(schema_name=tenant.schema_name)
-
-        staff_obj = Staff.objects.filter(id=staff_id, hotel=hotel).first()
-
-        if not staff_obj:
-            return JsonResponse({"error": "Staff not found"}, status=404)
-
-       
-        staff_obj.name   = request.POST.get("name", staff_obj.name)
-        staff_obj.phone  = request.POST.get("phone", staff_obj.phone)
-        staff_obj.salary = request.POST.get("salary", staff_obj.salary)
-        staff_obj.role   = request.POST.get("role", getattr(staff_obj, "role", "Staff"))
-
-        dept_id = request.POST.get("department")
-        if dept_id:
+ 
+        with schema_context(tenant.schema_name):
+            staff_obj = Staff.objects.select_related('department', 'user').filter(
+                id=staff_id, hotel=hotel
+            ).first()
+ 
+            if not staff_obj:
+                return JsonResponse({"error": "Staff not found"}, status=404)
+ 
+            # ----------------------------------------------------------------
+            # Helpers
+            # ----------------------------------------------------------------
+            def parse_date(val):
+                if not val:
+                    return None
+                if hasattr(val, 'strftime'):
+                    return val
+                try:
+                    from datetime import datetime
+                    return datetime.strptime(str(val).strip(), "%Y-%m-%d").date()
+                except ValueError:
+                    return None
+ 
+            def fmt_date(val):
+                if not val:
+                    return None
+                if isinstance(val, str):
+                    return val
+                return val.strftime("%Y-%m-%d")
+ 
+            def safe_str(val):
+                if val is None:
+                    return ""
+                if isinstance(val, str):
+                    return val
+                return str(val)
+ 
+            def get_id_proof_label(s):
+                try:
+                    field   = s._meta.get_field('id_proof_type')
+                    choices = getattr(field, 'choices', None)
+                    if choices:
+                        val = safe_str(s.id_proof_type)
+                        return dict(choices).get(val, val)
+                except Exception:
+                    pass
+                return safe_str(s.id_proof_type)
+ 
+            # ----------------------------------------------------------------
+            # KEY FIX: HTML forms always submit every field even when blank.
+            # request.POST.get("field", current) returns "" not the fallback
+            # because the key EXISTS in POST — just empty. post_val() only
+            # accepts the new value when it is non-empty, so existing DB data
+            # is never accidentally wiped by a blank form submission.
+            # ----------------------------------------------------------------
+            def post_val(key, current):
+                v = request.POST.get(key, "").strip()
+                return v if v else current
+ 
+            # ----------------------------------------------------------------
+            # Simple text / choice fields
+            # ----------------------------------------------------------------
+            staff_obj.name  = post_val("name",  staff_obj.name)
+            staff_obj.phone = post_val("phone", staff_obj.phone)
+ 
+            staff_obj.nickname = post_val("nickname", staff_obj.nickname)
+            staff_obj.gender   = post_val("gender",   staff_obj.gender)
+            staff_obj.address  = post_val("address",  staff_obj.address)
+ 
+            staff_obj.emergency_contact_name  = post_val("emergency_contact_name",  staff_obj.emergency_contact_name)
+            staff_obj.emergency_contact_phone = post_val("emergency_contact_phone", staff_obj.emergency_contact_phone)
+ 
+            staff_obj.employment_type = post_val("employment_type", staff_obj.employment_type)
+ 
+            staff_obj.bank_account = post_val("bank_account", staff_obj.bank_account)
+            staff_obj.ifsc         = post_val("ifsc",         staff_obj.ifsc)
+            staff_obj.pf_number    = post_val("pf_number",    staff_obj.pf_number)
+            staff_obj.esi_number   = post_val("esi_number",   staff_obj.esi_number)
+            staff_obj.notes        = post_val("notes",        staff_obj.notes)
+ 
+            staff_obj.id_proof_type   = post_val("id_proof_type",   staff_obj.id_proof_type)
+            staff_obj.id_proof_number = post_val("id_proof_number", staff_obj.id_proof_number)
+ 
+            # ----------------------------------------------------------------
+            # Salary — keep existing if blank
+            # ----------------------------------------------------------------
+            salary_raw = request.POST.get("salary", "").strip()
+            if salary_raw:
+                staff_obj.salary = salary_raw
+ 
+            # ----------------------------------------------------------------
+            # Dates — only update when a valid date string is provided
+            # ----------------------------------------------------------------
+            dob_val = parse_date(request.POST.get("dob", ""))
+            if dob_val:
+                staff_obj.dob = dob_val
+ 
+            joining_date_val = parse_date(request.POST.get("joining_date", ""))
+            if joining_date_val:
+                staff_obj.joining_date = joining_date_val
+ 
+            # ----------------------------------------------------------------
+            # Employee ID — unique-check before accepting
+            # ----------------------------------------------------------------
+            new_employee_id = request.POST.get("employee_id", "").strip()
+            if new_employee_id and new_employee_id != staff_obj.employee_id:
+                if Staff.objects.filter(hotel=hotel, employee_id=new_employee_id).exclude(id=staff_obj.id).exists():
+                    return JsonResponse(
+                        {"error": f"Employee ID '{new_employee_id}' is already in use"},
+                        status=400,
+                    )
+                staff_obj.employee_id = new_employee_id
+ 
+            # ----------------------------------------------------------------
+            # Department
+            # ----------------------------------------------------------------
+            dept_id = request.POST.get("department", "").strip()
+            if dept_id:
+                try:
+                    dept = Department.objects.filter(id=int(dept_id)).first()
+                    if dept:
+                        staff_obj.department = dept
+                    else:
+                        return JsonResponse({"error": "Department not found"}, status=400)
+                except (ValueError, TypeError):
+                    pass
+ 
+            # ----------------------------------------------------------------
+            # File uploads — only replace when a new file is actually sent
+            # ----------------------------------------------------------------
+            if request.FILES.get("photo"):
+                staff_obj.photo = request.FILES["photo"]
+            if request.FILES.get("id_proof_image"):
+                staff_obj.id_proof_image = request.FILES["id_proof_image"]
+ 
+            staff_obj.save()
+ 
+            # ----------------------------------------------------------------
+            # User / email update
+            # ----------------------------------------------------------------
+            if staff_obj.user:
+                new_email = request.POST.get("email", "").strip()
+                if new_email and new_email != staff_obj.user.email:
+                    new_username = f"{new_email}_{hotel.id}"
+                    if not User.objects.filter(username=new_username).exclude(pk=staff_obj.user.pk).exists():
+                        staff_obj.user.email    = new_email
+                        staff_obj.user.username = new_username
+                        staff_obj.user.save(update_fields=['email', 'username'])
+                    else:
+                        return JsonResponse(
+                            {"error": "Another account with this email already exists"},
+                            status=400,
+                        )
+ 
+            # ----------------------------------------------------------------
+            # Role name
+            # ----------------------------------------------------------------
+            role_name = "Staff"
             try:
-                staff_obj.department_id = int(dept_id)
-            except (ValueError, TypeError):
+                if staff_obj.user and staff_obj.user.role:
+                    role_name = safe_str(staff_obj.user.role.name)
+            except Exception:
                 pass
-
-        if request.FILES.get("photo"):
-            staff_obj.photo = request.FILES["photo"]
-
-        staff_obj.save()
-
-       
-        new_email = request.POST.get("email", "").strip()
-        if new_email and staff_obj.user:
-            staff_obj.user.email    = new_email
-            staff_obj.user.username = new_email
-            staff_obj.user.save()
-
-        return JsonResponse({
-            "success": True,
-            "message": "Updated",
-            "staff": {
-                "id": staff_obj.id,
-                "name": staff_obj.name,
-                "email": staff_obj.user.email if staff_obj.user else "",
-                "phone": staff_obj.phone,
-                "department": staff_obj.department.name if staff_obj.department else None,
-                "salary": str(staff_obj.salary),
-                "role": getattr(staff_obj, "role", "Staff"),
-            }
-        })
-
+ 
+            # ----------------------------------------------------------------
+            # Response
+            # ----------------------------------------------------------------
+            return JsonResponse({
+                "success": True,
+                "message": "Staff updated successfully",
+                "staff": {
+                    "id":                      staff_obj.id,
+                    "name":                    safe_str(staff_obj.name),
+                    "email":                   safe_str(staff_obj.user.email) if staff_obj.user else "",
+                    "phone":                   safe_str(staff_obj.phone),
+                    "employee_id":             safe_str(staff_obj.employee_id),
+                    "nickname":                safe_str(staff_obj.nickname),
+                    "dob":                     fmt_date(staff_obj.dob),
+                    "gender":                  safe_str(staff_obj.gender),
+                    "address":                 safe_str(staff_obj.address),
+                    "joining_date":            fmt_date(staff_obj.joining_date),
+                    "emergency_contact_name":  safe_str(staff_obj.emergency_contact_name),
+                    "emergency_contact_phone": safe_str(staff_obj.emergency_contact_phone),
+                    "employment_type":         safe_str(staff_obj.employment_type),
+                    "bank_account":            safe_str(staff_obj.bank_account),
+                    "ifsc":                    safe_str(staff_obj.ifsc),
+                    "pf_number":               safe_str(staff_obj.pf_number),
+                    "esi_number":              safe_str(staff_obj.esi_number),
+                    "notes":                   safe_str(staff_obj.notes),
+                    "department":              safe_str(staff_obj.department.name) if staff_obj.department else None,
+                    "department_id":           staff_obj.department.id if staff_obj.department else None,
+                    "salary":                  str(staff_obj.salary),
+                    "role":                    role_name,
+                    "id_proof_type":           safe_str(staff_obj.id_proof_type),
+                    "id_proof_type_label":     get_id_proof_label(staff_obj),
+                    "id_proof_number":         safe_str(staff_obj.id_proof_number),
+                },
+            })
+ 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
-
 
 def staff_login(request):
     if request.method == "POST":

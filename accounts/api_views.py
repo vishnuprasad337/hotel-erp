@@ -52,9 +52,8 @@ class HotelDetailView(APIView):
         self.get_object(pk).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
 class HotelFullDetailsView(APIView):
-    def get(self, request, pk):
+    def get(self, request, hotel_name):
         hotel = get_object_or_404(
             Hotel.objects.prefetch_related(
                 'staffs__user',
@@ -63,23 +62,47 @@ class HotelFullDetailsView(APIView):
                 'payments',
                 'hotelmodule_set__module',
             ).select_related('subscription_plan'),
-            pk=pk
+            hotel_name=hotel_name
         )
+
         return Response(HotelFullDetailsSerializer(hotel).data)
 
 
+from django.conf import settings
+
+from django_tenants.utils import schema_context
+
 class HotelAllFullDetailsView(APIView):
     def get(self, request):
-        hotels = Hotel.objects.prefetch_related(
-            'staffs__user',
-            'staffs__department',
-            'departments',
-            'payments',
-            'hotelmodule_set__module',
-        ).select_related('subscription_plan').all()
-        return Response(HotelFullDetailsSerializer(hotels, many=True).data)
+        api_key = request.headers.get("API-KEY")
+        if api_key != settings.MY_API_KEY:
+            return Response({"error": "Invalid API Key"}, status=403)
 
+        # ── Read schema from header ───────────────────────────────────────
+        schema_name = (
+            request.headers.get("X-DTS-Schema") or
+            request.headers.get("X-Schema-Name")
+        )
 
+        if not schema_name or schema_name == "public":
+            return Response(
+                {"error": "X-DTS-Schema header required"},
+                status=400
+            )
+
+        # ── Run query inside correct tenant schema ────────────────────────
+        with schema_context(schema_name):
+            hotels = Hotel.objects.prefetch_related(
+                'staffs__user',
+                'staffs__department',
+                'departments',
+                'payments',
+                'hotelmodule_set__module',
+            ).select_related('subscription_plan').all()
+
+            data = HotelFullDetailsSerializer(hotels, many=True).data
+
+        return Response(data)
 class DepartmentListCreateView(APIView):
     def get(self, request):
         hotel_id = request.query_params.get('hotel_id')

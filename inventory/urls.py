@@ -89,8 +89,15 @@ path(
    # PO items
    path('inventory/po/<int:pk>/items/', views.get_po_items),
    
-   # Assets
-   
+    path('linen/dispatch/',                                     views.dispatch_linen_batch),
+    path('linen/batches/',                                      views.list_linen_batches),
+    path('linen/batches/<int:batch_id>/',                       views.linen_batch_detail),
+    path('linen/batches/<int:batch_id>/items/<int:item_id>/receive/', views.mark_item_received),
+    path('linen/batches/<int:batch_id>/confirm/',               views.confirm_batch_received),
+    path('linen/missing-reasons/',                                  views.list_missing_reasons),
+    path('linen/missing-reasons/manage/',                           views.manage_missing_reason),
+    path('linen/missing-reasons/seed/',                             views.seed_missing_reasons),
+    path('linen/missing-reasons/<int:reason_id>/',                  views.update_missing_reason),
    # Asset categories
    path('inventory/asset-categories/add/', views.add_asset_category),
    

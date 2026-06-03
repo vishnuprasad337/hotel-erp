@@ -392,3 +392,286 @@ class BookingFullDetailAPIView(APIView):
         }
 
         return Response(data)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from billing.models import GuestFolio
+
+class BookingFullListAPIView(APIView):
+    def get(self, request):
+
+        bookings = Booking.objects.select_related(
+            "guest",
+            "room",
+            "room_unit",
+            "payment",
+            "created_by",
+            "checked_in_by",
+            "checked_out_by",
+        ).prefetch_related(
+            "guest__id_photos",
+            "room__amenities",
+            "room__images",
+            "room__units",
+        ).order_by("-created_at")
+
+        data = []
+
+        for booking in bookings:
+
+            guest = booking.guest
+            room = booking.room
+            unit = booking.room_unit
+            payment = getattr(booking, "payment", None)
+
+            try:
+                folio = GuestFolio.objects.prefetch_related(
+                    "charges",
+                    "payments"
+                ).get(booking=booking)
+
+                folio_data = {
+                    "status": folio.status,
+                    "subtotal": float(folio.total_charges),
+                    "paid": float(folio.total_paid),
+                    "balance": float(folio.balance_due),
+                    "charges": [
+                        {
+                            "charge_type": c.charge_type,
+                            "description": c.description,
+                            "amount": float(c.amount),
+                            "tax": float(c.tax_amount),
+                            "total": float(c.total),
+                            "date": c.date.isoformat() if c.date else None,
+                        }
+                        for c in folio.charges.all()
+                    ],
+                    "payments": [
+                        {
+                            "amount": float(p.amount),
+                            "method": p.method,
+                        }
+                        for p in folio.payments.all()
+                    ],
+                }
+
+            except GuestFolio.DoesNotExist:
+                folio_data = None
+
+            data.append({
+                "booking": {
+                    "id": booking.id,
+                    "booking_code": booking.booking_code or f"BK{booking.id:06d}",
+                    "status": booking.status,
+                    "source": booking.source or "",
+                    "check_in": booking.check_in.isoformat() if booking.check_in else None,
+                    "check_out": booking.check_out.isoformat() if booking.check_out else None,
+                    "actual_check_in": booking.actual_check_in.isoformat() if booking.actual_check_in else None,
+                    "actual_check_out": booking.actual_check_out.isoformat() if booking.actual_check_out else None,
+                    "nights": (
+                        booking.check_out - booking.check_in
+                    ).days if booking.check_in and booking.check_out else 0,
+                    "adults": booking.adults,
+                    "children": booking.children,
+                    "guests_count": booking.guests_count,
+                    "special_requests": booking.special_requests or "",
+                    "base_price": float(booking.base_price),
+                    "tax": float(booking.tax),
+                    "total_amount": float(booking.total_amount),
+                    "created_at": booking.created_at.isoformat() if booking.created_at else None,
+                    "created_by": booking.created_by.name if booking.created_by else None,
+                    "checked_in_by": booking.checked_in_by.name if booking.checked_in_by else None,
+                    "checked_out_by": booking.checked_out_by.name if booking.checked_out_by else None,
+                },
+
+                "guest": {
+                    "id": guest.id,
+                    "full_name": guest.full_name,
+                    "phone": guest.phone,
+                    "email": guest.email or "",
+                    "nationality": guest.nationality or "",
+                    "id_type": guest.id_type or "",
+                    "id_number": guest.id_number or "",
+                    "id_photo": request.build_absolute_uri(
+                        guest.id_photo.url
+                    ) if guest and guest.id_photo else None,
+                    "created_at": guest.created_at.isoformat() if guest and guest.created_at else None,
+                } if guest else None,
+
+                "room": {
+                    "id": room.id,
+                    "room_type": room.room_type,
+                    "base_price": float(room.base_price),
+                    "max_adults": room.max_adults,
+                    "max_children": room.max_children,
+                    "description": room.description or "",
+                    "extra_adult_price": float(room.extra_adult_price),
+                    "extra_child_price": float(room.extra_child_price),
+                    "is_active": room.is_active,
+                    "amenities": [
+                        {"id": a.id, "name": a.name}
+                        for a in room.amenities.all()
+                    ],
+                    "images": [
+                        {
+                            "url": request.build_absolute_uri(img.image.url),
+                            "is_primary": img.is_primary,
+                        }
+                        for img in room.images.all()
+                    ],
+                } if room else None,
+
+                "room_unit": {
+                    "id": unit.id,
+                    "room_number": unit.room_number,
+                    "status": unit.status,
+                } if unit else None,
+
+                "payment": {
+                    "id": payment.id,
+                    "room_charges": float(payment.room_charges),
+                    "tax": float(payment.tax),
+                    "total_amount": float(payment.total_amount),
+                    "payment_method": payment.payment_method or "",
+                    "payment_status": payment.payment_status,
+                    "paid_at": payment.paid_at.isoformat() if payment.paid_at else None,
+                    "collected_by": payment.collected_by.name if payment.collected_by else None,
+                } if payment else None,
+
+                "folio": folio_data,
+            })
+
+        return Response(data)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.db import connection
+from django_tenants.utils import schema_context
+
+from accounts.models import Hotel
+from .models import Room, Booking
+
+
+class RoomWithBookingsAPIView(APIView):
+    def get(self, request):
+
+        current_tenant = connection.tenant
+
+        with schema_context("public"):
+            hotel = Hotel.objects.filter(
+                schema_name=current_tenant.schema_name
+            ).first()
+
+        rooms = Room.objects.prefetch_related(
+            "units",
+            "amenities",
+            "images"
+        ).all()
+
+        data = {
+            "hotel": {
+                "id": hotel.id if hotel else None,
+                "hotel_name": hotel.hotel_name if hotel else "",
+                "owner_name": hotel.owner_name if hotel else "",
+                "email": hotel.email if hotel else "",
+                "city": hotel.city if hotel else "",
+                "address": hotel.address if hotel else "",
+                "property_type": hotel.property_type if hotel else "",
+                "logo": (
+                    request.build_absolute_uri(hotel.logo.url)
+                    if hotel and hotel.logo else None
+                ),
+            },
+            "rooms": []
+        }
+
+        for room in rooms:
+
+            bookings = Booking.objects.select_related(
+                "guest",
+                "room_unit",
+                "payment"
+            ).filter(room=room).order_by("-created_at")
+
+            room_data = {
+                "id": room.id,
+                "room_type": room.room_type,
+                "base_price": float(room.base_price),
+                "max_adults": room.max_adults,
+                "max_children": room.max_children,
+                "extra_adult_price": float(room.extra_adult_price),
+                "extra_child_price": float(room.extra_child_price),
+                "description": room.description,
+                "is_active": room.is_active,
+                "total_units": room.total_units(),
+                "available_units": room.available_units(),
+
+                "amenities": [
+                    {
+                        "id": a.id,
+                        "name": a.name
+                    }
+                    for a in room.amenities.all()
+                ],
+
+                "images": [
+                    {
+                        "id": img.id,
+                        "url": request.build_absolute_uri(img.image.url),
+                        "is_primary": img.is_primary
+                    }
+                    for img in room.images.all()
+                ],
+
+                "units": [
+                    {
+                        "id": unit.id,
+                        "room_number": unit.room_number,
+                        "status": unit.status,
+                    }
+                    for unit in room.units.all()
+                ],
+
+                "bookings": [
+                    {
+                        "booking_id": b.id,
+                        "booking_code": b.booking_code or f"BK{b.id:06d}",
+                        "status": b.status,
+
+                        "guest": {
+                            "id": b.guest.id if b.guest else None,
+                            "name": b.guest.full_name if b.guest else "",
+                            "phone": b.guest.phone if b.guest else "",
+                            "email": b.guest.email if b.guest else "",
+                        },
+
+                        "room_unit": {
+                            "id": b.room_unit.id if b.room_unit else None,
+                            "room_number": b.room_unit.room_number if b.room_unit else "",
+                            "status": b.room_unit.status if b.room_unit else "",
+                        },
+
+                        "check_in": b.check_in.isoformat() if b.check_in else None,
+                        "check_out": b.check_out.isoformat() if b.check_out else None,
+                        "actual_check_in": b.actual_check_in.isoformat() if b.actual_check_in else None,
+                        "actual_check_out": b.actual_check_out.isoformat() if b.actual_check_out else None,
+
+                        "adults": b.adults,
+                        "children": b.children,
+                        "guests_count": b.guests_count,
+
+                        "base_price": float(b.base_price),
+                        "tax": float(b.tax),
+                        "total_amount": float(b.total_amount),
+
+                        "payment": {
+                            "payment_status": b.payment.payment_status,
+                            "payment_method": b.payment.payment_method,
+                            "total_amount": float(b.payment.total_amount),
+                        } if hasattr(b, "payment") and b.payment else None,
+                    }
+                    for b in bookings
+                ]
+            }
+
+            data["rooms"].append(room_data)
+
+        return Response(data)

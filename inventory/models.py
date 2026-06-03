@@ -163,6 +163,7 @@ class Expense(models.Model):
         ('purchase_order', 'Purchase Order'),
         ('direct',         'Direct Purchase'),
         ('manual',         'Manual Entry'),
+         ('laundry',        'Laundry Payment'),
     ]
 
     department       = models.ForeignKey(
@@ -188,6 +189,7 @@ class Expense(models.Model):
     inventory_item   = models.ForeignKey(
         InventoryItem, on_delete=models.SET_NULL, null=True, blank=True
     )
+    
     source           = models.CharField(max_length=20, choices=SOURCE, default='manual')
     amount           = models.DecimalField(max_digits=12, decimal_places=2)
     description      = models.CharField(max_length=255, blank=True)
@@ -196,6 +198,13 @@ class Expense(models.Model):
         'accounts.Staff', on_delete=models.SET_NULL, null=True
     )
     created_at       = models.DateTimeField(auto_now_add=True)
+   
+    linen_batch = models.ForeignKey(
+    'inventory.HotelLinenBatch', 
+    on_delete=models.SET_NULL,
+    null=True, blank=True,
+    related_name='expenses',
+)
 
     def __str__(self):
         return f"{self.department} | {self.expense_category} | {self.amount}"
@@ -555,3 +564,113 @@ class LaundryStatusLog(models.Model):
     note = models.CharField(max_length=255, blank=True)
     updated_by = models.ForeignKey('accounts.Staff', on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class LinenMissingReason(models.Model):
+    label      = models.CharField(max_length=100, unique=True)
+    is_active  = models.BooleanField(default=True)
+    order      = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'label']
+
+    def __str__(self):
+        return self.label
+
+from decimal import Decimal
+class HotelLinenBatch(models.Model):
+    STATUS = [
+        ('dispatched', 'Dispatched'),
+        ('partial',    'Partially Received'),
+        ('received',   'Received'),
+    ]
+
+    dispatched_by   = models.ForeignKey(
+                        'accounts.Staff',
+                        on_delete=models.SET_NULL,
+                        null=True, blank=True,
+                        related_name='linen_dispatched'
+                      )
+    sent_to_laundry = models.CharField(max_length=200, blank=True)
+    laundry_contact = models.CharField(max_length=100, blank=True)
+    laundry_phone   = models.CharField(max_length=20,  blank=True)
+    note            = models.TextField(blank=True)
+    status          = models.CharField(max_length=20, choices=STATUS, default='dispatched')
+    received_by     = models.ForeignKey(
+                        'accounts.Staff',
+                        on_delete=models.SET_NULL,
+                        null=True, blank=True,
+                        related_name='linen_received'
+                      )
+    dispatched_at   = models.DateTimeField(auto_now_add=True)
+    received_at     = models.DateTimeField(null=True, blank=True)
+    expected_return_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-dispatched_at']
+
+    def __str__(self):
+        return f"Batch LB{str(self.id).zfill(3)} — {self.sent_to_laundry or 'Unknown'}"
+
+    @property
+    def total_pieces(self):
+        return sum(i.quantity for i in self.items.all())
+
+    @property
+    def received_pieces(self):
+        return sum(i.received_quantity for i in self.items.all())
+
+    @property
+    def missing_cost(self):
+        return sum(i.missing_cost for i in self.items.all())
+    
+    @property
+    def total_cost(self):
+        return sum(i.quantity * i.item_price for i in self.items.all())
+
+    @property
+    def missing_cost(self):
+        return sum(i.missing_cost for i in self.items.all())
+
+    @property
+    def payable_amount(self):
+        missing = self.missing_cost
+        if missing == 0:
+         return self.total_cost
+        return self.total_cost - missing
+
+class HotelLinenBatchItem(models.Model):
+    batch             = models.ForeignKey(HotelLinenBatch, on_delete=models.CASCADE, related_name='items')
+    item_label        = models.CharField(max_length=100)
+    quantity          = models.PositiveIntegerField(default=1)
+    item_price        = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    received_at       = models.DateTimeField(null=True, blank=True)
+    damaged_quantity  = models.PositiveIntegerField(default=0)
+    missing_quantity  = models.PositiveIntegerField(default=0)
+    missing_reason    = models.ForeignKey(
+                            LinenMissingReason,
+                            on_delete=models.SET_NULL,
+                            null=True, blank=True,
+                            related_name='items'
+                        )
+    missing_note      = models.TextField(blank=True)
+    received_quantity = models.PositiveIntegerField(default=0)
+
+    @property
+    def received(self):
+        return self.received_quantity >= self.quantity
+
+    @property
+    def is_partial(self):
+        return 0 < self.received_quantity < self.quantity
+
+    @property
+    def missing(self):
+        return self.quantity - self.received_quantity
+
+    @property
+    def missing_cost(self):
+        return Decimal(str(self.missing)) * self.item_price
+
+    def __str__(self):
+        return f"{self.item_label} x{self.quantity}"

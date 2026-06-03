@@ -515,9 +515,11 @@ import json
 from datetime import datetime
 from billing.models import GuestFolio,FolioCharge
 from datetime import date
+# ── 1. UPDATED create_booking ────────────────────────────────
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_booking(request):
+    
     try:
         data = json.loads(request.body)
 
@@ -533,6 +535,7 @@ def create_booking(request):
         source           = clean(data.get("source")) or "walk-in"
         special_requests = clean(data.get("special_requests"))
 
+        # ── Guest fields ──
         full_name   = clean(data.get("full_name")) or ""
         phone       = clean(data.get("phone")) or ""
         email       = clean(data.get("email"))
@@ -540,6 +543,11 @@ def create_booking(request):
         id_type     = clean(data.get("id_type"))
         id_number   = clean(data.get("id_number"))
 
+        # ── NEW: advance payment fields ──
+        advance_amount = float(data.get("advance_amount") or 0)
+        advance_method = clean(data.get("advance_method")) or "Cash"
+
+        # ── Validation ──
         errors = {}
         if not room_id:      errors["room"]       = "Room ID is required"
         if not room_unit_id: errors["room_unit"]  = "Room unit ID is required"
@@ -547,35 +555,34 @@ def create_booking(request):
         if not check_out:    errors["check_out"]  = "Check-out date is required"
         if not full_name:    errors["full_name"]  = "Guest full name is required"
         if not phone:        errors["phone"]      = "Guest phone number is required"
-
         if errors:
             return JsonResponse({"errors": errors}, status=400)
 
         try:
+            from datetime import date as _date
             check_in_date  = datetime.strptime(check_in,  "%Y-%m-%d").date()
             check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
         except ValueError:
             return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
-        if check_in_date < date.today():
+        if check_in_date < _date.today():
             return JsonResponse({"error": "Check-in cannot be in the past."}, status=400)
-
         if check_out_date <= check_in_date:
             return JsonResponse({"error": "Check-out must be after check-in."}, status=400)
 
         try:
             room = Room.objects.get(id=room_id)
         except Room.DoesNotExist:
-            return JsonResponse({"error": f"Room with ID {room_id} not found"}, status=404)
+            return JsonResponse({"error": f"Room {room_id} not found"}, status=404)
 
         try:
             room_unit = RoomUnit.objects.get(id=room_unit_id)
         except RoomUnit.DoesNotExist:
-            return JsonResponse({"error": f"Room unit with ID {room_unit_id} not found"}, status=404)
+            return JsonResponse({"error": f"Room unit {room_unit_id} not found"}, status=404)
 
         if room_unit.status in ["Maintenance", "Cleaning", "Dirty"]:
             return JsonResponse({
-                "error": f"Room {room_unit.room_number} is currently {room_unit.status} and cannot be booked."
+                "error": f"Room {room_unit.room_number} is {room_unit.status} and cannot be booked."
             }, status=400)
 
         date_conflict = Booking.objects.filter(
@@ -584,13 +591,30 @@ def create_booking(request):
             check_in__lt=check_out_date,
             check_out__gt=check_in_date,
         ).exists()
-
         if date_conflict:
             return JsonResponse({
-                "error": f"Room {room_unit.room_number} is already booked for the selected dates."
+                "error": f"Room {room_unit.room_number} is already booked for those dates."
             }, status=400)
 
-        nights = (check_out_date - check_in_date).days
+        nights       = (check_out_date - check_in_date).days
+        room_charges = float(room.base_price) * nights
+        tax          = room_charges * 0.18
+        total_amount = room_charges + tax
+
+       
+        if advance_amount > total_amount:
+            advance_amount = total_amount
+
+       
+        if advance_amount <= 0:
+            pay_status = "pending"
+        elif advance_amount >= total_amount:
+            pay_status = "paid"
+        else:
+            pay_status = "partial"
+
+        session_staff_id = request.session.get("staff_id")
+        created_by_staff = Staff.objects.filter(id=session_staff_id).first()
 
         guest, created = Guest.objects.get_or_create(
             phone=phone,
@@ -602,82 +626,95 @@ def create_booking(request):
                 "id_number":   id_number,
             }
         )
-
         if not created:
-            updated = False
-            if full_name    and guest.full_name    != full_name:    guest.full_name    = full_name;    updated = True
-            if email        is not None and guest.email        != email:       guest.email        = email;       updated = True
-            if nationality  is not None and guest.nationality  != nationality: guest.nationality  = nationality; updated = True
-            if id_type      is not None and guest.id_type      != id_type:     guest.id_type      = id_type;     updated = True
-            if id_number    is not None and guest.id_number    != id_number:   guest.id_number    = id_number;   updated = True
-            if updated:
+            changed = False
+            if full_name   and guest.full_name   != full_name:   guest.full_name   = full_name;   changed = True
+            if email       is not None and guest.email       != email:      guest.email       = email;      changed = True
+            if nationality is not None and guest.nationality != nationality:guest.nationality = nationality; changed = True
+            if id_type     is not None and guest.id_type     != id_type:    guest.id_type     = id_type;    changed = True
+            if id_number   is not None and guest.id_number   != id_number:  guest.id_number   = id_number;  changed = True
+            if changed:
                 guest.save()
 
-        room_charges = float(room.base_price) * nights
-        tax          = room_charges * 0.18
-        total_amount = room_charges + tax
+        with transaction.atomic():
+            booking = Booking.objects.create(
+                guest            = guest,
+                room             = room,
+                room_unit        = room_unit,
+                check_in         = check_in_date,
+                check_out        = check_out_date,
+                adults           = adults,
+                children         = children,
+                guests_count     = adults + children,
+                special_requests = special_requests,
+                source           = source,
+                base_price       = room.base_price,
+                tax              = round(tax, 2),
+                total_amount     = round(total_amount, 2),
+                status           = "confirmed",
+                created_by       = created_by_staff,
+            )
 
-        # ── Get the staff member who is creating this booking ────────────────
-        session_staff_id = request.session.get("staff_id")
-        created_by_staff = Staff.objects.filter(id=session_staff_id).first()
+            
+            payment = Payment.objects.create(
+                booking        = booking,
+                room_charges   = round(room_charges, 2),
+                tax            = round(tax, 2),
+                total_amount   = round(total_amount, 2),
+                amount_paid    = round(advance_amount, 2),   
+                payment_status = pay_status,
+                payment_method = advance_method if advance_amount > 0 else None,
+                paid_at        = timezone.now() if advance_amount > 0 else None,
+                collected_by   = created_by_staff,
+            )
 
-        booking = Booking.objects.create(
-            guest            = guest,
-            room             = room,
-            room_unit        = room_unit,
-            check_in         = check_in_date,
-            check_out        = check_out_date,
-            adults           = adults,
-            children         = children,
-            guests_count     = adults + children,
-            special_requests = special_requests,
-            source           = source,
-            base_price       = room.base_price,
-            tax              = round(tax, 2),
-            total_amount     = round(total_amount, 2),
-            status           = "confirmed",
-            created_by       = created_by_staff,   
-        )
+           
+            from billing.models import GuestFolio, FolioCharge, BillingPayment
+            folio = GuestFolio.objects.create(booking=booking)
 
-        Payment.objects.create(
-            booking        = booking,
-            room_charges   = round(room_charges, 2),
-            tax            = round(tax, 2),
-            total_amount   = round(total_amount, 2),
-            payment_status = "pending",
-        )
+            FolioCharge.objects.create(
+                folio        = folio,
+                charge_type  = "room",
+                description  = f"{room.room_type} Room Charge ({nights} night{'s' if nights > 1 else ''})",
+                amount       = round(room_charges, 2),
+                tax_amount   = round(tax, 2),
+                date         = check_in_date,
+            )
 
-        folio = GuestFolio.objects.create(booking=booking)
-
-        FolioCharge.objects.create(
-            folio        = folio,
-            charge_type  = "room",
-            description  = f"{room.room_type} Room Charge ({nights} night(s))",
-            amount       = round(room_charges, 2),
-            tax_amount   = round(tax, 2),
-            date         = check_in_date,
-        )
+            # Record advance as a folio payment immediately
+            if advance_amount > 0:
+                BillingPayment.objects.create(
+                    folio   = folio,
+                    amount  = round(advance_amount, 2),
+                    method  = advance_method,
+                    note    = "Advance payment at booking",
+                )
 
         return JsonResponse({
-            "success":      True,
-            "booking_id":   booking.id,
-            "booking_code": f"BK{booking.id:06d}",
-            "guest_id":     guest.id,
-            "guest_created": created,
-            "room_number":  room_unit.room_number,
-            "nights":       nights,
-            "total_amount": round(total_amount, 2),
-            "message":      "Booking created successfully",
-            "created_by":   created_by_staff.name if created_by_staff else None,
+            "success":        True,
+            "booking_id":     booking.id,
+            "booking_code":   f"BK{booking.id:06d}",
+            "guest_id":       guest.id,
+            "guest_created":  created,
+            "room_number":    room_unit.room_number,
+            "nights":         nights,
+            "room_charges":   round(room_charges, 2),
+            "tax":            round(tax, 2),
+            "total_amount":   round(total_amount, 2),
+            "advance_paid":   round(advance_amount, 2),
+            "balance_due":    round(total_amount - advance_amount, 2),
+            "payment_status": pay_status,
+            "message":        "Booking created successfully",
+            "created_by":     created_by_staff.name if created_by_staff else None,
         }, status=201)
 
     except json.JSONDecodeError as e:
-        return JsonResponse({"error": f"Invalid JSON: {str(e)}"}, status=400)
-
+        return JsonResponse({"error": f"Invalid JSON: {e}"}, status=400)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        import traceback; traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+
+
 
 from pms.models import Booking, GuestIDPhoto
 
@@ -716,7 +753,7 @@ def check_in(request):
                     return JsonResponse({"success": False, "message": "Only image files are allowed"}, status=400)
                 GuestIDPhoto.objects.create(guest=guest, image=photo)
 
-            # ── Staff tracking ──────────────────────────────────────────
+            
             session_staff_id = request.session.get("staff_id")
             checked_in_by = Staff.objects.filter(id=session_staff_id).first()
             # ────────────────────────────────────────────────────────────
@@ -742,110 +779,210 @@ def check_in(request):
     })
 @csrf_exempt
 def check_out(request):
+   
     if request.method != "POST":
-        return JsonResponse({"error": "Invalid request method"}, status=405)
+        return JsonResponse({"error": "Invalid method"}, status=405)
 
     try:
         data = json.loads(request.body)
-    except:
+    except Exception:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     booking = Booking.objects.filter(
         id=data.get("booking_id"), status="checked_in"
-    ).first()
-
+    ).select_related("guest", "room_unit").first()
     if not booking:
         return JsonResponse({"error": "Booking not found or not checked-in"}, status=404)
 
-    payment = Payment.objects.filter(booking=booking).first()
-    if not payment:
-        return JsonResponse({"error": "No payment record found for this booking."}, status=400)
-
-    if payment.payment_status != "paid":
-        return JsonResponse({
-            "error": "Payment is pending. Please collect payment before checking out.",
-            "payment_status": payment.payment_status,
-            "total_amount": float(payment.total_amount),
-        }, status=400)
+    from billing.models import GuestFolio, BillingPayment
+    try:
+        folio = GuestFolio.objects.get(booking=booking)
+    except GuestFolio.DoesNotExist:
+        return JsonResponse({"error": "Folio not found for this booking."}, status=400)
 
     
+    final_payment = float(data.get("final_payment", 0) or 0)
+    final_method  = data.get("method") or data.get("payment_method") or "Cash"
+
+    if final_payment > 0:
+        BillingPayment.objects.create(
+            folio  = folio,
+            amount = round(final_payment, 2),
+            method = final_method,
+            note   = "Final payment at check-out",
+        )
+      
+        payment = Payment.objects.filter(booking=booking).first()
+        if payment:
+            payment.amount_paid    = float(payment.amount_paid or 0) + final_payment
+            payment.payment_method = final_method
+            payment.paid_at        = timezone.now()
+            total_paid_so_far      = float(folio.total_paid) 
+            if total_paid_so_far >= float(payment.total_amount):
+                payment.payment_status = "paid"
+            else:
+                payment.payment_status = "partial"
+            payment.save()
+
+    
+    folio.refresh_from_db()
+    balance = float(folio.balance_due)
+
+    if balance > 0.50:   
+        return JsonResponse({
+            "error":          "Balance is still pending. Please collect payment before checking out.",
+            "balance_due":    balance,
+            "total_charges":  float(folio.total_charges),
+            "total_paid":     float(folio.total_paid),
+        }, status=400)
+
     session_staff_id = request.session.get("staff_id")
-    checked_out_by = Staff.objects.filter(id=session_staff_id).first()
-   
-    booking.status = "checked_out"
+    checked_out_by   = Staff.objects.filter(id=session_staff_id).first()
+
+    booking.status          = "checked_out"
     booking.actual_check_out = timezone.now()
-    booking.checked_out_by = checked_out_by   # ← ADD THIS
+    booking.checked_out_by  = checked_out_by
     booking.save()
 
     if booking.room_unit:
         booking.room_unit.status = "Dirty"
         booking.room_unit.save()
 
-    payment.payment_method = data.get("method", payment.payment_method)
-    payment.paid_at = timezone.now()
-    payment.save()
+    
+    folio.status = "closed"
+    folio.save()
 
     return JsonResponse({
-        "success": True,
-        "message": "Check-out completed successfully",
-        "checked_out_by": checked_out_by.name if checked_out_by else None,   # ← ADD THIS
+        "success":         True,
+        "message":         "Check-out completed successfully",
+        "checked_out_by":  checked_out_by.name if checked_out_by else None,
+        "total_charges":   float(folio.total_charges),
+        "total_paid":      float(folio.total_paid),
+        "balance_due":     float(folio.balance_due),
     })
+
+@csrf_exempt
+def record_payment(request):
+   
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        data    = json.loads(request.body)
+        bk_id   = data.get("booking_id")
+        amount  = float(data.get("amount", 0) or 0)
+        method  = data.get("method", "Cash")
+        note    = data.get("note", "")
+
+        if not bk_id:
+            return JsonResponse({"error": "booking_id required"}, status=400)
+        if amount <= 0:
+            return JsonResponse({"error": "amount must be > 0"}, status=400)
+
+        booking = Booking.objects.get(id=bk_id)
+
+        from billing.models import GuestFolio, FolioPayment
+        folio, _ = GuestFolio.objects.get_or_create(booking=booking)
+
+        if folio.status == "closed":
+            return JsonResponse({"error": "Folio is already closed."}, status=400)
+
+        FolioPayment.objects.create(
+            folio  = folio,
+            amount = round(amount, 2),
+            method = method,
+            note   = note or "Partial payment",
+        )
+
+        
+        payment = Payment.objects.filter(booking=booking).first()
+        if payment:
+            payment.amount_paid = float(payment.amount_paid or 0) + amount
+            if float(payment.amount_paid) >= float(payment.total_amount):
+                payment.payment_status = "paid"
+            else:
+                payment.payment_status = "partial"
+            payment.payment_method = method
+            payment.paid_at        = timezone.now()
+            payment.save()
+
+        folio.refresh_from_db()
+
+        session_staff_id = request.session.get("staff_id")
+        recorded_by = Staff.objects.filter(id=session_staff_id).first()
+
+        return JsonResponse({
+            "success":       True,
+            "folio_id":      folio.id,
+            "amount_added":  round(amount, 2),
+            "total_charges": float(folio.total_charges),
+            "total_paid":    float(folio.total_paid),
+            "balance_due":   float(folio.balance_due),
+            "recorded_by":   recorded_by.name if recorded_by else None,
+        })
+    except Booking.DoesNotExist:
+        return JsonResponse({"error": "Booking not found"}, status=404)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
 from datetime import date as date_type
 
 def get_bill(request):
+    
     booking_id = request.GET.get("booking_id")
-
     if not booking_id:
         return JsonResponse({"error": "booking_id required"}, status=400)
 
     booking = Booking.objects.select_related(
-        "guest", "room", "room_unit", "folio"
+        "guest", "room", "room_unit"
     ).filter(id=booking_id).first()
-
     if not booking:
         return JsonResponse({"error": "Booking not found"}, status=404)
 
-    folio = getattr(booking, "folio", None)
-
-    if not folio:
+    from billing.models import GuestFolio, FolioCharge, BillingPayment
+    try:
+        folio = GuestFolio.objects.get(booking=booking)
+    except GuestFolio.DoesNotExist:
         return JsonResponse({"error": "Folio not created yet"}, status=404)
 
-    charges = folio.charges.all()
-
-    charge_list = []
-    for c in charges:
-        charge_list.append({
-            "charge_type": c.charge_type,
-            "type": c.charge_type,
-            "description": c.description,
-            "amount": float(c.amount),
-            "tax": float(c.tax_amount),
-            "total": float(c.total),
-        })
-
-    payments = folio.payments.all()
-
-
-    payment_list = [
+    charges = [
         {
+            "id":          c.id,
+            "charge_type": c.charge_type,
+            "description": c.description,
+            "amount":      float(c.amount),
+            "tax":         float(c.tax_amount),
+            "total":       float(c.total),
+            "date":        str(c.date) if c.date else "",
+        }
+        for c in folio.charges.all().order_by("date", "charge_type")
+    ]
+
+    payments = [
+        {
+            "id":     p.id,
             "amount": float(p.amount),
             "method": p.method,
+            "note":   p.note or "",
+            "date":   p.created_at.strftime("%d %b %Y %H:%M") if hasattr(p, "created_at") else "",
         }
-        for p in payments
+        for p in folio.payments.all().order_by("id")
     ]
 
     return JsonResponse({
-        "booking_id": booking.id,
-        "guest": booking.guest.full_name if booking.guest else "N/A",
-        "room": booking.room_unit.room_number if booking.room_unit else "N/A",
-
-        "charges": charge_list,
-        "payments": payment_list,
-
-        "subtotal": float(folio.total_charges),
-        "paid": float(folio.total_paid),
-        "balance": float(folio.balance_due),
-        "status": folio.status,
+        "booking_id":   booking.id,
+        "guest":        booking.guest.full_name if booking.guest else "N/A",
+        "room":         booking.room_unit.room_number if booking.room_unit else "N/A",
+        "check_in":     str(booking.check_in),
+        "check_out":    str(booking.check_out),
+        "charges":      charges,
+        "payments":     payments,
+        "subtotal":     float(folio.total_charges),
+        "total_paid":   float(folio.total_paid),
+        "balance_due":  float(folio.balance_due),
+        "status":       folio.status,
     })
 @csrf_exempt
 def assign_housekeeping_task(request):
@@ -899,6 +1036,33 @@ def get_guests(request):
     ]
 
     return JsonResponse(data, safe=False)
+OTA_DISPLAY_NAMES = {
+    "booking_com": "Booking.com",
+    "airbnb":      "Airbnb",
+    "expedia":     "Expedia",
+    "agoda":       "Agoda",
+    "mmt":         "MakeMyTrip",
+    "goibibo":     "Goibibo",
+    "ical":        "iCal",
+    "other":       "OTA",
+}
+
+def format_source(source):
+    if not source:
+        return "Direct"
+    
+    if source.startswith("website:"):
+        # "website:veedu" → "veedu"
+        site_name = source.split(":", 1)[1]
+        return site_name  # shows actual website name
+
+    if source.startswith("ota:"):
+        # "ota:booking_com" → "Booking.com"
+        ota_type = source.split(":", 1)[1]
+        return OTA_DISPLAY_NAMES.get(ota_type, ota_type.title())
+
+    
+    return source.replace("_", " ").title()
 def get_bookings(request):
     bookings = Booking.objects.select_related(
         "guest",
@@ -914,76 +1078,34 @@ def get_bookings(request):
         try:
             total = float(b.payment.total_amount)
             payment_status = b.payment.payment_status
-
+            amount_paid = float(b.payment.amount_paid or 0)
+            balance_due = total - amount_paid
         except Payment.DoesNotExist:
             total = 0.0
             payment_status = "no_payment"
+            amount_paid = 0.0
+            balance_due = 0.0
 
         data.append({
             "id": b.id,
-
-            "booking_code": (
-                b.booking_code or f"BK{b.id:06d}"
-            ),
-
-            "guest": (
-                b.guest.full_name
-                if b.guest else "N/A"
-            ),
-
-            "guest_id": (
-                b.guest.id
-                if b.guest else None
-            ),
-
-            "phone": (
-                b.guest.phone
-                if b.guest else ""
-            ),
-
-            "room_type": (
-                b.room.room_type
-                if b.room else "N/A"
-            ),
-
-            "room_no": (
-                b.room_unit.room_number
-                if b.room_unit else "N/A"
-            ),
-
-            "check_in": (
-                b.check_in.isoformat()
-                if b.check_in else ""
-            ),
-
-            "check_out": (
-                b.check_out.isoformat()
-                if b.check_out else ""
-            ),
-
+            "booking_code": b.booking_code or f"BK{b.id:06d}",
+            "guest": b.guest.full_name if b.guest else "N/A",
+            "guest_id": b.guest.id if b.guest else None,
+            "phone": b.guest.phone if b.guest else "",
+            "room_type": b.room.room_type if b.room else "N/A",
+            "room_no": b.room_unit.room_number if b.room_unit else "N/A",
+            "check_in": b.check_in.isoformat() if b.check_in else "",
+            "check_out": b.check_out.isoformat() if b.check_out else "",
             "adults": b.adults,
             "children": b.children,
-
             "status": b.status,
-
-            "source": (
-                b.source or ""
-            ),
-
+            "source": format_source(b.source),
             "total": total,
-
             "payment_status": payment_status,
-
-            "created_at": (
-                b.created_at.isoformat()
-                if b.created_at else ""
-            ),
-
-            
-            "booked_by": (
-                b.created_by.name
-                if b.created_by else ""
-            ),
+            "amount_paid": amount_paid,           
+            "balance_due": balance_due,            
+            "created_at": b.created_at.isoformat() if b.created_at else "",
+            "booked_by": b.created_by.name if b.created_by else "",
         })
 
     return JsonResponse(data, safe=False)

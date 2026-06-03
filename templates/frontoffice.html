@@ -467,7 +467,26 @@
         .charge-tab { flex-shrink: 0; padding: 10px 14px; border: none; border-bottom: 2px solid transparent; background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
         .charge-tab:hover { color: var(--text); }
         .charge-tab.active { border-bottom-color: var(--blue); color: var(--blue); }
+.bk-sub-filter {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.15s;
+}
 
+.bk-sub-filter.active {
+  background: #1d4ed8;
+  color: #fff;
+  border-color: #1d4ed8;
+}
+
+.bk-sub-filter:hover:not(.active) {
+  background: #e5e7eb;
+}
         /* ── CHARGE LIST ── */
         .charge-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
         .charge-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
@@ -1401,28 +1420,60 @@ table.pr-bd-table tfoot td:first-child {
 
                     <!-- STATUS FILTER -->
                     <div class="tab-bar" id="bookingFilterBar">
-                        <button class="tab-btn active"
-                                onclick="filterBookings('all',this)">
-                            All
-                        </button>
-                        <button class="tab-btn"
-                                onclick="filterBookings('confirmed',this)">
-                            Confirmed
-                        </button>
-                        <button class="tab-btn"
-                                onclick="filterBookings('checked_in',this)">
-                            In-House
-                        </button>
-                        <button class="tab-btn"
-                                onclick="filterBookings('checked_out',this)">
-                            Checked Out
-                        </button>
-                        <button class="tab-btn"
-                                onclick="filterBookings('cancelled',this)">
-                            Cancelled
-                        </button>
-                    </div>
 
+  <button class="tab-btn active"
+          onclick="filterBookings('all', this)"
+          title="All bookings across every status">
+    📋 All Bookings
+  </button>
+
+  <button class="tab-btn"
+          onclick="filterBookings('confirmed', this)"
+          title="Upcoming reservations not yet checked in">
+    🕐 Upcoming
+  </button>
+
+  <button class="tab-btn"
+          onclick="filterBookings('checked_in', this)"
+          title="Guests currently staying in the hotel">
+    🏠 In-House
+  </button>
+
+  <button class="tab-btn"
+          onclick="filterBookings('checked_out', this)"
+          title="Guests who have already departed">
+    ✅ Checked Out
+  </button>
+
+  <button class="tab-btn"
+          onclick="filterBookings('cancelled', this)"
+          title="Bookings that were cancelled">
+    ❌ Cancelled
+  </button>
+
+</div>
+
+<!-- Sub-filter bar: only visible when In-House tab is active -->
+<div id="bkInHouseFilterBar"
+     style="display:none; gap:8px; padding:8px 0; align-items:center;">
+
+  <span style="font-size:13px; color:#6b7280; font-weight:500;">
+    Show:
+  </span>
+
+  <button class="bk-sub-filter active"
+          data-inhouse-mode="staying"
+          title="Everyone physically in the hotel right now">
+    🏨 All Currently In-House
+  </button>
+
+  <button class="bk-sub-filter"
+          data-inhouse-mode="arrivals"
+          title="Guests who checked in during the selected date range">
+    🛬 Arrivals Only
+  </button>
+
+</div>
                     <!-- DATE FILTERS -->
                     <button class="btn btn-outline btn-sm bk-date-chip"
                             data-range="today"
@@ -1508,10 +1559,14 @@ table.pr-bd-table tfoot td:first-child {
                             <th>Room</th>
                             <th>Check-In</th>
                             <th>Check-Out</th>
-                            <th>Nights</th>
                             <th>Total</th>
+                            <th>Advance</th>
+                           <th>Balance Due</th>
+                            <th>Pay Status</th>
                             <th>Status</th>
                             <th>Actions</th>
+                            
+                            
                         </tr>
                     </thead>
 
@@ -1585,10 +1640,6 @@ table.pr-bd-table tfoot td:first-child {
                                 {{ booking.check_out }}
                             </td>
 
-                            <!-- NIGHTS -->
-                            <td style="font-family:'DM Mono',monospace;font-size:12px;">
-                                {{ booking.nights|default:"—" }}
-                            </td>
 
                             <!-- TOTAL -->
                             <td>
@@ -1606,7 +1657,54 @@ table.pr-bd-table tfoot td:first-child {
                                     </strong>
                                 {% endif %}
                             </td>
+                              <!-- ADVANCE PAID -->
+<td>
+    {% if booking.payment %}
+        <span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--green);">
+            {% if booking.payment.amount_paid %}
+                ₹{{ booking.payment.amount_paid|floatformat:0 }}
+            {% else %}
+                —
+            {% endif %}
+        </span>
+    {% else %}
+        <span style="color:var(--text-4);">—</span>
+    {% endif %}
+</td>
 
+<!-- BALANCE DUE -->
+<td>
+    {% if booking.payment %}
+        <span style="
+            font-family:'DM Mono', monospace;
+            font-weight:700;
+            color:{% if booking.payment.balance_due > 0 %}var(--red){% else %}var(--green){% endif %};
+        ">
+            ₹{{ booking.payment.balance_due|default:0|floatformat:0 }}
+        </span>
+    {% else %}
+        <span style="color:var(--text-4);">—</span>
+    {% endif %}
+</td>
+<!-- PAYMENT STATUS -->
+<td>
+    {% if booking.payment %}
+        <span class="pill
+            {% if booking.payment.payment_status == 'paid' %}pill-green
+            {% elif booking.payment.payment_status == 'partial' %}pill-amber
+            {% else %}pill-red{% endif %}"
+            style="font-size:10px;">
+            {{ booking.payment.payment_status|default:"pending"|capfirst }}
+        </span>
+        {% if booking.payment.payment_method and booking.payment.amount_paid %}
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px;">
+                via {{ booking.payment.payment_method }}
+            </div>
+        {% endif %}
+    {% else %}
+        <span class="pill pill-red" style="font-size:10px;">Pending</span>
+    {% endif %}
+</td>
                             <!-- STATUS -->
                             <td>
                                 <span class="badge badge-{{ booking.status }}">
@@ -2311,35 +2409,164 @@ table.pr-bd-table tfoot td:first-child {
     </div>
 </div>
     <!-- ══════════ ATTENDANCE ══════════ -->
-    <div class="panel" id="panel-attendance">
-        <div class="topbar"><div class="topbar-left"><h1>Attendance</h1><p>Clock in and out &mdash; track your hours</p></div></div>
-        <div class="content">
-            <div class="stat-grid">
-                <div class="stat-card"><div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div><div><div class="stat-num green">{{ present_days|default:0 }}</div><div class="stat-label">Present this month</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-amber"><i class="fas fa-clock"></i></div><div><div class="stat-num amber">{{ late_days|default:0 }}</div><div class="stat-label">Late arrivals</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-red"><i class="fas fa-times-circle"></i></div><div><div class="stat-num red">{{ absent_days|default:0 }}</div><div class="stat-label">Absent days</div></div></div>
-                <div class="stat-card"><div class="stat-icon si-blue"><i class="fas fa-business-time"></i></div><div><div class="stat-num blue">{{ overtime_hours|default:"0.0" }}</div><div class="stat-label">Overtime hours</div></div></div>
+<div class="panel" id="panel-attendance">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>Attendance</h1>
+            <p>Clock in and out &mdash; track your hours</p>
+        </div>
+    </div>
+    <div class="content">
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div>
+                <div>
+                    <div class="stat-num green" id="totalPresentDays">0</div>
+                    <div class="stat-label">Present this month</div>
+                </div>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title"><i class="fas fa-stopwatch"></i> Today's Clock</div>
-                    <span id="todayStatusPill" class="pill pill-gray">Not clocked in</span>
+            <div class="stat-card">
+                <div class="stat-icon si-amber"><i class="fas fa-clock"></i></div>
+                <div>
+                    <div class="stat-num amber" id="totalLateDays">0</div>
+                    <div class="stat-label">Late arrivals</div>
                 </div>
-                <div class="clock-wrap">
-                    
-                    <div class="clock-btns">
-                        <button class="ck-btn in" id="btnClockIn" onclick="clockIn()"><i class="fas fa-sign-in-alt"></i> Clock In</button>
-                        <button class="ck-btn out" id="btnClockOut" onclick="clockOut()" disabled><i class="fas fa-sign-out-alt"></i> Clock Out</button>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-red"><i class="fas fa-times-circle"></i></div>
+                <div>
+                    <div class="stat-num red" id="totalAbsentDays">0</div>
+                    <div class="stat-label">Absent days</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-blue"><i class="fas fa-business-time"></i></div>
+                <div>
+                    <div class="stat-num blue" id="totalOvertimeHours">0.0</div>
+                    <div class="stat-label">Overtime hours</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-stopwatch"></i> Today's Clock</div>
+                <span id="todayStatusPill" class="pill pill-gray">Not clocked in</span>
+            </div>
+            <div class="clock-wrap">
+                <div class="clock-btns">
+                    <button class="ck-btn in" id="btnClockIn"><i class="fas fa-sign-in-alt"></i> Clock In</button>
+                    <button class="ck-btn out" id="btnClockOut" disabled><i class="fas fa-sign-out-alt"></i> Clock Out</button>
+                </div>
+                <div class="att-log">
+                    <i class="fas fa-info-circle" style="color:var(--blue)"></i>
+                    <span id="attLogMsg">You have not clocked in today.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Past Attendance Records with Date Filter and Pagination -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <div class="card-title"><i class="fas fa-history"></i> Past Attendance Records</div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <select id="filterType" onchange="toggleDateFilter()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+                        <option value="month">📅 Filter by Month</option>
+                        <option value="date">📆 Filter by Date Range</option>
+                    </select>
+                    <div id="monthFilterContainer">
+                        <select id="monthFilter" onchange="loadPastAttendance()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+                            <option value="">This Month</option>
+                            <option value="-1">Last Month</option>
+                            <option value="-2">2 Months Ago</option>
+                            <option value="-3">3 Months Ago</option>
+                            <option value="-4">4 Months Ago</option>
+                            <option value="-5">5 Months Ago</option>
+                        </select>
                     </div>
-                    <div class="att-log"><i class="fas fa-info-circle" style="color:var(--blue)"></i><span id="attLogMsg">You have not clocked in today.</span></div>
+                    <div id="dateRangeContainer" style="display: none;">
+                        <input type="date" id="startDate" onchange="loadPastAttendance()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+                        <span style="margin: 0 0.25rem;">→</span>
+                        <input type="date" id="endDate" onchange="loadPastAttendance()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+                        <span id="dateRangeLabel" style="font-size: 0.75rem; color: #6b7280; margin-left: 0.5rem;"></span>
+                    </div>
+                    <select id="pageSizeSelect" onchange="changePageSize()" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #e5e7eb;">
+                        <option value="10">10 per page</option>
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </select>
+                    <button onclick="resetFilters()" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-sync-alt"></i> Reset
+                    </button>
                 </div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="attendance-table" style="width: 100%; border-collapse: collapse;">
+                    <thead style="background: #f9fafb;">
+                        <tr>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('date')">
+                                📅 Date <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('check_in')">
+                                ⏰ Check In <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('check_out')">
+                                ⏰ Check Out <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('status')">
+                                📊 Status <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('working_hours')">
+                                ⏱️ Working Hours <i class="fas fa-sort"></i>
+                            </th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="sortTable('overtime')">
+                                ⌛ Overtime <i class="fas fa-sort"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="pastAttendanceBody">
+                        <tr>
+                            <td colspan="6" style="padding: 2rem; text-align: center; color: #9ca3af;">
+                                <i class="fas fa-calendar-alt"></i> Loading attendance records...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             
-               
+            <!-- Pagination Controls -->
+            <div style="padding: 1rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <span id="recordCount" style="font-size: 0.875rem; color: #6b7280;">0 records found</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button onclick="firstPage()" id="firstPageBtn" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button onclick="prevPage()" id="prevPageBtn" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-angle-left"></i>
+                    </button>
+                    <span style="font-size: 0.875rem;">
+                        Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+                    </span>
+                    <button onclick="nextPage()" id="nextPageBtn" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button onclick="lastPage()" id="lastPageBtn" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="exportToCSV()" style="padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer;">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
 
     <!-- ══════════ SHIFTS ══════════ -->
     <div class="panel" id="panel-shift">
@@ -3304,10 +3531,12 @@ table.pr-bd-table tfoot td:first-child {
                 <div class="bk-connector" id="stepConn2"></div>
                 <div class="bk-step"><div class="bk-step-circle" id="stepCircle3">3</div><span class="bk-step-label" id="stepLabel3">Confirm</span></div>
             </div>
+            
+            <!-- STEP 1: Guest Info -->
             <div class="bk-step-panel active" id="bookingStep1">
                 <div class="form-row">
-                    <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="bookingGuestName" class="form-control" placeholder="Guest full name"><div class="field-error" id="err-guestName">Full name is required</div></div>
-                    <div class="form-group"><label class="form-label">Phone *</label><input type="tel" id="bookingPhone" class="form-control" placeholder="10-digit mobile" maxlength="10"><div class="field-error" id="err-phone">Enter a valid 10-digit number</div></div>
+                    <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="bookingGuestName" class="form-control" placeholder="Guest full name" oninput="updateBookingSummary()"><div class="field-error" id="err-guestName">Full name is required</div></div>
+                    <div class="form-group"><label class="form-label">Phone *</label><input type="tel" id="bookingPhone" class="form-control" placeholder="10-digit mobile" maxlength="10" oninput="updateBookingSummary()"><div class="field-error" id="err-phone">Enter a valid 10-digit number</div></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label class="form-label">Email</label><input type="email" id="bookingEmail" class="form-control" placeholder="guest@email.com"></div>
@@ -3320,6 +3549,8 @@ table.pr-bd-table tfoot td:first-child {
                     <div class="form-group"><label class="form-label">ID Number</label><input type="text" id="bookingIdNumber" class="form-control" placeholder="ID number"></div>
                 </div>
             </div>
+            
+            <!-- STEP 2: Room & Dates (with Advance Payment) -->
             <div class="bk-step-panel" id="bookingStep2">
                 <div class="form-row">
                     <div class="form-group">
@@ -3345,7 +3576,53 @@ table.pr-bd-table tfoot td:first-child {
                     <div class="field-error" id="err-roomUnit">Please select a room unit</div>
                 </div>
                 <div class="form-group"><label class="form-label">Special Requests</label><textarea id="bookingRequests" class="form-control" rows="2" placeholder="Extra pillows, early check-in, etc."></textarea></div>
+                
+                <!-- ADVANCE PAYMENT SECTION - Only in Step 2 -->
+                <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); margin-bottom:10px;">
+                        <i class="fas fa-hand-holding-usd" style="color:var(--teal);"></i> Advance Payment (Optional)
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Advance Amount (₹)</label>
+                            <input type="number" id="bookingAdvanceAmount" class="form-control" min="0" step="0.01" value="0" placeholder="0.00" oninput="onAdvanceAmountChange()">
+                        </div>
+                        <div class="form-group" id="advanceMethodWrap" style="display:none;">
+                            <label class="form-label">Payment Method</label>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amCash">
+                                    <input type="radio" name="advanceMethod" value="Cash" checked onchange="selectAdvanceMethod('Cash')" style="accent-color:var(--blue);"> Cash
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amCard">
+                                    <input type="radio" name="advanceMethod" value="Card" onchange="selectAdvanceMethod('Card')" style="accent-color:var(--blue);"> Card
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amUPI">
+                                    <input type="radio" name="advanceMethod" value="UPI" onchange="selectAdvanceMethod('UPI')" style="accent-color:var(--blue);"> UPI
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amBank">
+                                    <input type="radio" name="advanceMethod" value="bank_transfer" onchange="selectAdvanceMethod('bank_transfer')" style="accent-color:var(--blue);"> Bank Transfer
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="advanceRefWrap" style="display:none;">
+                        <label class="form-label">Reference / Transaction ID</label>
+                        <input type="text" id="advanceReference" class="form-control" placeholder="e.g. UTR123456789">
+                    </div>
+                    <div id="advanceSummary" style="display:none; margin-top:12px; padding:10px 14px; background:var(--surface-2); border-radius:var(--radius-sm); border-left:3px solid var(--teal);">
+                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+                            <span>Advance Payment:</span>
+                            <span style="font-weight:700; color:var(--teal);" id="advanceSummaryAmount">₹0</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px;">
+                            <span>Balance Due at Check-in:</span>
+                            <span style="font-weight:700; color:var(--accent);" id="advanceBalanceDue">₹0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+            
+            <!-- STEP 3: Confirm (shows advance payment if any) -->
             <div class="bk-step-panel" id="bookingStep3">
                 <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; margin-bottom:12px;">
                     <div style="font-size:10px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--text-3); margin-bottom:9px;"><i class="fas fa-user"></i> Guest</div>
@@ -3359,10 +3636,13 @@ table.pr-bd-table tfoot td:first-child {
                     <div style="display:flex; justify-content:space-between; font-size:13px; padding:3px 0;"><span style="color:var(--text-3);">Check-Out</span><span id="sumCheckOut" style="font-family:'DM Mono',monospace;">—</span></div>
                 </div>
                 <div class="price-preview">
-                    <div class="pp-label"><i class="fas fa-file-invoice-dollar"></i> Estimated Bill</div>
+                    <div class="pp-label"><i class="fas fa-file-invoice-dollar"></i> Billing Summary</div>
                     <div class="pp-row"><span>Room charges</span><span id="sumRoomCharges">—</span></div>
                     <div class="pp-row"><span>Tax (18% GST)</span><span id="sumTax">—</span></div>
                     <div class="pp-row total"><span>Total</span><span id="sumTotal">—</span></div>
+                    <div id="sumAdvanceRow" class="pp-row" style="display:none;color:var(--green);"><span>Advance paid</span><span id="sumAdvancePaid">—</span></div>
+                    <div id="sumBalanceRow" class="pp-row" style="display:none;"><span>Balance due</span><span id="sumBalance" style="color:var(--red);font-weight:700;">—</span></div>
+                    <div id="sumPayStatus" style="display:none;margin-top:8px;text-align:right;"></div>
                 </div>
             </div>
         </div>
@@ -5019,24 +5299,113 @@ function renderInvoiceDetail(inv) {
             </div>`).join('')
         : '<div style="padding:10px 0;color:var(--text-3);font-size:12px;">No charges recorded</div>';
 
-    const paymentsHtml = payments.length
-        ? payments.map(p => `
-            <div class="inv-line">
-              <span style="display:flex;align-items:center;gap:7px;color:var(--green);">
-                <i class="fas fa-check-circle" style="font-size:12px;"></i>
-                ${escapeHtml(p.method || p.payment_method || 'Payment')}
-                ${p.reference_number ? `<span style="font-size:10px;color:var(--text-3);">#${p.reference_number}</span>` : ''}
-              </span>
-              <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmt(p.amount)}</span>
-            </div>`).join('')
-        : '<div style="padding:10px 0;color:var(--text-3);font-size:12px;">No payments recorded</div>';
-
+    // Calculate totals for better breakdown
     const subtotal   = inv.subtotal    || inv.total_charges || 0;
     const taxTotal   = inv.tax         || inv.tax_total     || 0;
     const discount   = inv.discount    || 0;
     const grandTotal = inv.grand_total || inv.total_amount  || 0;
     const paid       = inv.paid        || inv.total_paid    || 0;
     const balance    = inv.balance     || inv.balance_due   || 0;
+
+    // Separate payments by type/location (advance vs on-site)
+    let advancePayment = null;
+    let onSitePayments = [];
+    
+    if (payments.length > 0) {
+        // Check if first payment was made at booking (advance)
+        // You might need to add a 'payment_type' field in your backend
+        // For now, we'll assume the first payment is advance if there are multiple payments
+        if (payments.length === 1) {
+            // Single payment - could be full payment or advance
+            if (paid >= grandTotal) {
+                advancePayment = { amount: paid, method: payments[0].method, note: 'Full payment' };
+            } else {
+                advancePayment = { amount: paid, method: payments[0].method, note: 'Advance payment' };
+                onSitePayments = [];
+            }
+        } else {
+            // Multiple payments - first is likely advance, rest are on-site
+            advancePayment = { 
+                amount: payments[0].amount, 
+                method: payments[0].method,
+                reference: payments[0].reference_number,
+                note: 'Advance payment at booking'
+            };
+            onSitePayments = payments.slice(1).map(p => ({
+                amount: p.amount,
+                method: p.method,
+                reference: p.reference_number,
+                note: p.note || 'Payment at check-out'
+            }));
+        }
+    }
+
+    // Build payments HTML with clear sections
+    let paymentsHtml = '';
+    
+    // Advance payment section
+    if (advancePayment && advancePayment.amount > 0) {
+        paymentsHtml += `
+            <div style="margin-bottom:12px;">
+                <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;border-left:3px solid var(--blue);padding-left:8px;">
+                    <i class="fas fa-calendar-check"></i> ADVANCE PAYMENT (At Booking)
+                </div>
+                <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <strong>${escapeHtml(advancePayment.method || 'Cash')}</strong>
+                            ${advancePayment.reference ? `<span style="font-size:11px;color:var(--text-3);margin-left:8px;">Ref: ${escapeHtml(advancePayment.reference)}</span>` : ''}
+                            ${advancePayment.note ? `<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${escapeHtml(advancePayment.note)}</div>` : ''}
+                        </div>
+                        <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--blue);">${fmt(advancePayment.amount)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // On-site payments section
+    if (onSitePayments.length > 0) {
+        paymentsHtml += `
+            <div style="margin-bottom:12px;">
+                <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;border-left:3px solid var(--green);padding-left:8px;">
+                    <i class="fas fa-hotel"></i> ON-SITE PAYMENTS (During Stay / Check-out)
+                </div>
+                <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+                    ${onSitePayments.map(p => `
+                        <div style="display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);">
+                            <div>
+                                <strong>${escapeHtml(p.method || 'Cash')}</strong>
+                                ${p.reference ? `<span style="font-size:11px;color:var(--text-3);margin-left:8px;">Ref: ${escapeHtml(p.reference)}</span>` : ''}
+                                ${p.note && p.note !== 'Final payment at check-out' ? `<div style="font-size:11px;color:var(--text-3);margin-top:4px;">${escapeHtml(p.note)}</div>` : ''}
+                            </div>
+                            <span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--green);">${fmt(p.amount)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // If no structured payments, show simple list
+    if (!advancePayment && onSitePayments.length === 0 && payments.length > 0) {
+        paymentsHtml = `
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;padding:4px 0;">
+                ${payments.map(p => `
+                    <div class="inv-line">
+                        <span style="display:flex;align-items:center;gap:7px;color:var(--green);">
+                            <i class="fas fa-check-circle" style="font-size:12px;"></i>
+                            ${escapeHtml(p.method || p.payment_method || 'Payment')}
+                            ${p.reference_number ? `<span style="font-size:10px;color:var(--text-3);">#${p.reference_number}</span>` : ''}
+                        </span>
+                        <span style="font-family:'DM Mono',monospace;color:var(--green);">${fmt(p.amount)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else if (payments.length === 0) {
+        paymentsHtml = '<div style="padding:10px 0;color:var(--text-3);font-size:12px;">No payments recorded</div>';
+    }
 
     document.getElementById('invoiceDetailBody').innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
@@ -5046,6 +5415,7 @@ function renderInvoiceDetail(inv) {
           </div>
           <span class="pill ${stc}" style="font-size:12px;padding:4px 12px;">${(inv.status || '').toUpperCase()}</span>
         </div>
+        
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
           <div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:11px 13px;border:1px solid var(--border);">
             <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;"><i class="fas fa-user"></i> Guest</div>
@@ -5058,10 +5428,12 @@ function renderInvoiceDetail(inv) {
             <div style="font-size:11px;color:var(--text-3);">${inv.check_in || ''} → ${inv.check_out || ''}</div>
           </div>
         </div>
+        
         <div style="margin-bottom:14px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-list-ul"></i> Charges</div>
           <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;padding:4px 0;">${chargesHtml}</div>
         </div>
+        
         <div style="margin-bottom:14px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-calculator"></i> Summary</div>
           <div class="inv-line"><span>Subtotal</span><span style="font-family:'DM Mono',monospace;">${fmt(subtotal)}</span></div>
@@ -5069,12 +5441,26 @@ function renderInvoiceDetail(inv) {
           ${discount ? `<div class="inv-line"><span style="color:var(--green);">Discount</span><span style="font-family:'DM Mono',monospace;color:var(--green);">-${fmt(discount)}</span></div>` : ''}
           <div class="inv-line-total"><span>Grand Total</span><span style="font-family:'DM Mono',monospace;color:var(--blue);">${fmt(grandTotal)}</span></div>
         </div>
+        
         <div style="margin-bottom:14px;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-money-bill-wave"></i> Payments</div>
-          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;padding:4px 0;">${paymentsHtml}</div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:13px;"><span style="color:var(--green);font-weight:700;">Amount Paid</span><span style="font-family:'DM Mono',monospace;color:var(--green);font-weight:700;">${fmt(paid)}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">Balance Due</span><span style="font-family:'DM Mono',monospace;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700;">${fmt(balance)}</span></div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-money-bill-wave"></i> Payment Breakdown</div>
+          ${paymentsHtml}
+          
+          <!-- Final Summary -->
+          <div style="margin-top:16px;padding:12px;background:linear-gradient(135deg, var(--surface-2) 0%, var(--surface-1) 100%);border-radius:var(--radius-sm);border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-weight:600;">Total Amount Paid:</span>
+              <span style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:var(--green);">${fmt(paid)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-weight:600;">Balance ${balance > 0 ? 'Due' : 'Refund Due'}:</span>
+              <span style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${balance > 0 ? 'var(--red)' : 'var(--green)'};">${fmt(Math.abs(balance))}</span>
+            </div>
+            ${balance === 0 ? '<div style="margin-top:8px;font-size:11px;color:var(--green);"><i class="fas fa-check-circle"></i> Invoice fully settled</div>' : ''}
+            ${balance > 0 && paid > 0 ? '<div style="margin-top:8px;font-size:11px;color:var(--orange);"><i class="fas fa-info-circle"></i> Advance payment received. Balance to be collected at check-out.</div>' : ''}
+          </div>
         </div>
+        
         ${inv.notes ? `<div style="background:var(--surface-2);border-radius:var(--radius-sm);padding:10px 13px;font-size:12px;color:var(--text-3);border:1px solid var(--border);">${escapeHtml(inv.notes)}</div>` : ''}
     `;
 }
@@ -5089,6 +5475,32 @@ function _buildPrintableInvoice(inv) {
     const grandTotal = parseFloat(inv.grand_total || inv.total_amount  || 0);
     const paid       = parseFloat(inv.paid        || inv.total_paid    || 0);
     const balance    = parseFloat(inv.balance     || inv.balance_due   || 0);
+
+    // Separate advance vs on-site payments (first payment is advance if multiple payments)
+    let advancePayment = null;
+    let onSitePayments = [];
+    
+    if (payments.length === 1) {
+        const singlePayment = payments[0];
+        if (paid >= grandTotal) {
+            advancePayment = { amount: parseFloat(singlePayment.amount), method: singlePayment.method, reference: singlePayment.reference_number, note: 'Full payment' };
+        } else {
+            advancePayment = { amount: parseFloat(singlePayment.amount), method: singlePayment.method, reference: singlePayment.reference_number, note: 'Advance payment' };
+        }
+    } else if (payments.length > 1) {
+        advancePayment = {
+            amount: parseFloat(payments[0].amount),
+            method: payments[0].method,
+            reference: payments[0].reference_number,
+            note: 'Advance payment at booking'
+        };
+        onSitePayments = payments.slice(1).map(p => ({
+            amount: parseFloat(p.amount),
+            method: p.method,
+            reference: p.reference_number,
+            note: p.note || 'Payment at check-out'
+        }));
+    }
 
     // Hotel branding — use what we have, fallback gracefully
     const hotelName    = inv.hotel_name    || document.querySelector('.sb-brand-name')?.textContent?.trim() || 'Hotel ERP';
@@ -5118,20 +5530,48 @@ function _buildPrintableInvoice(inv) {
             return `<tr>
                 <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;">${escapeHtml(c.description || '—')}</td>
                 <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:12px;text-align:right;font-family:monospace;">₹${amount.toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-            </tr>`;
+            </td>`;
         }).join('')
         : '<tr><td colspan="2" style="padding:12px;text-align:center;color:#888;font-size:12px;">No charges</td></tr>';
 
-    const paymentRows = payments.length
-        ? payments.map(p => {
-            const method = p.method || p.payment_method || 'Payment';
-            const ref    = p.reference_number ? ` <span style="font-size:10px;color:#888;">#${escapeHtml(p.reference_number)}</span>` : '';
-            return `<tr>
-                <td style="padding:6px 12px;font-size:12px;color:#15803d;">${escapeHtml(method)}${ref}</td>
-                <td style="padding:6px 12px;font-size:12px;text-align:right;font-family:monospace;color:#15803d;">₹${parseFloat(p.amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
-            </tr>`;
-        }).join('')
-        : '';
+    // Build payment rows with advance and on-site sections
+    let paymentRows = '';
+    
+    if (advancePayment && advancePayment.amount > 0) {
+        paymentRows += `
+            <div style="margin-bottom:12px;">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#b8952a;margin-bottom:6px;">📅 ADVANCE PAYMENT</div>
+                <div class="pay-row" style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;">
+                    <span>${escapeHtml(advancePayment.method || 'Payment')}${advancePayment.reference ? ` · #${escapeHtml(advancePayment.reference)}` : ''}${advancePayment.note ? ` <span style="font-size:10px;color:#888;">(${escapeHtml(advancePayment.note)})</span>` : ''}</span>
+                    <span style="font-family:monospace;">₹${advancePayment.amount.toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    if (onSitePayments.length > 0) {
+        paymentRows += `
+            <div style="margin-bottom:8px;">
+                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#15803d;margin-bottom:6px;">🏨 ON-SITE PAYMENTS</div>
+                ${onSitePayments.map(p => `
+                    <div class="pay-row" style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;">
+                        <span>${escapeHtml(p.method || 'Payment')}${p.reference ? ` · #${escapeHtml(p.reference)}` : ''}</span>
+                        <span style="font-family:monospace;">₹${p.amount.toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Fallback to simple payment rows if no advance/on-site separation
+    if (!advancePayment && onSitePayments.length === 0 && payments.length > 0) {
+        paymentRows = payments.map(p => `
+            <div class="pay-row" style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;">
+                <span>${escapeHtml(p.method || 'Payment')}${p.reference_number ? ` · #${escapeHtml(p.reference_number)}` : ''}</span>
+                <span style="font-family:monospace;">₹${parseFloat(p.amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+            </div>
+        `).join('');
+    }
 
     const genDate = inv.generated_at
         ? new Date(inv.generated_at).toLocaleDateString('en-IN', {day:'2-digit', month:'long', year:'numeric'})
@@ -5258,11 +5698,7 @@ function _buildPrintableInvoice(inv) {
   ${payments.length ? `
   <div class="payments-section">
     <div class="payments-title">Payments Received</div>
-    ${payments.map(p => `
-      <div class="pay-row">
-        <span>${escapeHtml(p.method || 'Payment')}${p.reference_number ? ` · #${escapeHtml(p.reference_number)}` : ''}</span>
-        <span>₹${parseFloat(p.amount || 0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
-      </div>`).join('')}
+    ${paymentRows}
     <div class="pay-row" style="border-top:1px solid #86efac;margin-top:6px;padding-top:6px;font-weight:700;">
       <span>Balance Due</span>
       <span style="color:${balance > 0 ? '#991b1b' : '#166534'};">₹${balance.toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
@@ -5279,7 +5715,6 @@ function _buildPrintableInvoice(inv) {
 </body>
 </html>`;
 }
-
 async function printInvoiceDetail() {
     const inv = window._lastInvoice;
     if (!inv) { toast('No invoice loaded', 'error'); return; }
@@ -6333,26 +6768,621 @@ function validateBkStep(step) {
     return valid;
 }
 
-function populateBookingSummary() {
-    const name     = document.getElementById('bookingGuestName').value;
-    const phone    = document.getElementById('bookingPhone').value;
-    const rtSel    = document.getElementById('bookingRoomType');
-    const roomType = rtSel.options[rtSel.selectedIndex]?.text?.split(' —')[0] || '—';
-    const ci       = document.getElementById('bookingCheckIn').value;
-    const co       = document.getElementById('bookingCheckOut').value;
-    document.getElementById('sumGuestName').textContent = name  || '—';
-    document.getElementById('sumPhone').textContent     = phone || '—';
-    document.getElementById('sumRoomType').textContent  = roomType;
-    document.getElementById('sumCheckIn').textContent   = ci;
-    document.getElementById('sumCheckOut').textContent  = co;
-    const nights = ci && co ? Math.max(1, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 1;
-    const price  = parseFloat(rtSel.options[rtSel.selectedIndex]?.dataset?.price || 0);
-    const rc = price * nights, tax = rc * 0.18;
-    document.getElementById('sumRoomCharges').textContent = `${fmt(rc)} (${nights} night${nights > 1 ? 's' : ''})`;
-    document.getElementById('sumTax').textContent   = fmt(tax);
-    document.getElementById('sumTotal').textContent = fmt(rc + tax);
+// Add these functions to your existing script section
+
+function onAdvanceAmountChange() {
+    const advanceAmount = parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0;
+    const methodWrap = document.getElementById('advanceMethodWrap');
+    const advanceSummary = document.getElementById('advanceSummary');
+    const totalAmount = parseFloat(document.getElementById('sumTotal')?.textContent?.replace(/[^0-9.-]/g, '')) || 0;
+    
+    if (advanceAmount > 0) {
+        if (methodWrap) methodWrap.style.display = 'block';
+        
+        // Update advance summary if total amount is available
+        if (advanceSummary && totalAmount > 0) {
+            advanceSummary.style.display = 'block';
+            document.getElementById('advanceSummaryAmount').innerHTML = fmt(advanceAmount);
+            const balanceDue = Math.max(0, totalAmount - advanceAmount);
+            document.getElementById('advanceBalanceDue').innerHTML = fmt(balanceDue);
+            
+            // Show warning if advance exceeds total
+            if (advanceAmount > totalAmount) {
+                toast('Advance amount exceeds total. Will be capped at total amount.', 'warning');
+            }
+        }
+    } else {
+        if (methodWrap) methodWrap.style.display = 'none';
+        if (advanceSummary) advanceSummary.style.display = 'none';
+        document.getElementById('advanceReference').value = '';
+    }
+    
+    // Update step 3 summary
+    populateBookingSummary();
 }
 
+function selectAdvanceMethod(method) {
+    // Update UI to show selected method
+    const refWrap = document.getElementById('advanceRefWrap');
+    if (method === 'bank_transfer' || method === 'Card') {
+        if (refWrap) refWrap.style.display = 'block';
+    } else {
+        if (refWrap) refWrap.style.display = 'none';
+        document.getElementById('advanceReference').value = '';
+    }
+    
+    // Highlight selected method
+    ['amCash', 'amCard', 'amUPI', 'amBank'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.borderColor = 'var(--border)';
+            el.style.background = '';
+        }
+    });
+    const methodMap = { Cash: 'amCash', Card: 'amCard', UPI: 'amUPI', bank_transfer: 'amBank' };
+    const activeId = methodMap[method];
+    if (activeId) {
+        const activeEl = document.getElementById(activeId);
+        if (activeEl) {
+            activeEl.style.borderColor = 'var(--blue)';
+            activeEl.style.background = 'var(--blue-dim)';
+        }
+    }
+}
+
+// Also update populateBookingSummary to show advance payment in step 3
+function populateBookingSummary() {
+    const name = document.getElementById('bookingGuestName').value;
+    const phone = document.getElementById('bookingPhone').value;
+    const rtSel = document.getElementById('bookingRoomType');
+    const roomType = rtSel.options[rtSel.selectedIndex]?.text?.split(' —')[0] || '—';
+    const ci = document.getElementById('bookingCheckIn').value;
+    const co = document.getElementById('bookingCheckOut').value;
+
+    document.getElementById('sumGuestName').textContent = name || '—';
+    document.getElementById('sumPhone').textContent = phone || '—';
+    document.getElementById('sumRoomType').textContent = roomType;
+    document.getElementById('sumCheckIn').textContent = ci;
+    document.getElementById('sumCheckOut').textContent = co;
+
+    const nights = ci && co ? Math.max(1, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 1;
+    const price = parseFloat(rtSel.options[rtSel.selectedIndex]?.dataset?.price || 0);
+    const rc = price * nights;
+    const tax = rc * 0.18;
+    const total = rc + tax;
+    const advance = Math.min(parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0, total);
+    const balance = total - advance;
+
+    document.getElementById('sumRoomCharges').textContent = price > 0 ? fmt(rc) : '—';
+    document.getElementById('sumTax').textContent = price > 0 ? fmt(tax) : '—';
+    document.getElementById('sumTotal').textContent = price > 0 ? fmt(total) : '—';
+
+    const advRow = document.getElementById('sumAdvanceRow');
+    const balRow = document.getElementById('sumBalanceRow');
+    const stRow = document.getElementById('sumPayStatus');
+
+    if (price > 0 && advance > 0) {
+        document.getElementById('sumAdvancePaid').textContent = fmt(advance);
+        document.getElementById('sumBalance').textContent = fmt(balance);
+        if (advRow) advRow.style.display = 'flex';
+        if (balRow) balRow.style.display = 'flex';
+
+        const statusLabel = advance >= total
+            ? '✅ Fully paid'
+            : `⏳ Partial — ${fmt(balance)} due at check-out`;
+
+        if (stRow) {
+            stRow.style.display = 'block';
+            stRow.innerHTML = `<span class="pill ${advance >= total ? 'pill-green' : 'pill-amber'}">${statusLabel}</span>`;
+        }
+    } else {
+        if (advRow) advRow.style.display = 'none';
+        if (balRow) balRow.style.display = 'none';
+        if (stRow) stRow.style.display = 'none';
+    }
+}
+
+// Also update onDateChange to call onAdvanceAmountChange
+function onDateChange() {
+    const ci = document.getElementById('bookingCheckIn').value;
+    const co = document.getElementById('bookingCheckOut').value;
+
+    if (ci) {
+        const nd = new Date(ci);
+        nd.setDate(nd.getDate() + 1);
+        document.getElementById('bookingCheckOut').min = nd.toISOString().split('T')[0];
+    }
+
+    const nights = ci && co ? Math.max(0, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 0;
+    const badge = document.getElementById('nightsBadgeWrap');
+    if (nights > 0) {
+        badge.style.display = 'block';
+        document.getElementById('nightsBadgeText').textContent = `${nights} night${nights > 1 ? 's' : ''}`;
+    } else {
+        badge.style.display = 'none';
+    }
+
+    const price = parseFloat(document.getElementById('bookingRoomType')?.options[document.getElementById('bookingRoomType').selectedIndex]?.dataset?.price || 0);
+    const rc = price * nights;
+    const tax = rc * 0.18;
+    const total = rc + tax;
+    
+    // Update advance summary
+    onAdvanceAmountChange();
+    
+    // Update step 3 summary
+    populateBookingSummary();
+}
+// ── PATCH: Add Payment tab to Room Card Detail Modal ──────────────────
+// Compatible with the template's openRoomCardDetail() / createRoomDetailModal() system.
+// Drop this script at the END of <body>, after the main <script> block.
+
+(function () {
+
+  // ── helpers already defined in the template ────────────────────────
+  function _esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function _fmtInr(n) {
+    return '₹' + parseFloat(n || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+  }
+  function _getCsrf() {
+    return (
+      document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+      document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] ||
+      ''
+    );
+  }
+  async function _api(url) {
+    const res = await fetch(url, { headers: { 'X-CSRFToken': _getCsrf() } });
+    return res.json();
+  }
+
+  // ── CSS for the three-tab layout (injected once) ───────────────────
+  function _injectStyles() {
+    if (document.getElementById('_payTabStyles')) return;
+    const style = document.createElement('style');
+    style.id = '_payTabStyles';
+    style.textContent = `
+      /* ── tab bar inside room-detail modal ── */
+      .rdm-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-2);
+        padding: 0 16px;
+        flex-shrink: 0;
+      }
+      .rdm-tab {
+        padding: 10px 16px;
+        border: none;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text-3);
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .rdm-tab:hover { color: var(--text); }
+      .rdm-tab.active {
+        border-bottom-color: var(--blue);
+        color: var(--blue);
+      }
+      /* ── pane visibility ── */
+      .rdm-tab-pane { display: none; }
+      .rdm-tab-pane.active { display: block; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ── store the current booking id for the payment tab ──────────────
+  window._rcdCurrentBookingId = null;
+
+  // ── switchRcdTab: show/hide the three panes ────────────────────────
+  window.switchRcdTab = function (tab) {
+    ['info', 'payment'].forEach(t => {
+      const tabEl  = document.getElementById('rcdTab'  + t.charAt(0).toUpperCase() + t.slice(1));
+      const paneEl = document.getElementById('rcdPane' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (tabEl)  tabEl.classList.toggle('active', t === tab);
+      if (paneEl) paneEl.classList.toggle('active', t === tab);
+    });
+
+    if (tab === 'payment' && window._rcdCurrentBookingId) {
+      _rcdLoadPaymentTab(window._rcdCurrentBookingId);
+    }
+  };
+
+  // ── load the payment summary + transaction list with advance/on-site separation ────
+  async function _rcdLoadPaymentTab(bookingId) {
+    const el = document.getElementById('rcdPanePayment');
+    if (!el) return;
+
+    el.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--text-3);">
+        <i class="fas fa-spinner fa-spin" style="font-size:1.4rem;opacity:.4;display:block;margin-bottom:8px;"></i>
+        Loading payment data…
+      </div>`;
+
+    try {
+      const data = await _api('/api/get-bill/?booking_id=' + bookingId);
+      if (!data || data.error) throw new Error(data?.error || 'Could not load payment data');
+
+      const charges  = data.charges  || [];
+      const payments = data.payments || [];
+      
+      // Calculate totals properly from charges
+      let chargesTotal = 0;
+      charges.forEach(c => {
+        chargesTotal += parseFloat(c.amount || 0) + parseFloat(c.tax_amount || 0);
+      });
+      
+      // Calculate total paid from payments array
+      let totalPaidFromPayments = 0;
+      payments.forEach(p => {
+        totalPaidFromPayments += parseFloat(p.amount || 0);
+      });
+      
+      // Use the most reliable values
+      const grand = parseFloat(data.total_amount || chargesTotal || 0);
+      const paid = parseFloat(data.paid || totalPaidFromPayments || 0);
+      const balance = grand - paid;
+      const pct = grand > 0 ? Math.min(100, Math.round(paid / grand * 100)) : 0;
+      const barColor = pct >= 100 ? 'var(--green)' : pct > 0 ? 'var(--accent)' : '#e5e7eb';
+
+      // Separate advance vs on-site payments
+      let advancePayment = null;
+      let onSitePayments = [];
+      let advanceAmount = 0;
+      let onSiteAmount = 0;
+      
+      if (payments.length === 1) {
+        const single = payments[0];
+        if (paid >= grand) {
+          advancePayment = { 
+            amount: parseFloat(single.amount), 
+            method: single.method || single.payment_method, 
+            reference: single.reference_number, 
+            note: 'Full payment' 
+          };
+          advanceAmount = advancePayment.amount;
+        } else {
+          advancePayment = { 
+            amount: parseFloat(single.amount), 
+            method: single.method || single.payment_method, 
+            reference: single.reference_number, 
+            note: 'Advance payment' 
+          };
+          advanceAmount = advancePayment.amount;
+        }
+      } else if (payments.length > 1) {
+        advancePayment = {
+          amount: parseFloat(payments[0].amount),
+          method: payments[0].method || payments[0].payment_method,
+          reference: payments[0].reference_number,
+          note: 'Advance payment at booking'
+        };
+        advanceAmount = advancePayment.amount;
+        onSitePayments = payments.slice(1).map(p => ({
+          amount: parseFloat(p.amount),
+          method: p.method || p.payment_method,
+          reference: p.reference_number,
+          note: p.note || 'Payment at check-out'
+        }));
+        onSiteAmount = onSitePayments.reduce((sum, p) => sum + p.amount, 0);
+      }
+
+      const ctypeLabel = {
+        room: 'Room', food: 'Food & Bev', service: 'Service',
+        minibar: 'Minibar', laundry: 'Laundry', extra: 'Extra',
+        restaurant: 'Restaurant', transport: 'Transport'
+      };
+      
+      const chargesHtml = charges.length
+        ? charges.map(c => {
+            const amount = parseFloat(c.amount || 0);
+            const tax = parseFloat(c.tax_amount || 0);
+            const total = amount + tax;
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;
+                          padding:8px 0;border-bottom:1px solid var(--surface-3);font-size:.79rem;">
+                <div>
+                  <span style="font-size:.6rem;font-weight:700;padding:1px 7px;border-radius:10px;
+                               background:#eff6ff;color:var(--blue);margin-right:6px;">
+                    ${_esc(ctypeLabel[c.charge_type || c.type] || c.charge_type || 'Charge')}
+                  </span>
+                  ${_esc(c.description || '—')}
+                  ${c.date ? `<div style="font-size:.65rem;color:var(--text-3);margin-top:2px;">${c.date}</div>` : ''}
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-family:'DM Mono',monospace;font-weight:700;">${_fmtInr(total)}</div>
+                  ${tax > 0 ? `<div style="font-size:.65rem;color:var(--text-3);">tax +${_fmtInr(tax)}</div>` : ''}
+                </div>
+              </div>`;
+          }).join('')
+        : '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No extra charges</div>';
+
+      const pmIcon = {
+        cash: 'fa-money-bill-wave', card: 'fa-credit-card',
+        upi: 'fa-mobile-alt', bank_transfer: 'fa-university',
+        Cash: 'fa-money-bill-wave', Card: 'fa-credit-card',
+        UPI: 'fa-mobile-alt'
+      };
+      
+      // Build payments HTML with advance/on-site sections
+      let paymentsHtml = '';
+      
+      if (advancePayment && advancePayment.amount > 0) {
+        paymentsHtml += `
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:700;color:#1a65f5;margin-bottom:6px;border-left:3px solid #1a65f5;padding-left:8px;">
+              📅 ADVANCE PAYMENT (At Booking)
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                        background:var(--blue-dim);border-radius:var(--radius);
+                        border:1px solid #bfdbfe;">
+              <div style="width:32px;height:32px;border-radius:8px;background:#ecfdf5;color:var(--green);
+                          display:grid;place-items:center;font-size:12px;flex-shrink:0;">
+                <i class="fas ${pmIcon[advancePayment.method] || 'fa-money-bill-wave'}"></i>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;font-size:.8rem;">${_esc(advancePayment.method || 'Cash')}</div>
+                ${advancePayment.reference ? `<div style="font-size:.67rem;color:var(--text-3);">Ref: ${_esc(advancePayment.reference)}</div>` : ''}
+              </div>
+              <span style="font-family:'DM Mono',monospace;font-weight:800;color:var(--blue);">+${_fmtInr(advancePayment.amount)}</span>
+            </div>
+          </div>`;
+      }
+      
+      if (onSitePayments.length > 0) {
+        paymentsHtml += `
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:700;color:#16a34a;margin-bottom:6px;border-left:3px solid #16a34a;padding-left:8px;">
+              🏨 ON-SITE PAYMENTS (During Stay / Check-out)
+            </div>
+            ${onSitePayments.map(p => `
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                          background:var(--green-dim);border-radius:var(--radius);
+                          border:1px solid #86efac;margin-bottom:6px;">
+                <div style="width:32px;height:32px;border-radius:8px;background:#ecfdf5;color:var(--green);
+                            display:grid;place-items:center;font-size:12px;flex-shrink:0;">
+                  <i class="fas ${pmIcon[p.method] || 'fa-money-bill-wave'}"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:600;font-size:.8rem;">${_esc(p.method || 'Cash')}</div>
+                  ${p.reference ? `<div style="font-size:.67rem;color:var(--text-3);">Ref: ${_esc(p.reference)}</div>` : ''}
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-weight:800;color:var(--green);">+${_fmtInr(p.amount)}</span>
+              </div>
+            `).join('')}
+          </div>`;
+      }
+      
+      // Fallback to simple list
+      if (!advancePayment && onSitePayments.length === 0 && payments.length > 0) {
+        paymentsHtml = payments.map(p => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                      background:var(--surface-2);border-radius:var(--radius);
+                      border:1px solid var(--border);margin-bottom:6px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#ecfdf5;color:var(--green);
+                        display:grid;place-items:center;font-size:12px;flex-shrink:0;">
+              <i class="fas ${pmIcon[p.method || p.payment_method] || 'fa-check-circle'}"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:.8rem;">
+                ${_esc((p.method || p.payment_method || 'Payment').replace('_', ' '))}
+              </div>
+              <div style="font-size:.67rem;color:var(--text-muted);">
+                ${p.reference_number ? 'Ref: ' + _esc(p.reference_number) : ''}
+              </div>
+            </div>
+            <span style="font-family:'DM Mono',monospace;font-weight:800;color:var(--green);">+${_fmtInr(p.amount || 0)}</span>
+          </div>`).join('');
+      } else if (payments.length === 0) {
+        paymentsHtml = '<div style="padding:10px 0;color:var(--text-muted);font-size:.78rem;">No payments recorded yet</div>';
+      }
+
+      el.innerHTML = `
+        <!-- Summary strip -->
+        <div style="background:var(--navy,#0d1117);border-radius:var(--radius-lg);
+                    padding:16px 18px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:80px;">
+            <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;
+                        letter-spacing:.07em;margin-bottom:4px;">Charged</div>
+            <div style="font-size:1.1rem;font-weight:800;font-family:'DM Mono',monospace;color:#93c5fd;">
+              ${_fmtInr(grand)}
+            </div>
+          </div>
+          <div style="flex:1;min-width:80px;">
+            <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;
+                        letter-spacing:.07em;margin-bottom:4px;">Paid</div>
+            <div style="font-size:1.1rem;font-weight:800;font-family:'DM Mono',monospace;color:#6ee7b7;">
+              ${_fmtInr(paid)}
+            </div>
+            ${advanceAmount > 0 ? `
+            <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:2px;">
+              (Advance: ${_fmtInr(advanceAmount)}${onSiteAmount > 0 ? ` + On-site: ${_fmtInr(onSiteAmount)}` : ''})
+            </div>` : ''}
+          </div>
+          <div style="flex:1;min-width:80px;">
+            <div style="font-size:.58rem;color:rgba(255,255,255,.4);text-transform:uppercase;
+                        letter-spacing:.07em;margin-bottom:4px;">Balance Due</div>
+            <div style="font-size:1.1rem;font-weight:800;font-family:'DM Mono',monospace;
+                        color:${balance > 0 ? '#fca5a5' : '#6ee7b7'};">
+              ${_fmtInr(Math.abs(balance))}
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;font-size:.72rem;
+                      font-weight:600;margin-bottom:5px;">
+            <span style="color:var(--text-muted);">Payment Progress</span>
+            <span style="color:${pct >= 100 ? 'var(--green)' : pct > 0 ? 'var(--accent)' : 'var(--text-3)'};">${pct}% settled</span>
+          </div>
+          <div style="height:8px;background:var(--surface-3);border-radius:100px;overflow:hidden;">
+            <div style="height:8px;border-radius:100px;background:${barColor};
+                        width:${pct}%;transition:width .5s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Charges section -->
+        <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                    color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-list-ul" style="color:var(--blue);"></i> Charges
+          <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
+          <span>${_fmtInr(grand)}</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);
+                    padding:4px 12px;margin-bottom:16px;">
+          ${chargesHtml}
+          <div style="display:flex;justify-content:space-between;padding:10px 0 4px;
+                      font-weight:800;font-size:.88rem;border-top:2px solid var(--border);margin-top:4px;">
+            <span>Grand Total</span>
+            <span style="font-family:'DM Mono',monospace;color:var(--green);">${_fmtInr(grand)}</span>
+          </div>
+        </div>
+
+        <!-- Payments section -->
+        <div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                    color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <i class="fas fa-money-bill-wave" style="color:var(--green);"></i> Payment Breakdown
+          <span style="flex:1;height:1px;background:var(--border);display:inline-block;"></span>
+          <span style="color:var(--green);">${_fmtInr(paid)}</span>
+        </div>
+        ${paymentsHtml}
+
+        <!-- Balance status banner -->
+        ${balance > 0 ? `
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);
+                      padding:12px 16px;margin-top:10px;display:flex;align-items:center;
+                      justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="fas fa-exclamation-circle" style="color:var(--red);"></i>
+              <span style="font-size:.78rem;font-weight:700;color:var(--red);">⚠️ Balance Due at Checkout</span>
+            </div>
+            <span style="font-family:'DM Mono',monospace;font-weight:800;font-size:1rem;color:var(--red);">
+              ${_fmtInr(balance)}
+            </span>
+          </div>
+          ${advanceAmount > 0 ? `
+          <div style="margin-top:8px;padding:10px 12px;background:var(--amber-dim);border-radius:var(--radius-sm);
+                      border-left:3px solid var(--amber);">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <i class="fas fa-info-circle" style="color:var(--amber);font-size:12px;"></i>
+              <span style="font-size:12px;color:#92400e;">
+                Advance payment of <strong>${_fmtInr(advanceAmount)}</strong> received. 
+                Remaining balance <strong>${_fmtInr(balance)}</strong> to be collected at check-out.
+              </span>
+            </div>
+          </div>` : ''}
+        ` : `
+          <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:var(--radius);
+                      padding:12px 16px;margin-top:10px;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-check-circle" style="color:var(--green);font-size:14px;"></i>
+            <span style="font-size:.78rem;font-weight:700;color:#166534;">✓ Invoice fully settled — No balance due</span>
+          </div>
+        `}
+      `;
+    } catch (e) {
+      el.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.79rem;">
+          <i class="fas fa-exclamation-triangle"
+             style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+          ${_esc(e.message)}
+        </div>`;
+    }
+  }
+
+  // ── Patch openRoomCardDetail to inject tabs + payment pane ─────────
+  const _origOpenRoomCardDetail = window.openRoomCardDetail;
+
+  window.openRoomCardDetail = function (encodedData) {
+    // 1. Run the original function first (creates/populates the modal)
+    if (_origOpenRoomCardDetail) {
+      _origOpenRoomCardDetail(encodedData);
+    }
+
+    // 2. Parse the booking id from the encoded payload
+    let unit;
+    try { unit = JSON.parse(decodeURIComponent(encodedData)); } catch { return; }
+    const bk = unit.current_guest || null;
+    window._rcdCurrentBookingId = bk ? (bk.booking_id || bk.id || null) : null;
+
+    // 3. Find the modal that was just opened/populated
+    const modal = document.getElementById('roomDetailModal');
+    if (!modal) return;
+
+    const modalBox = modal.querySelector('.modal');
+    if (!modalBox) return;
+
+    _injectStyles();
+
+    // 4. Wrap the existing modal body content in a tab pane (Info tab)
+    if (!modalBox.querySelector('.rdm-tabs')) {
+
+      const header = modalBox.querySelector('.modal-header');
+      const footer = modalBox.querySelector('.modal-footer');
+      const body   = modalBox.querySelector('.modal-body');
+
+      if (!body) return;
+
+      // Move existing body content into the Info pane
+      const infoPane = document.createElement('div');
+      infoPane.className = 'rdm-tab-pane active';
+      infoPane.id        = 'rcdPaneInfo';
+      infoPane.style.cssText = 'padding:0;';
+      while (body.firstChild) infoPane.appendChild(body.firstChild);
+      body.appendChild(infoPane);
+
+      // Create the Payment pane
+      const payPane = document.createElement('div');
+      payPane.className = 'rdm-tab-pane';
+      payPane.id        = 'rcdPanePayment';
+      payPane.style.cssText = 'padding:18px 22px;';
+      body.appendChild(payPane);
+
+      // Build the tab bar
+      const tabBar = document.createElement('div');
+      tabBar.className = 'rdm-tabs';
+      tabBar.innerHTML = `
+        <button class="rdm-tab active" id="rcdTabInfo"
+                onclick="switchRcdTab('info')">
+          <i class="fas fa-info-circle"></i> Info
+        </button>
+        <button class="rdm-tab" id="rcdTabPayment"
+                onclick="switchRcdTab('payment')"
+                style="${window._rcdCurrentBookingId ? '' : 'display:none;'}">
+          <i class="fas fa-rupee-sign"></i> Payment
+        </button>`;
+      modalBox.insertBefore(tabBar, body);
+
+      body.style.padding = '0';
+      body.style.maxHeight = '72vh';
+      body.style.overflowY = 'auto';
+
+    } else {
+      // Modal already has tabs; refresh tab visibility
+      const payTabEl = document.getElementById('rcdTabPayment');
+      if (payTabEl) {
+        payTabEl.style.display = window._rcdCurrentBookingId ? '' : 'none';
+      }
+      // Switch back to Info tab on re-open
+      switchRcdTab('info');
+    }
+  };
+
+})();
 function onRoomTypeChange() {
     const sel    = document.getElementById('bookingRoomType');
     const opt    = sel.options[sel.selectedIndex];
@@ -6393,88 +7423,808 @@ function selectRoomUnit(btn, uid) {
 function onDateChange() {
     const ci = document.getElementById('bookingCheckIn').value;
     const co = document.getElementById('bookingCheckOut').value;
+
     if (ci) {
         const nd = new Date(ci);
         nd.setDate(nd.getDate() + 1);
         document.getElementById('bookingCheckOut').min = nd.toISOString().split('T')[0];
     }
+
     const nights = ci && co ? Math.max(0, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 0;
     const badge  = document.getElementById('nightsBadgeWrap');
-    if (nights > 0) { badge.style.display = 'block'; document.getElementById('nightsBadgeText').textContent = `${nights} night${nights > 1 ? 's' : ''}`; }
-    else { badge.style.display = 'none'; }
-}
+    if (nights > 0) {
+        badge.style.display = 'block';
+        document.getElementById('nightsBadgeText').textContent = `${nights} night${nights > 1 ? 's' : ''}`;
+    } else {
+        badge.style.display = 'none';
+    }
 
+    const advAmt    = parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0;
+    const methodWrap = document.getElementById('advanceMethodWrap');
+    if (methodWrap) methodWrap.style.display = advAmt > 0 ? 'block' : 'none';
+
+    populateBookingSummary();
+}
 async function saveBooking() {
-    const fullName   = document.getElementById('bookingGuestName').value.trim();
-    const phone      = document.getElementById('bookingPhone').value.trim();
-    const roomId     = document.getElementById('selectedRoomId').value;
-    const roomUnitId = document.getElementById('selectedRoomUnitId').value;
-    const ci         = document.getElementById('bookingCheckIn').value;
-    const co         = document.getElementById('bookingCheckOut').value;
-    if (!fullName || !phone || !roomUnitId || !ci || !co) { toast('Please complete all required fields', 'error'); return; }
+    const fullName      = document.getElementById('bookingGuestName').value.trim();
+    const phone         = document.getElementById('bookingPhone').value.trim();
+    const roomId        = document.getElementById('selectedRoomId').value;
+    const roomUnitId    = document.getElementById('selectedRoomUnitId').value;
+    const ci            = document.getElementById('bookingCheckIn').value;
+    const co            = document.getElementById('bookingCheckOut').value;
+    const advanceAmount = parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0;
+    const advanceMethod = document.querySelector('input[name="advanceMethod"]:checked')?.value || 'Cash';
+
+    if (!fullName || !phone || !roomUnitId || !ci || !co) {
+        toast('Please complete all required fields', 'error');
+        return;
+    }
+
     const btn  = document.getElementById('saveBookingBtn');
     const orig = btn.innerHTML;
     setLoading(btn, true, orig);
+
     try {
-        const res  = await fetch('/api/create-booking/', {
+        const res = await fetch('/api/create-booking/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
             body: JSON.stringify({
-                full_name: fullName, phone,
-                email: document.getElementById('bookingEmail').value,
-                nationality: document.getElementById('bookingNationality').value,
-                id_type: document.getElementById('bookingIdType').value,
-                id_number: document.getElementById('bookingIdNumber').value,
-                room: roomId, room_unit: roomUnitId,
-                check_in: ci, check_out: co,
-                adults: parseInt(document.getElementById('bookingGuests').value) || 1,
-                children: 0,
+                full_name:        fullName,
+                phone,
+                email:            document.getElementById('bookingEmail').value,
+                nationality:      document.getElementById('bookingNationality').value,
+                id_type:          document.getElementById('bookingIdType').value,
+                id_number:        document.getElementById('bookingIdNumber').value,
+                room:             roomId,
+                room_unit:        roomUnitId,
+                check_in:         ci,
+                check_out:        co,
+                adults:           parseInt(document.getElementById('bookingGuests').value) || 1,
+                children:         0,
                 special_requests: document.getElementById('bookingRequests').value,
-                source: 'front-desk',
+                source:           'front-desk',
+                advance_amount:   advanceAmount,
+                advance_method:   advanceMethod,
             }),
         });
+
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || (data.errors ? Object.values(data.errors).flat().join(', ') : `HTTP ${res.status}`));
-        toast(`Booking confirmed! Room ${data.room_number || ''} — ${fmt(data.total_amount || 0)}`);
+
+        let msg = `Booking confirmed! Room ${data.room_number || ''}`;
+        if (data.payment_status === 'paid')         msg += ` — Fully paid ${fmt(data.total_amount)}`;
+        else if (data.payment_status === 'partial')  msg += ` — Advance ${fmt(data.advance_paid)}, balance ${fmt(data.balance_due)}`;
+        else                                         msg += ` — Total ${fmt(data.total_amount)} (pending)`;
+
+        toast(msg);
         closeModal('newBookingModal');
         setTimeout(() => window.location.reload(), 900);
-    } catch (err) { toast(err.message || 'Network error', 'error'); }
-    finally { setLoading(btn, false, orig); }
-}
 
+    } catch (err) {
+        toast(err.message || 'Network error', 'error');
+    } finally {
+        setLoading(btn, false, orig);
+    }
+}
 // ═══════════════════════════════════════════════════════
 // ATTENDANCE
-// ═══════════════════════════════════════════════════════
+// ATTENDANCE MANAGEMENT SYSTEM
+// Global variables
+let allAttendanceRecords = [];
+let currentPage = 1;
+let pageSize = 10;
+let currentDisplayRecords = [];
 
+// Initialize attendance on page load
+async function initAttendance() {
+    try {
+        const response = await fetch('/staff/attendance/', {
+            headers: { 'X-CSRFToken': getCsrf() }
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/login/';
+                return;
+            }
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Raw data from server:', data);
+        
+        // Transform data from your view structure to frontend format
+        const fixedData = {
+            clocked_in: !!(data.today?.check_in),
+            clocked_out: !!(data.today?.check_out),
+            check_in: data.today?.check_in || null,
+            check_out: data.today?.check_out || null,
+            status: data.today?.status || 'Absent',
+            working_hours: calculateWorkingHours(data.today?.check_in, data.today?.check_out),
+            overtime_hours: data.today?.overtime_hours || 0
+        };
+        
+        updateAttendanceUI(fixedData);
+        
+        // Update summary section
+        if (data.summary) {
+            updateSummaryUI(data.summary);
+        }
+        
+        // Load past attendance records
+        await loadPastAttendance();
+        
+    } catch(error) {
+        console.error('Failed to load attendance:', error);
+        showError('Failed to load attendance data');
+    }
+}
 
+// Load past attendance records with filters
+async function loadPastAttendance() {
+    const filterType = document.getElementById('filterType')?.value || 'month';
+    const tbody = document.getElementById('pastAttendanceBody');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="6" style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading records...</td></tr>';
+    
+    try {
+        let url = '/staff/attendance/history/';
+        const params = new URLSearchParams();
+        
+        if (filterType === 'month') {
+            const monthFilter = document.getElementById('monthFilter')?.value || '';
+            if (monthFilter) params.append('months', monthFilter);
+        } else {
+            const startDate = document.getElementById('startDate')?.value;
+            const endDate = document.getElementById('endDate')?.value;
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+        }
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        const response = await fetch(url, {
+            headers: { 'X-CSRFToken': getCsrf() }
+        });
+        
+        if (!response.ok) throw new Error('Failed to load history');
+        
+        const data = await response.json();
+        allAttendanceRecords = data.attendance || [];
+        
+        // Reset to first page when new data loads
+        currentPage = 1;
+        applyPagination();
+        updateRecordCount(allAttendanceRecords.length);
+        updatePaginationControls();
+        
+    } catch(error) {
+        console.error('Error loading past attendance:', error);
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: #dc2626;"><i class="fas fa-exclamation-circle"></i> Failed to load records</td></tr>';
+    }
+}
+
+// Apply pagination to current records
+function applyPagination() {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    currentDisplayRecords = allAttendanceRecords.slice(startIndex, endIndex);
+    displayPastAttendance(currentDisplayRecords);
+    updatePaginationControls();
+}
+
+// Display past attendance records in table
+function displayPastAttendance(records) {
+    const tbody = document.getElementById('pastAttendanceBody');
+    
+    if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 2rem; text-align: center; color: #9ca3af;"><i class="fas fa-calendar-times"></i> No attendance records found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = records.map(record => {
+        const statusClass = getStatusClass(record.status);
+        const statusText = record.status || 'Absent';
+        const checkIn = record.check_in ? formatTime(record.check_in) : '--';
+        const checkOut = record.check_out ? formatTime(record.check_out) : '--';
+        const workingHours = record.working_hours ? parseFloat(record.working_hours).toFixed(2) : '--';
+        const overtime = record.overtime_hours ? parseFloat(record.overtime_hours).toFixed(2) : '0.00';
+        
+        return `
+            <tr style="border-bottom: 1px solid #e5e7eb; transition: background 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                <td style="padding: 0.75rem;">${formatDate(record.date)}</td>
+                <td style="padding: 0.75rem;">${checkIn}</td>
+                <td style="padding: 0.75rem;">${checkOut}</td>
+                <td style="padding: 0.75rem;">
+                    <span class="status-badge status-${statusClass}">${statusText}</span>
+                </td>
+                <td style="padding: 0.75rem;">${workingHours} hrs</td>
+                <td style="padding: 0.75rem;">${overtime} hrs</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Pagination control functions
+function firstPage() {
+    if (currentPage === 1) return;
+    currentPage = 1;
+    applyPagination();
+}
+
+function prevPage() {
+    if (currentPage === 1) return;
+    currentPage--;
+    applyPagination();
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(allAttendanceRecords.length / pageSize);
+    if (currentPage === totalPages) return;
+    currentPage++;
+    applyPagination();
+}
+
+function lastPage() {
+    const totalPages = Math.ceil(allAttendanceRecords.length / pageSize);
+    if (currentPage === totalPages) return;
+    currentPage = totalPages;
+    applyPagination();
+}
+
+function changePageSize() {
+    const select = document.getElementById('pageSizeSelect');
+    pageSize = parseInt(select.value);
+    currentPage = 1;
+    applyPagination();
+}
+
+function updatePaginationControls() {
+    const totalPages = Math.ceil(allAttendanceRecords.length / pageSize);
+    const currentPageSpan = document.getElementById('currentPage');
+    const totalPagesSpan = document.getElementById('totalPages');
+    const firstBtn = document.getElementById('firstPageBtn');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const lastBtn = document.getElementById('lastPageBtn');
+    
+    if (currentPageSpan) currentPageSpan.textContent = currentPage;
+    if (totalPagesSpan) totalPagesSpan.textContent = totalPages || 1;
+    
+    // Disable/enable buttons based on current page
+    if (firstBtn) firstBtn.disabled = currentPage === 1;
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+    if (lastBtn) lastBtn.disabled = currentPage === totalPages || totalPages === 0;
+}
+
+// Toggle between month and date range filter
+function toggleDateFilter() {
+    const filterType = document.getElementById('filterType').value;
+    const monthContainer = document.getElementById('monthFilterContainer');
+    const dateContainer = document.getElementById('dateRangeContainer');
+    
+    if (filterType === 'month') {
+        if (monthContainer) monthContainer.style.display = 'block';
+        if (dateContainer) dateContainer.style.display = 'none';
+    } else {
+        if (monthContainer) monthContainer.style.display = 'none';
+        if (dateContainer) dateContainer.style.display = 'flex';
+        
+        // Set default date range (last 30 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        
+        const startInput = document.getElementById('startDate');
+        const endInput = document.getElementById('endDate');
+        
+        if (startInput && !startInput.value) {
+            startInput.value = startDate.toISOString().split('T')[0];
+        }
+        if (endInput && !endInput.value) {
+            endInput.value = endDate.toISOString().split('T')[0];
+        }
+        
+        updateDateRangeLabel();
+    }
+    
+    loadPastAttendance();
+}
+
+// Update date range label
+function updateDateRangeLabel() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    const label = document.getElementById('dateRangeLabel');
+    
+    if (label && startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        label.textContent = `${diffDays} days selected`;
+    }
+}
+
+// Reset all filters
+function resetFilters() {
+    const filterType = document.getElementById('filterType');
+    const monthFilter = document.getElementById('monthFilter');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    
+    if (filterType) filterType.value = 'month';
+    if (monthFilter) monthFilter.value = '';
+    if (startDate) startDate.value = '';
+    if (endDate) endDate.value = '';
+    if (pageSizeSelect) pageSizeSelect.value = '10';
+    
+    pageSize = 10;
+    currentPage = 1;
+    toggleDateFilter();
+}
+
+// Sort table by column
+let sortColumn = '';
+let sortDirection = 'asc';
+
+function sortTable(column) {
+    if (sortColumn === column) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn = column;
+        sortDirection = 'asc';
+    }
+    
+    const sortedRecords = [...allAttendanceRecords].sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+            case 'date':
+                aVal = new Date(a.date);
+                bVal = new Date(b.date);
+                break;
+            case 'check_in':
+                aVal = a.check_in || '';
+                bVal = b.check_in || '';
+                break;
+            case 'check_out':
+                aVal = a.check_out || '';
+                bVal = b.check_out || '';
+                break;
+            case 'status':
+                aVal = a.status || '';
+                bVal = b.status || '';
+                break;
+            case 'working_hours':
+                aVal = a.working_hours || 0;
+                bVal = b.working_hours || 0;
+                break;
+            case 'overtime':
+                aVal = a.overtime_hours || 0;
+                bVal = b.overtime_hours || 0;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    allAttendanceRecords = sortedRecords;
+    currentPage = 1;
+    applyPagination();
+    
+    // Update sort icons
+    document.querySelectorAll('th i').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    const activeTh = event.target.closest('th');
+    if (activeTh) {
+        const icon = activeTh.querySelector('i');
+        if (icon) {
+            icon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        }
+    }
+}
+
+// Export to CSV
+function exportToCSV() {
+    if (!allAttendanceRecords.length) {
+        showToast('No records to export', 'error');
+        return;
+    }
+    
+    const headers = ['Date', 'Check In', 'Check Out', 'Status', 'Working Hours', 'Overtime Hours'];
+    const rows = allAttendanceRecords.map(record => [
+        formatDate(record.date),
+        record.check_in || '--',
+        record.check_out || '--',
+        record.status || 'Absent',
+        record.working_hours ? parseFloat(record.working_hours).toFixed(2) : '--',
+        record.overtime_hours ? parseFloat(record.overtime_hours).toFixed(2) : '0.00'
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showToast(`Exported ${allAttendanceRecords.length} records`);
+}
+
+// Update record count display
+function updateRecordCount(count) {
+    const countEl = document.getElementById('recordCount');
+    if (countEl) {
+        countEl.textContent = `${count} record${count !== 1 ? 's' : ''} found`;
+    }
+}
+
+// Helper function to get status class for styling
+function getStatusClass(status) {
+    if (!status) return 'absent';
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'present') return 'present';
+    if (statusLower === 'late') return 'late';
+    if (statusLower === 'half day' || statusLower === 'half-day') return 'halfday';
+    if (statusLower === 'absent') return 'absent';
+    return 'absent';
+}
+
+// Helper function to format date
+function formatDate(dateStr) {
+    if (!dateStr) return '--';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+// Calculate working hours from check_in and check_out
+function calculateWorkingHours(checkIn, checkOut) {
+    if (!checkIn || !checkOut) return null;
+    
+    try {
+        const parseTime = (timeStr) => {
+            if (!timeStr) return null;
+            const match = timeStr.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
+            if (!match) return null;
+            
+            let hours = parseInt(match[1]);
+            const minutes = parseInt(match[2]);
+            const period = match[3].toUpperCase();
+            
+            if (period === 'PM' && hours !== 12) hours += 12;
+            if (period === 'AM' && hours === 12) hours = 0;
+            
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date;
+        };
+        
+        const inTime = parseTime(checkIn);
+        const outTime = parseTime(checkOut);
+        
+        if (!inTime || !outTime) return null;
+        
+        const diffMs = outTime - inTime;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        
+        return Math.round(diffHours * 100) / 100;
+    } catch(e) {
+        console.error('Error calculating working hours:', e);
+        return null;
+    }
+}
+
+// Update summary UI
+function updateSummaryUI(summary) {
+    const presentDaysEl = document.getElementById('totalPresentDays');
+    const lateDaysEl = document.getElementById('totalLateDays');
+    const absentDaysEl = document.getElementById('totalAbsentDays');
+    const overtimeEl = document.getElementById('totalOvertimeHours');
+    
+    if (presentDaysEl) presentDaysEl.textContent = summary.total_present_days || 0;
+    if (lateDaysEl) lateDaysEl.textContent = summary.total_late_days || 0;
+    if (absentDaysEl) absentDaysEl.textContent = summary.total_absent_days || 0;
+    if (overtimeEl) overtimeEl.textContent = (summary.total_overtime_hours || 0).toFixed(1);
+}
+
+// Update attendance UI
+function updateAttendanceUI(data) {
+    const btnClockIn = document.getElementById('btnClockIn');
+    const btnClockOut = document.getElementById('btnClockOut');
+    const statusPill = document.getElementById('todayStatusPill');
+    const logMsg = document.getElementById('attLogMsg');
+    
+    const hasValidCheckIn = data.check_in && data.check_in !== 'Invalid Date';
+    const hasValidCheckOut = data.check_out && data.check_out !== 'Invalid Date';
+    
+    if (hasValidCheckIn && hasValidCheckOut) {
+        if (btnClockIn) btnClockIn.disabled = true;
+        if (btnClockOut) btnClockOut.disabled = true;
+        if (statusPill) {
+            statusPill.className = 'pill pill-green';
+            statusPill.textContent = '✅ Done for today';
+        }
+        if (logMsg) {
+            const checkIn = formatTime(data.check_in);
+            const checkOut = formatTime(data.check_out);
+            const hours = data.working_hours ? data.working_hours.toFixed(2) : '—';
+            logMsg.innerHTML = `<i class="fas fa-check-circle"></i> ${checkIn} → ${checkOut} · ${hours} hrs completed`;
+        }
+    }
+    else if (hasValidCheckIn && !hasValidCheckOut) {
+        if (btnClockIn) btnClockIn.disabled = true;
+        if (btnClockOut) btnClockOut.disabled = false;
+        if (statusPill) {
+            const statusClass = data.status === 'Late' ? 'pill-amber' : 'pill-green';
+            statusPill.className = `pill ${statusClass}`;
+            statusPill.textContent = data.status || 'Present';
+        }
+        if (logMsg) {
+            const time = formatTime(data.check_in);
+            logMsg.innerHTML = `<i class="fas fa-clock"></i> Clocked in at ${time} - Click "Clock Out" when done`;
+        }
+    }
+    else {
+        if (btnClockIn) btnClockIn.disabled = false;
+        if (btnClockOut) btnClockOut.disabled = true;
+        if (statusPill) {
+            statusPill.className = 'pill pill-gray';
+            statusPill.textContent = '⏰ Not clocked in';
+        }
+        if (logMsg) {
+            logMsg.innerHTML = '<i class="fas fa-info-circle"></i> You have not clocked in today.';
+        }
+    }
+}
+
+// Format time safely
+function formatTime(timeValue) {
+    if (!timeValue || timeValue === 'Invalid Date') return '--';
+    if (typeof timeValue === 'string' && timeValue.match(/(\d{1,2}:\d{2}\s?(AM|PM))/i)) {
+        return timeValue;
+    }
+    try {
+        const date = new Date(timeValue);
+        if (isNaN(date.getTime())) return '--';
+        return date.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch(e) {
+        return '--';
+    }
+}
+
+// Clock In function
 function clockIn() {
+    const btn = document.getElementById('btnClockIn');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Clocking in…';
+    
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken', getCsrf());
-    fetch('/attendance/mark/', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
-        if (data.success) {
-            document.getElementById('btnClockIn').disabled  = true;
-            document.getElementById('btnClockOut').disabled = false;
-            const p = document.getElementById('todayStatusPill');
-            p.className   = `pill ${data.status === 'Late' ? 'pill-amber' : 'pill-green'}`;
-            p.textContent = data.status || 'Present';
-            document.getElementById('attLogMsg').textContent = `Clocked in at ${data.check_in ? new Date(data.check_in).toLocaleTimeString() : 'just now'}`;
-            toast(`Clocked in · ${data.status || 'Present'}`);
-        } else toast(data.message || 'Already clocked in.', 'error');
-    }).catch(() => toast('Network error', 'error'));
+    fd.append('action', 'clock_in');
+    
+    fetch('/attendance/mark/', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                
+                updateAttendanceUI({
+                    clocked_in: true,
+                    clocked_out: false,
+                    check_in: data.check_in || timeString,
+                    check_out: null,
+                    status: data.status || 'Present',
+                    working_hours: null,
+                    overtime_hours: 0
+                });
+                
+                showToast(`✅ Clocked in at ${timeString} · ${data.status || 'Present'}`);
+                setTimeout(() => {
+                    initAttendance();
+                }, 1000);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                showToast(data.message || data.error || 'Clock-in failed', 'error');
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            showToast('Network error - please try again', 'error');
+        });
 }
 
+// Clock Out function
 function clockOut() {
+    const btn = document.getElementById('btnClockOut');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Clocking out…';
+    
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken', getCsrf());
-    fetch('/attendance/mark/', { method: 'POST', body: fd }).then(r => r.json()).then(data => {
-        if (data.success) {
-            document.getElementById('btnClockOut').disabled  = true;
-            document.getElementById('attLogMsg').textContent = `Clocked out · ${data.working_hours || '—'} hrs`;
-            toast(`Clocked out · ${data.working_hours || '—'} hrs`);
-        } else toast(data.message || 'Already clocked out.', 'error');
-    }).catch(() => toast('Network error', 'error'));
+    fd.append('action', 'clock_out');
+    
+    fetch('/attendance/mark/', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                let workingHours = null;
+                if (data.check_in && data.check_out) {
+                    workingHours = calculateWorkingHours(data.check_in, data.check_out);
+                }
+                
+                updateAttendanceUI({
+                    clocked_in: true,
+                    clocked_out: true,
+                    check_in: data.check_in,
+                    check_out: data.check_out,
+                    status: data.status,
+                    working_hours: workingHours || data.working_hours,
+                    overtime_hours: data.overtime_hours || 0
+                });
+                
+                const hours = workingHours ? workingHours.toFixed(2) : '—';
+                showToast(`✅ Clocked out · ${hours} hrs worked`);
+                setTimeout(() => {
+                    initAttendance();
+                }, 1000);
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                showToast(data.message || data.error || 'Clock-out failed', 'error');
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            showToast('Network error - please try again', 'error');
+        });
 }
 
+// Get CSRF token
+function getCsrf() {
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
+// Toast notification
+function showToast(message, type = 'success') {
+    let toastEl = document.getElementById('customToast');
+    if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.id = 'customToast';
+        toastEl.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        document.body.appendChild(toastEl);
+        
+        if (!document.querySelector('#toastStyles')) {
+            const style = document.createElement('style');
+            style.id = 'toastStyles';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    toastEl.style.backgroundColor = type === 'error' ? '#dc2626' : '#10b981';
+    toastEl.textContent = message;
+    toastEl.style.display = 'block';
+    toastEl.style.opacity = '1';
+    
+    setTimeout(() => {
+        toastEl.style.opacity = '0';
+        setTimeout(() => {
+            toastEl.style.display = 'none';
+            toastEl.style.opacity = '1';
+        }, 300);
+    }, 3000);
+}
+
+function showError(message) {
+    console.error(message);
+    showToast(message, 'error');
+}
+
+// Add status badge styles if not present
+if (!document.querySelector('#statusBadgeStyles')) {
+    const style = document.createElement('style');
+    style.id = 'statusBadgeStyles';
+    style.textContent = `
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .status-present { background: #d1fae5; color: #065f46; }
+        .status-late { background: #fed7aa; color: #92400e; }
+        .status-absent { background: #fee2e2; color: #991b1b; }
+        .status-halfday { background: #fef3c7; color: #92400e; }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .pill-green { background-color: #10b981; color: white; }
+        .pill-amber { background-color: #f59e0b; color: white; }
+        .pill-gray { background-color: #9ca3af; color: white; }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initAttendance);
 // ═══════════════════════════════════════════════════════
 // SHIFTS
 // ═══════════════════════════════════════════════════════
@@ -7232,57 +8982,212 @@ document.addEventListener('DOMContentLoaded', () => {
     bkRender();
 });
 
-/* ─── Status filter (tab buttons) ───────────────────────── */
+// ─────────────────────────────────────────────────────────────────────────────
+// BK STATE — ensure these exist on your BK object
+// BK.status      = 'all'
+// BK.inHouseMode = 'staying'   ← 'staying' | 'arrivals'
+// BK.from        = ''          ← 'YYYY-MM-DD' or ''
+// BK.to          = ''
+// BK.page        = 1
+// BK.pageSize    = 10
+// ─────────────────────────────────────────────────────────────────────────────
+
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function filterBookings(status, btn) {
+  BK.status      = status;
+  BK.page        = 1;
+  BK.inHouseMode = 'staying'; // always reset sub-filter on tab change
+
+  // Highlight active main tab
+  document.querySelectorAll('#bookingFilterBar .tab-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Reset sub-filter to default ("All In-House")
+  document.querySelectorAll('.bk-sub-filter')
+    .forEach(b => b.classList.remove('active'));
+  const defaultSub = document.querySelector('[data-inhouse-mode="staying"]');
+  if (defaultSub) defaultSub.classList.add('active');
+
+  // Show sub-filter bar ONLY on In-House tab
+  const bar = document.getElementById('bkInHouseFilterBar');
+  if (bar) bar.style.display = (status === 'checked_in') ? 'flex' : 'none';
+
+  // Update date chip label to match current tab context
+  _updateDateChipLabels(status);
+
+  bkApplyFilters();
+}
+
+
+// ── IN-HOUSE SUB-FILTER CLICKS ───────────────────────────────────────────────
+document.querySelectorAll('.bk-sub-filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bk-sub-filter')
+      .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    BK.inHouseMode = btn.dataset.inhouseMode; // 'staying' or 'arrivals'
+    BK.page = 1;
+
+    // Update chip labels when sub-filter changes
+    _updateDateChipLabels(BK.status, BK.inHouseMode);
+
+    bkApplyFilters();
+  });
+});
+
+
+// ── CHIP LABEL HELPER ────────────────────────────────────────────────────────
+function _updateDateChipLabels(status, inHouseMode = 'staying') {
+  const chipToday = document.querySelector('[data-chip="today"]');
+  const chipWeek  = document.querySelector('[data-chip="week"]');
+  const chipMonth = document.querySelector('[data-chip="month"]');
+  if (!chipToday) return;
+
+  const labels = {
+    all:          { today: 'Today',               week: 'This Week',           month: 'This Month'           },
+    confirmed:    { today: "Today's Arrivals",     week: 'Arriving This Week',  month: 'Arriving This Month'  },
+    checked_in:   {
+      staying:  { today: 'In-House Today',        week: 'In-House This Week',  month: 'In-House This Month'  },
+      arrivals: { today: 'Arrived Today',          week: 'Arrived This Week',   month: 'Arrived This Month'   },
+    },
+    checked_out:  { today: "Today's Departures",  week: 'Departed This Week',  month: 'Departed This Month'  },
+    cancelled:    { today: 'Cancelled Today',      week: 'Cancelled This Week', month: 'Cancelled This Month' },
+  };
+
+  const set = status === 'checked_in'
+    ? labels.checked_in[inHouseMode]
+    : (labels[status] || labels.all);
+
+  if (chipToday) chipToday.textContent = set.today;
+  if (chipWeek)  chipWeek.textContent  = set.week;
+  if (chipMonth) chipMonth.textContent = set.month;
+}
+
+
+// ── MAIN FILTER FUNCTION ─────────────────────────────────────────────────────
 function bkApplyFilters() {
-  const allRows = Array.from(document.querySelectorAll('#bookingsTableBody tr[data-status]'));
-  const q = (document.getElementById('bkSearchInput')?.value || '').toLowerCase();
+  const allRows = Array.from(
+    document.querySelectorAll('#bookingsTableBody tr[data-status]')
+  );
+  const q = (document.getElementById('bkSearchInput')?.value || '')
+    .toLowerCase().trim();
 
   const filtered = allRows.filter(r => {
-    const stOk = BK.status === 'all' || r.dataset.status === BK.status;
-    const qOk  = !q
-      || (r.dataset.guest   || '').includes(q)
-      || (r.dataset.room    || '').includes(q)
-      || (r.dataset.roomnum || '').includes(q);
 
-    // Pick which date field to filter against based on status tab
-    let dateOk = true;
-    if (BK.from || BK.to) {
-      const checkIn  = (r.dataset.checkin  || '').split('T')[0];
-      const checkOut = (r.dataset.checkout || '').split('T')[0];
+    // ── 1. STATUS FILTER ────────────────────────────────────────────────────
+    // Special case: "Arrivals Only" on In-House tab must also include
+    // checked_out and confirmed rows — guest DID arrive on that date
+    // even if they've since departed or haven't checked in yet.
+    let stOk;
+    if (BK.status === 'checked_in' && BK.inHouseMode === 'arrivals') {
+      stOk = r.dataset.status === 'checked_in'  // currently in-house
+          || r.dataset.status === 'checked_out'  // arrived but already departed
+          || r.dataset.status === 'confirmed';   // booked to arrive (not yet checked in)
+    } else {
+      stOk = BK.status === 'all' || r.dataset.status === BK.status;
+    }
+    if (!stOk) return false;
 
-      if (BK.status === 'checked_out') {
-        // Checkout tab → filter by checkout date
-        if (!checkOut) { dateOk = false; }
-        else {
-          if (BK.from && checkOut < BK.from) dateOk = false;
-          if (BK.to   && checkOut > BK.to)   dateOk = false;
-        }
-      } else if (BK.status === 'confirmed' || BK.status === 'checked_in') {
-        // Confirmed / In-House → filter by check-in date
-        if (!checkIn) { dateOk = false; }
-        else {
-          if (BK.from && checkIn < BK.from) dateOk = false;
-          if (BK.to   && checkIn > BK.to)   dateOk = false;
-        }
-      } else {
-        // "All" or "cancelled" → match if EITHER check-in OR check-out falls in range
-        const ciOk = checkIn  && (!BK.from || checkIn  >= BK.from) && (!BK.to || checkIn  <= BK.to);
-        const coOk = checkOut && (!BK.from || checkOut >= BK.from) && (!BK.to || checkOut <= BK.to);
-        dateOk = !!(ciOk || coOk);
-      }
+    // ── 2. SEARCH FILTER ────────────────────────────────────────────────────
+    if (q) {
+      const guestMatch   = (r.dataset.guest   || '').toLowerCase().includes(q);
+      const roomMatch    = (r.dataset.room     || '').toLowerCase().includes(q);
+      const roomNumMatch = (r.dataset.roomnum  || '').toLowerCase().includes(q);
+      const bookingMatch = (r.dataset.booking  || '').toLowerCase().includes(q);
+      if (!guestMatch && !roomMatch && !roomNumMatch && !bookingMatch) return false;
     }
 
-    return stOk && qOk && dateOk;
+    // ── 3. DATE RANGE FILTER ────────────────────────────────────────────────
+    if (!BK.from && !BK.to) return true; // no date filter → show all
+
+    const checkIn     = (r.dataset.checkin     || '').split('T')[0];
+    const checkOut    = (r.dataset.checkout    || '').split('T')[0];
+    const cancelledAt = (r.dataset.cancelledat || '').split('T')[0];
+
+    const rangeStart = BK.from || '0000-01-01';
+    const rangeEnd   = BK.to   || '9999-12-31';
+
+    // Single date falls within selected range
+    const inRange = (date) =>
+      date && date >= rangeStart && date <= rangeEnd;
+
+    // Stay period intersects the selected date range
+    // ┌──────────────────────────────────────────────────────────────────┐
+    // │  Booking:  |────── checkIn ──────── checkOut ──────|            │
+    // │  Range:           |── rangeStart ──── rangeEnd ──|              │
+    // │  Overlap if: checkIn <= rangeEnd AND checkOut >= rangeStart      │
+    // └──────────────────────────────────────────────────────────────────┘
+    const stayOverlaps = () => {
+      if (!checkIn || !checkOut) return false;
+      return checkIn <= rangeEnd && checkOut >= rangeStart;
+    };
+
+    switch (BK.status) {
+
+      // ── CONFIRMED ─────────────────────────────────────────────────────────
+      // "Show upcoming arrivals in this period."
+      // Only the check-in date matters — booking hasn't started yet.
+      case 'confirmed':
+        return inRange(checkIn);
+
+      // ── IN-HOUSE ──────────────────────────────────────────────────────────
+      // Two modes driven by the sub-filter toggle:
+      //
+      //  'staying'  → Who is physically in the hotel during this range?
+      //               Uses overlap — catches long-stay guests who arrived
+      //               before the range but are still here.
+      //               e.g. "Today" = everyone in-house right now.
+      //
+      //  'arrivals' → Who arrived (checked in) during this range?
+      //               Includes checked_in, checked_out, and confirmed rows
+      //               so no arrival is missed regardless of current status.
+      //               e.g. "Today" = every guest whose check-in date is today.
+      case 'checked_in':
+        return (BK.inHouseMode === 'arrivals')
+          ? inRange(checkIn)   // Arrivals Only — match on check-in date
+          : stayOverlaps();    // All In-House  — match stay overlap
+
+      // ── CHECKED OUT ───────────────────────────────────────────────────────
+      // "Show departures in this period."
+      // Check-out date is the only relevant event.
+      case 'checked_out':
+        return inRange(checkOut);
+
+      // ── CANCELLED ─────────────────────────────────────────────────────────
+      // Priority 1: actual cancellation timestamp if server provides it.
+      //             → data-cancelledat="YYYY-MM-DD" on the <tr>
+      // Priority 2: fall back to check-in date (when stay was supposed to
+      //             happen) — useful for revenue impact reports.
+      case 'cancelled':
+        return cancelledAt ? inRange(cancelledAt) : inRange(checkIn);
+
+      // ── ALL ───────────────────────────────────────────────────────────────
+      // "Every booking that touched this period."
+      // Incomplete rows shown with amber highlight instead of silently hidden.
+      case 'all':
+      default: {
+        if (!checkIn || !checkOut) {
+          r.classList.add('bk-row--incomplete'); // flag missing data visually
+          return true;
+        }
+        r.classList.remove('bk-row--incomplete');
+        return stayOverlaps();
+      }
+    }
   });
 
+  // ── PAGINATION ──────────────────────────────────────────────────────────
   BK.pageSize = parseInt(document.getElementById('bkPageSize')?.value || 10);
   const total = filtered.length;
   const maxPg = Math.max(1, Math.ceil(total / BK.pageSize));
   BK.page     = Math.max(1, Math.min(BK.page, maxPg));
   const start = (BK.page - 1) * BK.pageSize;
 
-  allRows.forEach(r => r.style.display = 'none');
-  filtered.slice(start, start + BK.pageSize).forEach(r => r.style.display = '');
+  allRows.forEach(r => (r.style.display = 'none'));
+  filtered.slice(start, start + BK.pageSize).forEach(r => (r.style.display = ''));
 
   const rc = document.getElementById('bkRowCount');
   if (rc) rc.textContent = `${total} booking${total !== 1 ? 's' : ''}`;

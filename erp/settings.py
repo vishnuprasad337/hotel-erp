@@ -62,7 +62,8 @@ TENANT_APPS = (
     'housekeeping',
     'billing',
     'restaurant',
-    'inventory'
+    'inventory',
+    'channelmanager'
                          
 )
 
@@ -158,7 +159,7 @@ USE_TZ = True
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -185,3 +186,5 @@ EMAIL_HOST_PASSWORD = 'sjcf tyva aldr ashi'
 DEFAULT_FROM_EMAIL = 'msvishnu673@gmail.com'
 
 PASSWORD_RESET_TIMEOUT =900
+MY_API_KEY = "hotel_erp_prod_2026_x7K9mP2Qa8"
+CMS_PUBLIC_URL = "http://localhost:8000" 

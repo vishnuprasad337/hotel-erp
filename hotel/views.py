@@ -416,8 +416,30 @@ def get_shifts(request):
 @require_POST
 def assign_shift(request):
     try:
-        hotel_id      = request.session.get("hotel_id")
-        staff_id      = request.POST.get("staff")
+        hotel_id  = request.session.get("hotel_id")
+        staff_id  = request.session.get("staff_id")
+
+        # Must be logged in as either hotel or staff
+        if not hotel_id and not staff_id:
+            return JsonResponse({"error": "Login required"}, status=401)
+
+        # If staff is assigning (no hotel session), resolve hotel from their profile
+        if not hotel_id:
+            try:
+                staff_obj = Staff.objects.select_related("hotel").get(id=staff_id)
+                hotel_id  = staff_obj.hotel_id
+                request.session["hotel_id"] = hotel_id
+            except Staff.DoesNotExist:
+                return JsonResponse({"error": "Staff not found"}, status=404)
+
+        # Staff can only assign themselves; hotel admin can assign anyone
+        req_staff_id  = request.POST.get("staff")
+        if not req_staff_id:
+            if staff_id:
+                req_staff_id = staff_id   # default to self when staff is logged in
+            else:
+                return JsonResponse({"error": "staff is required"}, status=400)
+
         department_id = request.POST.get("department")
         shift_value   = request.POST.get("shift")
         from_date     = request.POST.get("from_date")
@@ -427,11 +449,8 @@ def assign_shift(request):
         custom_end    = request.POST.get("custom_end",   "").strip()
         custom_color  = request.POST.get("custom_color", "").strip()
 
-        if not hotel_id:
-            return JsonResponse({"error": "Login required"}, status=401)
-
-        if not all([staff_id, shift_value, from_date, to_date]):
-            return JsonResponse({"error": "Missing required fields"}, status=400)
+        if not all([shift_value, from_date, to_date]):
+            return JsonResponse({"error": "shift, from_date and to_date are required"}, status=400)
 
         start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
         end_date   = datetime.strptime(to_date,   "%Y-%m-%d").date()
@@ -439,12 +458,13 @@ def assign_shift(request):
         if start_date > end_date:
             return JsonResponse({"error": "Invalid date range"}, status=400)
 
+        # Resolve department: use provided, else fall back to staff's own department
         if not department_id:
-            staff         = get_object_or_404(Staff, id=staff_id)
-            department_id = staff.department_id
+            target_staff  = get_object_or_404(Staff, id=req_staff_id)
+            department_id = target_staff.department_id
 
         if not department_id:
-            return JsonResponse({"error": "Department is required"}, status=400)
+            return JsonResponse({"error": "Department could not be resolved"}, status=400)
 
         parsed_start = None
         parsed_end   = None
@@ -476,7 +496,7 @@ def assign_shift(request):
         while current_date <= end_date:
             _, created = Shift.objects.update_or_create(
                 hotel_id=hotel_id,
-                staff_id=staff_id,
+                staff_id=req_staff_id,
                 date=current_date,
                 defaults={
                     "department_id": department_id,
@@ -500,16 +520,16 @@ def assign_shift(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
 def weekly_schedule(request):
-    staff_id   = request.session.get("staff_id")
-    hotel_id   = request.session.get("hotel_id")
+    staff_id  = request.session.get("staff_id")
+    hotel_id  = request.session.get("hotel_id")
     start_date = request.GET.get("start_date")
 
-    if not staff_id:
+   
+    if not staff_id and not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
 
+   
     if not hotel_id:
         try:
             current  = Staff.objects.select_related("hotel").get(id=staff_id)
@@ -532,6 +552,8 @@ def weekly_schedule(request):
         hotel_id=hotel_id,
         date__range=[start_date_obj, end_date]
     ).select_related("staff", "department")
+
+    
 
     templates = {
         t.shift_name: t
@@ -562,7 +584,7 @@ def weekly_schedule(request):
     }
 
     for s in shifts:
-        day        = s.date.strftime("%Y-%m-%d")
+        day           = s.date.strftime("%Y-%m-%d")
         st, et, color = get_times(s)
         data[day].append({
             "id":           s.id,
@@ -583,8 +605,6 @@ def weekly_schedule(request):
         "schedule": data,
         "debug": {"hotel_id": hotel_id, "total_shifts": shifts.count()},
     })
-
-
 def update_shift(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -1561,10 +1581,47 @@ def mark_attendance(request):
         "success": False,
         "message": "Attendance already completed"
     })
-    
+def today_attendance(request):
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    today = timezone.now().date()
+
+    try:
+        att = Attendance.objects.get(staff_id=staff_id, date=today)
+    except Attendance.DoesNotExist:
+        # No record yet = not clocked in
+        return JsonResponse({
+            "clocked_in":    False,
+            "clocked_out":   False,
+            "check_in":      None,
+            "check_out":     None,
+            "status":        None,
+            "working_hours": None
+        })
+
+    def fmt(dt):
+        if not dt:
+            return None
+        return dt.strftime("%I:%M %p")  # 09:30 AM
+
+    working_hours = None
+    if att.check_in and att.check_out:
+        working_hours = round(
+            (att.check_out - att.check_in).total_seconds() / 3600, 2
+        )
+
+    return JsonResponse({
+        "clocked_in":    att.check_in  is not None,
+        "clocked_out":   att.check_out is not None,
+        "check_in":      fmt(att.check_in),
+        "check_out":     fmt(att.check_out),
+        "status":        att.status,
+        "working_hours": working_hours
+    })   
 def live_attendance(request):
     hotel_id = request.session.get("hotel_id")
-
     if not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
 
@@ -1573,7 +1630,7 @@ def live_attendance(request):
     records = Attendance.objects.filter(
         hotel_id=hotel_id,
         date=today
-    ).select_related("staff").order_by("-check_in")
+    ).select_related("staff", "staff__department").order_by("-check_in")  # ← add staff__department
 
     data = []
     for r in records:
@@ -1586,6 +1643,8 @@ def live_attendance(request):
 
         data.append({
             "name": r.staff.name,
+            "department": r.staff.department.name if r.staff.department else "—",  
+            "date": str(r.date),                                                    
             "check_in": r.check_in.isoformat() if r.check_in else None,
             "check_out": r.check_out.isoformat() if r.check_out else None,
             "overtime_hours": float(r.overtime_hours or 0),
@@ -1593,7 +1652,125 @@ def live_attendance(request):
         })
 
     return JsonResponse(data, safe=False)
+from django.db import models
+def get_attendance(request):
+    staff_id = request.session.get("staff_id")
 
+    if not staff_id:
+        return JsonResponse({
+            "error": "Login required"
+        }, status=401)
+
+    try:
+        staff = Staff.objects.select_related("department").get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({
+            "error": "Staff not found"
+        }, status=404)
+
+    today = timezone.now().date()
+
+    attendance = Attendance.objects.filter(
+        staff=staff,
+        date=today
+    ).first()
+
+    total_present = Attendance.objects.filter(
+        staff=staff,
+        status__in=["Present", "Late"],
+    ).count()
+
+    total_half_day = Attendance.objects.filter(
+        staff=staff,
+        status="Half Day"
+    ).count()
+
+    total_overtime = Attendance.objects.filter(
+        staff=staff
+    ).aggregate(total=models.Sum("overtime_hours"))["total"] or 0
+
+    response = {
+        "staff": {
+            "id": staff.id,
+            "name": staff.name,
+            "department": staff.department.name if staff.department else "—",
+            "designation": getattr(staff, "designation", None),
+        },
+
+        "today": {
+            "date": str(today),
+            "check_in": attendance.check_in.strftime("%I:%M %p") if attendance and attendance.check_in else None,
+            "check_out": attendance.check_out.strftime("%I:%M %p") if attendance and attendance.check_out else None,
+            "status": attendance.status if attendance else "Absent",
+            "overtime_hours": float(attendance.overtime_hours or 0) if attendance else 0,
+        },
+
+        "summary": {
+            "total_present_days": total_present,
+            "total_half_days": total_half_day,
+            "total_overtime_hours": round(float(total_overtime), 2),
+        }
+    }
+
+    return JsonResponse(response)
+from datetime import timedelta
+from django.utils import timezone
+
+def get_attendance_history(request):
+    staff_id = request.session.get("staff_id")
+    
+    if not staff_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+    
+    try:
+        staff = Staff.objects.get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+    
+    # Get filter parameters
+    months = request.GET.get('months', '')
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    
+    today = timezone.now().date()
+    
+   
+    if start_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+    elif months:
+        
+        months_offset = int(months) if months else 0
+        start_date = today.replace(day=1) - timedelta(days=30 * abs(months_offset))
+    else:
+        start_date = today - timedelta(days=30)
+    
+    if end_date_str:
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    else:
+        end_date = today
+    
+    attendance_records = Attendance.objects.filter(
+        staff=staff,
+        date__range=[start_date, end_date]
+    ).order_by('-date')
+    
+    records_data = []
+    for record in attendance_records:
+        working_hours = None
+        if record.check_in and record.check_out:
+            delta = record.check_out - record.check_in
+            working_hours = round(delta.total_seconds() / 3600, 2)
+        
+        records_data.append({
+            "date": record.date,
+            "check_in": record.check_in.strftime("%I:%M %p") if record.check_in else None,
+            "check_out": record.check_out.strftime("%I:%M %p") if record.check_out else None,
+            "status": record.status,
+            "working_hours": working_hours,
+            "overtime_hours": float(record.overtime_hours or 0)
+        })
+    
+    return JsonResponse({"attendance": records_data})    
 def daily_report(request):
     hotel_id = request.session.get("hotel_id")
     if not hotel_id:
@@ -1632,41 +1809,92 @@ def daily_report(request):
             "date": date_str,
             "check_in": a.check_in.isoformat() if a and a.check_in else None,
             "check_out": a.check_out.isoformat() if a and a.check_out else None,
-            "status": a.status if a else "Absent",
+            # If attendance row exists but status is blank, treat as Absent
+            "status": (a.status or "Absent") if a else "Absent",
             "overtime": float(a.overtime_hours or 0) if a else 0.0
         })
 
     return JsonResponse(data, safe=False)
+
+
 def monthly_report(request):
     hotel_id = request.session.get("hotel_id")
-
     if not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
 
-    today = timezone.now()
-    month = today.month
-    year = today.year
+    month_str = request.GET.get("month")
+    if month_str:
+        try:
+            parsed = datetime.strptime(month_str, "%Y-%m")
+            month, year = parsed.month, parsed.year
+        except ValueError:
+            return JsonResponse({"error": "Invalid month format. Use YYYY-MM"}, status=400)
+    else:
+        now = timezone.now()
+        month, year = now.month, now.year
 
-    records = Attendance.objects.filter(
+    from calendar import monthrange
+    from collections import defaultdict
+
+    first_day = date(year, month, 1)
+    last_day  = date(year, month, monthrange(year, month)[1])
+
+    # ✅ ALL staff in hotel, not just scheduled ones
+    all_staff = Staff.objects.filter(hotel_id=hotel_id).order_by("name")
+
+    # All attendance rows for this month
+    att_rows = Attendance.objects.filter(
         hotel_id=hotel_id,
         date__month=month,
         date__year=year
-    ).values("staff__name").annotate(
-        present=Count("id", filter=Q(status="Present")),
-        absent=Count("id", filter=Q(status="Absent")),
-        late=Count("id", filter=Q(status="Late")),
-        overtime=Sum("overtime_hours")       
-    ).order_by("staff__name")
+    )
+    att_map = defaultdict(list)
+    for a in att_rows:
+        att_map[a.staff_id].append(a)
+
+    # Scheduled dates per staff
+    shift_days = Shift.objects.filter(
+        hotel_id=hotel_id,
+        date__range=(first_day, last_day)
+    ).values("staff_id", "date").distinct()
+
+    scheduled_days_map = defaultdict(set)
+    for row in shift_days:
+        scheduled_days_map[row["staff_id"]].add(row["date"])
 
     data = []
-    for r in records:
+    for s in all_staff:
+        records         = att_map[s.id]
+        scheduled_dates = scheduled_days_map[s.id]   
+        scheduled       = len(scheduled_dates)
+
+       
+        scheduled_records = [a for a in records if a.date in scheduled_dates]
+
+        present  = sum(1 for a in scheduled_records if a.status in ("Present", "Late", "Half Day"))
+        late     = sum(1 for a in scheduled_records if a.status == "Late")
+        half_day = sum(1 for a in scheduled_records if a.status == "Half Day")
+
+        attended_dates = {a.date for a in scheduled_records if a.check_in}
+        absent = max(scheduled - len(attended_dates), 0)
+
+       
+        extra_day_records = [a for a in records if a.date not in scheduled_dates and a.check_in]
+        extra_days = len(extra_day_records)
+
+        overtime = round(sum(float(a.overtime_hours or 0) for a in scheduled_records), 2)
+
         data.append({
-            "staff__name": r["staff__name"],
-            "present": r["present"],
-            "absent": r["absent"],
-            "late": r["late"],
-            "overtime": round(float(r["overtime"] or 0), 2)
+            "name":       s.name,
+            "scheduled":  scheduled,     
+            "present":    present,
+            "absent":     absent,
+            "late":       late,
+            "half_day":   half_day,
+            "extra_days": extra_days,
+            "overtime":   overtime
         })
+
     return JsonResponse(data, safe=False)
 @csrf_exempt
 def apply_leave(request):

@@ -208,11 +208,9 @@ class Staff(models.Model):
         related_name="staff_profile"
     )
 
-  
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15, blank=True, null=True)
 
-    
     department = models.ForeignKey(
         Department,
         on_delete=models.SET_NULL,
@@ -220,7 +218,6 @@ class Staff(models.Model):
         blank=True
     )
 
-    
     employee_id = models.CharField(max_length=20, blank=True, null=True)
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     joining_date = models.DateField(default=timezone.now)
@@ -228,8 +225,8 @@ class Staff(models.Model):
     is_active = models.BooleanField(default=True)
     is_available = models.BooleanField(default=True)
 
-   
     photo = models.ImageField(upload_to="staff_photos/", null=True, blank=True)
+
     id_proof_type = models.CharField(
         max_length=50,
         choices=[
@@ -244,28 +241,67 @@ class Staff(models.Model):
         blank=True,
         help_text="Type of ID proof provided"
     )
-    
+
     id_proof_number = models.CharField(
         max_length=50,
         blank=True,
         null=True,
         help_text="ID proof number (e.g., Aadhaar number, PAN number)"
     )
-    
+
     id_proof_image = models.ImageField(
         upload_to="staff_id_proofs/",
         null=True,
         blank=True,
         help_text="Uploaded ID proof image/document"
     )
+
+    nickname = models.CharField(max_length=100, blank=True, null=True)
+    dob = models.DateField(blank=True, null=True)
+
+    gender = models.CharField(
+        max_length=20,
+        choices=[
+            ('male', 'Male'),
+            ('female', 'Female'),
+            ('other', 'Other'),
+        ],
+        blank=True,
+        null=True
+    )
+
+    address = models.TextField(blank=True, null=True)
+
     
+    emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
+    emergency_contact_phone = models.CharField(max_length=15, blank=True, null=True)
+
     
+    employment_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('full_time', 'Full Time'),
+            ('part_time', 'Part Time'),
+            ('contract', 'Contract'),
+            ('intern', 'Intern'),
+        ],
+        blank=True,
+        null=True
+    )
+
     
+    bank_account = models.CharField(max_length=50, blank=True, null=True)
+    ifsc = models.CharField(max_length=20, blank=True, null=True)
+    pf_number = models.CharField(max_length=50, blank=True, null=True)
+    esi_number = models.CharField(max_length=50, blank=True, null=True)
+
     
+    notes = models.TextField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('hotel', 'employee_id') 
+        unique_together = ('hotel', 'employee_id')
 
     def save(self, *args, **kwargs):
         if not self.employee_id:
@@ -277,7 +313,7 @@ class Staff(models.Model):
                 try:
                     last_id = int(last_staff.employee_id.split('-')[-1])
                     new_id = last_id + 1
-                except:
+                except Exception:
                     new_id = 1
             else:
                 new_id = 1

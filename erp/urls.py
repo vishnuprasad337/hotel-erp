@@ -30,6 +30,7 @@ urlpatterns = [
      path('',include('billing.urls')),
      path('', include('restaurant.urls')),
      path('inventory/', include("inventory.urls")),
+     path('channels/', include('channelmanager.urls')),
     
      
      

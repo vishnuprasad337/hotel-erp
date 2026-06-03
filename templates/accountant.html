@@ -2615,9 +2615,256 @@ function exportExpenses(){
 }
 
 // ── ATTENDANCE ────────────────────────────────────────────────────────────────
-function clockIn(){const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());fetch('/attendance/mark/',{method:'POST',body:fd}).then(r=>r.json()).then(data=>{if(data.success){document.getElementById('btnClockIn').disabled=true;document.getElementById('btnClockOut').disabled=false;const p=document.getElementById('todayStatusPill');p.className=`pill ${data.status==='Late'?'pill-amber':'pill-green'}`;p.textContent=data.status||'Present';document.getElementById('attLogMsg').textContent=`Clocked in at ${data.check_in?new Date(data.check_in).toLocaleTimeString():'just now'}`;toast(`Clocked in · ${data.status||'Present'}`);}else toast(data.message||'Already clocked in.','error');}).catch(()=>toast('Network error','error'));}
-function clockOut(){const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());fetch('/attendance/mark/',{method:'POST',body:fd}).then(r=>r.json()).then(data=>{if(data.success){document.getElementById('btnClockOut').disabled=true;document.getElementById('attLogMsg').textContent=`Clocked out · ${data.working_hours||'—'} hrs`;toast(`Clocked out · ${data.working_hours||'—'} hrs`);}else toast(data.message||'Error','error');}).catch(()=>toast('Network error','error'));}
+function clockIn() {
+    const btn = document.getElementById('btnClockIn');
+    const originalText = btn.innerHTML;
+    
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Clocking in…';
+    
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    
+    fetch('/attendance/mark/', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page data first
+                return fetch('/attendance/today/', {
+                    headers: { 'X-CSRFToken': getCsrf() }
+                });
+            } else {
+                throw new Error(data.message || 'Already clocked in.');
+            }
+        })
+        .then(response => response.json())
+        .then(attendanceData => {
+            // Update UI with fresh data
+            updateAttendanceUI(attendanceData);
+            toast(`Clocked in · ${attendanceData.status || 'Present'}`);
+        })
+        .catch(error => {
+            console.error('Clock in error:', error);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            toast(error.message || 'Network error', 'error');
+        });
+}
 
+function clockOut() {
+    const btn = document.getElementById('btnClockOut');
+    const originalText = btn.innerHTML;
+    
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Clocking out…';
+    
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    
+    fetch('/attendance/mark/', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page data first
+                return fetch('/attendance/today/', {
+                    headers: { 'X-CSRFToken': getCsrf() }
+                });
+            } else {
+                throw new Error(data.message || 'Clock out failed');
+            }
+        })
+        .then(response => response.json())
+        .then(attendanceData => {
+            // Update UI with fresh data
+            updateAttendanceUI(attendanceData);
+            toast(`Clocked out · ${attendanceData.working_hours || '—'} hrs`);
+        })
+        .catch(error => {
+            console.error('Clock out error:', error);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            toast(error.message || 'Network error', 'error');
+        });
+}
+
+// Function to update UI based on attendance data from server
+function updateAttendanceUI(data) {
+    const btnClockIn = document.getElementById('btnClockIn');
+    const btnClockOut = document.getElementById('btnClockOut');
+    const statusPill = document.getElementById('todayStatusPill');
+    const logMsg = document.getElementById('attLogMsg');
+    
+    console.log('Updating UI with:', data);
+    
+    // Reset button texts
+    if (btnClockIn) btnClockIn.innerHTML = 'Clock In';
+    if (btnClockOut) btnClockOut.innerHTML = 'Clock Out';
+    
+    // Case 1: Clocked in AND Clocked out (Done for today)
+    if (data.clocked_in && data.clocked_out) {
+        if (btnClockIn) btnClockIn.disabled = true;
+        if (btnClockOut) btnClockOut.disabled = true;
+        if (statusPill) {
+            statusPill.className = 'pill pill-green';
+            statusPill.textContent = 'Done for today';
+        }
+        if (logMsg) {
+            const checkIn = data.check_in || '--';
+            const checkOut = data.check_out || '--';
+            const hours = data.working_hours ? data.working_hours.toFixed(2) : '—';
+            logMsg.textContent = `${checkIn} → ${checkOut} · ${hours} hrs`;
+        }
+    }
+    // Case 2: Clocked in but NOT clocked out (Currently working)
+    else if (data.clocked_in && !data.clocked_out) {
+        if (btnClockIn) btnClockIn.disabled = true;
+        if (btnClockOut) btnClockOut.disabled = false;
+        if (statusPill) {
+            statusPill.className = `pill ${data.status === 'Late' ? 'pill-amber' : 'pill-green'}`;
+            statusPill.textContent = data.status || 'Present';
+        }
+        if (logMsg) {
+            const time = data.check_in || 'just now';
+            logMsg.textContent = `Clocked in at ${time}`;
+        }
+    }
+    // Case 3: Not clocked in yet
+    else {
+        if (btnClockIn) btnClockIn.disabled = false;
+        if (btnClockOut) btnClockOut.disabled = true;
+        if (statusPill) {
+            statusPill.className = 'pill pill-gray';
+            statusPill.textContent = 'Not clocked in';
+        }
+        if (logMsg) {
+            logMsg.textContent = 'You have not clocked in today.';
+        }
+    }
+}
+
+// Initialize attendance on page load
+async function initAttendance() {
+    try {
+        const response = await fetch('/attendance/today/', {
+            headers: { 'X-CSRFToken': getCsrf() }
+        });
+        const data = await response.json();
+        updateAttendanceUI(data);
+    } catch(error) {
+        console.error('Failed to load attendance:', error);
+    }
+}
+
+// Helper function for CSRF token
+function getCsrf() {
+    const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrftoken='));
+    return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
+// Toast function
+function toast(message, type = 'success') {
+    let toastEl = document.getElementById('customToast');
+    if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.id = 'customToast';
+        toastEl.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+            background-color: ${type === 'error' ? '#dc2626' : '#10b981'};
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        `;
+        document.body.appendChild(toastEl);
+        
+        if (!document.querySelector('#toastStyles')) {
+            const style = document.createElement('style');
+            style.id = 'toastStyles';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    toastEl.style.backgroundColor = type === 'error' ? '#dc2626' : '#10b981';
+    toastEl.textContent = message;
+    toastEl.style.display = 'block';
+    
+    setTimeout(() => {
+        toastEl.style.opacity = '0';
+        setTimeout(() => {
+            if (toastEl.parentNode) toastEl.remove();
+        }, 300);
+    }, 3000);
+}
+
+// Add CSS styles
+if (!document.querySelector('#attendanceStyles')) {
+    const style = document.createElement('style');
+    style.id = 'attendanceStyles';
+    style.textContent = `
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .pill-green {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .pill-amber {
+            background-color: #f59e0b;
+            color: white;
+        }
+        
+        .pill-gray {
+            background-color: #6b7280;
+            color: white;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', initAttendance);
 // ── SHIFTS ────────────────────────────────────────────────────────────────────
 let currentWeekOffset=0;
 function getWeekStart(offset){const d=new Date();const day=d.getDay();const diff=d.getDate()-day+(day===0?-6:1);d.setDate(diff+offset*7);d.setHours(0,0,0,0);return d;}
