@@ -2540,6 +2540,10 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
       <button class="dd-item" data-panel="channel-sync"><i class="fas fa-sync-alt"></i> Sync Logs</button>
       <button class="dd-item" data-panel="channel-webhooks"><i class="fas fa-webhook"></i> Webhook Events</button>
     </div>
+    <div class="nav-label">Pricing</div>
+      <button class="nav-btn" data-panel="seasonal-rates">
+        <i class="fas fa-tags"></i> Seasonal Rates
+      </button>
     <div class="nav-label">Setup</div>
     <button class="nav-btn" data-panel="permissions"><i class="fas fa-shield-alt"></i> Permissions</button>
 
@@ -5365,6 +5369,302 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
     </div>
   </div>
 </div>
+
+<div class="panel" id="panel-seasonal-rates">
+
+  <!-- Top section header -->
+  <div class="sec-head">
+    <div class="sec-title">
+      <i class="fas fa-tags"></i> Seasonal Rate Manager
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-outline btn-sm" onclick="srOpenTagManager()">
+        <i class="fas fa-palette"></i> Tags
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="srLoadRates()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="srOpenDrawer()">
+        <i class="fas fa-plus"></i> Add Rate
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row" style="margin-bottom:18px">
+    <div class="kpi"><div class="kpi-n" id="sr-kpi-total"    style="color:var(--blue)">0</div><div class="kpi-l">Total Rates</div></div>
+    <div class="kpi"><div class="kpi-n" id="sr-kpi-active"   style="color:var(--green)">0</div><div class="kpi-l">Active Now</div></div>
+    <div class="kpi"><div class="kpi-n" id="sr-kpi-upcoming" style="color:var(--accent)">0</div><div class="kpi-l">Upcoming</div></div>
+    <div class="kpi"><div class="kpi-n" id="sr-kpi-rooms"    style="color:var(--purple)">0</div><div class="kpi-l">Room Types</div></div>
+  </div>
+
+  <!-- Main layout: sidebar list + calendar -->
+  <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- ── Left: rates sidebar list ── -->
+    <div style="width:280px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+
+      <!-- List header + filter -->
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);background:var(--surface-2)">
+        <div style="font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:8px">
+          <i class="fas fa-list" style="color:var(--blue);font-size:12px;margin-right:5px"></i>
+          All Rates
+        </div>
+
+        <!-- Search -->
+        <input id="sr-search" type="text" placeholder="&#xf002;  Search rates…"
+          oninput="srRender()"
+          style="width:100%;padding:6px 10px;border:1px solid var(--border);
+                 border-radius:var(--radius);font-size:.73rem;background:var(--surface);
+                 color:var(--text);margin-bottom:7px;box-sizing:border-box">
+
+        <!-- Room filter — populated dynamically from /api/room-types/ -->
+        <select class="form-ctrl" id="sr-room-filter" onchange="srRender()"
+          style="font-size:.73rem;width:100%">
+          <option value="">All room types</option>
+          <!-- options injected by srPopulateRoomDropdowns() -->
+        </select>
+      </div>
+
+      <!-- Scrollable list -->
+      <div id="sr-list" style="max-height:420px;overflow-y:auto;padding:8px"></div>
+
+      <!-- Add button at bottom -->
+      <div style="padding:8px;border-top:1px solid var(--border)">
+        <button class="btn btn-outline btn-full btn-sm" onclick="srOpenDrawer()">
+          <i class="fas fa-plus"></i> Add Seasonal Rate
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Right: calendar ── -->
+    <div style="flex:1;min-width:300px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
+
+      <!-- Calendar nav -->
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface-2)">
+        <button class="btn btn-outline btn-sm" onclick="srPrevMonth()" style="padding:5px 9px">
+          <i class="fas fa-chevron-left" style="font-size:10px"></i>
+        </button>
+        <div id="sr-month-label" style="flex:1;text-align:center;font-size:.85rem;font-weight:700;color:var(--navy)"></div>
+        <button class="btn btn-outline btn-sm" onclick="srNextMonth()" style="padding:5px 9px">
+          <i class="fas fa-chevron-right" style="font-size:10px"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="srGoToday()" style="font-size:.7rem">Today</button>
+      </div>
+
+      <!-- Day names -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:6px 10px 2px">
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Sun</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Mon</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Tue</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Wed</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Thu</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Fri</div>
+        <div style="text-align:center;font-size:.63rem;font-weight:700;color:var(--text-muted);padding:3px 0">Sat</div>
+      </div>
+
+      <!-- Day cells (drag-selectable) -->
+      <div id="sr-cal-cells"
+        style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;padding:0 10px 10px"
+        onmouseleave="SR_CAL_DRAG=false"></div>
+
+      <!-- Legend -->
+      <div id="sr-legend"
+        style="display:flex;flex-wrap:wrap;gap:10px;padding:8px 14px;
+               border-top:1px solid var(--border);background:var(--surface-2)"></div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     BACKDROP
+════════════════════════════════════════════════════════════ -->
+<div id="sr-backdrop"
+  onclick="srCloseDrawer()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:290"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADD / EDIT DRAWER
+════════════════════════════════════════════════════════════ -->
+<div id="sr-drawer"
+  style="position:fixed;right:0;top:0;width:360px;height:100vh;
+         background:var(--surface);z-index:300;
+         transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+         display:flex;flex-direction:column;border-left:1px solid var(--border);
+         box-shadow:-4px 0 24px rgba(0,0,0,.1)">
+
+  <!-- Drawer header -->
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);
+              background:var(--navy);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <span style="font-size:.88rem;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
+      <i class="fas fa-tags" style="color:var(--blue-light)"></i>
+      <span id="sr-drawer-title">Add Seasonal Rate</span>
+    </span>
+    <button onclick="srCloseDrawer()"
+      style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.6);
+             width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;
+             display:grid;place-items:center;transition:.15s"
+      onmouseover="this.style.background='rgba(255,255,255,.22)'"
+      onmouseout="this.style.background='rgba(255,255,255,.12)'">&times;</button>
+  </div>
+
+  <!-- Drawer body (scrollable) -->
+  <div style="flex:1;overflow-y:auto;padding:18px">
+    <input type="hidden" id="sr-edit-id">
+
+    <!-- Room type — populated dynamically from /api/room-types/ -->
+    <div class="form-group">
+      <label class="form-lbl">Room type <span style="color:var(--red)">*</span></label>
+      <select class="form-ctrl" id="sr-f-room">
+        <option value="">— Select room type —</option>
+        <!-- options injected by srPopulateRoomDropdowns() -->
+      </select>
+    </div>
+
+    <!-- Date range -->
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-lbl">Start date <span style="color:var(--red)">*</span></label>
+        <input class="form-ctrl" type="date" id="sr-f-start" oninput="srUpdatePreview()">
+      </div>
+      <div class="form-group">
+        <label class="form-lbl">End date <span style="color:var(--red)">*</span></label>
+        <input class="form-ctrl" type="date" id="sr-f-end" oninput="srUpdatePreview()">
+      </div>
+    </div>
+
+    <!-- Price -->
+    <div class="form-group">
+      <label class="form-lbl">Price per night (₹) <span style="color:var(--red)">*</span></label>
+      <input class="form-ctrl" type="number" id="sr-f-price"
+        placeholder="e.g. 4500" min="0" step="1" oninput="srUpdatePreview()">
+    </div>
+
+    <!-- Reason -->
+    <div class="form-group">
+      <label class="form-lbl">Reason <span style="color:var(--red)">*</span></label>
+      <input class="form-ctrl" type="text" id="sr-f-reason"
+        placeholder="e.g. Diwali weekend, Summer peak, Christmas offer…"
+        maxlength="120">
+    </div>
+
+    <!-- Tag (colour label) -->
+    <div class="form-group">
+      <label class="form-lbl">Tag <span style="font-weight:400;color:var(--text-muted)">(colour on calendar)</span></label>
+      <div id="sr-tag-grid"
+        style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:4px"></div>
+      <input type="hidden" id="sr-f-tag" value="peak">
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label class="form-lbl">Notes <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+      <textarea class="form-ctrl" id="sr-f-notes" rows="2"
+        placeholder="Any extra details about this rate…"></textarea>
+    </div>
+
+    <!-- Inline price preview -->
+    <div id="sr-price-preview"
+      style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;
+             border-radius:9px;padding:10px 14px;font-size:.78rem;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <span style="color:#166534;font-weight:600">
+          <i class="fas fa-calculator" style="margin-right:4px"></i>Duration preview
+        </span>
+        <span style="font-family:'DM Mono',monospace;color:#166534">
+          <strong id="sr-prev-nights">0</strong> nights ×
+          ₹<strong id="sr-prev-rate">0</strong> =
+          <strong>₹<span id="sr-prev-total">0</span></strong>
+        </span>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div id="sr-form-err"
+      style="display:none;background:#fef2f2;border:1px solid #fecaca;
+             border-radius:8px;padding:9px 12px;font-size:.75rem;color:#b91c1c;margin-top:8px">
+    </div>
+  </div>
+
+  <!-- Drawer footer -->
+  <div style="padding:12px 18px;border-top:1px solid var(--border);
+              display:flex;gap:9px;flex-shrink:0;background:var(--surface-2)">
+    <button class="btn btn-outline" onclick="srCloseDrawer()" style="flex:1">Cancel</button>
+    <button class="btn btn-primary" onclick="srSaveRate()" style="flex:2" id="sr-save-btn">
+      <i class="fas fa-save"></i> Save Rate
+    </button>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAG MANAGER MODAL
+════════════════════════════════════════════════════════════ -->
+<div id="sr-tag-manager"
+  style="display:none;position:fixed;inset:0;z-index:400;
+         background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+
+  <div style="background:var(--surface);border-radius:12px;width:520px;max-width:94vw;
+              max-height:82vh;overflow:auto;padding:22px 24px;
+              box-shadow:0 12px 40px rgba(0,0,0,.25)">
+
+    <!-- Modal header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy)">
+          <i class="fas fa-palette" style="margin-right:6px;color:var(--blue)"></i>
+          Customise Rate Tags
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px">
+          Edit labels, colours and keys — changes reflect instantly on the calendar.
+        </div>
+      </div>
+      <button onclick="srCloseTagManager()"
+        style="background:transparent;border:none;cursor:pointer;
+               font-size:20px;color:var(--text-muted);line-height:1;padding:0 2px">✕</button>
+    </div>
+
+    <!-- Column headers -->
+    <div style="display:flex;gap:8px;font-size:.68rem;font-weight:600;
+                color:var(--text-muted);padding-bottom:6px;
+                border-bottom:1px solid var(--border);margin-bottom:2px">
+      <span style="width:32px;text-align:center">Colour</span>
+      <span style="flex:1">Label</span>
+      <span style="width:90px">Key&nbsp;<span style="font-weight:400">(code)</span></span>
+      <span style="width:32px"></span>
+    </div>
+
+    <!-- Dynamic tag rows -->
+    <div id="sr-tm-list"></div>
+
+    <!-- Add row button -->
+    <button onclick="srTmAdd()"
+      style="margin-top:10px;width:100%;padding:8px;border:1.5px dashed var(--border);
+             border-radius:var(--radius);background:transparent;cursor:pointer;
+             font-size:.75rem;color:var(--text-muted);display:flex;
+             align-items:center;justify-content:center;gap:6px">
+      <i class="fas fa-plus" style="font-size:11px"></i> Add new tag
+    </button>
+
+    <!-- Modal footer -->
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;
+                padding-top:14px;border-top:1px solid var(--border)">
+      <button class="btn btn-outline" onclick="srCloseTagManager()">Cancel</button>
+      <button class="btn btn-primary" onclick="srTmApply()">
+        <i class="fas fa-check"></i> Apply changes
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+
+
     <div class="panel" id="panel-departments">
       <div class="sec-head"><div class="sec-title"><i class="fas fa-building"></i> Departments</div></div>
       <div class="grid-2" style="align-items:start"><div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-plus-circle"></i> Add Department</div></div><div class="card-body"><div class="form-group" style="margin-bottom:12px"><label class="form-lbl">Department Name</label><select class="form-ctrl" id="newDeptName"><option value="">— Select —</option><option>Housekeeping</option><option>HR</option><option>Front Desk</option><option>Accountant</option><option>Restaurant</option></select></div><button class="btn btn-primary btn-full" id="createDeptBtn"><i class="fas fa-plus"></i> Create Department</button></div></div><div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-chart-bar"></i> Summary</div></div><div class="card-body" id="deptSummary" style="max-height:260px;overflow-y:auto"></div></div></div>
@@ -10636,6 +10936,664 @@ function _emResetForm() {
 /* Make openEmailModal globally available */
 window.openEmailModal  = openEmailModal;
 window.closeEmailModal = closeEmailModal;
+(function () {
+
+/* ── CONFIG ─────────────────────────────────────────────────── */
+const API = {
+  list:   '/api/seasonal-rates/',
+  create: '/api/seasonal-rates/add/',
+  delete: (id) => `/api/seasonal-rates/${id}/delete/`,
+  rooms:  '/api/rooms/',           // ✅ FIXED: was '/api/room-types/' which doesn't exist
+};
+
+/* ── DEFAULT TAGS (user-customisable at runtime) ─────────────── */
+let TAGS = [
+  { k: 'peak',    label: 'Peak season',   bg: '#1D9E75', text: '#04342C', light: '#E1F5EE' },
+  { k: 'promo',   label: 'Promotion',     bg: '#EF9F27', text: '#412402', light: '#FAEEDA' },
+  { k: 'event',   label: 'Special event', bg: '#E24B4A', text: '#501313', light: '#FCEBEB' },
+  { k: 'base',    label: 'Base rate',     bg: '#7F77DD', text: '#26215C', light: '#EEEDFE' },
+  { k: 'offpeak', label: 'Off peak',      bg: '#378ADD', text: '#042C53', light: '#E6F1FB' },
+  { k: 'holiday', label: 'Holiday',       bg: '#D4537E', text: '#4B1528', light: '#FBEAF0' },
+];
+let TAG_MAP = {};
+function rebuildTagMap() { TAG_MAP = Object.fromEntries(TAGS.map(t => [t.k, t])); }
+rebuildTagMap();
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const SHORT_MON   = ['Jan','Feb','Mar','Apr','May','Jun',
+                     'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ── STATE ──────────────────────────────────────────────────── */
+let SR_RATES      = [];
+let SR_ROOM_TYPES = [];
+let SR_SEL_ID     = null;
+let SR_EDIT_ID    = null;
+let SR_TAG        = 'peak';
+let SR_YEAR, SR_MONTH;
+
+/* calendar drag-select */
+let SR_CAL_DRAG  = false;
+let SR_CAL_START = null;
+let SR_CAL_END   = null;
+
+const now = new Date();
+SR_YEAR  = now.getFullYear();
+SR_MONTH = now.getMonth();
+
+/* ── UTILS ──────────────────────────────────────────────────── */
+function pad(n)  { return String(n).padStart(2, '0'); }
+function toDS(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function inRange(d, s, e) { return d >= s && d <= e; }
+function fmtD(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-');
+  return `${d} ${SHORT_MON[+m - 1]} ${y}`;
+}
+function fmtInr(n) { return '₹' + Math.round(+n).toLocaleString('en-IN'); }
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
+}
+function getCsrf() {
+  return (document.cookie.split(';').find(c => c.trim().startsWith('csrftoken=')) || '=').split('=')[1] || '';
+}
+function srToast(msg, type) {
+  if (typeof toast === 'function') { toast(msg, type); return; }
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;z-index:99999;
+    padding:10px 18px;border-radius:8px;font-size:.8rem;font-weight:600;color:#fff;
+    background:${type==='error'?'#E24B4A':type==='success'?'#1D9E75':'#378ADD'};
+    box-shadow:0 4px 16px rgba(0,0,0,.18);transition:opacity .4s`;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 2800);
+}
+
+/* ── ROOM HELPERS ───────────────────────────────────────────── */
+function roomName(room_id) {
+  const r = SR_ROOM_TYPES.find(r => r.id === +room_id);
+  return r ? r.name : String(room_id);
+}
+function roomId(name) {
+  const r = SR_ROOM_TYPES.find(r => r.name === name);
+  return r ? r.id : null;
+}
+
+/* ── LOAD ROOM TYPES  GET /api/rooms/ ───────────────────────────
+   get_rooms() returns:
+   { success: true, rooms: [{ id, room_type, custom_room_type, ... }] }
+   We normalise to { id, name } for the dropdowns.
+──────────────────────────────────────────────────────────────── */
+async function srLoadRoomTypes() {
+  try {
+    const res  = await fetch(API.rooms);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // get_rooms wraps in { success, rooms: [...] }
+    const arr = Array.isArray(data)
+      ? data
+      : (data.rooms || data.results || data.room_types || []);
+
+    SR_ROOM_TYPES = arr.map(r => {
+      if (typeof r === 'string') return { id: r, name: r };
+
+      // Room model uses room_type (CharField) + custom_room_type (override)
+      // Mirror the display_type() method: custom beats room_type
+      const name =
+        (r.custom_room_type && r.custom_room_type.trim())
+          ? r.custom_room_type.trim()
+          : (r.room_type || r.name || r.room_name || String(r.id));
+
+      return {
+        id:   r.id ?? r.room_id ?? r.pk,
+        name: name,
+      };
+    });
+
+    console.log('[SR] Loaded room types:', SR_ROOM_TYPES);
+  } catch (err) {
+    console.error('[SR] srLoadRoomTypes failed:', err);
+    SR_ROOM_TYPES = [];
+    srToast('Could not load room types', 'error');
+  }
+  srPopulateRoomDropdowns();
+}
+
+function srPopulateRoomDropdowns() {
+  const opts = SR_ROOM_TYPES.map(r =>
+    `<option value="${r.id}">${esc(r.name)}</option>`
+  ).join('');
+
+  const filterEl = document.getElementById('sr-room-filter');
+  if (filterEl) {
+    filterEl.innerHTML = '<option value="">All room types</option>' + opts;
+  }
+  const formEl = document.getElementById('sr-f-room');
+  if (formEl) {
+    formEl.innerHTML = '<option value="">— Select room type —</option>' + opts;
+  }
+}
+
+/* ── LOAD RATES  GET /api/seasonal-rates/ ───────────────────── */
+async function srLoadRates() {
+  try {
+    const res  = await fetch(API.list);
+    if (!res.ok) throw new Error('Failed to load');
+    const data = await res.json();
+
+    // get_seasonal_rates returns { rates: [...] }
+    const arr = Array.isArray(data) ? data : (data.rates || data.results || []);
+
+    SR_RATES = arr.map(r => ({
+      ...r,
+      room_id:   +r.room_id,
+      room_name: r.room_name ?? roomName(r.room_id),
+      tag:       r.tag   || 'base',
+      notes:     r.notes || '',
+    }));
+    srRender();
+  } catch {
+    srToast('Could not load seasonal rates', 'error');
+  }
+}
+
+/* ── SAVE  POST /api/seasonal-rates/add/ ────────────────────── */
+async function srApiSave(payload, editId) {
+  if (editId) {
+    const del = await fetch(API.delete(editId), {
+      method: 'DELETE', headers: { 'X-CSRFToken': getCsrf() },
+    });
+    if (!del.ok) throw new Error('Could not update: delete step failed');
+  }
+  const res = await fetch(API.create, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+    body:    JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || err.detail || 'Save failed');
+  }
+  return res.json();
+}
+
+/* ── DELETE ─────────────────────────────────────────────────── */
+async function srApiDelete(id) {
+  const res = await fetch(API.delete(id), {
+    method: 'DELETE', headers: { 'X-CSRFToken': getCsrf() },
+  });
+  if (!res.ok) throw new Error('Delete failed');
+}
+
+/* ── KPIs ───────────────────────────────────────────────────── */
+function srRenderKpis() {
+  const today    = toDS(new Date());
+  const active   = SR_RATES.filter(r => inRange(today, r.start_date, r.end_date)).length;
+  const upcoming = SR_RATES.filter(r => r.start_date > today).length;
+  const rooms    = new Set(SR_RATES.map(r => r.room_id)).size;
+  document.getElementById('sr-kpi-total').textContent    = SR_RATES.length;
+  document.getElementById('sr-kpi-active').textContent   = active;
+  document.getElementById('sr-kpi-upcoming').textContent = upcoming;
+  document.getElementById('sr-kpi-rooms').textContent    = rooms;
+}
+
+/* ── SIDEBAR LIST ───────────────────────────────────────────── */
+function srRenderList() {
+  const filterRoomId = document.getElementById('sr-room-filter').value;
+  const search       = (document.getElementById('sr-search')?.value || '').toLowerCase();
+  const el           = document.getElementById('sr-list');
+
+  const vis = SR_RATES
+    .filter(r =>
+      (!filterRoomId || +r.room_id === +filterRoomId) &&
+      (!search || r.reason.toLowerCase().includes(search) ||
+                  r.room_name.toLowerCase().includes(search))
+    )
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+  if (!vis.length) {
+    el.innerHTML = `<div style="padding:28px 16px;text-align:center;color:var(--text-muted)">
+      <i class="fas fa-tags" style="font-size:22px;opacity:.25;display:block;margin-bottom:8px"></i>
+      <span style="font-size:.75rem">No rates found.<br>Click <strong>+ Add Rate</strong> to create one.</span>
+    </div>`;
+    return;
+  }
+
+  const today = toDS(new Date());
+  el.innerHTML = vis.map(r => {
+    const t        = TAG_MAP[r.tag] || TAGS[0];
+    const sel      = SR_SEL_ID === r.id;
+    const isActive = inRange(today, r.start_date, r.end_date);
+    return `<div onclick="srSelectRate(${r.id})"
+      style="padding:11px 13px;border:1.5px solid ${sel ? t.bg : 'var(--border)'};
+             border-radius:var(--radius);margin-bottom:6px;cursor:pointer;
+             background:${sel ? t.light : 'var(--surface)'};transition:.13s;position:relative">
+      ${isActive ? `<span style="position:absolute;top:9px;right:10px;width:7px;height:7px;
+        border-radius:50%;background:#1D9E75" title="Active now"></span>` : ''}
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <span style="width:9px;height:9px;border-radius:2px;background:${t.bg};flex-shrink:0"></span>
+          <span style="font-size:.8rem;font-weight:600;color:var(--navy);
+                       white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${esc(r.reason)}
+          </span>
+        </div>
+        <span style="font-size:.8rem;font-weight:700;color:var(--blue);
+                     font-family:'DM Mono',monospace;flex-shrink:0">
+          ${fmtInr(r.price)}
+        </span>
+      </div>
+
+      <div style="font-size:.68rem;color:var(--text-muted);margin-top:3px;
+                  display:flex;align-items:center;gap:5px">
+        <i class="fas fa-calendar-alt" style="font-size:10px"></i>
+        ${fmtD(r.start_date)} — ${fmtD(r.end_date)}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap">
+        <span style="font-size:.65rem;color:var(--text-muted)">
+          <i class="fas fa-door-open" style="font-size:9px"></i> ${esc(r.room_name)}
+        </span>
+        <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;
+                     background:${t.light};color:${t.text};font-weight:600">
+          ${esc(t.label)}
+        </span>
+        ${r.notes ? `<span style="font-size:.62rem;color:var(--text-muted);font-style:italic;
+          overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">
+          ${esc(r.notes)}</span>` : ''}
+      </div>
+
+      <div style="display:flex;gap:5px;margin-top:8px">
+        <button onclick="srEditRate(event,${r.id})"
+          style="font-size:.7rem;padding:4px 10px;border-radius:6px;
+                 border:1px solid var(--border);background:transparent;
+                 cursor:pointer;color:var(--text-muted);display:flex;align-items:center;gap:4px">
+          <i class="fas fa-pen" style="font-size:9px"></i> Edit
+        </button>
+        <button onclick="srDeleteRate(event,${r.id})"
+          style="font-size:.7rem;padding:4px 10px;border-radius:6px;
+                 border:1px solid var(--border);background:transparent;
+                 cursor:pointer;color:var(--text-muted);display:flex;align-items:center;gap:4px"
+          onmouseover="this.style.background='#fef2f2';this.style.color='#b91c1c'"
+          onmouseout="this.style.background='transparent';this.style.color='var(--text-muted)'">
+          <i class="fas fa-trash" style="font-size:9px"></i> Delete
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── CALENDAR ───────────────────────────────────────────────── */
+function srRenderCalendar() {
+  document.getElementById('sr-month-label').textContent =
+    `${MONTH_NAMES[SR_MONTH]} ${SR_YEAR}`;
+
+  const filterRoomId = document.getElementById('sr-room-filter').value;
+  const first    = new Date(SR_YEAR, SR_MONTH, 1);
+  const last     = new Date(SR_YEAR, SR_MONTH + 1, 0);
+  const startDay = first.getDay();
+  const today    = toDS(new Date());
+
+  let cells = [];
+  for (let i = 0; i < startDay; i++)
+    cells.push({ d: new Date(SR_YEAR, SR_MONTH, 1 - startDay + i), om: true });
+  for (let i = 1; i <= last.getDate(); i++)
+    cells.push({ d: new Date(SR_YEAR, SR_MONTH, i), om: false });
+  while (cells.length % 7 !== 0) {
+    const prev = cells[cells.length - 1].d;
+    cells.push({ d: new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1), om: true });
+  }
+
+  const dsLow  = SR_CAL_START && SR_CAL_END
+    ? (SR_CAL_START <= SR_CAL_END ? SR_CAL_START : SR_CAL_END) : null;
+  const dsHigh = SR_CAL_START && SR_CAL_END
+    ? (SR_CAL_START <= SR_CAL_END ? SR_CAL_END   : SR_CAL_START) : null;
+
+  document.getElementById('sr-cal-cells').innerHTML = cells.map(({ d, om }) => {
+    const s         = toDS(d);
+    const isToday   = s === today;
+    const inDragSel = dsLow && dsHigh && s >= dsLow && s <= dsHigh;
+
+    const matching = SR_RATES.filter(r =>
+      (!filterRoomId || +r.room_id === +filterRoomId) &&
+      inRange(s, r.start_date, r.end_date) &&
+      (SR_SEL_ID === null || SR_SEL_ID === r.id)
+    );
+
+    const bars = matching.slice(0, 2).map(r => {
+      const t = TAG_MAP[r.tag] || TAGS[0];
+      return `<div style="font-size:9px;padding:1px 4px;border-radius:3px;margin-top:1px;
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5;
+                          background:${t.light};color:${t.text};border-left:2px solid ${t.bg}">
+        ${esc(r.reason)}
+      </div>`;
+    }).join('');
+
+    const numStyle = isToday
+      ? `background:var(--blue);color:#fff;border-radius:50%;
+         width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px`
+      : `font-size:11px;color:${om ? 'var(--text-muted)' : 'var(--text)'}`;
+
+    return `<div
+      data-ds="${s}"
+      onmousedown="srCalDragStart('${s}')"
+      onmouseover="this.style.borderColor='var(--border)';srCalDragOver('${s}')"
+      onmouseout="this.style.borderColor='${inDragSel ? '#378ADD55' : 'transparent'}'"
+      onmouseup="srCalDragEnd('${s}')"
+      onclick="srOnDayClick('${s}')"
+      style="min-height:62px;border-radius:5px;padding:3px 4px;cursor:pointer;user-select:none;
+             border:1px solid ${inDragSel ? '#378ADD55' : 'transparent'};
+             background:${inDragSel ? 'rgba(55,138,221,.07)' : isToday ? 'var(--surface-2)' : 'transparent'};
+             transition:border-color .1s">
+      <div style="${numStyle}">${d.getDate()}</div>
+      ${bars}
+      ${matching.length > 2
+        ? `<div style="font-size:9px;color:var(--text-muted);padding-left:2px">+${matching.length-2} more</div>`
+        : ''}
+    </div>`;
+  }).join('');
+
+  /* legend */
+  const usedTags = [...new Set(
+    SR_RATES.filter(r => !filterRoomId || +r.room_id === +filterRoomId).map(r => r.tag)
+  )];
+  document.getElementById('sr-legend').innerHTML = usedTags.map(k => {
+    const t = TAG_MAP[k] || TAGS[0];
+    return `<span style="display:flex;align-items:center;gap:4px;font-size:.67rem;color:var(--text-muted)">
+      <span style="width:9px;height:9px;border-radius:2px;background:${t.bg}"></span>
+      ${esc(t.label)}
+    </span>`;
+  }).join('');
+}
+
+/* ── MASTER RENDER ──────────────────────────────────────────── */
+function srRender() {
+  srRenderKpis();
+  srRenderList();
+  srRenderCalendar();
+}
+
+/* ── SELECT / HIGHLIGHT ─────────────────────────────────────── */
+function srSelectRate(id) {
+  SR_SEL_ID = SR_SEL_ID === id ? null : id;
+  srRender();
+}
+
+/* ── CALENDAR NAV ───────────────────────────────────────────── */
+function srPrevMonth() {
+  if (--SR_MONTH < 0) { SR_MONTH = 11; SR_YEAR--; }
+  srRenderCalendar();
+}
+function srNextMonth() {
+  if (++SR_MONTH > 11) { SR_MONTH = 0; SR_YEAR++; }
+  srRenderCalendar();
+}
+function srGoToday() {
+  const n = new Date(); SR_YEAR = n.getFullYear(); SR_MONTH = n.getMonth();
+  srRenderCalendar();
+}
+
+/* ── CALENDAR DRAG-SELECT ───────────────────────────────────── */
+function srCalDragStart(ds) { SR_CAL_DRAG = true;  SR_CAL_START = ds; SR_CAL_END = ds; }
+function srCalDragOver(ds)  { if (!SR_CAL_DRAG) return; SR_CAL_END = ds; srRenderCalendar(); }
+function srCalDragEnd(ds) {
+  if (!SR_CAL_DRAG) return;
+  SR_CAL_DRAG = false;
+  SR_CAL_END  = ds;
+  const lo = SR_CAL_START <= SR_CAL_END ? SR_CAL_START : SR_CAL_END;
+  const hi = SR_CAL_START <= SR_CAL_END ? SR_CAL_END   : SR_CAL_START;
+  srOpenDrawer();
+  document.getElementById('sr-f-start').value = lo;
+  document.getElementById('sr-f-end').value   = hi;
+  srUpdatePreview();
+  SR_CAL_START = null; SR_CAL_END = null;
+  srRenderCalendar();
+}
+document.addEventListener('mouseup', () => {
+  if (SR_CAL_DRAG) { SR_CAL_DRAG = false; SR_CAL_START = null; SR_CAL_END = null; }
+});
+
+/* ── DAY CLICK (single tap — no drag) ──────────────────────── */
+function srOnDayClick(ds) {
+  if (SR_CAL_START && SR_CAL_START !== SR_CAL_END) return;
+  srOpenDrawer();
+  document.getElementById('sr-f-start').value = ds;
+  document.getElementById('sr-f-end').value   = ds;
+  srUpdatePreview();
+}
+
+/* ── TAG GRID ───────────────────────────────────────────────── */
+function srBuildTagGrid(active) {
+  SR_TAG = active || TAGS[0].k;
+  document.getElementById('sr-f-tag').value = SR_TAG;
+  document.getElementById('sr-tag-grid').innerHTML = TAGS.map(t => `
+    <button type="button" onclick="srPickTag('${esc(t.k)}')"
+      style="padding:7px 8px;border-radius:var(--radius);cursor:pointer;font-size:.72rem;
+             font-weight:600;display:flex;align-items:center;justify-content:center;
+             gap:5px;transition:all .12s;
+             border:${active===t.k ? `1.5px solid ${t.bg}` : '1px solid var(--border)'};
+             background:${active===t.k ? t.light : 'var(--surface)'};
+             color:${active===t.k ? t.text : 'var(--text-muted)'}">
+      <span style="width:8px;height:8px;border-radius:2px;background:${t.bg};flex-shrink:0"></span>
+      ${esc(t.label)}
+    </button>`).join('');
+}
+function srPickTag(k) { srBuildTagGrid(k); }
+
+/* ── PRICE PREVIEW ──────────────────────────────────────────── */
+function srUpdatePreview() {
+  const s    = document.getElementById('sr-f-start').value;
+  const e    = document.getElementById('sr-f-end').value;
+  const p    = parseFloat(document.getElementById('sr-f-price').value) || 0;
+  const prev = document.getElementById('sr-price-preview');
+  if (s && e && s <= e && p > 0) {
+    const nights = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+    document.getElementById('sr-prev-nights').textContent = nights;
+    document.getElementById('sr-prev-rate').textContent   = Math.round(p).toLocaleString('en-IN');
+    document.getElementById('sr-prev-total').textContent  = Math.round(nights * p).toLocaleString('en-IN');
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+/* ── OPEN DRAWER ────────────────────────────────────────────── */
+function srOpenDrawer(id) {
+  SR_EDIT_ID = id || null;
+  srBuildTagGrid('peak');
+
+  if (id) {
+    const r = SR_RATES.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('sr-drawer-title').textContent = 'Edit Seasonal Rate';
+    document.getElementById('sr-edit-id').value            = id;
+    document.getElementById('sr-f-room').value             = r.room_id;
+    document.getElementById('sr-f-start').value            = r.start_date;
+    document.getElementById('sr-f-end').value              = r.end_date;
+    document.getElementById('sr-f-price').value            = r.price;
+    document.getElementById('sr-f-reason').value           = r.reason;
+    document.getElementById('sr-f-notes').value            = r.notes || '';
+    srBuildTagGrid(r.tag || 'base');
+  } else {
+    document.getElementById('sr-drawer-title').textContent = 'Add Seasonal Rate';
+    document.getElementById('sr-edit-id').value  = '';
+    document.getElementById('sr-f-room').value   = '';
+    document.getElementById('sr-f-start').value  = '';
+    document.getElementById('sr-f-end').value    = '';
+    document.getElementById('sr-f-price').value  = '';
+    document.getElementById('sr-f-reason').value = '';
+    document.getElementById('sr-f-notes').value  = '';
+  }
+
+  document.getElementById('sr-form-err').style.display      = 'none';
+  document.getElementById('sr-price-preview').style.display = 'none';
+  srUpdatePreview();
+  document.getElementById('sr-backdrop').style.display = 'block';
+  document.getElementById('sr-drawer').style.transform = 'translateX(0)';
+}
+
+/* ── CLOSE DRAWER ───────────────────────────────────────────── */
+function srCloseDrawer() {
+  document.getElementById('sr-drawer').style.transform = 'translateX(100%)';
+  document.getElementById('sr-backdrop').style.display = 'none';
+}
+
+/* ── SAVE RATE ──────────────────────────────────────────────── */
+async function srSaveRate() {
+  const room_id  = document.getElementById('sr-f-room').value;
+  const start    = document.getElementById('sr-f-start').value;
+  const end      = document.getElementById('sr-f-end').value;
+  const price    = parseFloat(document.getElementById('sr-f-price').value);
+  const reason   = document.getElementById('sr-f-reason').value.trim();
+  const tag      = document.getElementById('sr-f-tag').value || TAGS[0].k;
+  const notes    = document.getElementById('sr-f-notes').value.trim();
+  const errEl    = document.getElementById('sr-form-err');
+  const saveBtn  = document.getElementById('sr-save-btn');
+
+  const errors = [];
+  if (!room_id)                       errors.push('Please select a room type.');
+  if (!start || !end)                 errors.push('Please select a date range.');
+  if (start && end && start > end)    errors.push('End date must be after start date.');
+  if (!price || price <= 0)           errors.push('Please enter a valid price.');
+  if (!reason)                        errors.push('Please enter a reason for this rate.');
+
+  if (errors.length) {
+    errEl.textContent = errors[0]; errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+
+  // NOTE: tag and notes are sent but will only be stored if you add those
+  // fields to the SeasonalRate model (recommended: add tag + notes fields).
+  const payload = {
+    room_id:    +room_id,
+    start_date: start,
+    end_date:   end,
+    price:      price,
+    reason:     reason,
+    tag:        tag,
+    notes:      notes,
+  };
+
+  saveBtn.disabled    = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const saved = await srApiSave(payload, SR_EDIT_ID || null);
+
+    const newRate  = saved.rate || saved;
+    const rName    = newRate.room_name ?? roomName(+room_id);
+
+    if (SR_EDIT_ID) SR_RATES = SR_RATES.filter(r => r.id !== SR_EDIT_ID);
+    SR_RATES.push({
+      id:         newRate.id || Date.now(),
+      room_id:    +room_id,
+      room_name:  rName,
+      start_date: start,
+      end_date:   end,
+      price:      price,
+      reason:     reason,
+      tag,
+      notes,
+    });
+
+    srToast(SR_EDIT_ID ? 'Rate updated' : 'Rate added', 'success');
+    srCloseDrawer();
+    srRender();
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not save rate. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    saveBtn.disabled  = false;
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Rate';
+  }
+}
+
+/* ── EDIT / DELETE ──────────────────────────────────────────── */
+function srEditRate(e, id)  { e.stopPropagation(); srOpenDrawer(id); }
+async function srDeleteRate(e, id) {
+  e.stopPropagation();
+  const r = SR_RATES.find(x => x.id === id);
+  if (!confirm(`Delete rate "${r ? r.reason : id}"?`)) return;
+  try {
+    await srApiDelete(id);
+    SR_RATES = SR_RATES.filter(r => r.id !== id);
+    if (SR_SEL_ID === id) SR_SEL_ID = null;
+    srToast('Rate deleted', 'success');
+    srRender();
+  } catch { srToast('Could not delete rate', 'error'); }
+}
+
+/* ── TAG MANAGER ────────────────────────────────────────────── */
+function srOpenTagManager() {
+  const el = document.getElementById('sr-tag-manager');
+  if (!el) return;
+  srBuildTagManagerUI();
+  el.style.display = 'flex';
+}
+function srCloseTagManager() {
+  const el = document.getElementById('sr-tag-manager');
+  if (el) el.style.display = 'none';
+}
+function srBuildTagManagerUI() {
+  const c = document.getElementById('sr-tm-list');
+  if (!c) return;
+  c.innerHTML = TAGS.map((t, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <input type="color" value="${t.bg}" onchange="srTmUpdateBg(${i},this.value)"
+        style="width:28px;height:28px;border:none;padding:0;border-radius:4px;cursor:pointer">
+      <input type="text" value="${esc(t.label)}" oninput="srTmUpdateLabel(${i},this.value)"
+        style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
+               font-size:.78rem;background:var(--surface);color:var(--text)">
+      <input type="text" value="${esc(t.k)}" oninput="srTmUpdateKey(${i},this.value)"
+        placeholder="key" maxlength="20"
+        style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;
+               font-size:.72rem;font-family:monospace;background:var(--surface);color:var(--text)">
+      <button onclick="srTmRemove(${i})"
+        style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;
+               background:transparent;cursor:pointer;color:#E24B4A;font-size:.75rem">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>`).join('');
+}
+function srTmUpdateBg(i, v)    { TAGS[i].bg=v; TAGS[i].light=v+'22'; TAGS[i].text='#1a1a2e'; rebuildTagMap(); }
+function srTmUpdateLabel(i, v) { TAGS[i].label=v; rebuildTagMap(); }
+function srTmUpdateKey(i, v)   { TAGS[i].k=v.trim().replace(/\s+/g,'_'); rebuildTagMap(); }
+function srTmRemove(i)         { TAGS.splice(i,1); rebuildTagMap(); srBuildTagManagerUI(); }
+function srTmAdd() {
+  TAGS.push({ k:'new_tag', label:'New tag', bg:'#888888', text:'#1a1a2e', light:'#88888822' });
+  rebuildTagMap(); srBuildTagManagerUI();
+}
+function srTmApply() { rebuildTagMap(); srCloseTagManager(); srRender(); srToast('Tags updated','success'); }
+
+/* ── EVENT WIRING ───────────────────────────────────────────── */
+['sr-f-start','sr-f-end','sr-f-price'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', srUpdatePreview);
+});
+const srSearchEl = document.getElementById('sr-search');
+if (srSearchEl) srSearchEl.addEventListener('input', srRender);
+
+/* ── INIT ───────────────────────────────────────────────────── */
+// Load room types first, then rates (rates need room names to render correctly)
+srLoadRoomTypes().then(() => srLoadRates());
+
+/* ── GLOBALS ────────────────────────────────────────────────── */
+Object.assign(window, {
+  srLoadRates, srRender, srOpenDrawer, srCloseDrawer, srSaveRate,
+  srEditRate, srDeleteRate, srSelectRate, srPickTag, srOnDayClick,
+  srPrevMonth, srNextMonth, srGoToday, srUpdatePreview,
+  srCalDragStart, srCalDragOver, srCalDragEnd,
+  srOpenTagManager, srCloseTagManager, srBuildTagManagerUI,
+  srTmUpdateBg, srTmUpdateLabel, srTmUpdateKey, srTmRemove, srTmAdd, srTmApply,
+});
+
+})();
+
+
 // ============================================================
 // BILLING
 // ============================================================
@@ -17154,17 +18112,17 @@ let _chmWebsiteChannels = [];
 let _chmOtaChannels     = [];
 let _chmSyncLogs        = [];
 let _chmWebhookEvents   = [];
+let _chmRoomMappings    = {};   // keyed by ota channel id
 
-// channel_type values come from OTAChannel.channel_type field
 const _OTA_LOGOS = {
-  'booking.com': { icon:'fa-bed',         color:'#003580', label:'Booking.com'   },
-  'airbnb':      { icon:'fa-home',        color:'#FF5A5F', label:'Airbnb'        },
-  'expedia':     { icon:'fa-plane',       color:'#00355F', label:'Expedia'       },
-  'agoda':       { icon:'fa-hotel',       color:'#5392FF', label:'Agoda'         },
-  'mmt':         { icon:'fa-suitcase',    color:'#E8192C', label:'MakeMyTrip'    },
-  'goibibo':     { icon:'fa-ticket-alt',  color:'#E8192C', label:'Goibibo'       },
-  'ical':        { icon:'fa-calendar-alt',color:'#70757A', label:'iCal'          },
-  'other':       { icon:'fa-plug',        color:'#6b7280', label:'Other'         },
+  'booking_com': { icon:'fa-bed',          color:'#003580', label:'Booking.com'  },
+  'airbnb':      { icon:'fa-home',         color:'#FF5A5F', label:'Airbnb'       },
+  'expedia':     { icon:'fa-plane',        color:'#00355F', label:'Expedia'      },
+  'agoda':       { icon:'fa-hotel',        color:'#5392FF', label:'Agoda'        },
+  'mmt':         { icon:'fa-suitcase',     color:'#E8192C', label:'MakeMyTrip'   },
+  'goibibo':     { icon:'fa-ticket-alt',   color:'#E8192C', label:'Goibibo'      },
+  'ical':        { icon:'fa-calendar-alt', color:'#70757A', label:'iCal'         },
+  'other':       { icon:'fa-plug',         color:'#6b7280', label:'Other'        },
 };
 
 // ── OVERVIEW ──────────────────────────────────────────────────────
@@ -17179,7 +18137,7 @@ async function loadChannelOverview() {
     ..._chmWebsiteChannels.filter(c => !c.is_active),
     ..._chmOtaChannels.filter(c => !c.is_active),
   ].length;
-  const today = new Date().toISOString().split('T')[0];
+  const today       = new Date().toISOString().split('T')[0];
   const syncsToday  = _chmSyncLogs.filter(s => (s.created_at||'').startsWith(today)).length;
   const errorsToday = _chmSyncLogs.filter(s => (s.created_at||'').startsWith(today) && s.outcome === 'failed').length;
 
@@ -17191,51 +18149,51 @@ async function loadChannelOverview() {
   set('chm-kpi-syncs',    syncsToday);
   set('chm-kpi-errors',   errorsToday);
 
-  // Website channel cards
   const wcEl = document.getElementById('chmWebsiteList');
   if(wcEl) {
-    if(!_chmWebsiteChannels.length) {
-      wcEl.innerHTML = `<div class="empty"><i class="fas fa-globe"></i> No website channels.<br><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="switchPanel('channel-website')"><i class="fas fa-plus"></i> Add One</button></div>`;
-    } else {
-      wcEl.innerHTML = _chmWebsiteChannels.map(ch => _renderChannelRow(ch, 'website')).join('');
-    }
+    wcEl.innerHTML = !_chmWebsiteChannels.length
+      ? `<div class="empty"><i class="fas fa-globe"></i> No website channels.<br>
+         <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="switchPanel('channel-website')">
+           <i class="fas fa-plus"></i> Add One</button></div>`
+      : _chmWebsiteChannels.map(ch => _renderChannelRow(ch, 'website')).join('');
   }
 
-  // OTA channel cards
   const otaEl = document.getElementById('chmOtaList');
   if(otaEl) {
-    if(!_chmOtaChannels.length) {
-      otaEl.innerHTML = `<div class="empty"><i class="fas fa-hotel"></i> No OTA channels.<br><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="switchPanel('channel-ota')"><i class="fas fa-plus"></i> Add One</button></div>`;
-    } else {
-      otaEl.innerHTML = _chmOtaChannels.map(ch => _renderChannelRow(ch, 'ota')).join('');
-    }
+    otaEl.innerHTML = !_chmOtaChannels.length
+      ? `<div class="empty"><i class="fas fa-hotel"></i> No OTA channels.<br>
+         <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="switchPanel('channel-ota')">
+           <i class="fas fa-plus"></i> Add One</button></div>`
+      : _chmOtaChannels.map(ch => _renderChannelRow(ch, 'ota')).join('');
   }
 
-  // Recent syncs table
   const syncEl = document.getElementById('chmRecentSyncs');
   if(syncEl) {
     const recent = _chmSyncLogs.slice(0, 6);
-    if(!recent.length) {
-      syncEl.innerHTML = '<tr><td colspan="6" class="empty"><i class="fas fa-history"></i> No sync history yet</td></tr>';
-    } else {
-      syncEl.innerHTML = recent.map(s => _renderSyncRow(s)).join('');
-    }
+    syncEl.innerHTML = !recent.length
+      ? '<tr><td colspan="6" class="empty"><i class="fas fa-history"></i> No sync history yet</td></tr>'
+      : recent.map(s => _renderSyncRow(s)).join('');
   }
 }
 
 function _renderChannelRow(ch, type) {
   const isActive = ch.is_active;
-  // website uses site_name; OTA uses ch.name (the user-supplied name)
-  const name = type === 'website' ? (ch.site_name || '—') : (ch.name || '—');
-  // For OTA we look up the logo by channel_type
-  const ota = type === 'ota' ? (_OTA_LOGOS[ch.channel_type] || {}) : {};
-  const icon = type === 'ota' ? (ota.icon || 'fa-plug') : 'fa-globe';
+  const name     = type === 'website' ? (ch.site_name || '—') : (ch.name || '—');
+  const ota      = type === 'ota' ? (_OTA_LOGOS[ch.channel_type] || {}) : {};
+  const icon     = type === 'ota' ? (ota.icon || 'fa-plug') : 'fa-globe';
   const lastSync = ch.last_sync
     ? new Date(ch.last_sync).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
     : 'Never';
 
-  return `<div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--border);transition:background .12s" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
-    <div style="width:36px;height:36px;border-radius:9px;background:${isActive?'var(--green)':'var(--text-muted)'}18;color:${isActive?'var(--green)':'var(--text-muted)'};display:grid;place-items:center;font-size:14px;flex-shrink:0">
+  // NEW: show oauth expired warning
+  const oauthWarn = (type === 'ota' && ch.oauth_is_expired)
+    ? `<span title="OAuth token expired" style="color:var(--red);font-size:11px"><i class="fas fa-key"></i></span>`
+    : '';
+
+  return `<div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-bottom:1px solid var(--border);transition:background .12s"
+    onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+    <div style="width:36px;height:36px;border-radius:9px;background:${isActive?'var(--green)':'var(--text-muted)'}18;
+      color:${isActive?'var(--green)':'var(--text-muted)'};display:grid;place-items:center;font-size:14px;flex-shrink:0">
       <i class="fas ${icon}"></i>
     </div>
     <div style="flex:1;min-width:0">
@@ -17243,6 +18201,7 @@ function _renderChannelRow(ch, type) {
       <div style="font-size:.67rem;color:var(--text-muted)">Last sync: ${lastSync}</div>
     </div>
     <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
+      ${oauthWarn}
       ${ch.sync_error ? `<span title="${esc(ch.sync_error)}" style="color:var(--red);font-size:11px"><i class="fas fa-exclamation-circle"></i></span>` : ''}
       <span class="badge ${isActive ? 'b-green' : 'b-red'}">${isActive ? 'Active' : 'Inactive'}</span>
       <button class="btn btn-outline btn-xs" onclick="toggleChannel(${ch.id},'${type}')">
@@ -17279,35 +18238,44 @@ function renderWebsiteChannels() {
     const lastSync = ch.last_sync
       ? new Date(ch.last_sync).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
-    // status badge: pending / approved / rejected
-    const statusBadge = {
-      approved: 'b-green',
-      pending:  'b-amber',
-      rejected: 'b-red',
-    }[ch.status] || 'b-gray';
+    const statusBadge = { approved:'b-green', pending:'b-amber', rejected:'b-red' }[ch.status] || 'b-gray';
     return `<tr>
       <td><strong style="font-size:.82rem">${esc(ch.site_name)}</strong></td>
-      <td style="font-size:.73rem"><a href="${esc(ch.base_url)}" target="_blank" style="color:var(--blue)">${esc(ch.base_url)}</a></td>
+      <td style="font-size:.73rem">
+        <a href="${esc(ch.base_url)}" target="_blank" style="color:var(--blue)">${esc(ch.base_url)}</a>
+      </td>
       <td>
         <div style="display:flex;align-items:center;gap:6px">
-          <code style="font-size:.65rem;background:var(--surface-2);padding:2px 7px;border-radius:5px;border:1px solid var(--border);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(ch.inbound_api_key)}">${esc(ch.inbound_api_key)}</code>
-          <button class="btn btn-outline btn-xs" onclick="navigator.clipboard.writeText('${esc(ch.inbound_api_key)}').then(()=>toast('Key copied!','success'))" title="Copy"><i class="fas fa-copy"></i></button>
-          <button class="btn btn-outline btn-xs" onclick="rotateInboundKey(${ch.id})" title="Rotate key"><i class="fas fa-redo-alt"></i></button>
+          <code style="font-size:.65rem;background:var(--surface-2);padding:2px 7px;border-radius:5px;
+            border:1px solid var(--border);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${esc(ch.inbound_api_key)}">${esc(ch.inbound_api_key)}</code>
+          <button class="btn btn-outline btn-xs"
+            onclick="navigator.clipboard.writeText('${esc(ch.inbound_api_key)}').then(()=>toast('Key copied!','success'))"
+            title="Copy"><i class="fas fa-copy"></i></button>
+          <button class="btn btn-outline btn-xs" onclick="rotateInboundKey(${ch.id})" title="Rotate key">
+            <i class="fas fa-redo-alt"></i></button>
         </div>
       </td>
       <td>
         <span class="badge ${statusBadge}" style="margin-right:4px">${esc(ch.status||'—')}</span>
         <span class="badge ${ch.is_active ? 'b-green' : 'b-red'}">${ch.is_active ? 'Active' : 'Inactive'}</span>
-        ${ch.sync_error ? `<div style="font-size:.63rem;color:var(--red);margin-top:2px"><i class="fas fa-exclamation-triangle"></i> ${esc(ch.sync_error)}</div>` : ''}
+        ${ch.sync_error
+          ? `<div style="font-size:.63rem;color:var(--red);margin-top:2px">
+               <i class="fas fa-exclamation-triangle"></i> ${esc(ch.sync_error)}</div>` : ''}
       </td>
       <td style="font-size:.72rem;color:var(--text-muted)">${lastSync}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-xs" onclick="editWebsiteChannel(${ch.id})" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-outline btn-xs" style="margin-left:3px" onclick="toggleChannel(${ch.id},'website')" title="${ch.is_active?'Deactivate':'Activate'}">
-          <i class="fas fa-${ch.is_active ? 'pause' : 'play'}"></i>
-        </button>
-        <button class="btn btn-primary btn-xs" style="margin-left:3px" onclick="triggerManualSync(${ch.id},'website')" title="Sync now"><i class="fas fa-sync-alt"></i></button>
-        <button class="btn btn-danger btn-xs" style="margin-left:3px" onclick="deleteChannel(${ch.id},'website')" title="Delete"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-outline btn-xs" onclick="editWebsiteChannel(${ch.id})" title="Edit">
+          <i class="fas fa-edit"></i></button>
+        <button class="btn btn-outline btn-xs" style="margin-left:3px"
+          onclick="toggleChannel(${ch.id},'website')" title="${ch.is_active?'Deactivate':'Activate'}">
+          <i class="fas fa-${ch.is_active ? 'pause' : 'play'}"></i></button>
+        <button class="btn btn-primary btn-xs" style="margin-left:3px"
+          onclick="triggerManualSync(${ch.id},'website')" title="Sync now">
+          <i class="fas fa-sync-alt"></i></button>
+        <button class="btn btn-danger btn-xs" style="margin-left:3px"
+          onclick="deleteChannel(${ch.id},'website')" title="Delete">
+          <i class="fas fa-trash"></i></button>
       </td>
     </tr>`;
   }).join('');
@@ -17332,22 +18300,20 @@ function resetWebsiteForm() {
   ['wcEditId','wcSiteName','wcBaseUrl','wcCallbackUrl','wcOutboundKey'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  const syncAvail = document.getElementById('wcSyncAvail');
-  if(syncAvail) syncAvail.checked = true;
-  const syncInt = document.getElementById('wcSyncInterval');
-  if(syncInt) syncInt.value = '15';
+  const syncAvail = document.getElementById('wcSyncAvail');    if(syncAvail) syncAvail.checked = true;
+  const syncInt   = document.getElementById('wcSyncInterval'); if(syncInt)   syncInt.value    = '15';
   document.getElementById('wcFormTitle').textContent   = 'Add Website Channel';
   document.getElementById('wcSubmitLabel').textContent = 'Save Channel';
   document.getElementById('wcMsg').textContent         = '';
 }
 
 async function submitWebsiteChannel() {
-  const editId           = document.getElementById('wcEditId').value;
-  const site_name        = document.getElementById('wcSiteName').value.trim();
-  const base_url         = document.getElementById('wcBaseUrl').value.trim();
-  const callback_url     = document.getElementById('wcCallbackUrl').value.trim();
-  const outbound_api_key = document.getElementById('wcOutboundKey').value.trim();
-  const sync_availability    = document.getElementById('wcSyncAvail')?.checked ?? true;
+  const editId            = document.getElementById('wcEditId').value;
+  const site_name         = document.getElementById('wcSiteName').value.trim();
+  const base_url          = document.getElementById('wcBaseUrl').value.trim();
+  const callback_url      = document.getElementById('wcCallbackUrl').value.trim();
+  const outbound_api_key  = document.getElementById('wcOutboundKey').value.trim();
+  const sync_availability     = document.getElementById('wcSyncAvail')?.checked ?? true;
   const sync_interval_minutes = parseInt(document.getElementById('wcSyncInterval')?.value) || 15;
   const msg = document.getElementById('wcMsg');
 
@@ -17364,11 +18330,7 @@ async function submitWebsiteChannel() {
   const method  = editId ? 'PATCH' : 'POST';
 
   try {
-    const r    = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body: JSON.stringify(payload),
-    });
+    const r    = await fetch(url, { method, headers:{'Content-Type':'application/json','X-CSRFToken':csrf}, body:JSON.stringify(payload) });
     const data = await r.json();
     if(r.ok) {
       const statusNote = data.connect_status === 'approved'
@@ -17376,7 +18338,7 @@ async function submitWebsiteChannel() {
         : data.connect_status === 'pending'
           ? ' Connect request sent — awaiting website approval.'
           : '';
-      toast(editId ? 'Channel updated!' : 'Channel added!' + statusNote, 'success');
+      toast((editId ? 'Channel updated!' : 'Channel added!') + statusNote, 'success');
       msg.innerHTML = `<span style="color:var(--green)">✅ ${editId ? 'Updated' : 'Channel created'} successfully!${statusNote}</span>`;
       resetWebsiteForm();
       await loadWebsiteChannels();
@@ -17386,7 +18348,7 @@ async function submitWebsiteChannel() {
   } catch {
     msg.innerHTML = '<span style="color:var(--red)">❌ Network error</span>';
   }
-  if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> <span id="wcSubmitLabel">' + (editId ? 'Update Channel' : 'Save Channel') + '</span>'; }
+  if(btn) { btn.disabled = false; btn.innerHTML = `<i class="fas fa-save"></i> <span id="wcSubmitLabel">${editId ? 'Update Channel' : 'Save Channel'}</span>`; }
 }
 
 async function rotateInboundKey(id) {
@@ -17394,10 +18356,8 @@ async function rotateInboundKey(id) {
   try {
     const r    = await fetch(`/channels/website/${id}/rotate-key/`, { method:'POST', headers:{'X-CSRFToken':csrf} });
     const data = await r.json();
-    if(r.ok) {
-      toast('Key rotated! New key: ' + (data.inbound_api_key || ''), 'success');
-      await loadWebsiteChannels();
-    } else { toast(data.error || 'Failed', 'error'); }
+    if(r.ok) { toast('Key rotated! New key: ' + (data.inbound_api_key || ''), 'success'); await loadWebsiteChannels(); }
+    else      { toast(data.error || 'Failed', 'error'); }
   } catch { toast('Network error', 'error'); }
 }
 
@@ -17413,16 +18373,31 @@ async function loadOtaChannels() {
   renderOtaChannels();
 }
 
+// NEW: show/hide fields based on auth_method AND protocol
 function toggleOtaAuthFields() {
-  const method  = document.getElementById('otaAuthMethod')?.value;
-  const apiGrp  = document.getElementById('otaApiKeyGroup');
-  const secGrp  = document.getElementById('otaApiSecretGroup');
-  const icalGrp = document.getElementById('otaIcalGroup');
-  const propGrp = document.getElementById('otaPropertyGroup');
-  if(apiGrp)  apiGrp.style.display  = method === 'ical' ? 'none' : '';
-  if(secGrp)  secGrp.style.display  = (method === 'api_key' || method === 'oauth2') ? '' : 'none';
-  if(icalGrp) icalGrp.style.display = method === 'ical' ? '' : 'none';
-  if(propGrp) propGrp.style.display = method === 'ical' ? 'none' : '';
+  const method   = document.getElementById('otaAuthMethod')?.value;
+  const protocol = document.getElementById('otaProtocol')?.value;
+
+  const apiGrp      = document.getElementById('otaApiKeyGroup');
+  const secGrp      = document.getElementById('otaApiSecretGroup');
+  const icalGrp     = document.getElementById('otaIcalGroup');
+  const propGrp     = document.getElementById('otaPropertyGroup');
+  const webhookGrp  = document.getElementById('otaWebhookGroup');      // NEW
+  const oauthGrp    = document.getElementById('otaOauthGroup');         // NEW
+  const syncIntGrp  = document.getElementById('otaSyncIntervalGroup'); // NEW
+
+  const isIcal   = method === 'ical';
+  const isOAuth  = method === 'oauth2';
+  const hasWebhook = document.getElementById('otaSupportsWebhook')?.checked;
+
+  if(apiGrp)     apiGrp.style.display     = isIcal ? 'none' : '';
+  if(secGrp)     secGrp.style.display     = (method === 'api_key' || isOAuth) ? '' : 'none';
+  if(icalGrp)    icalGrp.style.display    = isIcal ? '' : 'none';
+  if(propGrp)    propGrp.style.display    = isIcal ? 'none' : '';
+  if(webhookGrp) webhookGrp.style.display = '';                        // always show
+  if(oauthGrp)   oauthGrp.style.display   = isOAuth ? '' : 'none';    // NEW: OAuth token endpoint
+  // Show polling interval only when webhook is NOT supported
+  if(syncIntGrp) syncIntGrp.style.display = hasWebhook ? 'none' : ''; // NEW
 }
 
 function renderOtaChannels() {
@@ -17437,25 +18412,40 @@ function renderOtaChannels() {
   }
 
   tbody.innerHTML = _chmOtaChannels.map(ch => {
-    // Backend returns channel_type and channel_type_display
-    const ota = _OTA_LOGOS[ch.channel_type] || { icon:'fa-plug', color:'#6b7280', label: ch.channel_type_display || ch.channel_type };
+    const ota      = _OTA_LOGOS[ch.channel_type] || { icon:'fa-plug', color:'#6b7280', label: ch.channel_type_display || ch.channel_type };
     const syncDays = ch.sync_days_ahead ? `${ch.sync_days_ahead}d ahead` : '—';
     const lastSync = ch.last_sync
       ? new Date(ch.last_sync).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
 
-    // Capability badges
+    // NEW: protocol badge
+    const protoBadge = ch.protocol
+      ? `<span class="badge b-indigo" style="font-size:.55rem">${esc(ch.protocol)}</span>`
+      : '';
+
+    // NEW: webhook vs polling badge
+    const syncModeBadge = ch.supports_webhook
+      ? `<span class="badge b-teal"   style="font-size:.55rem"><i class="fas fa-bolt"></i> webhook</span>`
+      : `<span class="badge b-amber"  style="font-size:.55rem"><i class="fas fa-clock"></i> poll ${ch.sync_interval_minutes||15}m</span>`;
+
+    // NEW: oauth expired warning
+    const oauthWarn = ch.oauth_is_expired
+      ? `<span title="OAuth token expired — refresh needed" style="color:var(--red);font-size:11px;margin-left:4px">
+           <i class="fas fa-key"></i> Token expired</span>`
+      : '';
+
     const caps = [
-      ch.push_rates        ? '<span class="badge b-blue" style="font-size:.58rem">rates</span>'        : '',
-      ch.push_availability ? '<span class="badge b-teal" style="font-size:.58rem">avail</span>'        : '',
-      ch.pull_bookings     ? '<span class="badge b-green" style="font-size:.58rem">bookings</span>'    : '',
-      ch.is_ical           ? '<span class="badge b-gray" style="font-size:.58rem">iCal</span>'         : '',
+      ch.push_rates        ? '<span class="badge b-blue"  style="font-size:.58rem">rates</span>'    : '',
+      ch.push_availability ? '<span class="badge b-teal"  style="font-size:.58rem">avail</span>'    : '',
+      ch.pull_bookings     ? '<span class="badge b-green" style="font-size:.58rem">bookings</span>' : '',
+      ch.is_ical           ? '<span class="badge b-gray"  style="font-size:.58rem">iCal</span>'     : '',
     ].filter(Boolean).join(' ');
 
     return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:30px;height:30px;border-radius:7px;background:${ota.color}18;color:${ota.color};display:grid;place-items:center;font-size:13px;flex-shrink:0">
+          <div style="width:30px;height:30px;border-radius:7px;background:${ota.color}18;color:${ota.color};
+            display:grid;place-items:center;font-size:13px;flex-shrink:0">
             <i class="fas ${ota.icon}"></i>
           </div>
           <div>
@@ -17464,20 +18454,30 @@ function renderOtaChannels() {
           </div>
         </div>
       </td>
-      <td><span class="badge b-gray" style="font-size:.62rem">${esc(ch.auth_method||'api_key')}</span></td>
+      <td>
+        <span class="badge b-gray" style="font-size:.62rem">${esc(ch.auth_method||'api_key')}</span>
+        ${protoBadge}
+      </td>
       <td style="font-family:'DM Mono',monospace;font-size:.72rem">${esc(ch.property_code||ch.hotel_id_on_ota||'—')}</td>
-      <td style="font-size:.72rem">${syncDays}</td>
+      <td>${syncModeBadge}</td>
       <td>
         <span class="badge ${ch.is_active ? 'b-green' : 'b-red'}">${ch.is_active ? 'Active' : 'Inactive'}</span>
+        ${oauthWarn}
         <div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap">${caps}</div>
       </td>
       <td style="font-size:.72rem;color:var(--text-muted)">${lastSync}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-outline btn-xs" onclick="editOtaChannel(${ch.id})" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-outline btn-xs" style="margin-left:3px" onclick="toggleChannel(${ch.id},'ota')" title="${ch.is_active?'Deactivate':'Activate'}">
-          <i class="fas fa-${ch.is_active ? 'pause' : 'play'}"></i>
-        </button>
-        <button class="btn btn-danger btn-xs" style="margin-left:3px" onclick="deleteChannel(${ch.id},'ota')" title="Delete"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-outline btn-xs" onclick="editOtaChannel(${ch.id})" title="Edit">
+          <i class="fas fa-edit"></i></button>
+        <button class="btn btn-outline btn-xs" style="margin-left:3px"
+          onclick="openRoomMappings(${ch.id})" title="Room Mappings">
+          <i class="fas fa-map"></i></button>
+        <button class="btn btn-outline btn-xs" style="margin-left:3px"
+          onclick="toggleChannel(${ch.id},'ota')" title="${ch.is_active?'Deactivate':'Activate'}">
+          <i class="fas fa-${ch.is_active ? 'pause' : 'play'}"></i></button>
+        <button class="btn btn-danger btn-xs" style="margin-left:3px"
+          onclick="deleteChannel(${ch.id},'ota')" title="Delete">
+          <i class="fas fa-trash"></i></button>
       </td>
     </tr>`;
   }).join('');
@@ -17490,6 +18490,8 @@ function editOtaChannel(id) {
   document.getElementById('otaName').value          = ch.name || '';
   document.getElementById('otaChannelType').value   = ch.channel_type || '';
   document.getElementById('otaAuthMethod').value    = ch.auth_method || 'api_key';
+  document.getElementById('otaProtocol')?.setAttribute('value', ch.protocol || 'json_rest');
+  if(document.getElementById('otaProtocol')) document.getElementById('otaProtocol').value = ch.protocol || 'json_rest';
   document.getElementById('otaApiKey').value        = '';   // never echo secrets
   document.getElementById('otaApiSecret').value     = '';
   document.getElementById('otaIcalUrl').value       = ch.ical_url || '';
@@ -17499,6 +18501,12 @@ function editOtaChannel(id) {
   document.getElementById('otaPushRates').checked       = !!ch.push_rates;
   document.getElementById('otaPushAvail').checked       = !!ch.push_availability;
   document.getElementById('otaPullBookings').checked    = !!ch.pull_bookings;
+  // NEW fields
+  if(document.getElementById('otaWebhookUrl'))       document.getElementById('otaWebhookUrl').value       = ch.webhook_url || '';
+  if(document.getElementById('otaSupportsWebhook'))  document.getElementById('otaSupportsWebhook').checked = !!ch.supports_webhook;
+  if(document.getElementById('otaSyncInterval'))     document.getElementById('otaSyncInterval').value     = ch.sync_interval_minutes || 15;
+  if(document.getElementById('otaOauthEndpoint'))    document.getElementById('otaOauthEndpoint').value    = ch.oauth_token_endpoint || '';
+
   document.getElementById('otaFormTitle').textContent   = 'Edit OTA Channel';
   document.getElementById('otaSubmitLabel').textContent = 'Update OTA Channel';
   toggleOtaAuthFields();
@@ -17506,18 +18514,21 @@ function editOtaChannel(id) {
 }
 
 function resetOtaForm() {
-  ['otaEditId','otaName','otaApiKey','otaApiSecret','otaIcalUrl','otaHotelId','otaPropertyCode'].forEach(id => {
+  ['otaEditId','otaName','otaApiKey','otaApiSecret','otaIcalUrl','otaHotelId',
+   'otaPropertyCode','otaWebhookUrl','otaSyncInterval','otaOauthEndpoint'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  document.getElementById('otaChannelType').value   = '';
-  document.getElementById('otaAuthMethod').value    = 'api_key';
-  document.getElementById('otaSyncDays').value      = '90';
-  document.getElementById('otaPushRates').checked       = true;
-  document.getElementById('otaPushAvail').checked       = true;
-  document.getElementById('otaPullBookings').checked    = true;
-  document.getElementById('otaFormTitle').textContent   = 'Add OTA Channel';
-  document.getElementById('otaSubmitLabel').textContent = 'Save OTA Channel';
-  document.getElementById('otaMsg').textContent         = '';
+  document.getElementById('otaChannelType').value           = '';
+  document.getElementById('otaAuthMethod').value            = 'api_key';
+  if(document.getElementById('otaProtocol'))       document.getElementById('otaProtocol').value        = 'json_rest';
+  document.getElementById('otaSyncDays').value              = '90';
+  document.getElementById('otaPushRates').checked           = true;
+  document.getElementById('otaPushAvail').checked           = true;
+  document.getElementById('otaPullBookings').checked        = true;
+  if(document.getElementById('otaSupportsWebhook')) document.getElementById('otaSupportsWebhook').checked = false;
+  document.getElementById('otaFormTitle').textContent       = 'Add OTA Channel';
+  document.getElementById('otaSubmitLabel').textContent     = 'Save OTA Channel';
+  document.getElementById('otaMsg').textContent             = '';
   toggleOtaAuthFields();
 }
 
@@ -17527,27 +18538,32 @@ async function submitOtaChannel() {
   const channelType = document.getElementById('otaChannelType').value;
   const msg         = document.getElementById('otaMsg');
 
-  if(!name)        { msg.innerHTML = '<span style="color:var(--red)">❌ Channel name is required</span>';    return; }
-  if(!channelType) { msg.innerHTML = '<span style="color:var(--red)">❌ Select an OTA platform</span>';     return; }
+  if(!name)        { msg.innerHTML = '<span style="color:var(--red)">❌ Channel name is required</span>';  return; }
+  if(!channelType) { msg.innerHTML = '<span style="color:var(--red)">❌ Select an OTA platform</span>';   return; }
 
   const btn = document.querySelector('#panel-channel-ota .btn-primary');
   if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
 
-  // Only include api_key/api_secret if filled (don't overwrite with empty on edit)
   const apiKey    = document.getElementById('otaApiKey').value.trim();
   const apiSecret = document.getElementById('otaApiSecret').value.trim();
 
   const payload = {
     name,
-    channel_type:    channelType,
-    auth_method:     document.getElementById('otaAuthMethod').value,
-    hotel_id_on_ota: document.getElementById('otaHotelId').value.trim(),
-    property_code:   document.getElementById('otaPropertyCode').value.trim(),
-    ical_url:        document.getElementById('otaIcalUrl').value.trim(),
-    sync_days_ahead: parseInt(document.getElementById('otaSyncDays').value) || 90,
-    push_rates:      document.getElementById('otaPushRates').checked,
-    push_availability: document.getElementById('otaPushAvail').checked,
-    pull_bookings:   document.getElementById('otaPullBookings').checked,
+    channel_type:         channelType,
+    auth_method:          document.getElementById('otaAuthMethod').value,
+    protocol:             document.getElementById('otaProtocol')?.value || 'json_rest',          // NEW
+    hotel_id_on_ota:      document.getElementById('otaHotelId').value.trim(),
+    property_code:        document.getElementById('otaPropertyCode').value.trim(),
+    ical_url:             document.getElementById('otaIcalUrl').value.trim(),
+    sync_days_ahead:      parseInt(document.getElementById('otaSyncDays').value) || 90,
+    push_rates:           document.getElementById('otaPushRates').checked,
+    push_availability:    document.getElementById('otaPushAvail').checked,
+    pull_bookings:        document.getElementById('otaPullBookings').checked,
+    // NEW fields
+    webhook_url:          document.getElementById('otaWebhookUrl')?.value.trim()    || '',
+    supports_webhook:     document.getElementById('otaSupportsWebhook')?.checked    ?? false,
+    sync_interval_minutes:parseInt(document.getElementById('otaSyncInterval')?.value) || 15,
+    oauth_token_endpoint: document.getElementById('otaOauthEndpoint')?.value.trim() || '',
   };
   if(apiKey)    payload.api_key    = apiKey;
   if(apiSecret) payload.api_secret = apiSecret;
@@ -17556,11 +18572,7 @@ async function submitOtaChannel() {
   const method = editId ? 'PATCH' : 'POST';
 
   try {
-    const r    = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
-      body: JSON.stringify(payload),
-    });
+    const r    = await fetch(url, { method, headers:{'Content-Type':'application/json','X-CSRFToken':csrf}, body:JSON.stringify(payload) });
     const data = await r.json();
     if(r.ok) {
       toast(`${_OTA_LOGOS[channelType]?.label || channelType} channel ${editId ? 'updated' : 'added'}!`, 'success');
@@ -17576,12 +18588,150 @@ async function submitOtaChannel() {
   if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save OTA Channel'; }
 }
 
+// ── ROOM MAPPINGS (NEW) ───────────────────────────────────────────
+async function openRoomMappings(channelId) {
+  const ch = _chmOtaChannels.find(c => c.id === channelId);
+  if(!ch) return;
+
+  // Create modal if not exists
+  let modal = document.getElementById('roomMappingModal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'roomMappingModal';
+    modal.style.cssText = `position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center`;
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:14px;padding:28px;width:580px;max-width:95vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px #0006">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <h3 style="margin:0;font-size:1rem" id="rmModalTitle">Room Mappings</h3>
+          <button class="btn btn-outline btn-xs" onclick="document.getElementById('roomMappingModal').remove()">
+            <i class="fas fa-times"></i></button>
+        </div>
+        <div id="rmList" style="margin-bottom:16px"></div>
+        <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+          <div style="font-weight:700;font-size:.8rem;margin-bottom:10px">Add / Update Mapping</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:.72rem;color:var(--text-muted)">Internal Room ID</label>
+              <input id="rmInternalRoomId" class="input" placeholder="e.g. 3" type="number" style="width:100%">
+            </div>
+            <div>
+              <label style="font-size:.72rem;color:var(--text-muted)">OTA Room ID</label>
+              <input id="rmOtaRoomId" class="input" placeholder="e.g. 12345" style="width:100%">
+            </div>
+            <div>
+              <label style="font-size:.72rem;color:var(--text-muted)">OTA Room Name</label>
+              <input id="rmOtaRoomName" class="input" placeholder="e.g. Deluxe King" style="width:100%">
+            </div>
+            <div>
+              <label style="font-size:.72rem;color:var(--text-muted)">OTA Rate Plan ID (optional)</label>
+              <input id="rmOtaRatePlan" class="input" placeholder="e.g. NRF" style="width:100%">
+            </div>
+          </div>
+          <div id="rmMsg" style="margin-top:8px;font-size:.75rem"></div>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="_saveRoomMapping(${channelId})">
+            <i class="fas fa-save"></i> Save Mapping</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  document.getElementById('rmModalTitle').textContent = `Room Mappings — ${ch.name}`;
+  await _loadRoomMappings(channelId);
+}
+
+async function _loadRoomMappings(channelId) {
+  const listEl = document.getElementById('rmList');
+  if(!listEl) return;
+  try {
+    const r = await fetch(`/channels/ota/${channelId}/mappings/`);
+    const d = await r.json();
+    const mappings = d.results || [];
+    _chmRoomMappings[channelId] = mappings;
+
+    if(!mappings.length) {
+      listEl.innerHTML = '<div style="color:var(--text-muted);font-size:.78rem;padding:8px 0">No mappings yet. Add one below.</div>';
+      return;
+    }
+    listEl.innerHTML = `
+      <table style="width:100%;font-size:.75rem;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:5px 6px;color:var(--text-muted)">Internal Room</th>
+            <th style="text-align:left;padding:5px 6px;color:var(--text-muted)">OTA Room</th>
+            <th style="text-align:left;padding:5px 6px;color:var(--text-muted)">Rate Plan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${mappings.map(m => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px">${esc(m.internal_room_name||'Room #'+m.internal_room_id)}</td>
+              <td style="padding:6px">${esc(m.ota_room_name)} <span style="color:var(--text-muted)">(${esc(m.ota_room_id)})</span></td>
+              <td style="padding:6px;font-family:'DM Mono',monospace">${esc(m.ota_rate_plan_id||'—')}</td>
+              <td style="padding:6px">
+                <button class="btn btn-danger btn-xs" onclick="_deleteRoomMapping(${m.id},${channelId})">
+                  <i class="fas fa-trash"></i></button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch {
+    listEl.innerHTML = '<div style="color:var(--red);font-size:.75rem">Failed to load mappings.</div>';
+  }
+}
+
+async function _saveRoomMapping(channelId) {
+  const internalRoomId = document.getElementById('rmInternalRoomId')?.value.trim();
+  const otaRoomId      = document.getElementById('rmOtaRoomId')?.value.trim();
+  const otaRoomName    = document.getElementById('rmOtaRoomName')?.value.trim();
+  const otaRatePlan    = document.getElementById('rmOtaRatePlan')?.value.trim();
+  const msg            = document.getElementById('rmMsg');
+
+  if(!internalRoomId || !otaRoomId || !otaRoomName) {
+    msg.innerHTML = '<span style="color:var(--red)">❌ Internal Room ID, OTA Room ID and OTA Room Name are required.</span>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`/channels/ota/${channelId}/mappings/`, {
+      method:  'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':csrf},
+      body:    JSON.stringify({
+        internal_room_id: internalRoomId,
+        ota_room_id:      otaRoomId,
+        ota_room_name:    otaRoomName,
+        ota_rate_plan_id: otaRatePlan,
+      }),
+    });
+    const data = await r.json();
+    if(r.ok) {
+      msg.innerHTML = `<span style="color:var(--green)">✅ Mapping ${data.created ? 'created' : 'updated'}!</span>`;
+      ['rmInternalRoomId','rmOtaRoomId','rmOtaRoomName','rmOtaRatePlan'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      await _loadRoomMappings(channelId);
+    } else {
+      msg.innerHTML = `<span style="color:var(--red)">❌ ${esc(data.error || 'Save failed')}</span>`;
+    }
+  } catch {
+    msg.innerHTML = '<span style="color:var(--red)">❌ Network error</span>';
+  }
+}
+
+async function _deleteRoomMapping(mappingId, channelId) {
+  if(!confirm('Delete this room mapping?')) return;
+  try {
+    const r = await fetch(`/channels/ota/mappings/${mappingId}/`, { method:'DELETE', headers:{'X-CSRFToken':csrf} });
+    if(r.ok) { toast('Mapping deleted', 'info'); await _loadRoomMappings(channelId); }
+    else { toast('Delete failed', 'error'); }
+  } catch { toast('Network error', 'error'); }
+}
+
 // ── SHARED CHANNEL ACTIONS ────────────────────────────────────────
 async function toggleChannel(id, type) {
   try {
-    const url = `/channels/${type}/${id}/toggle/`;
-    const r   = await fetch(url, { method:'PATCH', headers:{'X-CSRFToken':csrf} });
-    const d   = await r.json();
+    const r = await fetch(`/channels/${type}/${id}/toggle/`, { method:'PATCH', headers:{'X-CSRFToken':csrf} });
+    const d = await r.json();
     if(r.ok) {
       toast(d.is_active ? 'Channel activated' : 'Channel deactivated', d.is_active ? 'success' : 'info');
       if(type === 'website') await loadWebsiteChannels();
@@ -17612,10 +18762,8 @@ async function triggerManualSync(id, type) {
   try {
     const r    = await fetch(`/channels/${type}/${id}/sync/`, { method:'POST', headers:{'X-CSRFToken':csrf} });
     const data = await r.json();
-    if(r.ok) {
-      toast(`Sync triggered successfully`, 'success');
-      await loadSyncLogs();
-    } else { toast(data.error || 'Sync failed', 'error'); }
+    if(r.ok) { toast('Sync triggered successfully', 'success'); await loadSyncLogs(); }
+    else     { toast(data.error || 'Sync failed', 'error'); }
   } catch { toast('Network error', 'error'); }
 }
 
@@ -17632,8 +18780,6 @@ async function loadSyncLogs() {
 }
 
 function _resolveChannelName(log) {
-  // Backend returns website_channel_id / ota_channel_id, not channel_name.
-  // We resolve from loaded channel arrays.
   if(log.website_channel_id) {
     const ch = _chmWebsiteChannels.find(c => c.id === log.website_channel_id);
     return ch ? ch.site_name : `Website #${log.website_channel_id}`;
@@ -17647,7 +18793,7 @@ function _resolveChannelName(log) {
 
 function renderSyncLogs() {
   const tbody  = document.getElementById('slTable');
-  const dirF   = document.getElementById('slDirFilter')?.value   || '';
+  const dirF   = document.getElementById('slDirFilter')?.value    || '';
   const outF   = document.getElementById('slOutcomeFilter')?.value || '';
   const search = (document.getElementById('slSearch')?.value || '').toLowerCase().trim();
 
@@ -17683,26 +18829,34 @@ function _renderSyncRow(s, full = false) {
     ? new Date(s.created_at).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
     : '—';
   const dur = s.duration_ms ? `${(s.duration_ms/1000).toFixed(1)}s` : '—';
+
+  // NEW: date range column when available
+  const dateRange = (full && s.date_from)
+    ? `<td style="font-size:.67rem;color:var(--text-muted)">${s.date_from} → ${s.date_to||'?'}</td>`
+    : (full ? '<td>—</td>' : '');
+
   const errCol = full
-    ? `<td style="font-size:.67rem;color:var(--red);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(s.detail||'')}">${esc(s.detail||'—')}</td>`
+    ? `<td style="font-size:.67rem;color:var(--red);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+         title="${esc(s.detail||s.ota_response||'')}">${esc(s.detail||'—')}</td>`
     : '';
 
   return `<tr>
     <td style="font-size:.79rem;font-weight:600">${esc(chName)}</td>
-    <td><span class="badge b-gray" style="font-size:.62rem"><i class="fas ${dirIcon}" style="margin-right:3px"></i>${esc(s.direction||'push')}</span></td>
+    <td><span class="badge b-gray" style="font-size:.62rem">
+      <i class="fas ${dirIcon}" style="margin-right:3px"></i>${esc(s.direction||'push')}</span></td>
     <td><span class="badge ${outCls}">${esc(s.outcome||'—')}</span></td>
     <td style="font-weight:700;font-family:'DM Mono',monospace">${s.records_sent||0}</td>
     ${full ? `<td style="font-family:'DM Mono',monospace;color:var(--red)">${s.records_failed||0}</td>` : ''}
     <td style="font-size:.72rem;color:var(--text-muted)">${dur}</td>
+    ${dateRange}
     ${errCol}
     <td style="font-size:.71rem;color:var(--text-muted)">${ts}</td>
   </tr>`;
 }
 
-// ── WEBHOOK EVENTS ─────────────────────────────────────────────────
+// ── WEBHOOK EVENTS ────────────────────────────────────────────────
 async function loadWebhookEvents() {
   try {
-    // Correct URL: /channels/webhook-events/ (not /channels/events/)
     const r = await fetch('/channels/webhook-events/');
     const d = await r.json();
     _chmWebhookEvents = d.events || d.results || (Array.isArray(d) ? d : []);
@@ -17742,20 +18896,36 @@ function renderWebhookEvents() {
     const ts = e.received_at
       ? new Date(e.received_at).toLocaleString('en-IN', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
       : '—';
-    // Resolve channel name from website_channel_id
+
+    // Resolve channel name — supports both website and OTA channel events (NEW)
     const chName = e.website_channel_id
-      ? (_chmWebsiteChannels.find(c=>c.id===e.website_channel_id)?.site_name || `Channel #${e.website_channel_id}`)
-      : '—';
+      ? (_chmWebsiteChannels.find(c=>c.id===e.website_channel_id)?.site_name || `Website #${e.website_channel_id}`)
+      : e.ota_channel_id
+        ? (_chmOtaChannels.find(c=>c.id===e.ota_channel_id)?.name || `OTA #${e.ota_channel_id}`)
+        : '—';
+
+    // Event type colour: booking_created=green, cancelled=red, modified=amber, others=indigo
+    const evtColor = {
+      booking_created:   'b-green',
+      booking_cancelled: 'b-red',
+      booking_modified:  'b-amber',
+    }[e.event_type] || 'b-indigo';
+
     return `<tr>
       <td><code style="font-size:.68rem">${esc(String(e.id||'—'))}</code></td>
-      <td><span class="badge b-indigo" style="font-size:.62rem">${esc((e.event_type||'—').replace(/_/g,' '))}</span></td>
+      <td><span class="badge ${evtColor}" style="font-size:.62rem">${esc((e.event_type||'—').replace(/_/g,' '))}</span></td>
       <td style="font-size:.79rem">${esc(chName)}</td>
       <td><span class="badge ${stCls[e.status]||'b-gray'}">${esc(e.status||'—')}</span></td>
       <td style="font-size:.71rem;color:var(--text-muted)">${ts}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.72rem">${e.booking_id ? `BK${String(e.booking_id).padStart(6,'0')}` : '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.72rem">
+        ${e.booking_id ? `BK${String(e.booking_id).padStart(6,'0')}` : '—'}</td>
       <td>
-        <button class="btn btn-outline btn-xs" onclick="_viewWebhookPayload(${e.id})" title="View payload"><i class="fas fa-code"></i></button>
-        ${e.status==='failed' ? `<button class="btn btn-amber btn-xs" style="margin-left:3px" onclick="_retryWebhook(${e.id})" title="Retry"><i class="fas fa-redo"></i></button>` : ''}
+        <button class="btn btn-outline btn-xs" onclick="_viewWebhookPayload(${e.id})" title="View payload">
+          <i class="fas fa-code"></i></button>
+        ${e.status==='failed'
+          ? `<button class="btn btn-amber btn-xs" style="margin-left:3px" onclick="_retryWebhook(${e.id})" title="Retry">
+               <i class="fas fa-redo"></i></button>`
+          : ''}
       </td>
     </tr>`;
   }).join('');
@@ -17765,8 +18935,10 @@ function _viewWebhookPayload(id) {
   const ev = _chmWebhookEvents.find(e => e.id === id);
   if(!ev) return;
   const payload = JSON.stringify(ev.payload || {}, null, 2);
-  const win = window.open('', '_blank', 'width=600,height=500');
-  win.document.write(`<html><body style="font-family:monospace;background:#0b1622;color:#6ee7b7;padding:20px"><pre>${esc(payload)}</pre></body></html>`);
+  const win = window.open('', '_blank', 'width=620,height=520');
+  win.document.write(`<html><body style="font-family:monospace;background:#0b1622;color:#6ee7b7;padding:20px">
+    <h4 style="color:#a5f3fc;margin-bottom:10px">${esc(ev.event_type||'Event')} #${ev.id}</h4>
+    <pre>${esc(payload)}</pre></body></html>`);
   win.document.close();
 }
 
@@ -17785,6 +18957,7 @@ Object.assign(window, {
   loadOtaChannels, renderOtaChannels, submitOtaChannel, resetOtaForm, editOtaChannel,
   toggleOtaAuthFields, toggleChannel, deleteChannel, triggerManualSync,
   loadSyncLogs, renderSyncLogs, loadWebhookEvents, renderWebhookEvents,
+  openRoomMappings, _loadRoomMappings, _saveRoomMapping, _deleteRoomMapping,
   _viewWebhookPayload, _retryWebhook,
 });
 // PERMISSIONS

@@ -70,19 +70,34 @@ def push_availability_to_channel(channel_pk):
     except WebsiteChannel.DoesNotExist:
         return
 
+    if not channel.callback_url:
+        SyncLog.objects.create(
+            website_channel=channel,
+            direction="push",
+            entity="rate",
+            outcome="failed",
+            records_sent=0,
+            records_failed=0,
+            duration_ms=0,
+            detail="callback_url is not set on channel",
+        )
+        return
+
     today = date.today()
-    rooms = Room.objects.filter(hotel=channel.hotel).prefetch_related("units")
+    rooms = Room.objects.filter(is_active=True).prefetch_related("units")
 
     availability = []
     for room in rooms:
         total_units = room.units.count()
+        if total_units == 0:
+            continue
 
         occupied_units = RoomUnit.objects.filter(
             room=room,
         ).filter(
-            Q(bookings__status__in=["confirmed", "checked_in"]) &
-            Q(bookings__check_in__lte=today) &
-            Q(bookings__check_out__gt=today)
+            Q(booking__status__in=["confirmed", "checked_in"]) &
+            Q(booking__check_in__lte=today) &
+            Q(booking__check_out__gt=today)
         ).distinct().count()
 
         unavailable_units = RoomUnit.objects.filter(
@@ -100,6 +115,9 @@ def push_availability_to_channel(channel_pk):
             "occupied_units":  occupied_units,
             "available_rooms": available,
         })
+
+    if not availability:
+        return
 
     payload = {
         "event":        "availability_sync",

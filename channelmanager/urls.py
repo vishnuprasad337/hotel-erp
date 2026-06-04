@@ -19,8 +19,16 @@ urlpatterns = [
     path("ota/",                         views.OTAChannelListView.as_view(),          name="ota-channel-list"),
     path("ota/<int:pk>/",                views.OTAChannelDetailView.as_view(),        name="ota-channel-detail"),
     path("ota/<int:pk>/toggle/",         views.OTAChannelToggleView.as_view(),        name="ota-channel-toggle"),
-
-    # ── Logs ──────────────────────────────────────────────────────────────
+    path("ota/<int:pk>/mappings/",        views.OTARoomMappingView.as_view()),
+   
+    path("ota/mappings/<int:pk>/",         views. OTARoomMappingView.as_view()),
+ 
+    
+    path("ota-webhook/<int:channel_id>/",   views.OTAWebhookReceiveView.as_view()),
+ 
+   
+    path("ical/<str:hotel_token>/",        views. ICalFeedView.as_view()),
+    
     path("webhook-events/",              views.WebhookEventListView.as_view(),        name="webhook-event-list"),
     path("sync-logs/",                   views.SyncLogListView.as_view(),             name="sync-log-list"),
 ]

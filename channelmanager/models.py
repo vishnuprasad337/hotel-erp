@@ -54,14 +54,20 @@ class OTAChannel(models.Model):
         ("goibibo",     "Goibibo"),
         ("other",       "Other"),
     ]
-
+ 
     AUTH_METHOD = [
         ("api_key", "API Key / Secret"),
         ("oauth2",  "OAuth 2.0"),
         ("ical",    "iCal (no auth)"),
         ("webhook", "Webhook Only"),
     ]
-
+ 
+    PROTOCOL = [
+        ("json_rest", "JSON REST"),
+        ("ota_xml",   "OTA XML (Booking.com style)"),
+        ("ical",      "iCal"),
+    ]
+ 
     hotel = models.ForeignKey(
         "accounts.Hotel",
         on_delete=models.CASCADE,
@@ -69,74 +75,85 @@ class OTAChannel(models.Model):
         null=True,
         blank=True,
     )
-    name                = models.CharField(max_length=100)
-    channel_type        = models.CharField(max_length=30, choices=CHANNEL_TYPE)
-    auth_method         = models.CharField(max_length=20, choices=AUTH_METHOD, default="api_key")
-    api_key             = models.CharField(max_length=512, blank=True)
-    api_secret          = models.CharField(max_length=512, blank=True)
-    oauth_access_token  = models.TextField(blank=True)
-    oauth_refresh_token = models.TextField(blank=True)
-    oauth_expires_at    = models.DateTimeField(null=True, blank=True)
-    hotel_id_on_ota     = models.CharField(max_length=100, blank=True)
-    property_code       = models.CharField(max_length=100, blank=True)
-    ical_url            = models.URLField(blank=True)
-    ical_push_url       = models.URLField(blank=True)
-    webhook_secret      = models.CharField(max_length=256, blank=True)
-    push_rates          = models.BooleanField(default=True)
-    push_availability   = models.BooleanField(default=True)
-    pull_bookings       = models.BooleanField(default=True)
-    sync_days_ahead     = models.PositiveIntegerField(default=90)
-    is_active           = models.BooleanField(default=True)
-    last_sync           = models.DateTimeField(null=True, blank=True)
-    sync_error          = models.TextField(blank=True)
-    created_at          = models.DateTimeField(auto_now_add=True)
-    updated_at          = models.DateTimeField(auto_now=True)
-
+    name                  = models.CharField(max_length=100)
+    channel_type          = models.CharField(max_length=30, choices=CHANNEL_TYPE)
+    auth_method           = models.CharField(max_length=20, choices=AUTH_METHOD, default="api_key")
+    protocol              = models.CharField(max_length=20, choices=PROTOCOL, default="json_rest")  # NEW
+    api_key               = models.CharField(max_length=512, blank=True)
+    api_secret            = models.CharField(max_length=512, blank=True)
+    oauth_access_token    = models.TextField(blank=True)
+    oauth_refresh_token   = models.TextField(blank=True)
+    oauth_expires_at      = models.DateTimeField(null=True, blank=True)
+    oauth_token_endpoint  = models.URLField(blank=True)                  # NEW — per-OTA token URL
+    hotel_id_on_ota       = models.CharField(max_length=100, blank=True)
+    property_code         = models.CharField(max_length=100, blank=True)
+    ical_url              = models.URLField(blank=True)
+    ical_push_url         = models.URLField(blank=True)
+    webhook_secret        = models.CharField(max_length=256, blank=True)
+    webhook_url           = models.URLField(blank=True)                  # NEW — OTA pushes bookings here
+    supports_webhook      = models.BooleanField(default=False)           # NEW
+    sync_interval_minutes = models.PositiveIntegerField(default=15)      # NEW — polling fallback
+    push_rates            = models.BooleanField(default=True)
+    push_availability     = models.BooleanField(default=True)
+    pull_bookings         = models.BooleanField(default=True)
+    sync_days_ahead       = models.PositiveIntegerField(default=90)
+    is_active             = models.BooleanField(default=True)
+    last_sync             = models.DateTimeField(null=True, blank=True)
+    sync_error            = models.TextField(blank=True)
+    created_at            = models.DateTimeField(auto_now_add=True)
+    updated_at            = models.DateTimeField(auto_now=True)
+ 
     class Meta:
         unique_together = ["hotel", "channel_type", "hotel_id_on_ota"]
         verbose_name    = "OTA Channel"
-
+ 
     def __str__(self):
         return f"{self.name} ({self.get_channel_type_display()}) — {self.hotel.hotel_name}"
-
+ 
     @property
     def is_ical(self):
         return self.channel_type == "ical" or self.auth_method == "ical"
-
+ 
     @property
     def oauth_is_expired(self):
         if not self.oauth_expires_at:
             return False
         return timezone.now() >= self.oauth_expires_at
 
-
 class ChannelRate(models.Model):
-    ota_channel     = models.ForeignKey(OTAChannel,     on_delete=models.CASCADE, null=True, blank=True, related_name="rates")
-    website_channel = models.ForeignKey(WebsiteChannel, on_delete=models.CASCADE, null=True, blank=True, related_name="rates")
-    room_type       = models.ForeignKey("pms.Room", on_delete=models.CASCADE, related_name="channel_rates")
-    date            = models.DateField()
-    rate            = models.DecimalField(max_digits=10, decimal_places=2)
-    min_stay        = models.PositiveIntegerField(default=1)
-    max_stay        = models.PositiveIntegerField(default=30)
-    available_rooms = models.PositiveIntegerField(default=0)
-    stop_sell       = models.BooleanField(default=False)
-    last_pushed     = models.DateTimeField(null=True, blank=True)
-    push_error      = models.TextField(blank=True)
-
+    ota_channel      = models.ForeignKey(OTAChannel,     on_delete=models.CASCADE, null=True, blank=True, related_name="rates")
+    website_channel  = models.ForeignKey(WebsiteChannel, on_delete=models.CASCADE, null=True, blank=True, related_name="rates")
+    room_type        = models.ForeignKey("pms.Room", on_delete=models.CASCADE, related_name="channel_rates")
+    date             = models.DateField()
+    rate             = models.DecimalField(max_digits=10, decimal_places=2)
+    min_stay         = models.PositiveIntegerField(default=1)
+    max_stay         = models.PositiveIntegerField(default=30)
+    available_rooms  = models.PositiveIntegerField(default=0)
+    stop_sell        = models.BooleanField(default=False)
+    # NEW — rate plan fields
+    rate_plan_id         = models.CharField(max_length=100, blank=True)
+    rate_plan_name       = models.CharField(max_length=100, blank=True)   # "Non-refundable", "Flex"
+    is_refundable        = models.BooleanField(default=True)
+    cancellation_policy  = models.TextField(blank=True)
+    last_pushed          = models.DateTimeField(null=True, blank=True)
+    push_error           = models.TextField(blank=True)
+ 
     class Meta:
-        unique_together = ["ota_channel", "website_channel", "room_type", "date"]
+        unique_together = ["ota_channel", "website_channel", "room_type", "date", "rate_plan_id"]  # updated
         indexes         = [models.Index(fields=["date", "room_type"])]
-
+ 
     def __str__(self):
         channel = self.ota_channel or self.website_channel
         return f"{channel} | {self.room_type} | {self.date} | {self.available_rooms} rooms @ {self.rate}"
+ 
+ 
 
-
+ 
 class SyncLog(models.Model):
     DIRECTION = [("push", "Push (ERP → Channel)"), ("pull", "Pull (Channel → ERP)")]
     OUTCOME   = [("success", "Success"), ("partial", "Partial"), ("failed", "Failed")]
     ENTITY    = [("rate", "Rate/Availability"), ("booking", "Booking"), ("cancellation", "Cancellation")]
-
+ 
     ota_channel     = models.ForeignKey(OTAChannel,     on_delete=models.CASCADE, null=True, blank=True, related_name="sync_logs")
     website_channel = models.ForeignKey(WebsiteChannel, on_delete=models.CASCADE, null=True, blank=True, related_name="sync_logs")
     direction       = models.CharField(max_length=10, choices=DIRECTION)
@@ -146,15 +163,35 @@ class SyncLog(models.Model):
     records_failed  = models.PositiveIntegerField(default=0)
     duration_ms     = models.PositiveIntegerField(default=0)
     detail          = models.TextField(blank=True)
+   
+    date_from       = models.DateField(null=True, blank=True)
+    date_to         = models.DateField(null=True, blank=True)
+    room_type       = models.CharField(max_length=100, blank=True)
+    ota_response    = models.TextField(blank=True)   
     created_at      = models.DateTimeField(auto_now_add=True)
-
+ 
     class Meta:
         ordering = ["-created_at"]
-
+ 
     def __str__(self):
         channel = self.ota_channel or self.website_channel
         return f"{self.direction} {self.entity} → {channel} [{self.outcome}] @ {self.created_at:%Y-%m-%d %H:%M}"
-
+class OTARoomMapping(models.Model):
+    ota_channel       = models.ForeignKey(OTAChannel, on_delete=models.CASCADE, related_name="room_mappings")
+    internal_room     = models.ForeignKey("pms.Room", on_delete=models.CASCADE, related_name="ota_mappings")
+    ota_room_id       = models.CharField(max_length=100)       
+    ota_room_name     = models.CharField(max_length=200)       
+    ota_rate_plan_id  = models.CharField(max_length=100, blank=True)
+    is_active         = models.BooleanField(default=True)
+    created_at        = models.DateTimeField(auto_now_add=True)
+ 
+    class Meta:
+        unique_together = ["ota_channel", "internal_room"]
+        verbose_name    = "OTA Room Mapping"
+ 
+    def __str__(self):
+        return f"{self.internal_room} → {self.ota_room_name} ({self.ota_channel.name})"
+ 
 
 class WebhookEvent(models.Model):
     STATUS = [
@@ -187,3 +224,17 @@ class WebhookEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} [{self.status}] @ {self.received_at:%Y-%m-%d %H:%M}"
+import uuid
+
+class DeletedWebsiteChannelKey(models.Model):
+   
+    hotel            = models.OneToOneField(
+                           "accounts.Hotel",   
+                           on_delete=models.CASCADE,
+                           related_name="deleted_channel_key"
+                       )
+    inbound_api_key  = models.CharField(max_length=64)
+    deleted_at       = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "Deleted Website Channel Key"

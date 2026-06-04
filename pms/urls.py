@@ -33,8 +33,11 @@ urlpatterns =[
     # 🔹 Check-In / Check-Out
     path("api/check-in/", check_in, name="check_in"),
     path("api/check-out/", check_out, name="check_out"),
-
+    path('api/seasonal-rates/',                    get_seasonal_rates,    name='get_seasonal_rates'),
+     path('api/seasonal-rates/add/',                add_seasonal_rate,     name='add_seasonal_rate'),
+    path('api/seasonal-rates/<int:rate_id>/delete/', delete_seasonal_rate, name='delete_seasonal_rate'),
     path("api/record-payment/",record_payment,name="record_payment"),
+    path('api/room-types/', get_room_types, name='get_room_types'),
     path("api/assign-housekeeping-task/", assign_housekeeping_task, name="assign_housekeeping_task"),
     path("api/get-bill/", get_bill, name="get_bill"),
     path("get-bookings/", get_bookings, name="get_bookings"),

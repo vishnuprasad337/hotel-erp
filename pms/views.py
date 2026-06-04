@@ -161,8 +161,8 @@ def get_room(request, room_id):
 
         return JsonResponse({
             "id": room.id,
-            "room_type": room.room_type,
-            "room_type": room.display_type(),
+            "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
+            
             "price": str(room.base_price),
             "max_adults": room.max_adults,
             "max_children": room.max_children,
@@ -247,7 +247,7 @@ def get_rooms(request):
 
             room_list.append({
                 "id": room.id,
-                "room_type": room.room_type,
+                 "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
                 "price": str(room.base_price),
                 "total_units": room.total_units(),
                 "available_units": room.available_units(),
@@ -689,7 +689,15 @@ def create_booking(request):
                     method  = advance_method,
                     note    = "Advance payment at booking",
                 )
-
+            try:
+                from channelmanager.models import WebsiteChannel
+                from channelmanager.tasks import push_availability_to_channel, push_booking_to_channel
+                channel = WebsiteChannel.objects.filter(is_active=True).first()
+                if channel:
+                    push_booking_to_channel(channel.pk, booking.pk)
+                    push_availability_to_channel(channel.pk)
+            except Exception as e:
+                print(f"Channel sync failed: {e}")
         return JsonResponse({
             "success":        True,
             "booking_id":     booking.id,
@@ -768,6 +776,14 @@ def check_in(request):
                 booking.room_unit.save()
 
             send_guest_portal_email(request, booking)
+            try:
+                from channelmanager.models import WebsiteChannel
+                from channelmanager.tasks import push_availability_to_channel
+                channel = WebsiteChannel.objects.filter(is_active=True).first()
+                if channel:
+                    push_availability_to_channel(channel.pk)
+            except Exception as e:
+                print(f"Channel sync failed: {e}")
 
     except Exception as e:
         return JsonResponse({"success": False, "message": f"Check-in failed: {str(e)}"}, status=500)
@@ -851,6 +867,14 @@ def check_out(request):
     
     folio.status = "closed"
     folio.save()
+    try:
+         from channelmanager.models import WebsiteChannel
+         from channelmanager.tasks import push_availability_to_channel
+         channel = WebsiteChannel.objects.filter(is_active=True).first()
+         if channel:
+             push_availability_to_channel(channel.pk)
+    except Exception as e:
+        print(f"Channel sync failed: {e}")
 
     return JsonResponse({
         "success":         True,
@@ -1685,8 +1709,99 @@ def get_guest_photos(request, guest_id):
     except Exception as e:
         import traceback
         return JsonResponse({"photos": [], "error": str(e), "trace": traceback.format_exc()})
-    
-    
-  
 
+
+
+import json
+from .models import Room, SeasonalRate   
+
+@require_http_methods(["GET"])
+def get_seasonal_rates(request):
+    room_id = request.GET.get('room_id')
+    month   = request.GET.get('month')   # e.g. "2026-06"
+    year    = request.GET.get('year')
+
+    qs = SeasonalRate.objects.all()
+
+    if room_id:
+        qs = qs.filter(room_id=room_id)
+    if month:
+        try:
+            y, m = month.split('-')
+            qs = qs.filter(start_date__year=y, start_date__month=m) | \
+                 qs.filter(end_date__year=y,   end_date__month=m)
+        except ValueError:
+            pass
+
+    data = [
+        {
+            'id':         r.id,
+            'room_id':    r.room_id,
+            'room_name':  r.room.display_type(),
+            'start_date': str(r.start_date),
+            'end_date':   str(r.end_date),
+            'price':      str(r.price),
+            'reason':     r.reason,
+        }
+        for r in qs.select_related('room')
+    ]
+    return JsonResponse({'rates': data})
+
+
+
+@require_http_methods(["POST"])
+def add_seasonal_rate(request):
+    try:
+        body      = json.loads(request.body)
+        room      = get_object_or_404(Room, id=body['room_id'])
+        start     = body['start_date']
+        end       = body['end_date']
+        price     = body['price']
+        reason    = body.get('reason', '')
+
+        if end < start:
+            return JsonResponse({'error': 'End date must be after start date.'}, status=400)
+        if float(price) <= 0:
+            return JsonResponse({'error': 'Price must be greater than 0.'}, status=400)
+
+        rate = SeasonalRate.objects.create(
+            room       = room,
+            start_date = start,
+            end_date   = end,
+            price      = price,
+            reason     = reason,
+        )
+        return JsonResponse({
+            'success': True,
+            'rate': {
+                'id':         rate.id,
+                'room_id':    rate.room_id,
+                'room_name':  rate.room.display_type(),
+                'start_date': str(rate.start_date),
+                'end_date':   str(rate.end_date),
+                'price':      str(rate.price),
+                'reason':     rate.reason,
+            }
+        })
+    except (KeyError, ValueError) as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+
+@require_http_methods(["DELETE"])
+def delete_seasonal_rate(request, rate_id):
+    rate = get_object_or_404(SeasonalRate, id=rate_id)
+    rate.delete()
+    return JsonResponse({'success': True})  
+  
+def get_room_types(request):
+    rooms = Room.objects.filter(is_active=True).values('id', 'room_type', 'custom_room_type')
+    data = [
+        {
+            'id': r['id'],
+            'name': r['custom_room_type'] if r['custom_room_type'] else r['room_type']
+        }
+        for r in rooms
+    ]
+    return JsonResponse(data, safe=False)
     

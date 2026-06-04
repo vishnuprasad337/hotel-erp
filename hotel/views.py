@@ -7112,13 +7112,7 @@ class ReactionView(View):
 
 @method_decorator(login_required, name='dispatch')
 class PinMessageView(View):
-    """
-    GET    /api/messaging/threads/<id>/pins/     → list pinned messages
-    POST   /api/messaging/threads/<id>/pins/     → pin a message  (admin only)
-           body: { "message_id": <id> }
-    DELETE /api/messaging/threads/<id>/pins/<pin_id>/  → unpin  (admin only)
-    """
-
+   
     def _get_admin_membership(self, request, thread_id):
         hotel  = get_hotel(request.user)
         thread = MessageThread.objects.filter(id=thread_id, hotel=hotel).first()

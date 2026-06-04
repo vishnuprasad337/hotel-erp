@@ -1375,7 +1375,11 @@ def dashboard(request):
         .values_list('module__name', flat=True)
     )
     print(f"AFTER SYNC — HotelModule records ({len(after_modules)}): {after_modules}")
-
+    from pms.models import Room, RoomUnit, RoomImage, SeasonalRate
+    rooms = Room.objects.filter(is_active=True)
+    seasonal_rates = list(SeasonalRate.objects.filter(room__in=rooms).values(
+    'id', 'room_id', 'start_date', 'end_date', 'price', 'reason'
+))
     modules = HotelModule.objects.select_related('module').filter(
         hotel=hotel,
         is_enabled=True
@@ -1458,6 +1462,8 @@ def dashboard(request):
         "categories_json": json.dumps(categories),
         "vendors": vendors,
         "vendors_json": json.dumps(vendors),
+        "rooms": rooms,
+        "seasonal_rates_json": json.dumps(seasonal_rates, default=str),
     })
 ##----------------------Role & permissions----------------------
 def add_department(request):
