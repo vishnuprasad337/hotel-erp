@@ -69,7 +69,6 @@ class HotelFullDetailsView(APIView):
 
 
 from django.conf import settings
-
 from django_tenants.utils import schema_context
 
 class HotelAllFullDetailsView(APIView):
@@ -78,19 +77,62 @@ class HotelAllFullDetailsView(APIView):
         if api_key != settings.MY_API_KEY:
             return Response({"error": "Invalid API Key"}, status=403)
 
-        # ── Read schema from header ───────────────────────────────────────
         schema_name = (
             request.headers.get("X-DTS-Schema") or
             request.headers.get("X-Schema-Name")
         )
 
         if not schema_name or schema_name == "public":
-            return Response(
-                {"error": "X-DTS-Schema header required"},
-                status=400
-            )
+            return Response({"error": "X-DTS-Schema header required"}, status=400)
 
-        # ── Run query inside correct tenant schema ────────────────────────
+        from datetime import date
+        from pms.models import Room as TenantRoom
+
+        today = date.today()
+        tenant_rooms = []
+
+        with schema_context(schema_name):
+            rooms = TenantRoom.objects.prefetch_related(
+                'units', 'images', 'seasonal_rates'
+            ).filter(is_active=True)
+
+            for room in rooms:
+                all_seasonal = list(room.seasonal_rates.all())
+
+                seasonal = next(
+                    (r for r in all_seasonal
+                     if r.start_date <= today <= r.end_date),
+                    None
+                )
+                effective_price = seasonal.price if seasonal else room.base_price
+
+                tenant_rooms.append({
+                    "id":              room.id,
+                    "room_type":       (room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type).lower(),
+                    "base_price":      str(effective_price),
+                    "price":           str(effective_price),
+                    "is_seasonal":     seasonal is not None,
+                    "seasonal_reason": seasonal.reason if seasonal else "",
+                    "max_adults":      room.max_adults,
+                    "max_children":    room.max_children,
+                    "description":     room.description,
+                    "total_units":     room.units.count(),
+                    "available_units": sum(1 for u in room.units.all() if u.status == "Available"),
+                    "units":           [{"id": u.id, "number": u.room_number, "status": u.status} for u in room.units.all()],
+                    "images":          [img.image.url for img in room.images.all()],
+                    "seasonal_rates":  [
+                        {
+                            "start_date": str(r.start_date),
+                            "end_date":   str(r.end_date),
+                            "price":      str(r.price),
+                            "reason":     r.reason,
+                        }
+                        for r in all_seasonal
+                    ],
+                })
+
+        print(f"DEBUG tenant_rooms fetched: {[r['room_type'] for r in tenant_rooms]}")
+
         with schema_context(schema_name):
             hotels = Hotel.objects.prefetch_related(
                 'staffs__user',
@@ -100,7 +142,19 @@ class HotelAllFullDetailsView(APIView):
                 'hotelmodule_set__module',
             ).select_related('subscription_plan').all()
 
-            data = HotelFullDetailsSerializer(hotels, many=True).data
+            data = HotelFullDetailsSerializer(
+                hotels,
+                many=True,
+                context={
+                    'schema_name': schema_name,
+                    'request': request,
+                    'tenant_rooms': tenant_rooms,
+                }
+            ).data
+
+        data = list(data)
+        for hotel in data:
+            hotel['rooms'] = tenant_rooms
 
         return Response(data)
 class DepartmentListCreateView(APIView):

@@ -84,7 +84,7 @@ def push_availability_to_channel(channel_pk):
         return
 
     today = date.today()
-    rooms = Room.objects.filter(is_active=True).prefetch_related("units")
+    rooms = Room.objects.filter(is_active=True).prefetch_related("units", "seasonal_rates")
 
     availability = []
     for room in rooms:
@@ -107,10 +107,34 @@ def push_availability_to_channel(channel_pk):
 
         available = max(0, total_units - occupied_units - unavailable_units)
 
+        # Today's effective price
+        seasonal = next(
+            (r for r in room.seasonal_rates.all()
+             if r.start_date <= today <= r.end_date),
+            None
+        )
+        effective_price = seasonal.price if seasonal else room.base_price
+
+        # All current + future seasonal rates
+        future_rates = [
+            {
+                "start_date": str(r.start_date),
+                "end_date":   str(r.end_date),
+                "price":      str(r.price),
+                "reason":     r.reason,
+            }
+            for r in room.seasonal_rates.all()
+            if r.end_date >= today
+        ]
+
         availability.append({
             "room_id":         room.pk,
-            "room_type":       room.room_type,
-            "base_price":      str(room.base_price),
+            "room_type":       (room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type).lower(),
+            "base_price":      str(effective_price),  # overwrite so website uses correct price
+            "price":           str(effective_price),
+            "is_seasonal":     seasonal is not None,
+            "seasonal_reason": seasonal.reason if seasonal else "",
+            "seasonal_rates":  future_rates,          # ← all date-specific rates
             "total_units":     total_units,
             "occupied_units":  occupied_units,
             "available_rooms": available,

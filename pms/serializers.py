@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Booking, Guest, Room, RoomUnit, Payment
+from .models import Booking, Guest, Room, RoomUnit, Payment,SeasonalRate
 from datetime import datetime
 from rest_framework import serializers
 from django.utils import timezone
@@ -127,7 +127,10 @@ class RoomUnitSerializer(serializers.ModelSerializer):
         model = RoomUnit
         fields = ["id", "room_number", "status"]
 
-
+class SeasonalRateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SeasonalRate
+        fields = ['id', 'start_date', 'end_date', 'price', 'reason', 'tag']
 class RoomSerializer(serializers.ModelSerializer):
     amenities     = PropertySerializer(many=True, read_only=True)
     images        = RoomImageSerializer(many=True, read_only=True)
@@ -152,6 +155,7 @@ class RoomSerializer(serializers.ModelSerializer):
             "units",
             "total_units",
             "available_units",
+            'seasonal_rates',
         ]
 
     def get_total_units(self, obj):

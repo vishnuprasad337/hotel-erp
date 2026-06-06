@@ -10507,9 +10507,141 @@ function renderBookings(){
 
 let _lookupTimer=null,_currentRoomPrice=0;
 async function lookupGuestByPhone(){const phone=(document.getElementById('bk-phone')?.value||'').trim();const badge=document.getElementById('bk-guest-badge');const badgeText=document.getElementById('bk-guest-badge-text');if(!badge||!badgeText)return;badge.className='guest-lookup-badge';if(phone.length<6)return;clearTimeout(_lookupTimer);_lookupTimer=setTimeout(()=>{const match=bookings.find(b=>b.phone===phone);if(match){const nameEl=document.getElementById('bk-full-name');if(nameEl&&!nameEl.value)nameEl.value=match.guest||'';badge.className='guest-lookup-badge returning';badgeText.textContent=`Returning guest: ${match.guest}`;}else{badge.className='guest-lookup-badge new';badgeText.textContent='New guest — record will be created';}},500);}
-function updateNightCount(){const ci=document.getElementById('bk-checkin')?.value,co=document.getElementById('bk-checkout')?.value;const est=document.getElementById('bk-price-estimate');if(!ci||!co||!est)return;const nights=Math.ceil((new Date(co)-new Date(ci))/86400000);if(nights<=0||!_currentRoomPrice){if(est)est.style.display='none';return;}const base=_currentRoomPrice*nights,tax=Math.round(base*0.18),total=base+tax;document.getElementById('bk-est-nights').textContent=nights;document.getElementById('bk-est-rate').textContent=Math.round(_currentRoomPrice).toLocaleString('en-IN');document.getElementById('bk-est-base').textContent=Math.round(base).toLocaleString('en-IN');document.getElementById('bk-est-tax').textContent=tax.toLocaleString('en-IN');document.getElementById('bk-est-total').textContent=total.toLocaleString('en-IN');est.style.display='block';}
-async function loadBookingFormData(){let rooms=roomData;if(!rooms.length){await fetchRooms();rooms=roomData;}const sel=document.getElementById('bk-room-type');if(sel)sel.innerHTML='<option value="">— Select Room Type —</option>'+rooms.map(r=>`<option value="${r.id}" data-price="${r.price}">${esc(r.room_type)} — ₹${parseInt(r.price).toLocaleString('en-IN')}/night (${r.available_units} avail.)</option>`).join('');_currentRoomPrice=0;const est=document.getElementById('bk-price-estimate');if(est)est.style.display='none';}
-async function loadAvailUnits(){const rid=document.getElementById('bk-room-type').value;const us=document.getElementById('bk-unit');if(!us)return;_currentRoomPrice=0;if(!rid){us.innerHTML='<option value="">— Select Unit —</option>';updateNightCount();return;}let rooms=roomData;if(!rooms.length){await fetchRooms();rooms=roomData;}const r=rooms.find(x=>String(x.id)===String(rid));if(!r){us.innerHTML='<option value="">— No units —</option>';return;}_currentRoomPrice=parseFloat(r.price)||0;const avail=r.units.filter(u=>u.status==='Available');us.innerHTML=avail.length?'<option value="">— Select Unit —</option>'+avail.map(u=>`<option value="${u.id}">${esc(u.number)}</option>`).join(''):'<option value="">— No available units —</option>';updateNightCount();}
+async function updateNightCount() {
+  const ci  = document.getElementById('bk-checkin')?.value;
+  const co  = document.getElementById('bk-checkout')?.value;
+  const rid = document.getElementById('bk-room-type')?.value;
+  const est = document.getElementById('bk-price-estimate');
+
+  if (!ci || !co || !est) return;
+
+  const nights = Math.ceil((new Date(co) - new Date(ci)) / 86400000);
+  if (nights <= 0 || !rid) { est.style.display = 'none'; return; }
+
+  try {
+    const res   = await fetch(`/api/seasonal-rates/?room_id=${rid}`);
+    const data  = await res.json();
+    const rates = data.rates || [];
+
+    // Add up price night by night — picks seasonal price if set, else base price
+    let totalBase = 0;
+    for (let i = 0; i < nights; i++) {
+      const d  = new Date(ci);
+      d.setDate(d.getDate() + i);
+      const ds = d.toISOString().split('T')[0];  // "YYYY-MM-DD"
+
+      const match = rates.find(r => r.start_date <= ds && r.end_date >= ds);
+      totalBase  += match ? parseFloat(match.price) : (_currentRoomPrice || 0);
+    }
+
+    const tax   = Math.round(totalBase * 0.18);
+    const total = totalBase + tax;
+
+    document.getElementById('bk-est-nights').textContent = nights;
+    document.getElementById('bk-est-rate').textContent   = nights === 1
+      ? Math.round(totalBase).toLocaleString('en-IN')
+      : Math.round(totalBase / nights).toLocaleString('en-IN') + ' avg';
+    document.getElementById('bk-est-base').textContent  = Math.round(totalBase).toLocaleString('en-IN');
+    document.getElementById('bk-est-tax').textContent   = tax.toLocaleString('en-IN');
+    document.getElementById('bk-est-total').textContent = total.toLocaleString('en-IN');
+    est.style.display = 'block';
+
+  } catch (e) {
+    // Fallback to base price if API fails
+    if (!_currentRoomPrice) { est.style.display = 'none'; return; }
+    const base  = _currentRoomPrice * nights;
+    const tax   = Math.round(base * 0.18);
+    const total = base + tax;
+    document.getElementById('bk-est-nights').textContent = nights;
+    document.getElementById('bk-est-rate').textContent   = Math.round(_currentRoomPrice).toLocaleString('en-IN');
+    document.getElementById('bk-est-base').textContent   = Math.round(base).toLocaleString('en-IN');
+    document.getElementById('bk-est-tax').textContent    = tax.toLocaleString('en-IN');
+    document.getElementById('bk-est-total').textContent  = total.toLocaleString('en-IN');
+    est.style.display = 'block';
+  }
+}
+async function loadBookingFormData() {
+  let rooms = roomData;
+  if (!rooms.length) { await fetchRooms(); rooms = roomData; }
+
+  // Fetch all seasonal rates once
+  let allRates = [];
+  try {
+    const res = await fetch('/api/seasonal-rates/');
+    const data = await res.json();
+    allRates = data.rates || [];
+  } catch {}
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const sel = document.getElementById('bk-room-type');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Select Room Type —</option>' +
+      rooms.map(r => {
+        // Check if there's a seasonal rate active today for this room
+        const match = allRates.find(rt =>
+          +rt.room_id === +r.id &&
+          rt.start_date <= today &&
+          rt.end_date   >= today
+        );
+        const displayPrice = match ? parseFloat(match.price) : parseFloat(r.price) || 0;
+        const label = match
+          ? `${r.room_type} — ₹${Math.round(displayPrice).toLocaleString('en-IN')}/night (seasonal) (${r.available_units} avail.)`
+          : `${r.room_type} — ₹${Math.round(displayPrice).toLocaleString('en-IN')}/night (${r.available_units} avail.)`;
+        return `<option value="${r.id}" data-price="${displayPrice}">${esc(label)}</option>`;
+      }).join('');
+  }
+
+  _currentRoomPrice = 0;
+  const est = document.getElementById('bk-price-estimate');
+  if (est) est.style.display = 'none';
+}
+async function loadAvailUnits() {
+  const rid = document.getElementById('bk-room-type').value;
+  const us  = document.getElementById('bk-unit');
+  if (!us) return;
+  _currentRoomPrice = 0;
+
+  if (!rid) {
+    us.innerHTML = '<option value="">— Select Unit —</option>';
+    updateNightCount();
+    return;
+  }
+
+  let rooms = roomData;
+  if (!rooms.length) { await fetchRooms(); rooms = roomData; }
+
+  const r = rooms.find(x => String(x.id) === String(rid));
+  if (!r) { us.innerHTML = '<option value="">— No units —</option>'; return; }
+
+  // ── Check-in date for seasonal lookup (use selected date or today) ──
+  const ciVal = document.getElementById('bk-checkin')?.value;
+  const checkDate = ciVal || new Date().toISOString().split('T')[0];
+
+  try {
+    const res   = await fetch(`/api/seasonal-rates/?room_id=${rid}`);
+    const data  = await res.json();
+    const rates = data.rates || [];
+    const match = rates.find(rt => rt.start_date <= checkDate && rt.end_date >= checkDate);
+    _currentRoomPrice = match ? parseFloat(match.price) : parseFloat(r.price) || 0;
+  } catch {
+    _currentRoomPrice = parseFloat(r.price) || 0;
+  }
+
+  // ── Update the selected option's data-price so updateNightCount reads correctly ──
+  const sel = document.getElementById('bk-room-type');
+  if (sel && sel.selectedOption) {
+    sel.options[sel.selectedIndex].setAttribute('data-price', _currentRoomPrice);
+  }
+
+  const avail = r.units.filter(u => u.status === 'Available');
+  us.innerHTML = avail.length
+    ? '<option value="">— Select Unit —</option>' +
+      avail.map(u => `<option value="${u.id}">${esc(u.number)}</option>`).join('')
+    : '<option value="">— No available units —</option>';
+
+  await updateNightCount();  // ← await so it runs AFTER _currentRoomPrice is set
+}
 function quickBook(rid,uid){switchPanel('add-booking');loadBookingFormData().then(()=>{const wait=()=>{const s=document.getElementById('bk-room-type');if(s&&s.options.length>1){s.value=String(rid);loadAvailUnits().then(()=>{setTimeout(()=>{const u=document.getElementById('bk-unit');if(u&&u.options.length>1)u.selectedIndex=1;},100);});}else setTimeout(wait,100);};wait();});}
 async function createBooking(){
   const fullName=(document.getElementById('bk-full-name')?.value||'').trim(),phone=(document.getElementById('bk-phone')?.value||'').trim(),rid=document.getElementById('bk-room-type').value,uid=document.getElementById('bk-unit').value,ci=document.getElementById('bk-checkin').value,co=document.getElementById('bk-checkout').value;
@@ -10949,7 +11081,7 @@ const API = {
 /* ── DEFAULT TAGS (user-customisable at runtime) ─────────────── */
 let TAGS = [
   { k: 'peak',    label: 'Peak season',   bg: '#1D9E75', text: '#04342C', light: '#E1F5EE' },
-  { k: 'promo',   label: 'Promotion',     bg: '#EF9F27', text: '#412402', light: '#FAEEDA' },
+  
   { k: 'event',   label: 'Special event', bg: '#E24B4A', text: '#501313', light: '#FCEBEB' },
   { k: 'base',    label: 'Base rate',     bg: '#7F77DD', text: '#26215C', light: '#EEEDFE' },
   { k: 'offpeak', label: 'Off peak',      bg: '#378ADD', text: '#042C53', light: '#E6F1FB' },
@@ -11576,6 +11708,11 @@ function srTmApply() { rebuildTagMap(); srCloseTagManager(); srRender(); srToast
 });
 const srSearchEl = document.getElementById('sr-search');
 if (srSearchEl) srSearchEl.addEventListener('input', srRender);
+document.getElementById('bk-checkin')?.addEventListener('change', async () => {
+  await loadAvailUnits();    // re-fetch seasonal price for new check-in date
+  await updateNightCount();
+});
+document.getElementById('bk-checkout')?.addEventListener('change', updateNightCount);
 
 /* ── INIT ───────────────────────────────────────────────────── */
 // Load room types first, then rates (rates need room names to render correctly)
@@ -19006,15 +19143,73 @@ document.querySelectorAll('.dd-item[data-panel]').forEach(b=>b.addEventListener(
 
 document.querySelectorAll('.dd-item[data-href]').forEach(b=>{b.addEventListener('click',()=>{window.location.href=b.dataset.href;});});
 
-document.getElementById('addStaffBtn')?.addEventListener('click',async function(){
-  let valid=true;const name=document.getElementById('sName').value.trim(),email=document.getElementById('sEmail').value.trim(),deptId=document.getElementById('sDept').value,pass=document.getElementById('sPass').value;
-  [['sName','sNameErr',!name],['sEmail','sEmailErr',!email||!email.includes('@')],['sDept','sDeptErr',!deptId],['sPass','sPassErr',!pass||pass.length<6]].forEach(([f,e,show])=>{const fe=document.getElementById(f),ee=document.getElementById(e);if(fe)fe.classList.toggle('err',show);if(ee)ee.classList.toggle('show',show);if(show)valid=false;});
-  if(!valid)return;
-  this.classList.add('btn-loading');this.disabled=true;this.innerHTML='<i class="fas fa-spinner fa-spin"></i> Adding…';
-  const r=await postJSON('/add-staff/',{name,email,phone:document.getElementById('sPhone').value||'',department_id:parseInt(deptId),role:document.getElementById('sRole').value||'Staff',salary:document.getElementById('sSalary').value||0,password:pass});
-  this.classList.remove('btn-loading');this.disabled=false;this.innerHTML='<i class="fas fa-save"></i> Add Staff Member';
-  if(r&&r.ok){toast('Staff "'+name+'" added!');['sName','sEmail','sPhone','sSalary','sPass'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('sDept').value='';await loadAll();switchPanel('staff-list');}
-  else{let em='Failed';try{const err=await r?.json();if(err&&err.error)em=err.error;}catch{}toast(em,'error');}
+document.getElementById('addStaffBtn')?.addEventListener('click', async function() {
+    let valid = true;
+    const name    = document.getElementById('sName').value.trim();
+    const email   = document.getElementById('sEmail').value.trim();
+    const deptId  = document.getElementById('sDept').value;
+    const pass    = document.getElementById('sPass').value;
+
+    [
+        ['sName',  'sNameErr',  !name],
+        ['sEmail', 'sEmailErr', !email || !email.includes('@')],
+        ['sDept',  'sDeptErr',  !deptId],
+        ['sPass',  'sPassErr',  !pass || pass.length < 6]
+    ].forEach(([f, e, show]) => {
+        const fe = document.getElementById(f);
+        const ee = document.getElementById(e);
+        if (fe) fe.classList.toggle('err', show);
+        if (ee) ee.classList.toggle('show', show);
+        if (show) valid = false;
+    });
+
+    if (!valid) return;
+
+    this.classList.add('btn-loading');
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding…';
+
+    try {
+        const resp = await fetch('/add-staff/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({
+                name,
+                email,
+                phone:         document.getElementById('sPhone').value || '',
+                department_id: parseInt(deptId),
+                role:          document.getElementById('sRole').value || 'Staff',
+                salary:        document.getElementById('sSalary').value || 0,
+                password:      pass
+            })
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            toast('Staff "' + name + '" added!');
+            ['sName', 'sEmail', 'sPhone', 'sSalary', 'sPass'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('sDept').value = '';
+            await loadAll();
+            switchPanel('staff-list');
+        } else {
+            toast(data.error || 'Failed to add staff', 'error');
+        }
+
+    } catch (err) {
+        console.error('Add staff error:', err);
+        toast('Something went wrong', 'error');
+    } finally {
+        this.classList.remove('btn-loading');
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-save"></i> Add Staff Member';
+    }
 });
 
 document.getElementById('updateStaffBtn')?.addEventListener('click',async function(){
@@ -19030,7 +19225,8 @@ document.getElementById('assignShiftBtn')?.addEventListener('click',async functi
 document.getElementById('confirmEditShiftBtn')?.addEventListener('click',confirmEditShift);
 document.getElementById('createDeptBtn')?.addEventListener('click',async function(){const name=document.getElementById('newDeptName').value;if(!name){toast('Select a department name','error');return;}const fd=new FormData();fd.append('name',name);const r=await fetch('/add-department/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});if(r&&r.ok){toast('Department created!');await loadAll();renderDeptSummary();}else toast('Failed','error');});
 document.getElementById('genPayrollBtn')?.addEventListener('click',async function(){const m=document.getElementById('payMonth').value,y=document.getElementById('payYear').value;if(!m||!y){toast('Select month and year','error');return;}this.disabled=true;this.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generating…';const fd=new FormData();fd.append('month',m);fd.append('year',y);const r=await fetch('/payroll/generate/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});this.disabled=false;this.innerHTML='<i class="fas fa-cog"></i> Generate Payroll';if(r&&r.ok){toast('Payroll generated!');await loadPayroll();}else toast('Failed','error');});
-
+document.getElementById('bk-checkin')?.addEventListener('change', updateNightCount);
+document.getElementById('bk-checkout')?.addEventListener('change', updateNightCount);
 document.getElementById('saveAssignBtn')?.addEventListener('click',saveAssignedPerms);
 document.getElementById('saveDeptPermModalBtn')?.addEventListener('click',saveDeptPermModal);
 document.getElementById('saveModulesBtn')?.addEventListener('click',saveSelectedModules);

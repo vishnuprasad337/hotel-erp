@@ -437,10 +437,13 @@ class HotelFullDetailsSerializer(serializers.ModelSerializer):
         ).data
 
     def get_rooms(self, obj):
-        return RoomSerializer(
-            Room.objects.prefetch_related('units', 'images').all(), many=True
-        ).data
+   
+        tenant_rooms = self.context.get('tenant_rooms')
+        if tenant_rooms is not None:
+            return tenant_rooms
 
+    
+        return []
     def get_bookings(self, obj):
         return BookingSerializer(
             Booking.objects.filter(room__in=Room.objects.all())

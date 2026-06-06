@@ -33,11 +33,13 @@ ALLOWED_HOSTS = [
     ".localhost",
     "127.0.0.1",
     "*"
+    "vynzora.online"
     
 ]
 CSRF_TRUSTED_ORIGINS = [
   
     "https://*.onrender.com",
+     "https://vynzora.online/",
 ]
 
 
@@ -122,11 +124,12 @@ DATABASES = {
     )
 }
 
-
+from decouple import config
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
-IS_RENDER = os.environ.get("RENDER") == "True"
-BASE_URL = ".onrender.com" if IS_RENDER else "localhost"
-PORT = "" if IS_RENDER else ":8000"
+
+IS_PRODUCTION = config("PRODUCTION", default=False, cast=bool)
+BASE_URL = config("BASE_URL", default=".vynzora.online") if IS_PRODUCTION else config("BASE_URL", default="localhost")
+PORT = config("PORT", default="") if IS_PRODUCTION else config("PORT", default=":8000")
 
 
 
@@ -187,4 +190,6 @@ DEFAULT_FROM_EMAIL = 'msvishnu673@gmail.com'
 
 PASSWORD_RESET_TIMEOUT =900
 MY_API_KEY = "hotel_erp_prod_2026_x7K9mP2Qa8"
-CMS_PUBLIC_URL = "http://localhost:8000" 
+from decouple import config
+
+CMS_PUBLIC_URL = config("CMS_PUBLIC_URL", default="http://localhost:8000")

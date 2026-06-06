@@ -202,6 +202,8 @@ class SeasonalRate(models.Model):
     end_date=models.DateField()
     price=models.DecimalField(max_digits=10 ,decimal_places=2)
     reason=models.CharField(max_length=100,blank=True)
+    tag=models.CharField(max_length=100,blank=True,default='base')
+    notes=models.CharField(blank=True,default='')
     class Meta:
         ordering=['start_date']
     def __str__(self):

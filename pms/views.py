@@ -152,6 +152,7 @@ def add_room(request):
 
 
 # ---------------- GET SINGLE ROOM ----------------
+from datetime import date as today_date
 def get_room(request, room_id):
     try:
         room = Room.objects.filter(id=room_id).first()
@@ -159,11 +160,16 @@ def get_room(request, room_id):
         if not room:
             return JsonResponse({"error": "Room not found"}, status=404)
 
+        today = today_date.today()
+        seasonal = room.seasonal_rates.filter(
+            start_date__lte=today,
+            end_date__gte=today
+        ).first()
+
         return JsonResponse({
             "id": room.id,
-            "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
-            
-            "price": str(room.base_price),
+            "room_type": (room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type).lower(),
+            "price": str(seasonal.price if seasonal else room.base_price),
             "max_adults": room.max_adults,
             "max_children": room.max_children,
             "total_units": room.total_units(),
@@ -176,10 +182,6 @@ def get_room(request, room_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-
-# ---------------- GET ROOMS ----------------
-from django.http import JsonResponse
-from django.utils import timezone
 
 def get_rooms(request):
     try:
@@ -245,10 +247,16 @@ def get_rooms(request):
                     } if upcoming_booking else None,
                 })
 
+            # ── Seasonal price check for today ──
+            seasonal = room.seasonal_rates.filter(
+                start_date__lte=today,
+                end_date__gte=today
+            ).first()
+
             room_list.append({
                 "id": room.id,
-                 "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
-                "price": str(room.base_price),
+                "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
+                "price": str(seasonal.price if seasonal else room.base_price),
                 "total_units": room.total_units(),
                 "available_units": room.available_units(),
                 "max_adults": room.max_adults,
@@ -504,6 +512,13 @@ def frontoffice_dashboard(request):
         "payroll_month_label":  MONTH_NAMES[month],
         "payroll_year":         year,
     })
+from datetime import timedelta
+def get_price_for_date(room,date):
+    rate=SeasonalRate.objects.filter(room=room,start_date__lte=date,end_date__gte=date).first()
+    return float(rate.price) if rate else float(room.base_price)
+
+
+
 from django.db.models import Count
 
 
@@ -535,7 +550,7 @@ def create_booking(request):
         source           = clean(data.get("source")) or "walk-in"
         special_requests = clean(data.get("special_requests"))
 
-        # ── Guest fields ──
+        
         full_name   = clean(data.get("full_name")) or ""
         phone       = clean(data.get("phone")) or ""
         email       = clean(data.get("email"))
@@ -543,11 +558,11 @@ def create_booking(request):
         id_type     = clean(data.get("id_type"))
         id_number   = clean(data.get("id_number"))
 
-        # ── NEW: advance payment fields ──
+       
         advance_amount = float(data.get("advance_amount") or 0)
         advance_method = clean(data.get("advance_method")) or "Cash"
 
-        # ── Validation ──
+       
         errors = {}
         if not room_id:      errors["room"]       = "Room ID is required"
         if not room_unit_id: errors["room_unit"]  = "Room unit ID is required"
@@ -597,7 +612,10 @@ def create_booking(request):
             }, status=400)
 
         nights       = (check_out_date - check_in_date).days
-        room_charges = float(room.base_price) * nights
+        room_charges = sum(get_price_for_date(room, check_in_date + timedelta(days=i))
+            for i in range(nights)
+        )
+        
         tax          = room_charges * 0.18
         total_amount = room_charges + tax
 
@@ -1742,6 +1760,8 @@ def get_seasonal_rates(request):
             'end_date':   str(r.end_date),
             'price':      str(r.price),
             'reason':     r.reason,
+            'tag':        r.tag,
+            'notes':      r.notes,
         }
         for r in qs.select_related('room')
     ]
@@ -1749,15 +1769,28 @@ def get_seasonal_rates(request):
 
 
 
+def _push_prices():
+    try:
+        from channelmanager.models import WebsiteChannel
+        from channelmanager.tasks import push_availability_to_channel
+        channel = WebsiteChannel.objects.filter(is_active=True).first()
+        if channel:
+            push_availability_to_channel(channel.pk)
+    except Exception as e:
+        print(f"Price push failed: {e}")
+
+
 @require_http_methods(["POST"])
 def add_seasonal_rate(request):
     try:
-        body      = json.loads(request.body)
-        room      = get_object_or_404(Room, id=body['room_id'])
-        start     = body['start_date']
-        end       = body['end_date']
-        price     = body['price']
-        reason    = body.get('reason', '')
+        body   = json.loads(request.body)
+        room   = get_object_or_404(Room, id=body['room_id'])
+        start  = body['start_date']
+        end    = body['end_date']
+        price  = body['price']
+        reason = body.get('reason', '')
+        tag    = body.get('tag', 'base')
+        notes  = body.get('notes', '')
 
         if end < start:
             return JsonResponse({'error': 'End date must be after start date.'}, status=400)
@@ -1765,12 +1798,12 @@ def add_seasonal_rate(request):
             return JsonResponse({'error': 'Price must be greater than 0.'}, status=400)
 
         rate = SeasonalRate.objects.create(
-            room       = room,
-            start_date = start,
-            end_date   = end,
-            price      = price,
-            reason     = reason,
+            room=room, start_date=start, end_date=end,
+            price=price, reason=reason, tag=tag, notes=notes,
         )
+
+        _push_prices()  # ← auto push
+
         return JsonResponse({
             'success': True,
             'rate': {
@@ -1781,18 +1814,22 @@ def add_seasonal_rate(request):
                 'end_date':   str(rate.end_date),
                 'price':      str(rate.price),
                 'reason':     rate.reason,
+                'tag':        rate.tag,
+                'notes':      rate.notes,
             }
         })
     except (KeyError, ValueError) as e:
         return JsonResponse({'error': str(e)}, status=400)
 
 
-
 @require_http_methods(["DELETE"])
 def delete_seasonal_rate(request, rate_id):
     rate = get_object_or_404(SeasonalRate, id=rate_id)
     rate.delete()
-    return JsonResponse({'success': True})  
+
+    _push_prices()  
+
+    return JsonResponse({'success': True})
   
 def get_room_types(request):
     rooms = Room.objects.filter(is_active=True).values('id', 'room_type', 'custom_room_type')
@@ -1804,4 +1841,95 @@ def get_room_types(request):
         for r in rooms
     ]
     return JsonResponse(data, safe=False)
-    
+@require_http_methods(["GET"])
+def get_price_for_dates(request):
+    from datetime import timedelta, datetime
+
+    room_type = request.GET.get('room_type', '').lower().strip()
+    check_in  = request.GET.get('check_in')
+    check_out = request.GET.get('check_out')
+    count     = int(request.GET.get('count', 1))
+
+    extra_adults   = int(request.GET.get('extra_adults', 0))
+    extra_children = int(request.GET.get('extra_children', 0))
+
+    if not all([room_type, check_in, check_out]):
+        return JsonResponse({'error': 'room_type, check_in, check_out required'}, status=400)
+
+    try:
+        ci = datetime.strptime(check_in,  '%Y-%m-%d').date()
+        co = datetime.strptime(check_out, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+
+    if co <= ci:
+        return JsonResponse({'error': 'check_out must be after check_in'}, status=400)
+
+    nights = (co - ci).days
+
+    # ── Find matching room ──────────────────────────────────────────────
+    room = None
+    for r in Room.objects.prefetch_related('seasonal_rates').filter(is_active=True):
+        name = (
+            r.custom_room_type
+            if r.room_type == "Custom" and r.custom_room_type
+            else r.room_type
+        ).lower()
+        if name == room_type:
+            room = r
+            break
+
+    if not room:
+        return JsonResponse({'error': f"Room type '{room_type}' not found"}, status=404)
+
+    # ── Night-by-night breakdown ────────────────────────────────────────
+    total_base = 0
+    breakdown  = []
+
+    seasonal_rates = list(room.seasonal_rates.all())   # already prefetched
+
+    for i in range(nights):
+        d = ci + timedelta(days=i)
+
+        seasonal = next(
+            (r for r in seasonal_rates if r.start_date <= d <= r.end_date),
+            None
+        )
+        night_price = float(seasonal.price) if seasonal else float(room.base_price)
+        total_base += night_price
+
+        breakdown.append({
+            'date':        str(d),
+            'price':       night_price,
+            'is_seasonal': seasonal is not None,
+        })
+
+    # ── Extra guest charges (per night × count) ─────────────────────────
+    extra_adult_charge = (
+        float(room.extra_adult_price) * extra_adults * nights * count
+    )
+    extra_child_charge = (
+        float(room.extra_child_price) * extra_children * nights * count
+    )
+
+    room_charges = round(total_base * count, 2)
+    extra_charges = round(extra_adult_charge + extra_child_charge, 2)
+    subtotal     = room_charges + extra_charges
+    tax          = round(subtotal * 0.18, 2)
+    total_amount = round(subtotal + tax, 2)
+
+    return JsonResponse({
+        'success':       True,
+        'room_type':     room_type,
+        'base_price':    float(room.base_price),
+        'max_adults':    room.max_adults,
+        'max_children':  room.max_children,
+        'nights':        nights,
+        'count':         count,
+        'room_charges':  room_charges,
+        'extra_charges': extra_charges,
+        'subtotal':      subtotal,
+        'tax':           tax,
+        'total_amount':  total_amount,
+        'breakdown':     breakdown,
+    })

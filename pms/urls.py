@@ -31,6 +31,7 @@ urlpatterns =[
       path("api/create-booking/", create_booking, name="create_booking"),
 
     # 🔹 Check-In / Check-Out
+    path('api/room-price/', get_price_for_dates, name='get_price_for_dates'),
     path("api/check-in/", check_in, name="check_in"),
     path("api/check-out/", check_out, name="check_out"),
     path('api/seasonal-rates/',                    get_seasonal_rates,    name='get_seasonal_rates'),

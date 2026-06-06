@@ -489,7 +489,6 @@ class WebhookEventListView(View):
             qs = qs.filter(status=event_status)
 
         return JsonResponse({"results": [webhook_event_to_dict(e) for e in qs[:100]]})
-
 @method_decorator(csrf_exempt, name="dispatch")
 class WebhookReceiveView(View):
 
@@ -537,15 +536,15 @@ class WebhookReceiveView(View):
             )
 
             try:
-                from pms.models import Room, RoomUnit, Guest, Booking
+                from pms.models import Room, RoomUnit, Guest, Booking, SeasonalRate
                 from pms.models import Payment
                 from billing.models import GuestFolio, FolioCharge, BillingPayment
-                from datetime import datetime as dt
+                from datetime import datetime as dt, timedelta
                 from django.db import transaction
 
                 check_in  = dt.strptime(payload["check_in"],  "%Y-%m-%d").date()
                 check_out = dt.strptime(payload["check_out"], "%Y-%m-%d").date()
-                room      = Room.objects.get(pk=payload["room_id"])
+                room      = Room.objects.prefetch_related("seasonal_rates").get(pk=payload["room_id"])
                 room_unit = RoomUnit.objects.get(pk=payload["room_unit_id"])
 
                 if room_unit.status in ["Maintenance", "Cleaning", "Dirty"]:
@@ -582,8 +581,20 @@ class WebhookReceiveView(View):
                     guest.full_name = full_name
                     guest.save(update_fields=["full_name"])
 
+                
                 nights         = (check_out - check_in).days
-                room_charges   = float(room.base_price) * nights
+                all_seasonal   = list(room.seasonal_rates.all())
+
+                def get_price_for_date(d):
+                    for rate in all_seasonal:
+                        if rate.start_date <= d <= rate.end_date:
+                            return float(rate.price)
+                    return float(room.base_price)
+
+                room_charges   = round(
+                    sum(get_price_for_date(check_in + timedelta(days=i)) for i in range(nights)),
+                    2
+                )
                 tax            = round(room_charges * 0.18, 2)
                 total          = round(room_charges + tax, 2)
                 advance_amount = float(payload.get("advance_amount") or 0)

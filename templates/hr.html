@@ -11243,70 +11243,118 @@ function validateBkStep(step) {
   return valid;
 }
 
-function populateBookingSummary() {
-    const name     = document.getElementById('bookingGuestName').value;
-    const phone    = document.getElementById('bookingPhone').value;
-    const rtSel    = document.getElementById('bookingRoomType');
-    const roomType = rtSel.options[rtSel.selectedIndex]?.text?.split(' —')[0] || '—';
-    const ci       = document.getElementById('bookingCheckIn').value;
-    const co       = document.getElementById('bookingCheckOut').value;
-    document.getElementById('sumGuestName').textContent = name  || '—';
-    document.getElementById('sumPhone').textContent     = phone || '—';
-    document.getElementById('sumRoomType').textContent  = roomType;
-    document.getElementById('sumCheckIn').textContent   = ci;
-    document.getElementById('sumCheckOut').textContent  = co;
-
-    const nights  = ci && co ? Math.max(1, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 1;
-    const price   = parseFloat(rtSel.options[rtSel.selectedIndex]?.dataset?.price || 0);
-    const rc      = price * nights;
-    const tax     = rc * 0.18;
-    const total   = rc + tax;
-    const advance = Math.min(parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0, total);
-    const balance = total - advance;
-
-    document.getElementById('sumRoomCharges').textContent = price > 0 ? `${fmt(rc)} (${nights} night${nights > 1 ? 's' : ''})` : `— (${nights} night${nights > 1 ? 's' : ''})`;
-    document.getElementById('sumTax').textContent         = price > 0 ? fmt(tax)   : '—';
-    document.getElementById('sumTotal').textContent       = price > 0 ? fmt(total) : '—';
-
-    const advRow  = document.getElementById('sumAdvanceRow');
-    const balRow  = document.getElementById('sumBalanceRow');
-    const stRow   = document.getElementById('sumPayStatus');
-
-    if (price > 0 && advance > 0) {
-        document.getElementById('sumAdvancePaid').textContent = fmt(advance);
-        document.getElementById('sumBalance').textContent     = fmt(balance);
-        if (advRow)  advRow.style.display  = 'flex';
-        if (balRow)  balRow.style.display  = 'flex';
-
-        let statusLabel = advance >= total ? '✅ Fully paid' : `⏳ Partial — ${fmt(balance)} due at check-out`;
-        if (stRow) { stRow.style.display = 'block'; stRow.innerHTML = `<span class="pill ${advance >= total ? 'pill-green' : 'pill-amber'}">${statusLabel}</span>`; }
-    } else {
-        if (advRow)  advRow.style.display  = 'none';
-        if (balRow)  balRow.style.display  = 'none';
-        if (stRow)   stRow.style.display   = 'none';
-    }
-}
-function onRoomTypeChange() {
+async function onRoomTypeChange() {
   const sel    = document.getElementById('bookingRoomType');
   const opt    = sel.options[sel.selectedIndex];
   const roomId = opt?.dataset?.id;
-  const price  = parseFloat(opt?.dataset?.price || 0);
+
   document.getElementById('selectedRoomId').value     = roomId || '';
   document.getElementById('selectedRoomUnitId').value = '';
+
   if (!roomId) { document.getElementById('roomUnitSection').style.display = 'none'; return; }
   document.getElementById('roomUnitSection').style.display = 'block';
-  document.getElementById('roomUnitGrid').innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-3);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+  document.getElementById('roomUnitGrid').innerHTML =
+    '<div style="padding:12px;text-align:center;color:var(--text-3);font-size:12px;"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+
+  // ── Fetch seasonal price for check-in date ──
+  const ciVal     = document.getElementById('bookingCheckIn').value;
+  const checkDate = ciVal || new Date().toISOString().split('T')[0];
+  try {
+    const res   = await fetch(`/api/seasonal-rates/?room_id=${roomId}`);
+    const data  = await res.json();
+    const rates = data.rates || [];
+    const match = rates.find(r => r.start_date <= checkDate && r.end_date >= checkDate);
+    if (match) {
+      // Update the option's data-price so populateBookingSummary reads correct price
+      opt.dataset.price = match.price;
+    }
+  } catch {}
+
   const room = ROOMS_DATA.find(r => String(r.id) === String(roomId));
   if (room?.units?.length) { renderRoomUnits(room.units); onDateChange(); return; }
+
   fetch('/api/get-rooms/').then(r => r.json()).then(data => {
     const rooms = data.rooms || data;
     const found = Array.isArray(rooms) ? rooms.find(r => String(r.id) === String(roomId)) : null;
     if (found?.units?.length) renderRoomUnits(found.units);
-    else document.getElementById('roomUnitGrid').innerHTML = '<div style="padding:12px;color:var(--amber);font-size:12px;"><i class="fas fa-exclamation-circle"></i> No available units</div>';
+    else document.getElementById('roomUnitGrid').innerHTML =
+      '<div style="padding:12px;color:var(--amber);font-size:12px;"><i class="fas fa-exclamation-circle"></i> No available units</div>';
     onDateChange();
   }).catch(() => {
-    document.getElementById('roomUnitGrid').innerHTML = '<div style="padding:12px;color:var(--red);font-size:12px;"><i class="fas fa-exclamation-triangle"></i> Could not load rooms</div>';
+    document.getElementById('roomUnitGrid').innerHTML =
+      '<div style="padding:12px;color:var(--red);font-size:12px;"><i class="fas fa-exclamation-triangle"></i> Could not load rooms</div>';
   });
+}
+
+async function populateBookingSummary() {
+  const name     = document.getElementById('bookingGuestName').value;
+  const phone    = document.getElementById('bookingPhone').value;
+  const rtSel    = document.getElementById('bookingRoomType');
+  const roomType = rtSel.options[rtSel.selectedIndex]?.text?.split(' —')[0] || '—';
+  const roomId   = document.getElementById('selectedRoomId').value;
+  const ci       = document.getElementById('bookingCheckIn').value;
+  const co       = document.getElementById('bookingCheckOut').value;
+
+  document.getElementById('sumGuestName').textContent = name  || '—';
+  document.getElementById('sumPhone').textContent     = phone || '—';
+  document.getElementById('sumRoomType').textContent  = roomType;
+  document.getElementById('sumCheckIn').textContent   = ci;
+  document.getElementById('sumCheckOut').textContent  = co;
+
+  const nights = ci && co ? Math.max(1, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 1;
+
+  // ── Fetch seasonal rates and calculate night by night ──
+  let totalBase = 0;
+  const basePrice = parseFloat(rtSel.options[rtSel.selectedIndex]?.dataset?.price || 0);
+
+  try {
+    const res   = await fetch(`/api/seasonal-rates/?room_id=${roomId}`);
+    const data  = await res.json();
+    const rates = data.rates || [];
+
+    for (let i = 0; i < nights; i++) {
+      const d  = new Date(ci);
+      d.setDate(d.getDate() + i);
+      const ds    = d.toISOString().split('T')[0];
+      const match = rates.find(r => r.start_date <= ds && r.end_date >= ds);
+      totalBase  += match ? parseFloat(match.price) : basePrice;
+    }
+  } catch {
+    totalBase = basePrice * nights;
+  }
+
+  const tax     = totalBase * 0.18;
+  const total   = totalBase + tax;
+  const advance = Math.min(parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0, total);
+  const balance = total - advance;
+
+  document.getElementById('sumRoomCharges').textContent = totalBase > 0
+    ? `${fmt(totalBase)} (${nights} night${nights > 1 ? 's' : ''})`
+    : `— (${nights} night${nights > 1 ? 's' : ''})`;
+  document.getElementById('sumTax').textContent   = totalBase > 0 ? fmt(tax)   : '—';
+  document.getElementById('sumTotal').textContent = totalBase > 0 ? fmt(total) : '—';
+
+  const advRow = document.getElementById('sumAdvanceRow');
+  const balRow = document.getElementById('sumBalanceRow');
+  const stRow  = document.getElementById('sumPayStatus');
+
+  if (totalBase > 0 && advance > 0) {
+    document.getElementById('sumAdvancePaid').textContent = fmt(advance);
+    document.getElementById('sumBalance').textContent     = fmt(balance);
+    if (advRow) advRow.style.display = 'flex';
+    if (balRow) balRow.style.display = 'flex';
+    const statusLabel = advance >= total
+      ? '✅ Fully paid'
+      : `⏳ Partial — ${fmt(balance)} due at check-out`;
+    if (stRow) {
+      stRow.style.display = 'block';
+      stRow.innerHTML = `<span class="pill ${advance >= total ? 'pill-green' : 'pill-amber'}">${statusLabel}</span>`;
+    }
+  } else {
+    if (advRow) advRow.style.display = 'none';
+    if (balRow) balRow.style.display = 'none';
+    if (stRow)  stRow.style.display  = 'none';
+  }
 }
 function renderRoomUnits(units) {
   const grid  = document.getElementById('roomUnitGrid');
@@ -11337,27 +11385,40 @@ function selectAdvanceMethod(method) {
     if (active) active.style.borderColor = 'var(--blue)';
 }
 
-function onDateChange() {
-    const ci = document.getElementById('bookingCheckIn').value;
-    const co = document.getElementById('bookingCheckOut').value;
-    if (ci) {
-        const nd = new Date(ci);
-        nd.setDate(nd.getDate() + 1);
-        document.getElementById('bookingCheckOut').min = nd.toISOString().split('T')[0];
-    }
-    const nights = ci && co ? Math.max(0, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 0;
-    const badge  = document.getElementById('nightsBadgeWrap');
-    if (nights > 0) {
-        badge.style.display = 'block';
-        document.getElementById('nightsBadgeText').textContent = `${nights} night${nights > 1 ? 's' : ''}`;
-    } else {
-        badge.style.display = 'none';
-    }
+async function onDateChange() {
+  const ci = document.getElementById('bookingCheckIn').value;
+  const co = document.getElementById('bookingCheckOut').value;
+  if (ci) {
+    const nd = new Date(ci);
+    nd.setDate(nd.getDate() + 1);
+    document.getElementById('bookingCheckOut').min = nd.toISOString().split('T')[0];
+  }
+  const nights = ci && co ? Math.max(0, Math.round((new Date(co) - new Date(ci)) / 86400000)) : 0;
+  const badge  = document.getElementById('nightsBadgeWrap');
+  if (nights > 0) {
+    badge.style.display = 'block';
+    document.getElementById('nightsBadgeText').textContent = `${nights} night${nights > 1 ? 's' : ''}`;
+  } else {
+    badge.style.display = 'none';
+  }
 
-    // Show/hide advance method selector
-    const advAmt = parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0;
-    const methodWrap = document.getElementById('advanceMethodWrap');
-    if (methodWrap) methodWrap.style.display = advAmt > 0 ? 'block' : 'none';
+  // ── Re-fetch seasonal price when date changes ──
+  const roomId = document.getElementById('selectedRoomId').value;
+  if (roomId && ci) {
+    const sel = document.getElementById('bookingRoomType');
+    const opt = sel.options[sel.selectedIndex];
+    try {
+      const res   = await fetch(`/api/seasonal-rates/?room_id=${roomId}`);
+      const data  = await res.json();
+      const rates = data.rates || [];
+      const match = rates.find(r => r.start_date <= ci && r.end_date >= ci);
+      if (match) opt.dataset.price = match.price;
+    } catch {}
+  }
+
+  const advAmt     = parseFloat(document.getElementById('bookingAdvanceAmount')?.value) || 0;
+  const methodWrap = document.getElementById('advanceMethodWrap');
+  if (methodWrap) methodWrap.style.display = advAmt > 0 ? 'block' : 'none';
 }
 async function saveBooking() {
     const fullName      = document.getElementById('bookingGuestName').value.trim();

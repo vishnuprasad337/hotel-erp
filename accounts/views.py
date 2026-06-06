@@ -148,25 +148,24 @@ def superuser_dashboard(request):
     _sync_statuses()
  
     with schema_context('public'):
-        all_hotels     = Hotel.objects.all().order_by("-id")
-        approved       = all_hotels.filter(is_approved=True)
-        pending        = all_hotels.filter(is_approved=False)
-        amenities      = Amenity.objects.all()
-        plans          = SubscriptionPlan.objects.prefetch_related('modules').all()
-        rejected         = RejectedHotel.objects.all().order_by("-rejected_at")
+        all_hotels  = list(Hotel.objects.all().order_by("-id"))
+        approved    = [h for h in all_hotels if h.is_approved]
+        pending     = [h for h in all_hotels if not h.is_approved]
+        amenities   = list(Amenity.objects.all())
+        plans       = list(SubscriptionPlan.objects.prefetch_related('modules').all())
+        rejected    = list(RejectedHotel.objects.all().order_by("-rejected_at"))
  
     return render(request, "admin/dashboard.html", {
         "hotels":             all_hotels,
         "approved_hotels":    approved,
         "pending_hotel_list": pending,
-        "total_hotels":       all_hotels.count(),
-        "active_hotels":      approved.count(),
-        "pending_hotels":     pending.count(),
+        "total_hotels":       len(all_hotels),
+        "active_hotels":      len(approved),
+        "pending_hotels":     len(pending),
         "amenities":          amenities,
         "plans":              plans,
         "rejected_hotels":    rejected,
-        "rejected_count" :    rejected.count()
-
+        "rejected_count":     len(rejected),
     })
 from django.core.mail import send_mail
 from django.contrib import messages  
@@ -262,20 +261,30 @@ Admin Team""",
         try:
             client = Client.objects.get(schema_name=hotel.schema_name)
 
-            # Drop the tenant schema directly to avoid cross-schema ORM collector errors
             with connection.cursor() as cursor:
+                
                 cursor.execute(
                     'DROP SCHEMA IF EXISTS "{}" CASCADE'.format(client.schema_name)
                 )
-
-           
-            client.domain_set.all().delete()
-            client.delete()
+               
+                cursor.execute(
+                    'DELETE FROM public.customers_domain WHERE tenant_id = %s', [client.id]
+                )
+                cursor.execute(
+                    'DELETE FROM public.customers_client WHERE id = %s', [client.id]
+                )
 
         except Client.DoesNotExist:
-            
-            with schema_context('public'):
-                hotel.delete()
+            pass
+
+        
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'DELETE FROM public.accounts_user WHERE hotel_id = %s', [hotel.id]
+            )
+            cursor.execute(
+                'DELETE FROM public.accounts_hotel WHERE id = %s', [hotel.id]
+            )
 
     return JsonResponse({"success": True})
 @require_POST
@@ -1593,6 +1602,8 @@ def delete_department(request, dept_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 ##----------------------Staff authentication----------------------
+from django.db import IntegrityError, transaction
+
 @csrf_exempt
 @require_POST
 def staff_register(request):
@@ -1603,14 +1614,13 @@ def staff_register(request):
         else:
             data  = request.POST
             files = request.FILES
- 
-       
+
         def get_field(key, default=None):
             v = data.get(key, default or "")
             if hasattr(v, 'strip'):
                 v = v.strip()
             return v if v else None
- 
+
         name          = get_field("name")
         email         = get_field("email")
         password      = data.get("password", "").strip()
@@ -1620,117 +1630,164 @@ def staff_register(request):
         employee_id   = get_field("employee_id")
         joining_date  = get_field("joining_date")
         role_name     = get_field("role") or "Staff"
- 
+
         nickname = get_field("nickname")
         dob      = get_field("dob")
         gender   = get_field("gender")
         address  = get_field("address")
- 
+
         emergency_contact_name  = get_field("emergency_contact_name")
         emergency_contact_phone = get_field("emergency_contact_phone")
- 
+
         employment_type = get_field("employment_type")
- 
+
         bank_account = get_field("bank_account")
         ifsc         = get_field("ifsc")
         pf_number    = get_field("pf_number")
         esi_number   = get_field("esi_number")
         notes        = get_field("notes")
- 
+
         id_proof_type   = get_field("id_proof_type")
         id_proof_number = get_field("id_proof_number")
         id_proof_image  = files.get("id_proof_image") or files.get("id_proof")
         photo           = files.get("photo")
- 
+
         if not all([name, email, password]):
             return JsonResponse({"error": "Name, email, and password are required"}, status=400)
- 
+
         hotel_id = request.session.get("hotel_id")
         if not hotel_id:
             return JsonResponse({"error": "Session expired. Please login again."}, status=401)
- 
+
         with schema_context('public'):
             try:
                 hotel = Hotel.objects.get(id=hotel_id)
             except Hotel.DoesNotExist:
                 return JsonResponse({"error": "Hotel not found"}, status=404)
- 
+
         tenant_schema   = hotel.schema_name
         unique_username = f"{email}_{hotel.id}"
- 
-        with schema_context(tenant_schema):
-            if User.objects.filter(username=unique_username).exists():
-                return JsonResponse({"error": "A staff member with this email already exists"}, status=400)
- 
+
         department = None
         if department_id:
             with schema_context(tenant_schema):
                 department = Department.objects.filter(id=int(department_id)).first()
                 if not department:
                     return JsonResponse({"error": "Department not found"}, status=400)
- 
+
         with schema_context(tenant_schema):
-            user = User.objects.create_user(
-                username=unique_username,
-                email=email,
-                password=password,
-                hotel=hotel,
-                role=None,
-            )
- 
-            staff_kwargs = dict(
-                user=user,
-                hotel=hotel,
-                name=name,
-                phone=phone,
-                department=department,
-                salary=salary,
- 
-                nickname=nickname,
-                dob=dob,
-                gender=gender,
-                address=address,
- 
-                emergency_contact_name=emergency_contact_name,
-                emergency_contact_phone=emergency_contact_phone,
- 
-                employment_type=employment_type,
- 
-                bank_account=bank_account,
-                ifsc=ifsc,
-                pf_number=pf_number,
-                esi_number=esi_number,
-                notes=notes,
-            )
- 
-            if employee_id:
-                if Staff.objects.filter(hotel=hotel, employee_id=employee_id).exists():
-                    user.delete()
+            with transaction.atomic():
+
+                existing_user = (
+                    User.objects
+                    .select_for_update()
+                    .filter(username=unique_username)
+                    .first()
+                )
+
+                if existing_user:
+                    has_staff = Staff.objects.filter(user=existing_user).exists()
+                    print(f"DEBUG register — existing_user: {existing_user.username} | has_staff: {has_staff}")
+                    if has_staff:
+                        return JsonResponse(
+                            {"error": "A staff member with this email already exists"},
+                            status=400,
+                        )
+                    # Orphaned user — no staff record linked, safe to delete
+                    print(f"DEBUG register — deleting orphaned user: {existing_user.username}")
+                    existing_user.delete()
+
+                try:
+                    user = User.objects.create_user(
+                        username=unique_username,
+                        email=email,
+                        password=password,
+                        hotel=hotel,
+                        role=None,
+                    )
+                except IntegrityError:
                     return JsonResponse(
-                        {"error": f"Employee ID '{employee_id}' is already in use"},
+                        {"error": "A staff member with this email already exists"},
                         status=400,
                     )
-                staff_kwargs["employee_id"] = employee_id
- 
-            if joining_date:
-                staff_kwargs["joining_date"] = joining_date
- 
-            if id_proof_type:
-                staff_kwargs["id_proof_type"] = id_proof_type
- 
-            if id_proof_number:
-                staff_kwargs["id_proof_number"] = id_proof_number
- 
-            staff = Staff(**staff_kwargs)
- 
-            if photo:
-                staff.photo = photo
- 
-            if id_proof_image:
-                staff.id_proof_image = id_proof_image
- 
-            staff.save()
- 
+
+                try:
+                    staff_kwargs = dict(
+                        user=user,
+                        hotel=hotel,
+                        name=name,
+                        phone=phone,
+                        department=department,
+                        salary=salary,
+                        nickname=nickname,
+                        dob=dob,
+                        gender=gender,
+                        address=address,
+                        emergency_contact_name=emergency_contact_name,
+                        emergency_contact_phone=emergency_contact_phone,
+                        employment_type=employment_type,
+                        bank_account=bank_account,
+                        ifsc=ifsc,
+                        pf_number=pf_number,
+                        esi_number=esi_number,
+                        notes=notes,
+                    )
+
+                    if employee_id:
+                        duplicate = (
+                            Staff.objects
+                            .select_for_update()
+                            .filter(hotel=hotel, employee_id=employee_id)
+                            .exists()
+                        )
+                        if duplicate:
+                            return JsonResponse(
+                                {"error": f"Employee ID '{employee_id}' is already in use"},
+                                status=400,
+                            )
+                        staff_kwargs["employee_id"] = employee_id
+
+                    if joining_date:
+                        staff_kwargs["joining_date"] = joining_date
+
+                    if id_proof_type:
+                        staff_kwargs["id_proof_type"] = id_proof_type
+
+                    if id_proof_number:
+                        staff_kwargs["id_proof_number"] = id_proof_number
+
+                    staff = Staff(**staff_kwargs)
+
+                    if photo:
+                        staff.photo = photo
+
+                    if id_proof_image:
+                        staff.id_proof_image = id_proof_image
+
+                    try:
+                        staff.save()
+                    except IntegrityError as e:
+                        err_str = str(e).lower()
+                        if "employee_id" in err_str:
+                            return JsonResponse(
+                                {"error": f"Employee ID '{employee_id}' is already in use"},
+                                status=400,
+                            )
+                        elif "username" in err_str or "email" in err_str:
+                            return JsonResponse(
+                                {"error": "A staff member with this email already exists"},
+                                status=400,
+                            )
+                        else:
+                            return JsonResponse(
+                                {"error": "A database conflict occurred. Please try again."},
+                                status=400,
+                            )
+
+                except Exception:
+                    user.delete()
+                    raise
+
         try:
             send_mail(
                 subject="Staff Account Created",
@@ -1749,7 +1806,7 @@ def staff_register(request):
             )
         except Exception as e:
             print("Email send error:", e)
- 
+
         return JsonResponse({
             "success":      True,
             "staff_id":     staff.id,
@@ -1760,7 +1817,7 @@ def staff_register(request):
             "has_photo":    bool(staff.photo),
             "has_id_proof": bool(staff.id_proof_image),
         })
- 
+
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -2065,7 +2122,7 @@ def upload_staff_id_proof(request):
 def delete_staff(request):
     try:
         if request.content_type == "application/json":
-            data = json.loads(request.body)
+            data     = json.loads(request.body)
             staff_id = data.get("staff_id")
         else:
             staff_id = request.POST.get("staff_id")
@@ -2075,21 +2132,31 @@ def delete_staff(request):
         if not staff_id:
             return JsonResponse({"error": "Staff ID required"}, status=400)
 
-        
         tenant = connection.tenant
+
         with schema_context('public'):
             hotel = Hotel.objects.get(schema_name=tenant.schema_name)
 
-        staff_obj = Staff.objects.filter(id=staff_id, hotel=hotel).first()
+        with schema_context(tenant.schema_name):
+            with transaction.atomic():
+                staff_obj = Staff.objects.select_related('user').filter(
+                    id=staff_id, hotel=hotel
+                ).first()
 
-        if not staff_obj:
-            return JsonResponse({"error": "Staff not found"}, status=404)
+                if not staff_obj:
+                    return JsonResponse({"error": "Staff not found"}, status=404)
 
-       
-        user = staff_obj.user
-        staff_obj.delete()
-        if user:
-            user.delete()
+                user = staff_obj.user
+                print(f"DEBUG delete — staff: {staff_obj.name} | user: {user.username if user else None}")
+
+                if user:
+                    # Deleting User cascades and auto-deletes Staff
+                    # because Staff.user = OneToOneField(User, on_delete=CASCADE)
+                    user.delete()
+                    print(f"DEBUG delete — user deleted, staff cascade-deleted")
+                else:
+                    staff_obj.delete()
+                    print(f"DEBUG delete — no user linked, staff deleted directly")
 
         return JsonResponse({
             "success": True,
