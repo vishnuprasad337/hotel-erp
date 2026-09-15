@@ -837,16 +837,15 @@ def housekeeping_dashboard(request):
     today = timezone.now().date()
 
     monthly_attendance = Attendance.objects.filter(
-        staff=staff,
-        date__month=today.month,
-        date__year=today.year,
+    staff=staff,
+    date__month=today.month,
+    date__year=today.year,
     ).order_by("date")
 
-    present_days = monthly_attendance.filter(status="Present").count()
-    half_days = monthly_attendance.filter(status="Half Day").count()
-    late_days = monthly_attendance.filter(status="Late").count()
-    absent_days = monthly_attendance.filter(status="Absent").count()
-
+    present_days = monthly_attendance.filter(status__iexact="Present").count()
+    half_days = monthly_attendance.filter(status__iexact="Half Day").count()
+    late_days = monthly_attendance.filter(status__iexact="Late").count()
+    absent_days = monthly_attendance.filter(status__iexact="Absent").count()
     overtime_hours = monthly_attendance.aggregate(
         total=Sum("overtime_hours")
     )["total"] or 0
@@ -1344,6 +1343,39 @@ def hr_dashboard(request):
     hotel = staff.hotel
     today = timezone.now().date()
 
+    # ── NEW: figure out which modules are enabled for this hotel ──────────
+    from accounts.models import HotelModule
+
+    enabled_modules = HotelModule.objects.select_related('module').filter(
+        hotel=hotel,
+        is_enabled=True
+    )
+
+    # Raw lowercase module names, e.g. "billing", "inventory management"
+    raw_module_names = [
+        m.module.name.lower().strip()
+        for m in enabled_modules
+    ]
+
+    # Also keep space/underscore variants for exact-match template checks
+    active_module_names = set()
+    for name in raw_module_names:
+        active_module_names.add(name)
+        active_module_names.add(name.replace(' ', '_'))
+        active_module_names.add(name.replace(' ', ''))
+    active_module_names = list(active_module_names)
+
+    # Substring-based flags — robust to naming like "Billing & Invoicing",
+    # "Inventory Management", "Laundry Service", "HR Suite", etc.
+    def _has_module(keyword):
+        return any(keyword in name for name in raw_module_names)
+
+    show_billing   = _has_module('billing') or _has_module('invoice')
+    show_inventory = _has_module('inventory')
+    show_laundry   = _has_module('laundry')
+    show_hr        = _has_module('hr') or _has_module('human resource') or _has_module('payroll')
+    # ── END NEW ─────────────────────────────────────────────────────────
+
     bookings = Booking.objects.select_related(
         "guest",
         "room",
@@ -1394,6 +1426,42 @@ def hr_dashboard(request):
     room_units = RoomUnit.objects.select_related(
         "room"
     ).order_by("room_number")
+    today = timezone.now().date()
+
+    monthly_attendance = Attendance.objects.filter(
+        staff=staff,
+        date__month=today.month,
+        date__year=today.year,
+    ).order_by("date")
+
+    present_days = monthly_attendance.filter(status="Present").count()
+    half_days = monthly_attendance.filter(status="Half Day").count()
+    late_days = monthly_attendance.filter(status="Late").count()
+    absent_days = monthly_attendance.filter(status="Absent").count()
+
+    overtime_hours = monthly_attendance.aggregate(
+        total=Sum("overtime_hours")
+    )["total"] or 0
+
+    attendance_records = []
+
+    for att in monthly_attendance:
+        working_hours = 0.0
+
+        if att.check_in and att.check_out:
+            working_hours = round(
+                (att.check_out - att.check_in).total_seconds() / 3600,
+                2
+            )
+
+        attendance_records.append({
+            "date": att.date,
+            "check_in": att.check_in.strftime("%H:%M") if att.check_in else "—",
+            "check_out": att.check_out.strftime("%H:%M") if att.check_out else "—",
+            "status": att.status,
+            "working_hours": working_hours,
+            "overtime": float(att.overtime_hours or 0),
+        })
 
     hk_dept = Department.objects.filter(
         hotel=hotel,
@@ -1473,6 +1541,13 @@ def hr_dashboard(request):
         "rooms": rooms_qs,
         "rooms_json": rooms_json,
         "room_units": room_units,
+        "present_days": present_days,
+        "half_days": half_days,
+        "late_days": late_days,
+        "absent_days": absent_days,
+        "overtime_hours": round(float(overtime_hours), 2),
+        "attendance_records": attendance_records,
+        "current_month": today.strftime("%B %Y"),
         "housekeeping_staff": housekeeping_staff,
         "hotel_staff": hotel_staff,
         "departments": departments,
@@ -1482,6 +1557,12 @@ def hr_dashboard(request):
         "total_departments": total_departments,
         "schema": schema,
         "token": "",
+        # ── NEW context for module gating ──
+        "active_module_names": active_module_names,
+        "show_billing": show_billing,
+        "show_inventory": show_inventory,
+        "show_laundry": show_laundry,
+        "show_hr": show_hr,
     })
 from datetime import time
 
@@ -1490,7 +1571,6 @@ SHIFT_TIMINGS = {
     "Evening": (time(14, 0), time(22, 0)),
     "Night": (time(22, 0), time(6, 0)),
 }
-
 
 @require_POST
 def mark_attendance(request):
@@ -1503,6 +1583,10 @@ def mark_attendance(request):
         staff = Staff.objects.get(id=staff_id)
     except Staff.DoesNotExist:
         return JsonResponse({"error": "Staff not found"}, status=404)
+
+    action = request.POST.get("action")
+    if action not in ("check_in", "check_out"):
+        return JsonResponse({"success": False, "message": "Invalid or missing action"}, status=400)
 
     now = timezone.now()
     today = now.date()
@@ -1517,11 +1601,13 @@ def mark_attendance(request):
     shift_name = shift_obj.shift if shift_obj else None
 
     shift_start, shift_end = None, None
-
     if shift_name in SHIFT_TIMINGS:
         shift_start, shift_end = SHIFT_TIMINGS[shift_name]
 
-    if attendance.check_in is None:
+    if action == "check_in":
+        if attendance.check_in is not None:
+            return JsonResponse({"success": False, "message": "Already clocked in today."})
+
         attendance.check_in = now
 
         if shift_start and now.time() > shift_start:
@@ -1539,48 +1625,182 @@ def mark_attendance(request):
             "status": attendance.status
         })
 
-    elif attendance.check_out is None:
-        attendance.check_out = now
+    # action == "check_out"
+    if attendance.check_in is None:
+        return JsonResponse({"success": False, "message": "You have not clocked in yet."})
+    if attendance.check_out is not None:
+        return JsonResponse({"success": False, "message": "Already clocked out today."})
 
+    attendance.check_out = now
+
+    working_hours = (attendance.check_out - attendance.check_in).total_seconds() / 3600
+    overtime = 0
+
+    if shift_start and shift_end:
+        shift_start_dt = datetime.combine(today, shift_start)
+        shift_end_dt = datetime.combine(today, shift_end)
+
+        # Match awareness of attendance.check_out so the comparison never fails.
+        # Depending on USE_TZ / how check_in/check_out were saved, these can be
+        # naive or aware — normalize shift_start_dt/shift_end_dt to match.
+        if timezone.is_aware(attendance.check_out):
+            tz = timezone.get_current_timezone()
+            if timezone.is_naive(shift_start_dt):
+                shift_start_dt = timezone.make_aware(shift_start_dt, tz)
+            if timezone.is_naive(shift_end_dt):
+                shift_end_dt = timezone.make_aware(shift_end_dt, tz)
+        else:
+            if timezone.is_aware(shift_start_dt):
+                shift_start_dt = timezone.make_naive(shift_start_dt)
+            if timezone.is_aware(shift_end_dt):
+                shift_end_dt = timezone.make_naive(shift_end_dt)
+
+        if shift_end < shift_start:
+            shift_end_dt += timedelta(days=1)
+
+        if attendance.check_out > shift_end_dt:
+            overtime = (attendance.check_out - shift_end_dt).total_seconds() / 3600
+
+        shift_duration = (shift_end_dt - shift_start_dt).total_seconds() / 3600
+
+        if working_hours < (shift_duration / 2):
+            attendance.status = "Half Day"
+        elif attendance.status != "Late":
+            attendance.status = "Present"
+
+    attendance.overtime_hours = round(max(overtime, 0), 2)
+    attendance.save()
+
+    return JsonResponse({
+        "success": True,
+        "type": "checkout",
+        "shift": shift_name,
+        "check_out": attendance.check_out.isoformat(),
+        "working_hours": round(working_hours, 2),
+        "overtime": attendance.overtime_hours,
+        "status": attendance.status
+    })
+
+import math
+
+def _do_mark_attendance(staff, action):
+    """Core clock-in/out logic, reused by mark_attendance and the face-verified endpoint."""
+    now = timezone.now()
+    today = now.date()
+
+    attendance, created = Attendance.objects.get_or_create(
+        staff=staff, hotel=staff.hotel, date=today
+    )
+
+    shift_obj = Shift.objects.filter(staff=staff, date=today).first()
+    shift_name = shift_obj.shift if shift_obj else None
+    shift_start, shift_end = SHIFT_TIMINGS.get(shift_name, (None, None))
+
+    if action == "check_in":
+        if attendance.check_in is not None:
+            return {"success": False, "message": "Already clocked in today."}
+        attendance.check_in = now
+        attendance.status = "Late" if (shift_start and now.time() > shift_start) else "Present"
+        attendance.save()
+        return {
+            "success": True, "type": "checkin", "shift": shift_name,
+            "check_in": attendance.check_in.isoformat(), "status": attendance.status,
+        }
+
+    if action == "check_out":
+        if attendance.check_in is None:
+            return {"success": False, "message": "You have not clocked in yet."}
+        if attendance.check_out is not None:
+            return {"success": False, "message": "Already clocked out today."}
+
+        attendance.check_out = now
         working_hours = (attendance.check_out - attendance.check_in).total_seconds() / 3600
         overtime = 0
 
         if shift_start and shift_end:
-            tz = timezone.get_current_timezone()
-
-            shift_start_dt = timezone.make_aware(datetime.combine(today, shift_start), tz)
-            shift_end_dt = timezone.make_aware(datetime.combine(today, shift_end), tz)
+            shift_start_dt = datetime.combine(today, shift_start)
+            shift_end_dt = datetime.combine(today, shift_end)
+            if timezone.is_aware(attendance.check_out):
+                tz = timezone.get_current_timezone()
+                if timezone.is_naive(shift_start_dt): shift_start_dt = timezone.make_aware(shift_start_dt, tz)
+                if timezone.is_naive(shift_end_dt): shift_end_dt = timezone.make_aware(shift_end_dt, tz)
+            else:
+                if timezone.is_aware(shift_start_dt): shift_start_dt = timezone.make_naive(shift_start_dt)
+                if timezone.is_aware(shift_end_dt): shift_end_dt = timezone.make_naive(shift_end_dt)
 
             if shift_end < shift_start:
                 shift_end_dt += timedelta(days=1)
-
             if attendance.check_out > shift_end_dt:
                 overtime = (attendance.check_out - shift_end_dt).total_seconds() / 3600
 
             shift_duration = (shift_end_dt - shift_start_dt).total_seconds() / 3600
-
             if working_hours < (shift_duration / 2):
                 attendance.status = "Half Day"
             elif attendance.status != "Late":
                 attendance.status = "Present"
 
-        attendance.overtime_hours = round(overtime, 2)
+        attendance.overtime_hours = round(max(overtime, 0), 2)
         attendance.save()
-
-        return JsonResponse({
-            "success": True,
-            "type": "checkout",
-            "shift": shift_name,
+        return {
+            "success": True, "type": "checkout", "shift": shift_name,
             "check_out": attendance.check_out.isoformat(),
             "working_hours": round(working_hours, 2),
-            "overtime": attendance.overtime_hours,
-            "status": attendance.status
-        })
+            "overtime": attendance.overtime_hours, "status": attendance.status,
+        }
 
-    return JsonResponse({
-        "success": False,
-        "message": "Attendance already completed"
-    })
+    return {"success": False, "message": "Invalid action"}
+
+
+@csrf_exempt
+@require_POST
+def verify_face_and_mark_attendance(request):
+    """Clock in/out only if the live face matches THIS logged-in staff's enrolled descriptor."""
+    staff_id = request.session.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+
+    try:
+        staff = Staff.objects.get(id=staff_id)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    action = data.get("action")
+    if action not in ("check_in", "check_out"):
+        return JsonResponse({"success": False, "message": "Invalid or missing action"}, status=400)
+
+    live_descriptor = data.get("descriptor")
+    if not live_descriptor or len(live_descriptor) != 128:
+        return JsonResponse({"error": "No face detected. Please try again."}, status=400)
+
+    if not staff.face_descriptor:
+        return JsonResponse(
+            {"error": "Your face is not enrolled. Please ask HR/Admin to register your face first."},
+            status=400,
+        )
+
+    def euclidean(a, b):
+        return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+    distance = euclidean(live_descriptor, staff.face_descriptor)
+    FACE_MATCH_THRESHOLD = 0.5  # lower = stricter match
+
+    if distance >= FACE_MATCH_THRESHOLD:
+        return JsonResponse({
+            "success": False,
+            "face_matched": False,
+            "message": "Face does not match your enrolled profile. Attendance not marked.",
+            "confidence": round(max(0, 1 - distance), 3),
+        }, status=403)
+
+    result = _do_mark_attendance(staff, action)
+    result["face_matched"] = True
+    result["confidence"] = round(max(0, 1 - distance), 3)
+    return JsonResponse(result, status=200 if result.get("success") else 400)
 def today_attendance(request):
     staff_id = request.session.get("staff_id")
     if not staff_id:
@@ -1675,19 +1895,21 @@ def get_attendance(request):
         date=today
     ).first()
 
-    total_present = Attendance.objects.filter(
+    # Scope to the current month, and cover every status bucket
+    month_qs = Attendance.objects.filter(
         staff=staff,
-        status__in=["Present", "Late"],
-    ).count()
+        date__year=today.year,
+        date__month=today.month,
+    )
 
-    total_half_day = Attendance.objects.filter(
-        staff=staff,
-        status="Half Day"
-    ).count()
+    total_present   = month_qs.filter(status="Present").count()
+    total_late      = month_qs.filter(status="Late").count()
+    total_absent    = month_qs.filter(status="Absent").count()
+    total_half_day  = month_qs.filter(status="Half Day").count()
 
-    total_overtime = Attendance.objects.filter(
-        staff=staff
-    ).aggregate(total=models.Sum("overtime_hours"))["total"] or 0
+    total_overtime = month_qs.aggregate(
+        total=models.Sum("overtime_hours")
+    )["total"] or 0
 
     response = {
         "staff": {
@@ -1707,6 +1929,8 @@ def get_attendance(request):
 
         "summary": {
             "total_present_days": total_present,
+            "total_late_days": total_late,
+            "total_absent_days": total_absent,
             "total_half_days": total_half_day,
             "total_overtime_hours": round(float(total_overtime), 2),
         }
@@ -2275,8 +2499,7 @@ def _calculate_payroll(staff, month, year):
     half_days      = attendances.filter(status="Half Day").count()
     present_days   = attendances.filter(status__in=["Present", "Late"]).count()
     late_days      = attendances.filter(status="Late").count()
-    overtime_hours = sum(_sf(a.overtime_hours) for a in attendances)
-
+    overtime_hours = max(sum(_sf(a.overtime_hours) for a in attendances), 0)
     approved_leaves = LeaveRequest.objects.filter(
         staff=staff, status="Approved",
         from_date__month=month, from_date__year=year,
@@ -2433,7 +2656,7 @@ def _ensure_payroll_records(hotel_id, month, year):
         p, created = Payroll.objects.get_or_create(
             staff=staff, hotel_id=hotel_id, month=month, year=year,
             defaults={
-                "basic_salary":      calc["pro_rated_basic"],
+                "basic_salary":      max(calc["pro_rated_basic"], Decimal("0")),
                 "overtime_amount":   calc["overtime_amount"],
                 "deductions":        base_deduct,
                 "net_salary":        net,
@@ -2823,17 +3046,23 @@ def recalculate_payroll(request, payroll_id):
         return JsonResponse({"error": "Cannot edit a paid payroll"}, status=400)
 
     calc = _calculate_payroll(p.staff, p.month, p.year)
+
+    # ── FIX: refresh basic_salary / overtime_amount / deductions from current staff data
+    p.basic_salary    = calc["pro_rated_basic"]
+    p.overtime_amount = calc["overtime_amount"]
+    p.deductions      = calc["absent_deduction"] + calc["half_day_deduction"]
+    p.save(update_fields=["basic_salary", "overtime_amount", "deductions"])
+
     _sync_line_items(p, calc)
     result = _recalculate_net(p)
 
     return JsonResponse({
         "success":          True,
+        "basic_salary":     float(p.basic_salary),
         "net_salary":       result["net_salary"],
         "gross_salary":     result["gross"],
         "total_deductions": result["total_deductions"],
     })
-
-
 @csrf_exempt
 def update_payroll(request, payroll_id=None, pk=None):
     resolved_id = payroll_id or pk
@@ -2884,16 +3113,22 @@ def update_payroll(request, payroll_id=None, pk=None):
     p.save()
 
     calc = _calculate_payroll(p.staff, p.month, p.year)
+
+    # ── FIX: always refresh basic_salary from the staff's current salary
+    p.basic_salary    = calc["pro_rated_basic"]
+    p.overtime_amount = calc["overtime_amount"]
+    p.save(update_fields=["basic_salary", "overtime_amount"])
+
     _sync_line_items(p, calc)
     result = _recalculate_net(p)
 
     return JsonResponse({
         "success":          True,
+        "basic_salary":     float(p.basic_salary),
         "net_salary":       result["net_salary"],
         "gross_salary":     result["gross"],
         "total_deductions": result["total_deductions"],
     })
-
 
 def staff_payroll_history(request, staff_id):
     hotel_id = request.session.get("hotel_id")
@@ -3812,15 +4047,15 @@ def _attendance_for(staff, date_obj):
 
     if att.check_in:
 
-        # checkout or current local time
+        
         if att.check_out:
             end_time = att.check_out
         else:
             end_time = timezone.now()
 
-        # convert both to local timezone
-        check_in = timezone.localtime(att.check_in)
-        end_time = timezone.localtime(end_time)
+        
+        check_in = att.check_in
+        end_time = end_time
 
         diff = end_time - check_in
 
@@ -3833,8 +4068,8 @@ def _attendance_for(staff, date_obj):
 
     return {
         "status": att.status,
-        "check_in": timezone.localtime(att.check_in).strftime("%I:%M %p") if att.check_in else None,
-        "check_out": timezone.localtime(att.check_out).strftime("%I:%M %p") if att.check_out else None,
+        "check_in": att.check_in.strftime("%I:%M %p") if att.check_in else None,
+        "check_out": att.check_out.strftime("%I:%M %p") if att.check_out else None,
         "working_hours": working_hours,
         "overtime_hours": overtime_hours,
     }
@@ -3847,11 +4082,7 @@ def _shift_for(staff, date_obj):
 # FRONT DESK REPORT  — STAFF-SPECIFIC
 # ─────────────────────────────────────────────────────────────────────────────
 def _get_booking_staff_fk():
-    """
-    Inspect the Booking model's fields ONCE and return the first FK field name
-    that points to Staff / accounts.Staff.
-    Returns None if no such FK exists yet.
-    """
+    
     from django.db import models as _models
 
     # Explicit priority list – add more names here if needed
@@ -3873,10 +4104,10 @@ def _get_booking_staff_fk():
             if isinstance(field, (_models.ForeignKey, _models.OneToOneField)):
                 return candidate
 
-    return None          # No staff FK found on Booking
+    return None         
 
 
-# Cache the result so we only introspect once per process
+
 _BOOKING_STAFF_FK = None
 
 def _staff_booking_qs(base_qs, staff):
@@ -7522,3 +7753,40 @@ def send_compose_email(request):
         'count': len(to_emails),
         'message': f'Email sent successfully to {len(to_emails)} recipient(s).',
     })
+
+
+
+def face_attendance_lookup(request):
+    """
+    Later: kiosk/check-in POSTs a live descriptor here.
+    Compares against all registered staff descriptors and returns best match.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        data = json.loads(request.body)
+        live = data.get("descriptor")
+        if not live or len(live) != 128:
+            return JsonResponse({"error": "Invalid descriptor"}, status=400)
+
+        import math
+        def euclidean(a, b):
+            return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+        best_staff, best_dist = None, 999
+        for s in Staff.objects.exclude(face_descriptor__isnull=True):
+            dist = euclidean(live, s.face_descriptor)
+            if dist < best_dist:
+                best_dist, best_staff = dist, s
+
+        THRESHOLD = 0.5  # lower = stricter match; tune based on testing
+        if best_staff and best_dist < THRESHOLD:
+            return JsonResponse({
+                "success": True,
+                "staff_id": best_staff.id,
+                "name": best_staff.name,
+                "confidence": round(1 - best_dist, 3)
+            })
+        return JsonResponse({"success": False, "error": "No match found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

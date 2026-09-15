@@ -7,6 +7,7 @@
     <title>Staff Portal | Hotel ERP</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <style>
         :root {
             --navy: #0f1f3d;
@@ -1421,23 +1422,23 @@ table.pr-bd-table tfoot td:first-child {
         Send Email
     </button>
     <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-            <div><div class="stat-number green" id="totalPresentDays">0</div><div class="stat-label">Present this month</div></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
-            <div><div class="stat-number amber" id="totalLateDays">0</div><div class="stat-label">Late arrivals</div></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
-            <div><div class="stat-number red" id="totalAbsentDays">0</div><div class="stat-label">Absent days</div></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon blue"><i class="fas fa-business-time"></i></div>
-            <div><div class="stat-number blue" id="totalOvertimeHours">0.0</div><div class="stat-label">Overtime hours</div></div>
-        </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div><div class="stat-number green" id="totalPresentDays">{{ present_days|default:0 }}</div><div class="stat-label">Present this month</div></div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
+        <div><div class="stat-number amber" id="totalLateDays">{{ late_days|default:0 }}</div><div class="stat-label">Late arrivals</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+        <div><div class="stat-number red" id="totalAbsentDays">{{ absent_days|default:0 }}</div><div class="stat-label">Absent days</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-business-time"></i></div>
+        <div><div class="stat-number blue" id="totalOvertimeHours">{{ overtime_hours|default:"0.0" }}</div><div class="stat-label">Overtime hours</div></div>
+    </div>
+</div>
     <div class="card">
         <div class="card-header">
             <div class="card-title"><i class="fas fa-stopwatch"></i> Today's clock</div>
@@ -1445,12 +1446,12 @@ table.pr-bd-table tfoot td:first-child {
         </div>
         <div class="clock-wrap">
             <div class="clock-btns">
-                <button class="ck-btn in" id="btnClockIn" onclick="clockIn()">
+                <button class="ck-btn in" id="btnClockIn" onclick="openFaceAttendanceModal('check_in')">
     <i class="fas fa-sign-in-alt"></i> Clock In
-    </button>
-       <button class="ck-btn out" id="btnClockOut" onclick="clockOut()" disabled>
-        <i class="fas fa-sign-out-alt"></i> Clock Out
-          </button>
+</button>
+<button class="ck-btn out" id="btnClockOut" onclick="openFaceAttendanceModal('check_out')" disabled>
+    <i class="fas fa-sign-out-alt"></i> Clock Out
+</button>
             </div>
             <div class="att-log-box" id="attLogBox">
                 <i class="fas fa-info-circle"></i>
@@ -3071,7 +3072,67 @@ table.pr-bd-table tfoot td:first-child {
         </div>
     </div>
 </div>
+<div id="faceAttendanceModal" class="modal-backdrop">
+    <div class="modal" style="max-width:440px">
+        <div class="modal-header">
+            <span><i class="fas fa-camera" style="color:var(--blue);margin-right:6px"></i> Face Verification</span>
+            <button class="modal-close" onclick="closeFaceAttendanceModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <video id="faceAttVideo" autoplay muted playsinline
+                   style="width:100%;max-width:360px;border-radius:12px;background:#000"></video>
+            <div id="faceAttStatus" style="margin-top:14px;font-size:0.85rem;color:var(--text-muted)">
+                <i class="fas fa-spinner fa-spin"></i> Loading face recognition…
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeFaceAttendanceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+<!-- Face Confirm Modal -->
+<div id="faceConfirmModal" class="modal-backdrop">
+    <div class="modal" style="max-width:440px">
+        <div class="modal-header">
+            <span><i class="fas fa-check-circle" style="color:var(--green);margin-right:6px"></i> Confirm Your Photo</span>
+            <button class="modal-close" onclick="closeFaceConfirmModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <img id="faceCapturedImg" style="width:100%;max-width:320px;border-radius:12px;border:2px solid var(--border)" alt="Captured face">
+            <div style="margin-top:12px;font-size:0.85rem;color:var(--text-muted)">
+                Is this a clear photo of your face?
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="retakeFace()"><i class="fas fa-redo"></i> Retake</button>
+            <button class="btn btn-primary" id="faceConfirmBtn" onclick="confirmFaceAttendance()">
+                <i class="fas fa-check"></i> Confirm & Continue
+            </button>
+        </div>
+    </div>
+</div>
 
+<!-- Face Mismatch Modal -->
+<div id="faceMismatchModal" class="modal-backdrop">
+    <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+            <span><i class="fas fa-times-circle" style="color:var(--red);margin-right:6px"></i> Face Not Recognized</span>
+            <button class="modal-close" onclick="closeFaceMismatchModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <i class="fas fa-user-slash" style="font-size:2.4rem;color:var(--red);opacity:.6;margin-bottom:10px;display:block"></i>
+            <p id="faceMismatchMsg" style="font-size:0.88rem;color:var(--text)">
+                The captured face does not match your profile. Please try again.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeFaceMismatchModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="retryFaceFromMismatch()"><i class="fas fa-camera"></i> Try Again</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="faceCaptureCanvas" style="display:none"></canvas>
 <div class="toast-stack" id="toastStack"></div>
 
 <script>
@@ -3191,14 +3252,19 @@ async function initAttendance() {
         };
         updateAttendanceUI(todayData);
 
-        if (data.summary) updateSummaryUI(data.summary);
+        // NOTE: we no longer trust data.summary blindly — it can silently
+        // return zeros if the backend's status filter doesn't match the
+        // exact case/spacing stored in the DB. Instead we recompute the
+        // KPI strip ourselves from the actual attendance records once
+        // loadPastAttendance() has fetched "This Month" (the default filter).
         await loadPastAttendance();
+        recomputeAttendanceSummaryClientSide();
     } catch (e) {
         console.error('Attendance init failed:', e);
     }
 }
 
-/* ── Update top KPI strip ── */
+/* ── Update top KPI strip (from backend summary, if trustworthy) ── */
 function updateSummaryUI(summary) {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('totalPresentDays',  summary.total_present_days  || 0);
@@ -3207,6 +3273,43 @@ function updateSummaryUI(summary) {
     set('totalOvertimeHours',(parseFloat(summary.total_overtime_hours || 0)).toFixed(1));
 }
 
+/* ── Fallback / authoritative KPI calc: derive counts from the loaded
+     "This Month" attendance records, matching status case-insensitively
+     so backend casing/whitespace mismatches can't zero out the cards. ── */
+function recomputeAttendanceSummaryClientSide() {
+    if (!allAttendanceRecords || !allAttendanceRecords.length) return;
+
+    const now = new Date();
+    const thisMonthRecords = allAttendanceRecords.filter(r => {
+        if (!r.date) return false;
+        const d = new Date(r.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    const records = thisMonthRecords.length ? thisMonthRecords : allAttendanceRecords;
+
+    const norm = s => (s || '').toString().trim().toLowerCase();
+
+    let present = 0, late = 0, absent = 0, halfDay = 0, overtime = 0;
+    records.forEach(r => {
+        const s = norm(r.status);
+        if (s === 'absent') {
+            absent++;
+        } else {
+            // Present, Late, Half Day all count toward "Present this month"
+            present++;
+            if (s === 'late') late++;
+            if (s === 'half day') halfDay++;
+        }
+        overtime += parseFloat(r.overtime_hours || 0);
+    });
+
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('totalPresentDays',  present);
+    set('totalLateDays',     late);
+    set('totalAbsentDays',   absent);
+    set('totalOvertimeHours', overtime.toFixed(1));
+}
 /* ── Update clock widget ── */
 function updateAttendanceUI(data) {
     const btnIn  = document.getElementById('btnClockIn');
@@ -3238,10 +3341,10 @@ function updateAttendanceUI(data) {
     }
 }
 
-/* ── Clock In ── */
 function clockIn() {
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken', getCsrf());
+    fd.append('action', 'check_in');           // ← add this
     fetch('/attendance/mark/', { method:'POST', body:fd })
         .then(r => r.json())
         .then(data => {
@@ -3259,9 +3362,11 @@ function clockIn() {
         })
         .catch(() => toast('Network error', 'error'));
 }
+
 function clockOut() {
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken', getCsrf());
+    fd.append('action', 'check_out');          // ← add this
     fetch('/attendance/mark/', { method:'POST', body:fd })
         .then(r => r.json())
         .then(data => {
@@ -3278,6 +3383,164 @@ function clockOut() {
         })
         .catch(() => toast('Network error', 'error'));
 }
+// ════════════════════════════════════════
+// FACE-VERIFIED ATTENDANCE (with confirm step)
+// ════════════════════════════════════════
+const FACE_MODELS_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+let _faceModelsLoaded  = false;
+let _faceStream        = null;
+let _faceDetectTimer   = null;
+let _faceActionPending = null;   // 'check_in' or 'check_out'
+let _pendingDescriptor = null;   // captured face descriptor awaiting confirm
+
+async function ensureFaceModelsLoaded() {
+    if (_faceModelsLoaded) return;
+    await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODELS_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODELS_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODELS_URL),
+    ]);
+    _faceModelsLoaded = true;
+}
+
+async function openFaceAttendanceModal(action) {
+    _faceActionPending = action;
+    document.getElementById('faceAttendanceModal').classList.add('open');
+    const statusEl = document.getElementById('faceAttStatus');
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading face recognition…';
+
+    try { await ensureFaceModelsLoaded(); }
+    catch { statusEl.innerHTML = '<span style="color:var(--red)">Could not load face models.</span>'; return; }
+
+    try {
+        _faceStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+    } catch {
+        statusEl.innerHTML = '<span style="color:var(--red)">Camera access denied or unavailable.</span>';
+        return;
+    }
+
+    const video = document.getElementById('faceAttVideo');
+    video.srcObject = _faceStream;
+    statusEl.innerHTML = '<i class="fas fa-user-circle"></i> Position your face in the frame…';
+
+    _faceDetectTimer = setInterval(() => detectFaceForCapture(video), 800);
+}
+
+function stopFaceCamera() {
+    if (_faceDetectTimer) { clearInterval(_faceDetectTimer); _faceDetectTimer = null; }
+    if (_faceStream) { _faceStream.getTracks().forEach(t => t.stop()); _faceStream = null; }
+}
+
+function closeFaceAttendanceModal() {
+    document.getElementById('faceAttendanceModal').classList.remove('open');
+    stopFaceCamera();
+    _faceActionPending = null;
+    _pendingDescriptor = null;
+}
+
+/* ── Step 1: detect a face, capture a still frame, stop camera, show confirm modal ── */
+async function detectFaceForCapture(video) {
+    if (!_faceActionPending) return;
+    const detection = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+    if (!detection) return; // keep scanning
+
+    // Freeze — stop scanning further frames
+    clearInterval(_faceDetectTimer);
+    _faceDetectTimer = null;
+
+    _pendingDescriptor = Array.from(detection.descriptor);
+
+    // Snapshot the current video frame to a canvas → data URL
+    const canvas = document.getElementById('faceCaptureCanvas');
+    canvas.width  = video.videoWidth  || 320;
+    canvas.height = video.videoHeight || 240;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const snapshot = canvas.toDataURL('image/jpeg', 0.9);
+
+    // Release camera now — no need to keep it running while user confirms
+    stopFaceCamera();
+
+    // Show the confirm modal with the captured photo
+    document.getElementById('faceCapturedImg').src = snapshot;
+    document.getElementById('faceAttendanceModal').classList.remove('open');
+    document.getElementById('faceConfirmModal').classList.add('open');
+}
+
+/* ── Retake: discard capture, go back to camera ── */
+function retakeFace() {
+    document.getElementById('faceConfirmModal').classList.remove('open');
+    _pendingDescriptor = null;
+    openFaceAttendanceModal(_faceActionPending);
+}
+function closeFaceConfirmModal() {
+    document.getElementById('faceConfirmModal').classList.remove('open');
+    _pendingDescriptor = null;
+    _faceActionPending = null;
+}
+
+/* ── Step 2: user confirms photo → actually verify + mark attendance ── */
+async function confirmFaceAttendance() {
+    if (!_pendingDescriptor || !_faceActionPending) return;
+    const btn  = document.getElementById('faceConfirmBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Verifying…';
+
+    try {
+        const res  = await fetch('/attendance/mark-with-face/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+            body: JSON.stringify({ action: _faceActionPending, descriptor: _pendingDescriptor }),
+        });
+        const data = await res.json();
+
+        if (data.success && data.face_matched) {
+            document.getElementById('faceConfirmModal').classList.remove('open');
+            toast(data.type === 'checkin'
+                ? `Clocked in successfully · ${data.status || 'Present'}`
+                : `Clocked out · ${data.working_hours || '—'} hrs worked`, 'success');
+            setTimeout(() => window.location.reload(), 900);
+        } else if (data.face_matched === false) {
+            document.getElementById('faceConfirmModal').classList.remove('open');
+            document.getElementById('faceMismatchMsg').textContent =
+                data.message || 'The captured face does not match your profile. Please try again.';
+            document.getElementById('faceMismatchModal').classList.add('open');
+        } else {
+            document.getElementById('faceConfirmModal').classList.remove('open');
+            toast(data.message || data.error || 'Could not mark attendance.', 'error');
+        }
+    } catch {
+        toast('Network error. Please try again.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+        _pendingDescriptor = null;
+    }
+}
+
+/* ── Mismatch modal controls ── */
+function closeFaceMismatchModal() {
+    document.getElementById('faceMismatchModal').classList.remove('open');
+    _faceActionPending = null;
+}
+function retryFaceFromMismatch() {
+    const action = _faceActionPending;
+    document.getElementById('faceMismatchModal').classList.remove('open');
+    openFaceAttendanceModal(action);
+}
+
+document.getElementById('faceAttendanceModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('faceAttendanceModal')) closeFaceAttendanceModal();
+});
+
+['faceConfirmModal', 'faceMismatchModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
 /* ── Load past records ── */
 async function loadPastAttendance() {
     const tbody = document.getElementById('pastAttendanceBody');
@@ -3311,6 +3574,7 @@ async function loadPastAttendance() {
 
     attCurrentPage = 1;
     applyAttPagination();
+    recomputeAttendanceSummaryClientSide();
 }
 
 /* ── Render table ── */

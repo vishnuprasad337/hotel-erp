@@ -80,11 +80,58 @@
             overflow: hidden;
         }
         .form-header { background: #1e2a3e; padding: 1.8rem 2rem; color: white; }
+        .form-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
         .form-header h2 { font-weight: 600; font-size: 1.8rem; display: flex; align-items: center; gap: 12px; }
         .form-header h2 i { color: var(--accent); }
         .form-header p { font-size: 0.9rem; opacity: 0.75; margin-top: 8px; }
+        .login-link {
+            background: rgba(255,255,255,0.08); padding: 10px 20px; border-radius: 40px;
+            font-size: 0.85rem; font-weight: 500; text-decoration: none;
+            color: #fff; transition: 0.2s; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .login-link:hover { background: rgba(255,255,255,0.18); }
 
         .form-body { padding: 2rem 2rem 1.8rem; }
+
+        /* ── STEPPER / PROGRESS ── */
+        .stepper {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; margin-bottom: 2rem; user-select: none;
+            flex-wrap: wrap;
+        }
+        .step-item {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            flex: 0 0 auto;
+        }
+        .step-circle {
+            width: 38px; height: 38px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #eef2f7; color: #94a3b8; font-weight: 700; font-size: 0.9rem;
+            border: 2px solid #eef2f7; transition: all 0.3s ease;
+        }
+        .step-label {
+            font-size: 0.72rem; font-weight: 600; color: #94a3b8;
+            letter-spacing: 0.02em; transition: color 0.3s ease; text-align: center;
+        }
+        .step-item.active .step-circle {
+            background: var(--accent); border-color: var(--accent); color: #1e2a3e;
+            box-shadow: 0 0 0 5px rgba(255,180,71,0.18);
+        }
+        .step-item.active .step-label { color: #1e2a3e; }
+        .step-item.completed .step-circle {
+            background: #1e2a3e; border-color: #1e2a3e; color: #fff;
+        }
+        .step-item.completed .step-label { color: #1e2a3e; }
+        .step-line {
+            width: 56px; height: 2px; background: #eef2f7; margin: 0 6px 22px;
+            transition: background 0.3s ease;
+        }
+        .step-line.filled { background: #1e2a3e; }
+        @media (max-width: 560px) {
+            .step-line { width: 24px; }
+            .step-label { display: none; }
+        }
 
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem 1.5rem; }
         .full-width { grid-column: span 2; }
@@ -190,16 +237,13 @@
             display: flex; align-items: flex-start; gap: 10px;
         }
 
-        /* section divider */
-        .section-divider {
-            grid-column: span 2; display: flex; align-items: center; gap: 12px; margin: 0.4rem 0;
+        /* step panel heading */
+        .step-title {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.95rem; font-weight: 700; color: #1e2a3e;
+            margin-bottom: 1.2rem;
         }
-        .section-divider span {
-            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
-            text-transform: uppercase; color: #94a3b8; white-space: nowrap;
-        }
-        .section-divider::before,
-        .section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+        .step-title i { color: var(--accent); }
 
         /* file upload */
         .file-upload {
@@ -209,27 +253,39 @@
         .file-upload:hover { border-color: var(--accent); background: #fff9ef; }
         .file-upload input { padding: 8px 0 !important; border: none !important; background: transparent !important; border-radius: 0 !important; }
 
-        /* action buttons */
-        .action-buttons {
+        /* ── STEP PANELS + SLIDE ANIMATION ── */
+        .step-panel { display: none; }
+        .step-panel.active {
+            display: block;
+            animation: slideStepIn 0.35s ease;
+        }
+        @keyframes slideStepIn {
+            from { opacity: 0; transform: translateX(28px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* step action buttons */
+        .step-actions {
             margin-top: 2rem; display: flex; flex-wrap: wrap;
             align-items: center; justify-content: space-between; gap: 1rem;
             padding-top: 1.5rem; border-top: 1px solid #f1f5f9;
         }
-        .btn-register {
-            background: #1e2a3e; border: none; padding: 14px 32px;
-            border-radius: 40px; font-weight: 700; font-size: 1rem; color: white;
+        .btn-next, .btn-back, .btn-register, .btn-verify {
+            border: none; padding: 14px 30px;
+            border-radius: 40px; font-weight: 700; font-size: 0.95rem;
             cursor: pointer; display: inline-flex; align-items: center; gap: 10px;
-            transition: all 0.25s;
+            transition: all 0.25s; font-family: inherit;
         }
-        .btn-register:hover:not(:disabled) { background: #2c3e4e; transform: translateY(-2px); }
-        .btn-register:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-        .login-link {
-            background: #f1f5f9; padding: 10px 20px; border-radius: 40px;
-            font-size: 0.85rem; font-weight: 500; text-decoration: none;
-            color: #2d3e50; transition: 0.2s;
-            display: inline-flex; align-items: center; gap: 6px;
+        .btn-next { background: #1e2a3e; color: white; margin-left: auto; }
+        .btn-next:hover { background: #2c3e4e; transform: translateY(-2px); }
+        .btn-back { background: #f1f5f9; color: #2d3e50; }
+        .btn-back:hover { background: #e6edf4; }
+        .btn-register, .btn-verify {
+            background: #1e2a3e; color: white; margin-left: auto;
         }
-        .login-link:hover { background: #e6edf4; }
+        .btn-register:hover:not(:disabled),
+        .btn-verify:hover:not(:disabled) { background: #2c3e4e; transform: translateY(-2px); }
+        .btn-register:disabled, .btn-verify:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
         /* messages */
         .message-card {
@@ -254,6 +310,69 @@
         .footer-note { text-align: center; margin-top: 1rem; font-size: 0.75rem; color: #7c8b9c; }
         ::placeholder { color: #b9c3cf; font-weight: 400; }
 
+        /* ── OTP STEP ── */
+        .otp-intro {
+            text-align: center; margin-bottom: 1.6rem;
+        }
+        .otp-intro .otp-icon {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: linear-gradient(135deg,#fff3e0,#ffe6c2);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px; font-size: 1.6rem; color: var(--accent);
+        }
+        .otp-intro h3 { font-size: 1.05rem; font-weight: 700; color: #1e2a3e; margin-bottom: 6px; }
+        .otp-intro p { font-size: 0.85rem; color: #64748b; }
+        .otp-intro p strong { color: #1e2a3e; }
+
+        .otp-boxes {
+            display: flex; justify-content: center; gap: 10px;
+            margin: 1.6rem 0 0.6rem;
+        }
+        .otp-boxes input {
+            width: 48px; height: 56px; text-align: center;
+            font-size: 1.4rem; font-weight: 700; color: #1a2c3e;
+            border: 1.5px solid #e2e8f0; border-radius: 14px;
+            background: #fefefe; outline: none; transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .otp-boxes input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255,180,71,0.18);
+        }
+        .otp-boxes input.filled { border-color: #1e2a3e; }
+        @media (max-width: 480px) {
+            .otp-boxes { gap: 6px; }
+            .otp-boxes input { width: 40px; height: 48px; font-size: 1.2rem; }
+        }
+
+        .otp-status {
+            text-align: center; font-size: 0.8rem; font-weight: 500;
+            min-height: 18px; margin-top: 10px;
+        }
+        .otp-status.ok  { color: #10b981; }
+        .otp-status.no  { color: #ef4444; }
+
+        .otp-resend-row {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; margin-top: 1.4rem; font-size: 0.82rem; color: #64748b;
+        }
+        .otp-resend-row button {
+            background: none; border: none; cursor: pointer;
+            color: var(--blue-light); font-weight: 700; font-size: 0.82rem;
+            font-family: inherit; padding: 0;
+        }
+        .otp-resend-row button:disabled {
+            color: #b6c0cc; cursor: not-allowed;
+        }
+        .otp-change-email {
+            text-align: center; margin-top: 8px;
+        }
+        .otp-change-email button {
+            background: none; border: none; cursor: pointer;
+            color: #94a3b8; font-size: 0.76rem; text-decoration: underline;
+            font-family: inherit;
+        }
+
         /* responsive */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
@@ -267,12 +386,13 @@
                 cursor: pointer;
             }
             .form-grid { grid-template-columns: 1fr; }
-            .full-width, .section-divider { grid-column: span 1; }
+            .full-width { grid-column: span 1; }
             .req-list { grid-template-columns: 1fr; }
             .form-body { padding: 1.5rem; }
-            .action-buttons { flex-direction: column; align-items: stretch; }
-            .btn-register { justify-content: center; }
-            .login-link { text-align: center; justify-content: center; }
+            .step-actions { flex-direction: column-reverse; align-items: stretch; }
+            .btn-next, .btn-back, .btn-register, .btn-verify { justify-content: center; margin-left: 0; }
+            .form-header-top { flex-direction: column; }
+            .login-link { align-self: flex-start; }
         }
         @media (min-width: 769px) { .menu-btn { display: none; } }
     </style>
@@ -308,12 +428,45 @@
 <main class="main">
     <div class="register-container">
         <div class="form-header">
-            <h2><i class="fas fa-hotel"></i> Partner with Us</h2>
-            <p>Join our platform &amp; showcase your property to travelers worldwide</p>
+            <div class="form-header-top">
+                <div>
+                    <h2><i class="fas fa-hotel"></i> Partner with Us</h2>
+                    <p>Join our platform &amp; showcase your property to travelers worldwide</p>
+                </div>
+                <a href="{% url 'hotel_login' %}" class="login-link">
+                    <i class="fas fa-sign-in-alt"></i> Already registered? Login
+                </a>
+            </div>
         </div>
 
         <div class="form-body">
-            <form method="POST" enctype="multipart/form-data" id="registerForm" novalidate>
+
+            <!-- Step progress indicator -->
+            <div class="stepper" id="stepper">
+                <div class="step-item active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Hotel Info</div>
+                </div>
+                <div class="step-line" id="line1"></div>
+                <div class="step-item" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">ID Proof</div>
+                </div>
+                <div class="step-line" id="line2"></div>
+                <div class="step-item" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Security</div>
+                </div>
+                <div class="step-line" id="line3"></div>
+                <div class="step-item" data-step="4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Verify OTP</div>
+                </div>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="registerForm" novalidate
+                  data-otp-stage="{% if otp_stage %}1{% else %}0{% endif %}"
+                  data-otp-email="{{ otp_email|default:'' }}">
                 {% csrf_token %}
 
                 {% if tenant_form.non_field_errors %}
@@ -323,152 +476,199 @@
                 </div>
                 {% endif %}
 
-                <div class="form-grid">
+                <!-- ── STEP 1: Hotel Info ── -->
+                <section class="step-panel active" data-panel="1">
+                    <div class="step-title"><i class="fas fa-building"></i> Hotel Information</div>
+                    <div class="form-grid">
 
-                    <!-- Hotel Info -->
-                    <div class="section-divider"><span>Hotel Info</span></div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-building"></i> Hotel name *</label>
-                        {{ tenant_form.hotel_name }}
-                        {% if tenant_form.hotel_name.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.hotel_name.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-envelope"></i> Email *</label>
-                        {{ tenant_form.email }}
-                        {% if tenant_form.email.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.email.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-user-tie"></i> Owner / Manager *</label>
-                        {{ tenant_form.owner_name }}
-                        {% if tenant_form.owner_name.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.owner_name.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-city"></i> City</label>
-                        {{ tenant_form.city }}
-                        {% if tenant_form.city.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.city.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group">
-                        <label><i class="fas fa-tag"></i> Property type</label>
-                        {{ tenant_form.property_type }}
-                        {% if tenant_form.property_type.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.property_type.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group full-width">
-                        <label><i class="fas fa-map-pin"></i> Address</label>
-                        {{ tenant_form.address }}
-                        {% if tenant_form.address.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.address.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group full-width">
-                        <label><i class="fas fa-info-circle"></i> Short description</label>
-                        {{ tenant_form.description }}
-                        {% if tenant_form.description.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.description.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group full-width">
-                        <label><i class="fas fa-wifi"></i> Amenities (comma separated)</label>
-                        {{ tenant_form.amenities }}
-                        {% if tenant_form.amenities.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.amenities.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="input-group full-width">
-                        <label><i class="fas fa-image"></i> Hotel image</label>
-                        <div class="file-upload">{{ tenant_form.image }}</div>
-                        <small style="color:#6c7e91;font-size:0.7rem;">Recommended: JPG or PNG, max 5 MB</small>
-                        {% if tenant_form.image.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.image.errors|join:", " }}</div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Account Security -->
-                    <div class="section-divider"><span>Account Security</span></div>
-
-                    <!-- Password -->
-                    <div class="input-group">
-                        <label><i class="fas fa-lock"></i> Password *</label>
-                        <div class="password-wrapper">
-                            {{ tenant_form.password }}
-                            <button type="button" class="toggle-pw" data-target="id_password" aria-label="Toggle password visibility">
-                                <i class="fas fa-eye" id="eyeIcon1"></i>
-                            </button>
+                        <div class="input-group">
+                            <label><i class="fas fa-building"></i> Hotel name *</label>
+                            {{ tenant_form.hotel_name }}
+                            {% if tenant_form.hotel_name.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.hotel_name.errors|join:", " }}</div>
+                            {% endif %}
                         </div>
-                        {% if tenant_form.password.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.password.errors|join:", " }}</div>
-                        {% endif %}
 
-                        <!-- Strength meter -->
-                        <div class="strength-bars">
-                            <span id="bar1"></span>
-                            <span id="bar2"></span>
-                            <span id="bar3"></span>
-                            <span id="bar4"></span>
+                        <div class="input-group">
+                            <label><i class="fas fa-envelope"></i> Email *</label>
+                            {{ tenant_form.email }}
+                            {% if tenant_form.email.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.email.errors|join:", " }}</div>
+                            {% endif %}
                         </div>
-                        <div class="strength-label" id="strengthLabel"></div>
 
-                        <!-- Requirements checklist -->
-                        <div class="req-list">
-                            <div class="req-item" id="req-len"><i class="fas fa-circle"></i> 8+ characters</div>
-                            <div class="req-item" id="req-upper"><i class="fas fa-circle"></i> Uppercase letter</div>
-                            <div class="req-item" id="req-lower"><i class="fas fa-circle"></i> Lowercase letter</div>
-                            <div class="req-item" id="req-digit"><i class="fas fa-circle"></i> Number (0–9)</div>
-                            <div class="req-item" id="req-special"><i class="fas fa-circle"></i> Special character</div>
+                        <div class="input-group">
+                            <label><i class="fas fa-user-tie"></i> Owner / Manager *</label>
+                            {{ tenant_form.owner_name }}
+                            {% if tenant_form.owner_name.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.owner_name.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="input-group">
+                            <label><i class="fas fa-city"></i> City</label>
+                            {{ tenant_form.city }}
+                            {% if tenant_form.city.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.city.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="input-group">
+                            <label><i class="fas fa-tag"></i> Property type</label>
+                            {{ tenant_form.property_type }}
+                            {% if tenant_form.property_type.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.property_type.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="input-group full-width">
+                            <label><i class="fas fa-map-pin"></i> Address</label>
+                            {{ tenant_form.address }}
+                            {% if tenant_form.address.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.address.errors|join:", " }}</div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+                    <div class="step-actions">
+                        <span></span>
+                        <button type="button" class="btn-next" data-next="2">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </section>
+
+                <!-- ── STEP 2: ID Proof ── -->
+                <section class="step-panel" data-panel="2">
+                    <div class="step-title"><i class="fas fa-id-card"></i> ID Proof</div>
+                    <div class="form-grid">
+                        <div class="input-group full-width">
+                            <label><i class="fas fa-id-card"></i> ID Proof</label>
+                            <div class="file-upload">{{ tenant_form.image }}</div>
+                            <small style="color:#6c7e91;font-size:0.7rem;">Recommended: JPG or PNG, max 5 MB</small>
+                            {% if tenant_form.image.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.image.errors|join:", " }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <!-- Confirm Password -->
-                    <div class="input-group">
-                        <label><i class="fas fa-lock"></i> Confirm password *</label>
-                        <div class="password-wrapper">
-                            {{ tenant_form.confirm_password }}
-                            <button type="button" class="toggle-pw" data-target="id_confirm_password" aria-label="Toggle confirm password visibility">
-                                <i class="fas fa-eye" id="eyeIcon2"></i>
-                            </button>
-                        </div>
-                        {% if tenant_form.confirm_password.errors %}
-                        <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.confirm_password.errors|join:", " }}</div>
-                        {% endif %}
+                    <div class="step-actions">
+                        <button type="button" class="btn-back" data-back="1"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="button" class="btn-next" data-next="3">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </section>
 
-                        <!-- Match indicator -->
-                        <div class="match-hint" id="matchHint"></div>
+                <!-- ── STEP 3: Account Security ── -->
+                <section class="step-panel" data-panel="3">
+                    <div class="step-title"><i class="fas fa-shield-halved"></i> Account Security</div>
+                    <div class="form-grid">
 
-                        <!-- Tip box -->
-                        <div class="pw-tip">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>All 5 requirements must be met and passwords must match before you can submit.</span>
+                        <!-- Password -->
+                        <div class="input-group">
+                            <label><i class="fas fa-lock"></i> Password *</label>
+                            <div class="password-wrapper">
+                                {{ tenant_form.password }}
+                                <button type="button" class="toggle-pw" data-target="id_password" aria-label="Toggle password visibility">
+                                    <i class="fas fa-eye" id="eyeIcon1"></i>
+                                </button>
+                            </div>
+                            {% if tenant_form.password.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.password.errors|join:", " }}</div>
+                            {% endif %}
+
+                            <!-- Strength meter -->
+                            <div class="strength-bars">
+                                <span id="bar1"></span>
+                                <span id="bar2"></span>
+                                <span id="bar3"></span>
+                                <span id="bar4"></span>
+                            </div>
+                            <div class="strength-label" id="strengthLabel"></div>
+
+                            <!-- Requirements checklist -->
+                            <div class="req-list">
+                                <div class="req-item" id="req-len"><i class="fas fa-circle"></i> 8+ characters</div>
+                                <div class="req-item" id="req-upper"><i class="fas fa-circle"></i> Uppercase letter</div>
+                                <div class="req-item" id="req-lower"><i class="fas fa-circle"></i> Lowercase letter</div>
+                                <div class="req-item" id="req-digit"><i class="fas fa-circle"></i> Number (0–9)</div>
+                                <div class="req-item" id="req-special"><i class="fas fa-circle"></i> Special character</div>
+                            </div>
                         </div>
+
+                        <!-- Confirm Password -->
+                        <div class="input-group">
+                            <label><i class="fas fa-lock"></i> Confirm password *</label>
+                            <div class="password-wrapper">
+                                {{ tenant_form.confirm_password }}
+                                <button type="button" class="toggle-pw" data-target="id_confirm_password" aria-label="Toggle confirm password visibility">
+                                    <i class="fas fa-eye" id="eyeIcon2"></i>
+                                </button>
+                            </div>
+                            {% if tenant_form.confirm_password.errors %}
+                            <div class="field-error"><i class="fas fa-circle-exclamation"></i> {{ tenant_form.confirm_password.errors|join:", " }}</div>
+                            {% endif %}
+
+                            <!-- Match indicator -->
+                            <div class="match-hint" id="matchHint"></div>
+
+                            <!-- Tip box -->
+                            <div class="pw-tip">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>All 5 requirements must be met and passwords must match before you can submit.</span>
+                            </div>
+                        </div>
+
                     </div>
 
-                </div><!-- /.form-grid -->
+                    <div class="step-actions">
+                        <button type="button" class="btn-back" data-back="2"><i class="fas fa-arrow-left"></i> Back</button>
+                        <button type="submit" class="btn-register" id="submitBtn" disabled>
+                            <i class="fas fa-pen-alt"></i> Register Hotel
+                        </button>
+                    </div>
 
-                <div class="action-buttons">
-                    <button type="submit" class="btn-register" id="submitBtn" disabled>
-                        <i class="fas fa-pen-alt"></i> Register Hotel
-                    </button>
-                    <a href="{% url 'hotel_login' %}" class="login-link">
-                        <i class="fas fa-sign-in-alt"></i> Already registered? Login
-                    </a>
-                </div>
+                    <div class="message-card error-msg" id="step3ErrorMsg" style="display:none;">
+                        <i class="fas fa-exclamation-triangle" style="font-size:1.4rem;"></i>
+                        <div><strong>Registration Issue</strong><br><span id="step3ErrorText"></span></div>
+                    </div>
+                </section>
+
+                <!-- ── STEP 4: Verify OTP ── -->
+                <section class="step-panel" data-panel="4">
+                    <div class="otp-intro">
+                        <div class="otp-icon"><i class="fas fa-envelope-open-text"></i></div>
+                        <h3>Verify your email</h3>
+                        <p>We've sent a 6-digit code to <strong id="otpEmailDisplay">your email</strong>.<br>
+                           Enter it below to complete your registration.</p>
+                    </div>
+
+                    <div class="otp-boxes" id="otpBoxes">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" data-idx="0">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off" data-idx="1">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off" data-idx="2">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off" data-idx="3">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off" data-idx="4">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off" data-idx="5">
+                    </div>
+
+                    <div class="otp-status" id="otpStatus"></div>
+
+                    <div class="otp-resend-row">
+                        <span id="resendCooldownText">Didn't get the code? Resend in <strong id="resendTimer">60</strong>s</span>
+                        <button type="button" id="resendOtpBtn" style="display:none;">Resend code</button>
+                    </div>
+
+                    <div class="otp-change-email">
+                        <button type="button" data-back="3">Wrong details? Go back</button>
+                    </div>
+
+                    <div class="step-actions">
+                        <span></span>
+                        <button type="button" class="btn-verify" id="verifyOtpBtn" disabled>
+                            <i class="fas fa-check-circle"></i> Verify &amp; Complete Registration
+                        </button>
+                    </div>
+                </section>
+
             </form>
 
             {% if success %}
@@ -512,6 +712,15 @@
             </div>
             {% endif %}
 
+            <!-- Filled in by JS after successful OTP verification -->
+            <div class="message-card success-msg" id="finalSuccessMsg" style="display:none;">
+                <i class="fas fa-check-circle" style="font-size:1.5rem;"></i>
+                <div>
+                    <strong id="finalSuccessTitle">Registration complete!</strong><br>
+                    <span style="font-size:0.85rem;" id="finalSuccessSub">Redirecting you to login…</span>
+                </div>
+            </div>
+
             <hr>
             <div class="footer-note">
                 <i class="fas fa-shield-alt"></i> Your data is secure · Trusted by 5000+ hotels
@@ -522,6 +731,94 @@
 
 <script>
 (function () {
+
+    /* ── Multi-step wizard ── */
+    var panels    = Array.prototype.slice.call(document.querySelectorAll('.step-panel'));
+    var stepItems = Array.prototype.slice.call(document.querySelectorAll('.step-item'));
+    var lines     = [document.getElementById('line1'), document.getElementById('line2'), document.getElementById('line3')];
+    var current   = 1;
+    var maxUnlocked = 1; // highest step the user is allowed to jump back to
+
+    function setStep(n) {
+        current = n;
+        if (n > maxUnlocked) maxUnlocked = n;
+
+        panels.forEach(function (p) {
+            p.classList.toggle('active', parseInt(p.dataset.panel, 10) === n);
+        });
+
+        stepItems.forEach(function (item) {
+            var s = parseInt(item.dataset.step, 10);
+            item.classList.toggle('active', s === n);
+            item.classList.toggle('completed', s < n);
+        });
+
+        lines.forEach(function (line, idx) {
+            if (line) line.classList.toggle('filled', (idx + 1) < n);
+        });
+
+        var container = document.querySelector('.register-container');
+        if (container) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        if (n === 4) {
+            setTimeout(function () {
+                var first = otpBoxes[0];
+                if (first) first.focus();
+            }, 350);
+        }
+    }
+
+    function validatePanel(panelEl) {
+        var fields = panelEl.querySelectorAll('input, select, textarea');
+        for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            if (f.willValidate && !f.checkValidity()) {
+                f.reportValidity();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    document.querySelectorAll('.btn-next').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var currentPanel = document.querySelector('.step-panel.active');
+            if (!validatePanel(currentPanel)) return;
+            setStep(parseInt(this.dataset.next, 10));
+        });
+    });
+
+    document.querySelectorAll('.btn-back').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setStep(parseInt(this.dataset.back, 10));
+        });
+    });
+
+    document.querySelectorAll('.step-item').forEach(function (item) {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', function () {
+            var target = parseInt(this.dataset.step, 10);
+            if (target <= maxUnlocked) {
+                setStep(target);
+            }
+        });
+    });
+
+    // If the server re-rendered the page with field errors, jump to the
+    // first step that contains one so the user isn't left confused on step 1.
+    (function jumpToErrorStep() {
+        var firstErrorPanel = document.querySelector('.step-panel .field-error');
+        if (firstErrorPanel) {
+            var panel = firstErrorPanel.closest('.step-panel');
+            if (panel) {
+                setStep(parseInt(panel.dataset.panel, 10));
+                return;
+            }
+        }
+        if (document.querySelector('.global-errors')) {
+            setStep(1);
+        }
+    })();
 
     /* ── Password strength + requirements ── */
     const pwInput   = document.getElementById('id_password');
@@ -555,7 +852,6 @@
         const val   = pwInput.value;
         const score = getScore(val);
 
-        /* requirements */
         REQS.forEach(r => {
             const el   = document.getElementById(r.id);
             const icon = el.querySelector('i');
@@ -564,13 +860,11 @@
             icon.className = met ? 'fas fa-check-circle' : 'fas fa-circle';
         });
 
-        /* bars */
         const lvl = val.length === 0 ? 0 : score <= 1 ? 1 : score <= 2 ? 2 : score <= 3 ? 3 : 4;
         bars.forEach((b, i) => {
             b.style.background = i < lvl ? LEVELS[lvl].color : '#e2e8f0';
         });
 
-        /* label */
         slbl.textContent = LEVELS[lvl].label;
         slbl.style.color = LEVELS[lvl].color;
 
@@ -653,6 +947,244 @@
             sidebar.classList.remove('open');
         }
     });
+
+    /* ══════════════════════════════════════════════════════════════
+       OTP VERIFICATION STEP
+       ══════════════════════════════════════════════════════════════ */
+
+    const RESEND_COOLDOWN = 60; // must match backend RESEND_COOLDOWN_SECONDS
+    const registerForm     = document.getElementById('registerForm');
+    const otpEmailDisplay  = document.getElementById('otpEmailDisplay');
+    const otpStatus        = document.getElementById('otpStatus');
+    const verifyOtpBtn     = document.getElementById('verifyOtpBtn');
+    const resendOtpBtn     = document.getElementById('resendOtpBtn');
+    const resendTimerEl    = document.getElementById('resendTimer');
+    const resendCooldownTx = document.getElementById('resendCooldownText');
+    const step3ErrorMsg    = document.getElementById('step3ErrorMsg');
+    const step3ErrorText   = document.getElementById('step3ErrorText');
+    const finalSuccessMsg  = document.getElementById('finalSuccessMsg');
+    const finalSuccessSub  = document.getElementById('finalSuccessSub');
+    const otpBoxes         = Array.prototype.slice.call(document.querySelectorAll('#otpBoxes input'));
+
+    let currentEmail = registerForm.dataset.otpEmail || '';
+    let resendInterval = null;
+
+    function getCsrfToken() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        return input ? input.value : '';
+    }
+
+    function setOtpEmail(email) {
+        currentEmail = email;
+        otpEmailDisplay.textContent = email || 'your email';
+    }
+
+    function startResendCooldown() {
+        let remaining = RESEND_COOLDOWN;
+        resendOtpBtn.style.display = 'none';
+        resendCooldownTx.style.display = 'inline';
+        resendTimerEl.textContent = remaining;
+
+        if (resendInterval) clearInterval(resendInterval);
+        resendInterval = setInterval(function () {
+            remaining -= 1;
+            resendTimerEl.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(resendInterval);
+                resendCooldownTx.style.display = 'none';
+                resendOtpBtn.style.display = 'inline';
+            }
+        }, 1000);
+    }
+
+    /* Auto-advance OTP boxes */
+    otpBoxes.forEach(function (box, idx) {
+        box.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 1);
+            this.classList.toggle('filled', !!this.value);
+            if (this.value && idx < otpBoxes.length - 1) {
+                otpBoxes[idx + 1].focus();
+            }
+            checkOtpComplete();
+        });
+
+        box.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !this.value && idx > 0) {
+                otpBoxes[idx - 1].focus();
+            }
+        });
+
+        box.addEventListener('paste', function (e) {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+            if (!pasted) return;
+            for (let i = 0; i < otpBoxes.length; i++) {
+                otpBoxes[i].value = pasted[i] || '';
+                otpBoxes[i].classList.toggle('filled', !!otpBoxes[i].value);
+            }
+            const nextEmpty = otpBoxes.findIndex(b => !b.value);
+            (nextEmpty === -1 ? otpBoxes[otpBoxes.length - 1] : otpBoxes[nextEmpty]).focus();
+            checkOtpComplete();
+        });
+    });
+
+    function getOtpValue() {
+        return otpBoxes.map(b => b.value).join('');
+    }
+
+    function checkOtpComplete() {
+        const val = getOtpValue();
+        verifyOtpBtn.disabled = val.length !== 6;
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+    }
+
+    function clearOtpBoxes() {
+        otpBoxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
+        verifyOtpBtn.disabled = true;
+    }
+
+    function setBtnLoading(btn, loading, label) {
+        btn.disabled = loading;
+        btn.dataset.originalHtml = btn.dataset.originalHtml || btn.innerHTML;
+        btn.innerHTML = loading
+            ? '<i class="fas fa-spinner fa-spin"></i> ' + label
+            : btn.dataset.originalHtml;
+    }
+
+    /* ── Step 3 submit → AJAX → move to Step 4 ── */
+    registerForm.addEventListener('submit', function (e) {
+        // Only intercept when we're still on the registration steps (not step 4)
+        if (current === 4) { e.preventDefault(); return; }
+
+        e.preventDefault();
+        step3ErrorMsg.style.display = 'none';
+
+        const formData = new FormData(registerForm);
+        const originalHtml = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP…';
+
+        fetch(registerForm.action || window.location.href, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(function (res) { return res.json().then(data => ({ status: res.status, data: data })); })
+        .then(function (result) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHtml;
+
+            if (result.data && result.data.success && result.data.require_otp) {
+                setOtpEmail(result.data.email || '');
+                setStep(4);
+                startResendCooldown();
+            } else {
+                const msg = (result.data && result.data.error) || 'Something went wrong. Please check your details and try again.';
+                step3ErrorText.textContent = msg;
+                step3ErrorMsg.style.display = 'flex';
+            }
+        })
+        .catch(function () {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHtml;
+            step3ErrorText.textContent = 'Network error — please try again.';
+            step3ErrorMsg.style.display = 'flex';
+        });
+    });
+
+    /* ── Verify OTP ── */
+    verifyOtpBtn.addEventListener('click', function () {
+        const otp = getOtpValue();
+        if (otp.length !== 6) return;
+
+        setBtnLoading(verifyOtpBtn, true, 'Verifying…');
+        otpStatus.textContent = '';
+        otpStatus.className = 'otp-status';
+
+        fetch('{% url "verify_hotel_otp" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ email: currentEmail, otp: otp })
+        })
+        .then(function (res) { return res.json().then(data => ({ status: res.status, data: data })); })
+        .then(function (result) {
+            setBtnLoading(verifyOtpBtn, false);
+
+            if (result.data && result.data.success) {
+                otpStatus.textContent = 'Verified! Setting up your hotel account…';
+                otpStatus.className = 'otp-status ok';
+                verifyOtpBtn.disabled = true;
+
+                registerForm.style.display = 'none';
+                document.getElementById('stepper').style.display = 'none';
+                finalSuccessSub.textContent = 'Your hotel "' + (result.data.hotel_name || '') +
+                    '" was registered successfully. Redirecting you to login…';
+                finalSuccessMsg.style.display = 'flex';
+
+                const redirectUrl = result.data.redirect_url || "{% url 'hotel_login' %}";
+                setTimeout(function () { window.location.href = redirectUrl; }, 2200);
+            } else {
+                const msg = (result.data && result.data.error) || 'Incorrect OTP. Please try again.';
+                otpStatus.textContent = msg;
+                otpStatus.className = 'otp-status no';
+                clearOtpBoxes();
+                if (otpBoxes[0]) otpBoxes[0].focus();
+            }
+        })
+        .catch(function () {
+            setBtnLoading(verifyOtpBtn, false);
+            otpStatus.textContent = 'Network error — please try again.';
+            otpStatus.className = 'otp-status no';
+        });
+    });
+
+    /* ── Resend OTP ── */
+    resendOtpBtn.addEventListener('click', function () {
+        setBtnLoading(resendOtpBtn, true, 'Sending…');
+
+        fetch('{% url "resend_hotel_otp" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ email: currentEmail })
+        })
+        .then(function (res) { return res.json().then(data => ({ status: res.status, data: data })); })
+        .then(function (result) {
+            setBtnLoading(resendOtpBtn, false);
+            if (result.data && result.data.success) {
+                otpStatus.textContent = 'A new code has been sent to your email.';
+                otpStatus.className = 'otp-status ok';
+                clearOtpBoxes();
+                startResendCooldown();
+            } else {
+                otpStatus.textContent = (result.data && result.data.error) || 'Could not resend code.';
+                otpStatus.className = 'otp-status no';
+            }
+        })
+        .catch(function () {
+            setBtnLoading(resendOtpBtn, false);
+            otpStatus.textContent = 'Network error — please try again.';
+            otpStatus.className = 'otp-status no';
+        });
+    });
+
+    /* ── Server-rendered fallback: page reloaded with otp_stage=True ── */
+    (function initOtpStageFromServer() {
+        if (registerForm.dataset.otpStage === '1') {
+            setOtpEmail(registerForm.dataset.otpEmail || '');
+            maxUnlocked = 4;
+            setStep(4);
+            startResendCooldown();
+        }
+    })();
 
 })();
 </script>

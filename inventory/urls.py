@@ -99,8 +99,10 @@ path(
     path('linen/missing-reasons/seed/',                             views.seed_missing_reasons),
     path('linen/missing-reasons/<int:reason_id>/',                  views.update_missing_reason),
    # Asset categories
+   path('assets/by-location/', views.list_assets_by_location),
    path('inventory/asset-categories/add/', views.add_asset_category),
-   
+   path('assets/assign-room/', views.assign_room_to_assets),
+   path('assets/bulk-add/',views.bulk_add_assets),
    # Maintenance
    
    # Expense categories

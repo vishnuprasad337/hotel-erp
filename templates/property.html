@@ -1,5 +1,5 @@
 
-html
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,6 +9,7 @@ html
 <title>Hotel ERP | Unified Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════
    CSS VARIABLES & RESET
@@ -355,6 +356,7 @@ textarea.form-ctrl{resize:vertical;min-height:72px}
 ═══════════════════════════════════════════════════════════ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
+#faceCaptureModal{z-index:500}
 .modal-box{background:var(--surface);border-radius:16px;width:100%;max-width:520px;box-shadow:var(--shadow-lg);max-height:92vh;overflow-y:auto;animation:modalIn .22s cubic-bezier(.34,1.56,.64,1)}
 .modal-box.lg{max-width:680px}
 .modal-box.xl{max-width:760px}
@@ -2072,6 +2074,25 @@ table.lr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     justify-content:flex-end;
     gap:10px;
 }
+.ast-view-tog {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 14px; border-radius: 100px; font-size: 12px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-3); transition: all .15s;
+}
+.ast-view-tog.active {
+  background: var(--ink); color: white; border-color: var(--ink);
+}
+.loc-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.loc-card-head { padding: 10px 14px 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.loc-card-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.loc-card-icon.room { background: #e6f1fb; color: #185fa5; }
+.loc-card-icon.area { background: #eaf3de; color: #3b6d11; }
+.loc-card-icon.unset { background: var(--surface-2); color: var(--text-3); }
+.loc-asset-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; }
+.loc-asset-row:hover { background: var(--surface-2); }
+.loc-count-badge { margin-left: auto; font-size: 11px; font-weight: 600; background: var(--surface-2); padding: 2px 8px; border-radius: 100px; color: var(--text-3); }
 /* ── Asset status pills ── */
 .asset-status-active{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;
   padding:2px 8px;border-radius:12px;font-size:.65rem;font-weight:700}
@@ -2097,7 +2118,85 @@ table.lr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .maint-due-soon{background:#fffbeb;color:#92400e}
 .maint-due-ok{background:#ecfdf5;color:#065f46}
 .maint-due-none{background:#f1f5f9;color:#475569}
-
+.ast-view-tog {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-3);
+  transition: all .15s;
+}
+.ast-view-tog.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.loc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.loc-card-head {
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.loc-card-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.loc-card-icon.room  { background: #e6f1fb; color: #185fa5; }
+.loc-card-icon.area  { background: #eaf3de; color: #3b6d11; }
+.loc-card-icon.unset { background: var(--surface-2); color: var(--text-3); }
+.loc-count-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-2);
+  padding: 2px 9px;
+  border-radius: 100px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.loc-asset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.loc-asset-row:hover { background: var(--surface-2); }
+.loc-asset-row .a-actions {
+  display: none;
+  gap: 3px;
+}
+.loc-asset-row:hover .a-actions { display: flex; }
+.loc-card-foot {
+  margin-top: auto;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+}
 /* ── Expense bar charts ── */
 .exp-bar-row{display:flex;align-items:center;gap:10px;padding:8px 0;
   border-bottom:1px solid var(--surface-3);font-size:.78rem}
@@ -2422,6 +2521,7 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
 </style>
 </head>
 <body>{% csrf_token %}
+{{ active_module_names|json_script:"active-modules-data" }}
 <script id="rooms-data" type="application/json">{{ rooms_json|safe }}</script>
 
 <button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
@@ -2468,6 +2568,9 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
     <div class="dd-menu" id="ddBillingMenu">
       <button class="dd-item" data-panel="billing-overview">Billing Overview</button>
       <button class="dd-item" data-panel="all-invoices">All Invoices</button>
+      <button class="nav-btn" data-panel="seasonal-rates">
+        Seasonal Rates
+      </button>
     </div>
     {% endif %}
     {% if "restaurant" in active_module_names or "food" in active_module_names or "pos" in active_module_names %}
@@ -2540,13 +2643,16 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
       <button class="dd-item" data-panel="channel-sync"><i class="fas fa-sync-alt"></i> Sync Logs</button>
       <button class="dd-item" data-panel="channel-webhooks"><i class="fas fa-webhook"></i> Webhook Events</button>
     </div>
+    {% comment %}
     <div class="nav-label">Pricing</div>
       <button class="nav-btn" data-panel="seasonal-rates">
         <i class="fas fa-tags"></i> Seasonal Rates
       </button>
+      {% endcomment %}
+      {% comment %}
     <div class="nav-label">Setup</div>
     <button class="nav-btn" data-panel="permissions"><i class="fas fa-shield-alt"></i> Permissions</button>
-
+    {% endcomment %}
   </nav>
 
   <div class="sb-footer">
@@ -2861,91 +2967,146 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
     </div>
   </div>
 </div>
- <div class="panel" id="panel-add-booking">
+     <div class="panel" id="panel-add-booking">
       <div class="sec-head"><div class="sec-title"><i class="fas fa-calendar-plus"></i> New Booking</div></div>
-      <div class="form-wrap" style="max-width:740px">
-        <div class="form-head"><i class="fas fa-book"></i><h3>Booking Details</h3></div>
-        <div class="form-body">
-          <div class="form-section-label"><div class="fs-icon" style="background:#eff6ff;color:var(--blue)"><i class="fas fa-user"></i></div><span>Guest Information</span><small>— phone lookup auto-fills returning guests</small></div>
-          <div class="guest-lookup-badge" id="bk-guest-badge"><i class="fas fa-circle-check"></i><span id="bk-guest-badge-text"></span></div>
-          <div class="form-grid">
-            <div class="form-group"><label class="form-lbl">Phone *</label><input class="form-ctrl" id="bk-phone" placeholder="Enter phone to lookup guest" oninput="lookupGuestByPhone()"></div>
-            <div class="form-group"><label class="form-lbl">Full Name *</label><input class="form-ctrl" id="bk-full-name" placeholder="Guest full name"></div>
-            <div class="form-group"><label class="form-lbl">Email</label><input class="form-ctrl" id="bk-email" type="email" placeholder="guest@email.com"></div>
-            <div class="form-group"><label class="form-lbl">Nationality</label><input class="form-ctrl" id="bk-nationality" placeholder="e.g. Indian"></div>
-            <div class="form-group"><label class="form-lbl">ID Type</label><select class="form-ctrl" id="bk-idtype"><option value="">— Select —</option><option value="aadhar">Aadhar</option><option value="passport">Passport</option><option value="driving">Driving Licence</option><option value="voter">Voter ID</option></select></div>
-            <div class="form-group"><label class="form-lbl">ID Number</label><input class="form-ctrl" id="bk-idnum" placeholder="ID number"></div>
+      <div class="form-wrap" style="max-width:100%">
+        <div class="form-head"><i class="fas fa-book"></i><h3>Booking Wizard</h3></div>
+
+        <!-- STEPPER HEADER -->
+        <div class="co-stepper">
+          <div class="co-step-item active" id="bkStepNav1" onclick="goToBookingStep(1)">
+            <div class="co-step-circle" id="bkStepCircle1">1</div>
+            <div class="co-step-label">Personal Info</div>
           </div>
-          
-          <div class="form-section-label"><div class="fs-icon" style="background:#ecfdf5;color:var(--green)"><i class="fas fa-bed"></i></div><span>Room &amp; Dates</span></div>
-          <div class="form-grid">
-            <div class="form-group"><label class="form-lbl">Room Type *</label><select class="form-ctrl" id="bk-room-type" onchange="loadAvailUnits()"><option value="">— Select Room Type —</option></select></div>
-            <div class="form-group"><label class="form-lbl">Room Unit *</label><select class="form-ctrl" id="bk-unit"><option value="">— Select Unit —</option></select></div>
-            <div class="form-group"><label class="form-lbl">Check-in *</label><input class="form-ctrl" type="date" id="bk-checkin" onchange="updateNightCount()"></div>
-            <div class="form-group"><label class="form-lbl">Check-out *</label><input class="form-ctrl" type="date" id="bk-checkout" onchange="updateNightCount()"></div>
-            <div class="form-group"><label class="form-lbl">Adults</label><input class="form-ctrl" type="number" id="bk-adults" value="1" min="1"></div>
-            <div class="form-group"><label class="form-lbl">Children</label><input class="form-ctrl" type="number" id="bk-children" value="0" min="0"></div>
-            <div class="form-group"><label class="form-lbl">Special Requests</label><input class="form-ctrl" id="bk-requests" placeholder="Any special requirements…"></div>
+          <div class="co-connector" id="bkConn1"></div>
+          <div class="co-step-item" id="bkStepNav2" onclick="goToBookingStep(2)">
+            <div class="co-step-circle" id="bkStepCircle2">2</div>
+            <div class="co-step-label">Room Details</div>
           </div>
-          
-          <!-- ADVANCE PAYMENT SECTION -->
-          <div class="form-section-label" style="margin-top:8px;">
-            <div class="fs-icon" style="background:#f0fdfa;color:var(--teal)"><i class="fas fa-hand-holding-usd"></i></div>
-            <span>Advance Payment</span>
-            <small>— collect deposit at booking time</small>
+          <div class="co-connector" id="bkConn2"></div>
+          <div class="co-step-item" id="bkStepNav3" onclick="goToBookingStep(3)">
+            <div class="co-step-circle" id="bkStepCircle3">3</div>
+            <div class="co-step-label">Payment</div>
           </div>
-          
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-lbl">Advance Amount (₹) <span style="font-weight:400;color:var(--text-3);">(optional)</span></label>
-              <input type="number" id="bookingAdvanceAmount" class="form-ctrl" min="0" step="0.01" value="0" placeholder="0.00" oninput="onAdvanceAmountChange()">
-            </div>
-            <div class="form-group" id="advanceMethodWrap" style="display:none;">
-              <label class="form-lbl">Payment Method</label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amCashLabel">
-                  <input type="radio" name="advanceMethod" value="Cash" checked onchange="selectAdvanceMethod('Cash')" style="accent-color:var(--blue);"> Cash
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amCardLabel">
-                  <input type="radio" name="advanceMethod" value="Card" onchange="selectAdvanceMethod('Card')" style="accent-color:var(--blue);"> Card
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amUPILabel">
-                  <input type="radio" name="advanceMethod" value="UPI" onchange="selectAdvanceMethod('UPI')" style="accent-color:var(--blue);"> UPI
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:all .15s;" id="amBankLabel">
-                  <input type="radio" name="advanceMethod" value="bank_transfer" onchange="selectAdvanceMethod('bank_transfer')" style="accent-color:var(--blue);"> Bank Transfer
-                </label>
-              </div>
-              <div id="advanceRefWrap" style="display:none;margin-top:8px;">
-                <label class="form-lbl">Reference / Transaction ID</label>
-                <input type="text" id="advanceReference" class="form-ctrl" placeholder="e.g. UTR123456789">
-              </div>
-            </div>
+          <div class="co-connector" id="bkConn3"></div>
+          <div class="co-step-item" id="bkStepNav4" onclick="goToBookingStep(4)">
+            <div class="co-step-circle" id="bkStepCircle4">4</div>
+            <div class="co-step-label">Confirm</div>
           </div>
-          
-          <div id="bk-price-estimate" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:11px 16px;margin-bottom:14px;font-size:.78rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <span style="color:#166534;font-weight:600"><i class="fas fa-calculator" style="margin-right:5px"></i>Estimated Charges</span>
-              <span style="font-family:'DM Mono',monospace;color:#166534"><span id="bk-est-nights">0</span> nights × ₹<span id="bk-est-rate">0</span> = ₹<span id="bk-est-base">0</span> + tax ₹<span id="bk-est-tax">0</span> = <strong>₹<span id="bk-est-total">0</span></strong></span>
-            </div>
-            <div id="advanceSummary" style="display:none;margin-top:8px;padding-top:6px;border-top:1px solid #bbf7d0;font-size:.72rem;">
-              <div style="display:flex;justify-content:space-between;">
-                <span>Advance Payment:</span>
-                <span style="font-weight:700;color:var(--blue);" id="advanceSummaryAmount">₹0</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span>Balance Due at Check-in:</span>
-                <span style="font-weight:700;color:var(--accent);" id="advanceBalanceDue">₹0</span>
-              </div>
-            </div>
-          </div>
-          
-          <button class="btn btn-primary btn-full btn-lg" onclick="createBooking()"><i class="fas fa-calendar-check"></i> Create Booking</button>
-          <div id="bk-msg" style="margin-top:8px;text-align:center;font-size:.76rem;min-height:18px"></div>
         </div>
+
+        <div class="form-body" style="padding-top:0">
+
+          <!-- ═══ STEP 1: PERSONAL INFORMATION ═══ -->
+          <div class="co-panel active" id="bkStep1">
+            <div class="form-section-label" style="margin-top:16px"><div class="fs-icon" style="background:#eff6ff;color:var(--blue)"><i class="fas fa-user"></i></div><span>Guest Information</span><small>— phone lookup auto-fills returning guests</small></div>
+            <div class="guest-lookup-badge" id="bk-guest-badge"><i class="fas fa-circle-check"></i><span id="bk-guest-badge-text"></span></div>
+            <div class="form-grid">
+              <div class="form-group"><label class="form-lbl">Phone *</label><input class="form-ctrl" id="bk-phone" placeholder="Enter phone to lookup guest" oninput="lookupGuestByPhone()"></div>
+              <div class="form-group"><label class="form-lbl">Full Name *</label><input class="form-ctrl" id="bk-full-name" placeholder="Guest full name"></div>
+              <div class="form-group"><label class="form-lbl">Email</label><input class="form-ctrl" id="bk-email" type="email" placeholder="guest@email.com"></div>
+              <div class="form-group"><label class="form-lbl">Nationality</label><input class="form-ctrl" id="bk-nationality" placeholder="e.g. Indian"></div>
+              <div class="form-group"><label class="form-lbl">ID Type</label><select class="form-ctrl" id="bk-idtype"><option value="">— Select —</option><option value="aadhar">Aadhar</option><option value="passport">Passport</option><option value="driving">Driving Licence</option><option value="voter">Voter ID</option></select></div>
+              <div class="form-group"><label class="form-lbl">ID Number</label><input class="form-ctrl" id="bk-idnum" placeholder="ID number"></div>
+            </div>
+          </div>
+
+          <!-- ═══ STEP 2: ROOM & DATES ═══ -->
+          <div class="co-panel" id="bkStep2">
+            <div class="form-section-label" style="margin-top:16px"><div class="fs-icon" style="background:#fffbeb;color:var(--accent)"><i class="fas fa-calendar-alt"></i></div><span>Stay Dates</span></div>
+            <div class="form-grid">
+              <div class="form-group"><label class="form-lbl">Check-in *</label><input class="form-ctrl" type="date" id="bk-checkin" onchange="updateNightCount()"></div>
+              <div class="form-group"><label class="form-lbl">Check-out *</label><input class="form-ctrl" type="date" id="bk-checkout" onchange="updateNightCount()"></div>
+              <div class="form-group"><label class="form-lbl">Adults</label><input class="form-ctrl" type="number" id="bk-adults" value="1" min="1"></div>
+              <div class="form-group"><label class="form-lbl">Children</label><input class="form-ctrl" type="number" id="bk-children" value="0" min="0"></div>
+              <div class="form-group"><label class="form-lbl">Special Requests</label><input class="form-ctrl" id="bk-requests" placeholder="Any special requirements…"></div>
+            </div>
+            <div class="form-section-label"><div class="fs-icon" style="background:#ecfdf5;color:var(--green)"><i class="fas fa-bed"></i></div><span>Room &amp; Unit</span></div>
+            <div class="form-grid">
+              <div class="form-group"><label class="form-lbl">Room Type *</label><select class="form-ctrl" id="bk-room-type" onchange="loadAvailUnits()"><option value="">— Select Room Type —</option></select></div>
+              <div class="form-group"><label class="form-lbl">Room Unit *</label><select class="form-ctrl" id="bk-unit"><option value="">— Select Unit —</option></select></div>
+            </div>
+          </div>
+
+          <!-- ═══ STEP 3: PAYMENT ═══ -->
+          <div class="co-panel" id="bkStep3">
+            <div class="form-section-label" style="margin-top:16px">
+              <div class="fs-icon" style="background:#f0fdfa;color:var(--teal)"><i class="fas fa-hand-holding-usd"></i></div>
+              <span>Advance Payment</span>
+              <small>— collect deposit at booking time</small>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-lbl">Advance Amount (₹) <span style="font-weight:400;color:var(--text-3);">(optional)</span></label>
+                <input type="number" id="bookingAdvanceAmount" class="form-ctrl" min="0" step="0.01" value="0" placeholder="0.00" oninput="onAdvanceAmountChange()">
+              </div>
+              <div class="form-group" id="advanceMethodWrap" style="display:none;">
+                <label class="form-lbl">Payment Method</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;" id="amCashLabel">
+                    <input type="radio" name="advanceMethod" value="Cash" checked onchange="selectAdvanceMethod('Cash')" style="accent-color:var(--blue);"> Cash
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;" id="amCardLabel">
+                    <input type="radio" name="advanceMethod" value="Card" onchange="selectAdvanceMethod('Card')" style="accent-color:var(--blue);"> Card
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;" id="amUPILabel">
+                    <input type="radio" name="advanceMethod" value="UPI" onchange="selectAdvanceMethod('UPI')" style="accent-color:var(--blue);"> UPI
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;" id="amBankLabel">
+                    <input type="radio" name="advanceMethod" value="bank_transfer" onchange="selectAdvanceMethod('bank_transfer')" style="accent-color:var(--blue);"> Bank Transfer
+                  </label>
+                </div>
+                <div id="advanceRefWrap" style="display:none;margin-top:8px;">
+                  <label class="form-lbl">Reference / Transaction ID</label>
+                  <input type="text" id="advanceReference" class="form-ctrl" placeholder="e.g. UTR123456789">
+                </div>
+              </div>
+            </div>
+
+            <div id="bk-price-estimate" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:11px 16px;margin-bottom:14px;font-size:.78rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <span style="color:#166534;font-weight:600"><i class="fas fa-calculator" style="margin-right:5px"></i>Estimated Charges</span>
+                <span style="font-family:'DM Mono',monospace;color:#166534"><span id="bk-est-nights">0</span> nights × ₹<span id="bk-est-rate">0</span> = ₹<span id="bk-est-base">0</span> + tax ₹<span id="bk-est-tax">0</span> = <strong>₹<span id="bk-est-total">0</span></strong></span>
+              </div>
+              <div id="advanceSummary" style="display:none;margin-top:8px;padding-top:6px;border-top:1px solid #bbf7d0;font-size:.72rem;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span>Advance Payment:</span>
+                  <span style="font-weight:700;color:var(--blue);" id="advanceSummaryAmount">₹0</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span>Balance Due at Check-in:</span>
+                  <span style="font-weight:700;color:var(--accent);" id="advanceBalanceDue">₹0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ STEP 4: CONFIRM & BOOK ═══ -->
+          <div class="co-panel" id="bkStep4">
+            <div class="form-section-label" style="margin-top:16px"><div class="fs-icon" style="background:#f5f3ff;color:var(--purple)"><i class="fas fa-clipboard-check"></i></div><span>Review &amp; Confirm</span></div>
+            <div id="bkReviewSummary" style="background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;font-size:.8rem;line-height:1.9"></div>
+            <div id="bk-msg" style="margin-top:10px;text-align:center;font-size:.76rem;min-height:18px"></div>
+          </div>
+
+        </div>
+
+        <!-- NAV FOOTER -->
+        <div class="modal-footer" style="justify-content:space-between">
+          <button class="btn btn-outline" id="bkPrevBtn" onclick="prevBookingStep()" style="display:none">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-primary" id="bkNextBtn" onclick="nextBookingStep()">
+              Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="btn btn-success" id="bkSubmitBtn" style="display:none" onclick="createBooking()">
+              <i class="fas fa-calendar-check"></i> Create Booking
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
-
     <div class="panel" id="panel-checkin-checkout">
       <div class="sec-head"><div class="sec-title"><i class="fas fa-exchange-alt"></i> Check-in &amp; Check-out</div></div>
       <div class="grid-2" style="margin-bottom:18px;align-items:start">
@@ -3751,15 +3912,17 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
      ════════════════════════════════════════════════════════════════ -->
 <div class="panel" id="panel-inventory-assets">
   <div class="topbar">
-    <div class="topbar-left"><h1>Asset Tracking</h1><p>Hotel equipment and asset register</p></div>
+    <div class="topbar-left">
+      <h1>Asset Tracking</h1>
+      <p>Hotel equipment and asset register</p>
+    </div>
     <div class="topbar-actions">
       <button class="btn btn-primary btn-sm" onclick="invOpenAddAssetModal()">
-          <i class="fas fa-plus"></i> Add Asset
+        <i class="fas fa-plus"></i> Add Asset
       </button>
-      <button class="btn btn-outline btn-sm"
-        onclick="openModal('invAddAssetCategoryModal')">
-  <i class="fas fa-tags"></i> Add Category
-</button>
+      <button class="btn btn-outline btn-sm" onclick="openModal('invAddAssetCategoryModal')">
+        <i class="fas fa-tags"></i> Add Category
+      </button>
     </div>
   </div>
 
@@ -3769,19 +3932,31 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-icon si-blue"><i class="fas fa-server"></i></div>
-        <div><div class="stat-num blue" id="ast-kpi-total">—</div><div class="stat-label">Total Assets</div></div>
+        <div>
+          <div class="stat-num blue" id="ast-kpi-total">—</div>
+          <div class="stat-label">Total Assets</div>
+        </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon si-green"><i class="fas fa-check-circle"></i></div>
-        <div><div class="stat-num green" id="ast-kpi-active">—</div><div class="stat-label">Active</div></div>
+        <div>
+          <div class="stat-num green" id="ast-kpi-active">—</div>
+          <div class="stat-label">Active</div>
+        </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon si-amber"><i class="fas fa-wrench"></i></div>
-        <div><div class="stat-num amber" id="ast-kpi-maint">—</div><div class="stat-label">Under Maintenance</div></div>
+        <div>
+          <div class="stat-num amber" id="ast-kpi-maint">—</div>
+          <div class="stat-label">Under Maintenance</div>
+        </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon si-red"><i class="fas fa-exclamation-circle"></i></div>
-        <div><div class="stat-num red" id="ast-kpi-due">—</div><div class="stat-label">Maintenance Due</div></div>
+        <div>
+          <div class="stat-num red" id="ast-kpi-due">—</div>
+          <div class="stat-label">Maintenance Due</div>
+        </div>
       </div>
     </div>
 
@@ -3794,7 +3969,7 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
 
         <!-- Status chips -->
         <div id="astStatusChips" style="display:flex;gap:5px;flex-wrap:wrap;">
-          <button class="ast-status-chip" data-status="" onclick="astSetStatus('',this)"
+          <button class="ast-status-chip active" data-status="" onclick="astSetStatus('',this)"
                   style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:100px;
                          font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;
                          border:1px solid var(--ink);background:var(--ink);color:white;">All</button>
@@ -3823,7 +3998,7 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="ast-dept-filter" class="form-control"
                   style="width:auto;font-size:12px;padding:5px 10px;"
-                  onchange="invLoadAssets()">
+                  onchange="astOnFilterChange()">
             <option value="">All Departments</option>
           </select>
           <div style="position:relative;">
@@ -3832,7 +4007,7 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
             <input type="text" id="ast-search" class="form-control"
                    placeholder="Search assets…"
                    style="padding-left:28px;font-size:12px;width:180px;"
-                   oninput="invFilterAssetTable()">
+                   oninput="astOnSearch()">
           </div>
           <button class="btn btn-outline btn-sm" onclick="resetAssetFilters()">
             <i class="fas fa-times"></i> Clear
@@ -3840,8 +4015,9 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
         </div>
       </div>
 
-      <!-- Row count + page size -->
-      <div style="padding:8px 16px;background:var(--surface-2);display:flex;
+      <!-- Row count + page size (table view only) -->
+      <div id="astTableMeta"
+           style="display:none;padding:8px 16px;background:var(--surface-2);
                   align-items:center;justify-content:space-between;">
         <span id="astRowCount" style="font-size:12px;color:var(--text-3);"></span>
         <select id="astPageSize" class="form-control"
@@ -3854,7 +4030,26 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
       </div>
     </div>
 
-    <div class="card">
+    <!-- View toggle -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;">
+      <button id="astViewByLoc" class="ast-view-tog active" onclick="astSwitchView('location')">
+        <i class="fas fa-th-large"></i> By Location
+      </button>
+      <button id="astViewAll" class="ast-view-tog" onclick="astSwitchView('all')">
+        <i class="fas fa-list"></i> All Assets
+      </button>
+    </div>
+
+    <!-- Location card grid (default view) -->
+    <div id="astLocationGrid"
+         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- Flat table (hidden by default) -->
+    <div id="astTableWrap" style="display:none;" class="card">
       <div class="card-header">
         <div class="card-title"><i class="fas fa-server"></i> Asset Register</div>
       </div>
@@ -3890,9 +4085,8 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
       </div>
     </div>
 
-  </div><!-- /content -->
+  </div>
 </div>
-
 
 <!-- ════════════════════════════════════════════════════════════════
      PANEL: MAINTENANCE LOGS
@@ -4739,7 +4933,7 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
           <input type="file" class="form-ctrl" id="sPhoto" accept="image/*">
         </div>
       </div>
-
+      
       <!-- Login -->
       <div class="form-section-label">
         <div class="fs-icon" style="background:#fef2f2;color:var(--red)"><i class="fas fa-lock"></i></div>
@@ -7198,7 +7392,29 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
   </div>
 </div>
 
-
+<div class="modal-overlay" id="faceCaptureModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <strong><i class="fas fa-camera"></i> Register Face</strong>
+      <button class="modal-close" onclick="closeFaceCaptureModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:18px;text-align:center">
+      <input type="hidden" id="faceCaptureStaffId">
+      <video id="faceCaptureVideo" autoplay muted playsinline
+             style="width:100%;border-radius:10px;background:#000;max-height:320px;object-fit:cover"></video>
+      <canvas id="faceCaptureCanvas" style="display:none"></canvas>
+      <div id="faceCaptureMsg" style="margin-top:10px;font-size:.78rem;color:var(--text-muted)">
+        Loading models…
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeFaceCaptureModal()">Cancel</button>
+      <button class="btn btn-primary" id="faceCaptureBtn" onclick="captureAndSubmitFace()" disabled>
+        <i class="fas fa-check"></i> Capture & Save
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Edit Staff Modal -->
 <div class="modal-overlay" id="editStaffModal">
@@ -7405,7 +7621,15 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
         <input type="file" class="form-ctrl" id="editIdPhoto" accept="image/*">
       </div>
 
-      <div class="divider"></div>
+     <div class="section-heading"><i class="fas fa-camera" style="color:var(--purple);"></i> Face Recognition</div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+  <button type="button" class="btn btn-outline" onclick="openFaceCaptureModal(document.getElementById('editStaffId').value)">
+    <i class="fas fa-camera"></i> Register Face
+  </button>
+  <span id="editStaffFaceStatus" style="font-size:12px;color:var(--text-3);"></span>
+</div>
+
+<div class="divider"></div>
 
       <!-- Photo & Status -->
       <div class="form-grid">
@@ -7675,7 +7899,28 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
   <div class="modal-body" style="padding:18px"><div class="form-group"><label class="form-lbl">Module Name</label><input class="form-ctrl" id="newModName" placeholder="e.g. Conference Room, Laundry"></div></div>
   <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('addModModal')">Cancel</button><button class="btn btn-primary" onclick="addCustomModule()"><i class="fas fa-save"></i> Add Module</button></div></div>
 </div>
+<!-- Department Access Modal -->
+<div class="modal-overlay" id="deptAccessModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-head">
+      <strong><i class="fas fa-lock"></i> Module Locked</strong>
+      <button class="modal-close" onclick="closeModal('deptAccessModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:22px;text-align:center">
+      <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;color:var(--red);
+                  display:grid;place-items:center;margin:0 auto 14px;font-size:20px">
+        <i class="fas fa-lock"></i>
+      </div>
+      <div style="font-weight:700;font-size:.92rem;margin-bottom:6px" id="deptAccessTitle"></div>
+      <div style="font-size:.79rem;color:var(--text-muted)" id="deptAccessMsg"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('deptAccessModal')">Got it</button>
+    </div>
+  </div>
+</div>
 
+<!-- Restaurant Modals -->
 <!-- Restaurant Modals -->
 <div class="modal-overlay" id="restCatModal">
   <div class="modal-box" style="max-width:440px">
@@ -7976,6 +8221,42 @@ th[data-sort]:hover{cursor:pointer;background:var(--surface-3)}
 
 <script>
 const csrf=(document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken='))||'=').split('=')[1]||'';
+const ACTIVE_MODULES = new Set(JSON.parse(document.getElementById('active-modules-data').textContent));
+
+const DEPT_MODULE_REQUIREMENTS = {
+  'Housekeeping': [],
+  'Front Desk':   [],
+  'Accountant':   ['billing'],
+  'HR':           ['hr','payroll','attendance','hroperations','hr_operations','hrops'],
+  'Restaurant':   ['restaurant','food','pos'],
+};
+
+function deptIsUnlocked(name){
+  const reqs = DEPT_MODULE_REQUIREMENTS[name];
+  if(!reqs || !reqs.length) return true;
+  return reqs.some(r => ACTIVE_MODULES.has(r));
+}
+
+function renderDeptOptions(){
+  const sel = document.getElementById('newDeptName');
+  if(!sel) return;
+  const opts = ['Housekeeping','HR','Front Desk','Accountant','Restaurant'];
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' + opts.map(name=>{
+    const unlocked = deptIsUnlocked(name);
+    return `<option value="${name}" data-locked="${!unlocked}">${name}${unlocked ? '' : '  🔒 Locked'}</option>`;
+  }).join('');
+  if(cur) sel.value = cur;
+}
+
+function openDeptAccessModal(name){
+  const reqs = DEPT_MODULE_REQUIREMENTS[name] || [];
+  document.getElementById('deptAccessTitle').textContent = `You don't have access to "${name}"`;
+  document.getElementById('deptAccessMsg').textContent = reqs.length
+    ? `This department requires the "${reqs[0]}" module. Enable it from Hotel Setup to continue.`
+    : `This department isn't available on your current plan.`;
+  openModal('deptAccessModal');
+}
 function getCsrf(){return csrf;}
 let roomData=[],bookings=[],staffData=[],depts=[],shifts=[],payrolls=[],leaves=[],permissions=[],savedModIds=[],allDefMods=[],allPremMods=[];
 let activeDeptId=null,expandedStaffIds=new Set();
@@ -8149,6 +8430,23 @@ async function loadAll(){
   _populateShiftFilterSelects();
 }
 async function fetchRooms(){const data=await api('/api/rooms/');if(data&&data.success)roomData=data.rooms||[];return roomData;}
+async function fetchRoomsForRange(ci, co) {
+  const qs = (ci && co) ? `?check_in=${ci}&check_out=${co}` : '';
+  try {
+    const res = await fetch('/api/rooms/' + qs);
+    if (!res.ok) {
+      console.error('fetchRoomsForRange failed', res.status, await res.text().catch(()=>''));
+      toast('Could not load room availability for these dates — showing all rooms', 'error');
+      return null;
+    }
+    const data = await res.json();
+    return data.success ? (data.rooms || []) : null;
+  } catch (e) {
+    console.error('fetchRoomsForRange network error', e);
+    toast('Network error loading room availability', 'error');
+    return null;
+  }
+}
 
 // ============================================================
 // DASHBOARD
@@ -10560,89 +10858,754 @@ async function updateNightCount() {
     est.style.display = 'block';
   }
 }
-async function loadBookingFormData() {
-  let rooms = roomData;
-  if (!rooms.length) { await fetchRooms(); rooms = roomData; }
+// ============================================================
+// FETCH ROOMS FOR SELECTED DATE RANGE
+// ============================================================
 
-  // Fetch all seasonal rates once
-  let allRates = [];
-  try {
-    const res = await fetch('/api/seasonal-rates/');
-    const data = await res.json();
-    allRates = data.rates || [];
-  } catch {}
+async function fetchRoomsForRange(checkIn, checkOut) {
+    try {
+        if (!checkIn || !checkOut) {
+            console.warn("fetchRoomsForRange: dates are missing");
+            return null;
+        }
 
-  const today = new Date().toISOString().split('T')[0];
+        // Make sure dates are sent exactly as YYYY-MM-DD
+        const url =
+            `/api/rooms/?check_in=${encodeURIComponent(checkIn)}&check_out=${encodeURIComponent(checkOut)}`;
 
-  const sel = document.getElementById('bk-room-type');
-  if (sel) {
-    sel.innerHTML = '<option value="">— Select Room Type —</option>' +
-      rooms.map(r => {
-        // Check if there's a seasonal rate active today for this room
-        const match = allRates.find(rt =>
-          +rt.room_id === +r.id &&
-          rt.start_date <= today &&
-          rt.end_date   >= today
+        console.log("Checking room availability for:", {
+            checkIn: checkIn,
+            checkOut: checkOut,
+            url: url
+        });
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Room availability response:", data);
+
+        if (!data.success) {
+            throw new Error(
+                data.error || "Failed to load room availability"
+            );
+        }
+
+        roomData = data.rooms || [];
+
+        return roomData;
+
+    } catch (error) {
+
+        console.error(
+            "fetchRoomsForRange error:",
+            error
         );
-        const displayPrice = match ? parseFloat(match.price) : parseFloat(r.price) || 0;
-        const label = match
-          ? `${r.room_type} — ₹${Math.round(displayPrice).toLocaleString('en-IN')}/night (seasonal) (${r.available_units} avail.)`
-          : `${r.room_type} — ₹${Math.round(displayPrice).toLocaleString('en-IN')}/night (${r.available_units} avail.)`;
-        return `<option value="${r.id}" data-price="${displayPrice}">${esc(label)}</option>`;
-      }).join('');
-  }
 
-  _currentRoomPrice = 0;
-  const est = document.getElementById('bk-price-estimate');
-  if (est) est.style.display = 'none';
+        return null;
+    }
 }
+
+
+/// ============================================================
+// LOAD BOOKING FORM DATA
+// ============================================================
+
+async function loadBookingFormData() {
+
+    const checkinElement =
+        document.getElementById("bk-checkin");
+
+    const checkoutElement =
+        document.getElementById("bk-checkout");
+
+    const ciVal =
+        checkinElement?.value || "";
+
+    const coVal =
+        checkoutElement?.value || "";
+
+
+    console.log("Booking form dates:", {
+        checkIn: ciVal,
+        checkOut: coVal
+    });
+
+
+    // ========================================================
+    // LOAD ROOMS
+    // ========================================================
+
+    let rooms = [];
+
+
+    if (ciVal && coVal) {
+
+        rooms = await fetchRoomsForRange(
+            ciVal,
+            coVal
+        );
+
+
+        if (!rooms) {
+
+            toast(
+                "Could not load room availability for these dates",
+                "error"
+            );
+
+            rooms = [];
+        }
+
+    } else {
+
+        await fetchRooms();
+
+        rooms = roomData || [];
+    }
+
+
+    // ========================================================
+    // FETCH SEASONAL RATES
+    // ========================================================
+
+    let allRates = [];
+
+
+    try {
+
+        const response =
+            await fetch("/api/seasonal-rates/");
+
+
+        if (response.ok) {
+
+            const data =
+                await response.json();
+
+            allRates =
+                data.rates || [];
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Could not load seasonal rates:",
+            error
+        );
+    }
+
+
+    // ========================================================
+    // PRICE CHECK DATE
+    // ========================================================
+
+    const checkDate =
+        ciVal ||
+        new Date().toISOString().split("T")[0];
+
+
+    // ========================================================
+    // REMEMBER PREVIOUS ROOM TYPE
+    // ========================================================
+
+    const roomTypeSelect =
+        document.getElementById("bk-room-type");
+
+    const previousRoomType =
+        roomTypeSelect?.value || "";
+
+
+    // ========================================================
+    // BUILD ROOM TYPE DROPDOWN
+    // ========================================================
+
+    if (roomTypeSelect) {
+
+        roomTypeSelect.innerHTML =
+            '<option value="">— Select Room Type —</option>' +
+
+            rooms.map(room => {
+
+                // --------------------------------------------
+                // FIND SEASONAL RATE
+                // --------------------------------------------
+
+                const seasonalRate =
+                    allRates.find(rate =>
+                        Number(rate.room_id) === Number(room.id) &&
+                        rate.start_date <= checkDate &&
+                        rate.end_date >= checkDate
+                    );
+
+
+                // --------------------------------------------
+                // DISPLAY PRICE
+                // --------------------------------------------
+
+                const displayPrice =
+                    seasonalRate
+                        ? parseFloat(seasonalRate.price)
+                        : parseFloat(room.price) || 0;
+
+
+                // --------------------------------------------
+                // ROOM LABEL
+                // --------------------------------------------
+
+                let label;
+
+
+                if (seasonalRate) {
+
+                    label =
+                        `${room.room_type} — ₹${Math.round(displayPrice).toLocaleString("en-IN")}/night ` +
+                        `(seasonal) (${room.available_units} avail.)`;
+
+                } else {
+
+                    label =
+                        `${room.room_type} — ₹${Math.round(displayPrice).toLocaleString("en-IN")}/night ` +
+                        `(${room.available_units} avail.)`;
+                }
+
+
+                // --------------------------------------------
+                // OPTION
+                // --------------------------------------------
+
+                return `
+                    <option
+                        value="${room.id}"
+                        data-price="${displayPrice}"
+                    >
+                        ${esc(label)}
+                    </option>
+                `;
+
+            }).join("");
+
+
+        // ====================================================
+        // RESTORE PREVIOUS ROOM TYPE
+        // ====================================================
+
+        if (previousRoomType) {
+
+            const optionExists =
+                Array.from(
+                    roomTypeSelect.options
+                ).some(
+                    option =>
+                        option.value === previousRoomType
+                );
+
+
+            if (optionExists) {
+
+                roomTypeSelect.value =
+                    previousRoomType;
+
+            } else {
+
+                roomTypeSelect.value = "";
+            }
+        }
+    }
+
+
+    // ========================================================
+    // RESET PRICE ESTIMATE
+    // ========================================================
+
+    _currentRoomPrice = 0;
+
+
+    const estimate =
+        document.getElementById(
+            "bk-price-estimate"
+        );
+
+
+    if (estimate) {
+
+        estimate.style.display =
+            "none";
+    }
+}
+
+
+
+// ============================================================
+// LOAD AVAILABLE ROOM UNITS
+// ============================================================
+
 async function loadAvailUnits() {
-  const rid = document.getElementById('bk-room-type').value;
-  const us  = document.getElementById('bk-unit');
-  if (!us) return;
-  _currentRoomPrice = 0;
 
-  if (!rid) {
-    us.innerHTML = '<option value="">— Select Unit —</option>';
-    updateNightCount();
-    return;
-  }
+    const roomTypeSelect =
+        document.getElementById("bk-room-type");
 
-  let rooms = roomData;
-  if (!rooms.length) { await fetchRooms(); rooms = roomData; }
+    const unitSelect =
+        document.getElementById("bk-unit");
 
-  const r = rooms.find(x => String(x.id) === String(rid));
-  if (!r) { us.innerHTML = '<option value="">— No units —</option>'; return; }
 
-  // ── Check-in date for seasonal lookup (use selected date or today) ──
-  const ciVal = document.getElementById('bk-checkin')?.value;
-  const checkDate = ciVal || new Date().toISOString().split('T')[0];
+    if (!roomTypeSelect || !unitSelect) {
+        return;
+    }
 
-  try {
-    const res   = await fetch(`/api/seasonal-rates/?room_id=${rid}`);
-    const data  = await res.json();
-    const rates = data.rates || [];
-    const match = rates.find(rt => rt.start_date <= checkDate && rt.end_date >= checkDate);
-    _currentRoomPrice = match ? parseFloat(match.price) : parseFloat(r.price) || 0;
-  } catch {
-    _currentRoomPrice = parseFloat(r.price) || 0;
-  }
 
-  // ── Update the selected option's data-price so updateNightCount reads correctly ──
-  const sel = document.getElementById('bk-room-type');
-  if (sel && sel.selectedOption) {
-    sel.options[sel.selectedIndex].setAttribute('data-price', _currentRoomPrice);
-  }
+    // ========================================================
+    // SELECTED ROOM TYPE
+    // ========================================================
 
-  const avail = r.units.filter(u => u.status === 'Available');
-  us.innerHTML = avail.length
-    ? '<option value="">— Select Unit —</option>' +
-      avail.map(u => `<option value="${u.id}">${esc(u.number)}</option>`).join('')
-    : '<option value="">— No available units —</option>';
+    const rid =
+        roomTypeSelect.value;
 
-  await updateNightCount();  // ← await so it runs AFTER _currentRoomPrice is set
+
+    _currentRoomPrice = 0;
+
+
+    // ========================================================
+    // NO ROOM TYPE SELECTED
+    // ========================================================
+
+    if (!rid) {
+
+        unitSelect.innerHTML =
+            '<option value="">— Select Unit —</option>';
+
+        await updateNightCount();
+
+        return;
+    }
+
+
+    // ========================================================
+    // GET SELECTED DATES
+    // ========================================================
+
+    const ciVal =
+        document.getElementById(
+            "bk-checkin"
+        )?.value || "";
+
+
+    const coVal =
+        document.getElementById(
+            "bk-checkout"
+        )?.value || "";
+
+
+    console.log("Loading units:", {
+        roomId: rid,
+        checkIn: ciVal,
+        checkOut: coVal
+    });
+
+
+    // ========================================================
+    // DATE VALIDATION
+    // ========================================================
+
+    if (
+        (ciVal && !coVal) ||
+        (!ciVal && coVal)
+    ) {
+
+        unitSelect.innerHTML = `
+            <option value="">
+                — Select Check-in & Check-out dates first —
+            </option>
+        `;
+
+        return;
+    }
+
+
+    // ========================================================
+    // GET ROOMS FOR SELECTED PERIOD
+    // ========================================================
+
+    let rooms = [];
+
+
+    if (ciVal && coVal) {
+
+        rooms =
+            await fetchRoomsForRange(
+                ciVal,
+                coVal
+            );
+
+
+        if (!rooms) {
+
+            unitSelect.innerHTML = `
+                <option value="">
+                    — Failed to load availability, retry —
+                </option>
+            `;
+
+
+            toast(
+                "Could not check availability for these dates. Please retry.",
+                "error"
+            );
+
+            return;
+        }
+
+    } else {
+
+        await fetchRooms();
+
+        rooms =
+            roomData || [];
+    }
+
+
+    // ========================================================
+    // FIND SELECTED ROOM TYPE
+    // ========================================================
+
+    const room =
+        rooms.find(
+            item =>
+                String(item.id) === String(rid)
+        );
+
+
+    if (!room) {
+
+        unitSelect.innerHTML =
+            '<option value="">— No units —</option>';
+
+        return;
+    }
+
+
+    // ========================================================
+    // GET SEASONAL PRICE
+    // ========================================================
+
+    const checkDate =
+        ciVal ||
+        new Date().toISOString().split("T")[0];
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/seasonal-rates/?room_id=${encodeURIComponent(rid)}`
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        const rates =
+            data.rates || [];
+
+
+        const seasonalRate =
+            rates.find(rate =>
+                rate.start_date <= checkDate &&
+                rate.end_date >= checkDate
+            );
+
+
+        _currentRoomPrice =
+            seasonalRate
+                ? parseFloat(seasonalRate.price)
+                : parseFloat(room.price) || 0;
+
+
+    } catch (error) {
+
+        console.warn(
+            "Seasonal rate error:",
+            error
+        );
+
+
+        _currentRoomPrice =
+            parseFloat(room.price) || 0;
+    }
+
+
+    // ========================================================
+    // STORE PRICE ON ROOM TYPE OPTION
+    // ========================================================
+
+    if (
+        roomTypeSelect.selectedOptions &&
+        roomTypeSelect.selectedOptions[0]
+    ) {
+
+        roomTypeSelect
+            .selectedOptions[0]
+            .setAttribute(
+                "data-price",
+                _currentRoomPrice
+            );
+    }
+
+
+    // ========================================================
+    // BUILD UNIT DROPDOWN
+    // ========================================================
+
+    let unitOptions =
+        '<option value="">— Select Unit —</option>';
+
+
+    // ========================================================
+    // NO COMPLETE DATE RANGE
+    // ========================================================
+    //
+    // ONLY MAINTENANCE IS DISABLED.
+    //
+    // Cleaning / Dirty / Occupied / Reserved
+    // are all selectable.
+    //
+    // NO STATUS TEXT IS DISPLAYED.
+    // ========================================================
+
+    if (!ciVal || !coVal) {
+
+        unitOptions +=
+            (room.units || [])
+                .map(unit => {
+
+                    // ----------------------------------------
+                    // PHYSICAL STATUS
+                    // ----------------------------------------
+
+                    const physicalStatus =
+                        unit.physical_status ||
+                        unit.status ||
+                        "Available";
+
+
+                    // ----------------------------------------
+                    // ONLY MAINTENANCE IS BLOCKED
+                    // ----------------------------------------
+
+                    const maintenance =
+                        physicalStatus === "Maintenance";
+
+
+                    // ----------------------------------------
+                    // OPTION
+                    // ----------------------------------------
+                    //
+                    // IMPORTANT:
+                    // Display ONLY the unit number.
+                    //
+                    // No:
+                    // "Cleaning"
+                    // "Occupied"
+                    // "Dirty"
+                    // "Reserved"
+                    // "Available"
+                    //
+                    // will be displayed.
+                    // ----------------------------------------
+
+                    return `
+                        <option
+                            value="${unit.id}"
+                            ${maintenance ? "disabled" : ""}
+                        >
+                            ${esc(unit.number)}
+                        </option>
+                    `;
+
+                })
+                .join("");
+
+
+        unitSelect.innerHTML =
+            unitOptions;
+
+        return;
+    }
+
+
+    // ========================================================
+    // SELECTED DATE RANGE EXISTS
+    // ========================================================
+
+    unitOptions +=
+        (room.units || [])
+            .map(unit => {
+
+                // =================================================
+                // PHYSICAL STATUS
+                // =================================================
+
+                const physicalStatus =
+                    unit.physical_status ||
+                    unit.status ||
+                    "Available";
+
+
+                // =================================================
+                // DATE AVAILABILITY
+                // =================================================
+                //
+                // false = actual booking conflict
+                // true  = no booking conflict
+                // =================================================
+
+                const availableForDates =
+                    unit.available_for_dates !== false;
+
+
+                // =================================================
+                // ONLY MAINTENANCE IS PHYSICALLY BLOCKED
+                // =================================================
+
+                const maintenance =
+                    physicalStatus === "Maintenance";
+
+
+                // =================================================
+                // FINAL AVAILABILITY
+                // =================================================
+                //
+                // Maintenance:
+                //     BLOCKED
+                //
+                // Cleaning:
+                //     SELECTABLE
+                //
+                // Dirty:
+                //     SELECTABLE
+                //
+                // Occupied:
+                //     SELECTABLE if no booking conflict
+                //
+                // Reserved:
+                //     SELECTABLE if no booking conflict
+                //
+                // Available:
+                //     SELECTABLE
+                //
+                // Existing booking:
+                //     BLOCKED
+                // =================================================
+
+                const unavailable =
+                    maintenance ||
+                    !availableForDates;
+
+
+                // =================================================
+                // OPTION
+                // =================================================
+                //
+                // DISPLAY ONLY UNIT NUMBER.
+                //
+                // No status is appended to the label.
+                // =================================================
+
+                return `
+                    <option
+                        value="${unit.id}"
+                        ${unavailable ? "disabled" : ""}
+                    >
+                        ${esc(unit.number)}
+                    </option>
+                `;
+
+            })
+            .join("");
+
+
+    // ========================================================
+    // UPDATE DROPDOWN
+    // ========================================================
+
+    unitSelect.innerHTML =
+        unitOptions;
+
+
+    // ========================================================
+    // UPDATE NIGHT COUNT / PRICE
+    // ========================================================
+
+    await updateNightCount();
 }
 function quickBook(rid,uid){switchPanel('add-booking');loadBookingFormData().then(()=>{const wait=()=>{const s=document.getElementById('bk-room-type');if(s&&s.options.length>1){s.value=String(rid);loadAvailUnits().then(()=>{setTimeout(()=>{const u=document.getElementById('bk-unit');if(u&&u.options.length>1)u.selectedIndex=1;},100);});}else setTimeout(wait,100);};wait();});}
+let _bkCurrentStep = 1;
+
+function goToBookingStep(step){
+  if(step > _bkCurrentStep){
+    for(let i=_bkCurrentStep;i<step;i++){ if(!_validateBookingStep(i)) return; }
+  }
+  _bkCurrentStep = step;
+  for(let i=1;i<=4;i++){
+    document.getElementById('bkStep'+i)?.classList.toggle('active', i===step);
+    const nav=document.getElementById('bkStepNav'+i);
+    const circ=document.getElementById('bkStepCircle'+i);
+    if(nav) nav.classList.toggle('active', i===step);
+    if(nav) nav.classList.toggle('done', i<step);
+    if(circ) circ.innerHTML = i<step ? '<i class="fas fa-check" style="font-size:9px"></i>' : String(i);
+    if(i<4) document.getElementById('bkConn'+i)?.classList.toggle('done', i<step);
+  }
+  document.getElementById('bkPrevBtn').style.display = step>1 ? 'inline-flex':'none';
+  document.getElementById('bkNextBtn').style.display = step<4 ? 'inline-flex':'none';
+  document.getElementById('bkSubmitBtn').style.display = step===4 ? 'inline-flex':'none';
+  if(step===2) loadBookingFormData();
+  if(step===4) _renderBookingReview();
+}
+function nextBookingStep(){ if(_validateBookingStep(_bkCurrentStep)) goToBookingStep(_bkCurrentStep+1); }
+function prevBookingStep(){ goToBookingStep(_bkCurrentStep-1); }
+
+function _validateBookingStep(step){
+  if(step===1){
+    if(!document.getElementById('bk-phone').value.trim()){toast('Phone is required','error');return false;}
+    if(!document.getElementById('bk-full-name').value.trim()){toast('Guest name is required','error');return false;}
+  }
+  if(step===2){
+    if(!document.getElementById('bk-checkin').value||!document.getElementById('bk-checkout').value){toast('Select check-in and check-out dates','error');return false;}
+    if(!document.getElementById('bk-room-type').value){toast('Select a room type','error');return false;}
+    if(!document.getElementById('bk-unit').value){toast('Select a room unit','error');return false;}
+  }
+  return true;
+}
+
+function _renderBookingReview(){
+  const el=document.getElementById('bkReviewSummary'); if(!el) return;
+  const g=(id)=>document.getElementById(id)?.value||'—';
+  const roomTypeText=document.getElementById('bk-room-type')?.selectedOptions[0]?.text||'—';
+  const advAmt=parseFloat(document.getElementById('bookingAdvanceAmount')?.value)||0;
+  el.innerHTML=`
+    <div><strong>Guest:</strong> ${g('bk-full-name')} (${g('bk-phone')})</div>
+    <div><strong>Dates:</strong> ${g('bk-checkin')} → ${g('bk-checkout')}</div>
+    <div><strong>Room:</strong> ${roomTypeText}</div>
+    <div><strong>Advance Paid:</strong> ₹${advAmt.toLocaleString('en-IN')}</div>`;
+}
 async function createBooking(){
   const fullName=(document.getElementById('bk-full-name')?.value||'').trim(),phone=(document.getElementById('bk-phone')?.value||'').trim(),rid=document.getElementById('bk-room-type').value,uid=document.getElementById('bk-unit').value,ci=document.getElementById('bk-checkin').value,co=document.getElementById('bk-checkout').value;
   const msg=document.getElementById('bk-msg');const errs=[];
@@ -10655,6 +11618,96 @@ async function createBooking(){
   const data=await r.json();
   if(r.ok&&data.success){msg.textContent=`✅ Booking ${data.booking_code} created!`;msg.style.color='var(--green)';toast(`Booking ${data.booking_code} created!`);await loadBookings();await fetchRooms();setTimeout(()=>switchPanel('all-bookings'),1400);}
   else{msg.textContent='❌ '+(data.errors?Object.entries(data.errors).map(([k,v])=>`${k}: ${v}`).join(', '):(data.error||'Booking failed'));msg.style.color='var(--red)';}
+}
+let _faceStream = null;
+let _faceModelsLoaded = false;
+
+async function _loadFaceModels() {
+  if (_faceModelsLoaded) return;
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+  await Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+  ]);
+  _faceModelsLoaded = true;
+}
+
+async function openFaceCaptureModal(staffId) {
+  if (!staffId) { toast('Save staff first, then register their face', 'error'); return; }
+  document.getElementById('faceCaptureStaffId').value = staffId;
+  document.getElementById('faceCaptureMsg').textContent = 'Loading models…';
+  document.getElementById('faceCaptureBtn').disabled = true;
+  openModal('faceCaptureModal');
+
+  try {
+    await _loadFaceModels();
+    _faceStream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    const video = document.getElementById('faceCaptureVideo');
+    video.srcObject = _faceStream;
+    document.getElementById('faceCaptureMsg').textContent = 'Position face in frame, then capture';
+    document.getElementById('faceCaptureBtn').disabled = false;
+  } catch (e) {
+    document.getElementById('faceCaptureMsg').textContent = 'Camera/model error: ' + e.message;
+  }
+}
+
+function closeFaceCaptureModal() {
+  if (_faceStream) { _faceStream.getTracks().forEach(t => t.stop()); _faceStream = null; }
+  closeModal('faceCaptureModal');
+}
+
+async function captureAndSubmitFace() {
+  const staffId = document.getElementById('faceCaptureStaffId').value;
+  const video = document.getElementById('faceCaptureVideo');
+  const msg = document.getElementById('faceCaptureMsg');
+  const btn = document.getElementById('faceCaptureBtn');
+
+  btn.disabled = true;
+  msg.textContent = 'Detecting face…';
+
+  const detection = await faceapi
+    .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if (!detection) {
+    msg.textContent = 'No face detected — try again';
+    btn.disabled = false;
+    return;
+  }
+
+  // snapshot for storage
+  const canvas = document.getElementById('faceCaptureCanvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const photoBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+  msg.textContent = 'Saving…';
+
+  try {
+    const r = await fetch(`/staff/${staffId}/register-face/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({
+        descriptor: Array.from(detection.descriptor),
+        photo_base64: photoBase64,
+      }),
+    });
+    const data = await r.json();
+    if (r.ok && data.success) {
+      toast('Face registered!', 'success');
+      closeFaceCaptureModal();
+      const statusEl = document.getElementById('editStaffFaceStatus');
+      if (statusEl) statusEl.textContent = `Registered ${new Date().toLocaleDateString()}`;
+    } else {
+      msg.textContent = data.error || 'Save failed';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    msg.textContent = 'Network error';
+    btn.disabled = false;
+  }
 }
 /* ═══════════════════════════════════════════════════════
    EMAIL MODAL — standalone, no IIFE conflicts
@@ -11709,11 +12762,15 @@ function srTmApply() { rebuildTagMap(); srCloseTagManager(); srRender(); srToast
 const srSearchEl = document.getElementById('sr-search');
 if (srSearchEl) srSearchEl.addEventListener('input', srRender);
 document.getElementById('bk-checkin')?.addEventListener('change', async () => {
-  await loadAvailUnits();    // re-fetch seasonal price for new check-in date
+  await loadBookingFormData();
+  await loadAvailUnits();
   await updateNightCount();
 });
-document.getElementById('bk-checkout')?.addEventListener('change', updateNightCount);
-
+document.getElementById('bk-checkout')?.addEventListener('change', async () => {
+  await loadBookingFormData();
+  await loadAvailUnits();
+  await updateNightCount();
+});
 /* ── INIT ───────────────────────────────────────────────────── */
 // Load room types first, then rates (rates need room names to render correctly)
 srLoadRoomTypes().then(() => srLoadRates());
@@ -12958,6 +14015,29 @@ function renderStaffDetailsModal(staff, idCards) {
                 </div>
             </div>
 
+            ${staff.face_photo_url ? `
+            <div class="sdm-section">
+                <div class="sdm-section-title">
+                    <i class="fas fa-camera"></i>
+                    <span>FACE RECOGNITION</span>
+                </div>
+                <div class="sdm-section-content">
+                    <div class="sdm-documents">
+                        <div class="sdm-document-list">
+                            <div class="sdm-document-item">
+                                <img src="${staff.face_photo_url}" alt="Captured face"
+                                     style="width:70px;height:70px;border-radius:8px;object-fit:cover;flex-shrink:0;">
+                                <div class="sdm-document-info">
+                                    <div class="sdm-document-name">Registered Face Photo</div>
+                                    ${staff.face_registered_at ? `<div class="sdm-document-date">Captured: ${new Date(staff.face_registered_at).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+                                    <a href="${staff.face_photo_url}" target="_blank" class="sdm-view-link">View <i class="fas fa-external-link-alt"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>` : ''}
+
             ${staff.notes ? `
             <div class="sdm-section">
                 <div class="sdm-section-title">
@@ -13067,6 +14147,7 @@ function printStaffDetails() {
 <meta charset="utf-8">
 <title>Staff Details — ${escapeHtml(staffName)}</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
 /* ── Reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -16869,8 +17950,19 @@ window._applyLeaveOverride   = _applyLeaveOverride;
 window._recalcLeaveCut       = _recalcLeaveCut;
 window._resetLeaveCut        = _resetLeaveCut;
 window.printPayslip2         = printPayslip2;
+
 // DEPARTMENTS
+// DEPARTMENTS
+document.getElementById('newDeptName')?.addEventListener('change', function(){
+  const opt = this.options[this.selectedIndex];
+  if(opt && opt.dataset.locked === 'true'){
+    openDeptAccessModal(this.value);
+    this.value = '';
+  }
+});
+
 function renderDeptSummary(){
+  renderDeptOptions();
   const el=document.getElementById('deptSummary'),el2=document.getElementById('deptGrid');
   if(el)el.innerHTML=depts.map(d=>{const cnt=staffData.filter(s=>s.department&&s.department.name===d.name).length;return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--surface-3)"><div style="display:flex;align-items:center;gap:8px"><div class="staff-initials" style="width:24px;height:24px;font-size:.53rem;background:#ecfdf5;color:#065f46"><i class="fas fa-building" style="font-size:9px"></i></div><strong style="font-size:.79rem">${esc(d.name)}</strong></div><div style="display:flex;align-items:center;gap:6px"><span class="badge b-blue">${cnt} staff</span><button class="btn btn-danger btn-xs" onclick="deleteDept(${d.id})"><i class="fas fa-trash"></i></button></div></div>`;}).join('')||'<div class="empty">No departments</div>';
   const cols=['#2563eb','#10b981','#f59e0b','#7c3aed','#ef4444','#0891b2'];
@@ -16994,7 +18086,7 @@ function _rc2RenderPage() {
   renderCards([...roomMap.values()]);
   _rc2RenderPagination(pages);
 }
-// ── RC2 PAGINATION CONTROLS ───────────────────────────────────
+
 function _rc2RenderPagination(pages) {
   ['rc2PaginationTop','rc2PaginationBottom'].forEach(id => {
     const el = document.getElementById(id);
@@ -19223,10 +20315,9 @@ document.getElementById('updateStaffBtn')?.addEventListener('click',async functi
 
 document.getElementById('assignShiftBtn')?.addEventListener('click',async function(){const sid=document.getElementById('shStaff').value,shift=document.getElementById('shType').value,date=document.getElementById('shDate').value||new Date().toISOString().split('T')[0];if(!sid){toast('Select a staff member','error');return;}const fd=new FormData();fd.append('staff',sid);fd.append('shift',shift);fd.append('date',date);const r=await fetch('/assign-shift/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});if(r.ok){toast('Shift assigned!');await loadShifts();}else toast('Failed','error');});
 document.getElementById('confirmEditShiftBtn')?.addEventListener('click',confirmEditShift);
-document.getElementById('createDeptBtn')?.addEventListener('click',async function(){const name=document.getElementById('newDeptName').value;if(!name){toast('Select a department name','error');return;}const fd=new FormData();fd.append('name',name);const r=await fetch('/add-department/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});if(r&&r.ok){toast('Department created!');await loadAll();renderDeptSummary();}else toast('Failed','error');});
+document.getElementById('createDeptBtn')?.addEventListener('click',async function(){const name=document.getElementById('newDeptName').value;if(!name){toast('Select a department name','error');return;}if(!deptIsUnlocked(name)){openDeptAccessModal(name);return;}const fd=new FormData();fd.append('name',name);const r=await fetch('/add-department/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});if(r&&r.ok){toast('Department created!');await loadAll();renderDeptSummary();}else toast('Failed','error');});
 document.getElementById('genPayrollBtn')?.addEventListener('click',async function(){const m=document.getElementById('payMonth').value,y=document.getElementById('payYear').value;if(!m||!y){toast('Select month and year','error');return;}this.disabled=true;this.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generating…';const fd=new FormData();fd.append('month',m);fd.append('year',y);const r=await fetch('/payroll/generate/',{method:'POST',body:fd,headers:{'X-CSRFToken':csrf}});this.disabled=false;this.innerHTML='<i class="fas fa-cog"></i> Generate Payroll';if(r&&r.ok){toast('Payroll generated!');await loadPayroll();}else toast('Failed','error');});
-document.getElementById('bk-checkin')?.addEventListener('change', updateNightCount);
-document.getElementById('bk-checkout')?.addEventListener('change', updateNightCount);
+
 document.getElementById('saveAssignBtn')?.addEventListener('click',saveAssignedPerms);
 document.getElementById('saveDeptPermModalBtn')?.addEventListener('click',saveDeptPermModal);
 document.getElementById('saveModulesBtn')?.addEventListener('click',saveSelectedModules);
@@ -22001,193 +23092,1379 @@ Object.assign(window, {
   invUpdatePOStatus,
   invOpenPODetail,
 });
-/* ───────────────────────────────────────────────────────────
-   ASSET TRACKING PANEL
-─────────────────────────────────────────────────────────── */
-window.loadAssets = async function() {
-  console.log('Loading assets...');
-  
+/* ─────────────────────────────────────────────
+   Modal helpers
+───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   ASSET INVENTORY  —  inv_assets_full.js
+   Full file: all original functionality + bulk-add modal integrated.
+   Card footer buttons: Details | Add (bulk) | Assign | View all
+═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Bulk-add state ─── */
+const BULK = {
+  rows:       [],
+  uploadRows: [],
+  cats:       [],
+  nextId:     1,
+  locCtx:     { location: null, iconType: null },
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════════════════════════════════════ */
+function _astOpenModal(id) {
+  const el = document.getElementById(id);
+  if (!el) { console.error('_astOpenModal: element not found:', id); return; }
+  if (typeof openModal   === 'function') { openModal(id);   return; }
+  if (typeof _iOpenModal === 'function') { _iOpenModal(id); return; }
+  el.style.display = 'flex';
+  el.classList.add('open');
+}
+
+function _astCloseModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (typeof closeModal   === 'function') { closeModal(id);   return; }
+  if (typeof _iCloseModal === 'function') { _iCloseModal(id); return; }
+  el.style.display = 'none';
+  el.classList.remove('open');
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LOAD ALL ASSETS + SUPPORTING DATA
+══════════════════════════════════════════════════════════════════════ */
+window.loadAssets = async function () {
+  console.log('loadAssets: starting…');
   try {
-    const headers = {
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRFToken': getCsrf(),
-    };
-    const opts = { headers, credentials: 'same-origin' };
-    
+    const headers = { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() };
+    const opts    = { headers, credentials: 'same-origin' };
+
     const [aRes, cRes, vRes] = await Promise.all([
-      fetch('/inventory/assets/', opts),
+      fetch('/inventory/assets/',           opts),
       fetch('/inventory/asset-categories/', opts),
-      fetch('/inventory/vendors/', opts),
+      fetch('/inventory/vendors/',          opts),
     ]);
-    
+
     let aData = {}, cData = {}, vData = {};
-    
     if (aRes.ok) aData = await aRes.json();
     if (cRes.ok) cData = await cRes.json();
     if (vRes.ok) vData = await vRes.json();
-    
-    // Map the backend field names to what the frontend expects
-    const rawAssets = (aData?.assets) || (Array.isArray(aData) ? aData : []);
-    window._invAssets = rawAssets.map(asset => ({
-      id: asset.id,
-      name: asset.name,
-      asset_type: asset.type,  // Map 'type' to 'asset_type'
-      department: asset.department,
-      department_id: asset.department_id,
-      location: asset.location,
-      area: asset.area,
-      status: asset.status,
-      serial_number: asset.serial_number,
-      purchase_date: asset.purchase_date,
-      purchase_cost: asset.purchase_cost,
-      vendor: asset.vendor,
-      warranty_end_date: asset.warranty_end,  // Map 'warranty_end' to 'warranty_end_date'
-      warranty_active: asset.warranty_active,
-      next_maintenance_date: asset.next_maintenance,  // Map 'next_maintenance' to 'next_maintenance_date'
-      maintenance_due: asset.maintenance_due,
-      category_id: asset.category_id,
-      assigned_to: asset.assigned_to,
+
+    const rawAssets = aData?.assets || (Array.isArray(aData) ? aData : []);
+
+    window._invAssets = rawAssets.map(a => ({
+      id:                    a.id,
+      name:                  a.name,
+      type:                  a.type,
+      asset_type:            a.type,
+      category_id:           a.category_id,
+      department:            a.department,
+      department_id:         a.department_id,
+      location:              a.location,
+      area:                  a.area,
+      status:                a.status,
+      serial_number:         a.serial_number,
+      purchase_date:         a.purchase_date,
+      purchase_cost:         a.purchase_cost,
+      vendor:                a.vendor,
+      warranty_end:          a.warranty_end,
+      warranty_end_date:     a.warranty_end,
+      warranty_active:       a.warranty_active,
+      next_maintenance:      a.next_maintenance,
+      next_maintenance_date: a.next_maintenance,
+      maintenance_due:       a.maintenance_due,
+      assigned_to:           a.assigned_to,
+      room_unit_id:          a.room_unit_id,
+      room_id:               a.room_id,
+      locations:             a.locations,
     }));
-    
+
     window._invAssetCats = cData.asset_categories || cData.categories || (Array.isArray(cData) ? cData : []);
-    window._invVendors = (vData?.vendors) || (Array.isArray(vData) ? vData : []);
-    
-    console.log('Assets loaded:', window._invAssets.length);
-    console.log('Sample asset:', window._invAssets[0]);
-    
+    window._invVendors   = vData?.vendors          || (Array.isArray(vData) ? vData : []);
+
+    console.log('loadAssets: loaded', window._invAssets.length, 'assets');
+
     const today = new Date().toISOString().split('T')[0];
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('ast-kpi-total', window._invAssets.length);
+    set('ast-kpi-total',  window._invAssets.length);
     set('ast-kpi-active', window._invAssets.filter(a => a.status === 'active').length);
-    set('ast-kpi-maint', window._invAssets.filter(a => a.status === 'maintenance').length);
-    set('ast-kpi-due', window._invAssets.filter(a => a.next_maintenance_date && a.next_maintenance_date <= today).length);
-    
-    // Populate department filter
+    set('ast-kpi-maint',  window._invAssets.filter(a => a.status === 'maintenance').length);
+    set('ast-kpi-due',    window._invAssets.filter(a => a.next_maintenance && a.next_maintenance <= today).length);
+
     const deptFil = document.getElementById('ast-dept-filter');
     if (deptFil) {
       const ds = [...new Set(window._invAssets.map(a => a.department).filter(Boolean))];
       deptFil.innerHTML = '<option value="">All Departments</option>';
-      ds.forEach(d => {
-        deptFil.innerHTML += `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`;
-      });
+      ds.forEach(d => { deptFil.innerHTML += `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`; });
     }
-    
-    // Populate category filter
+
     const catFilter = document.getElementById('ast-cat-filter');
     if (catFilter) {
       catFilter.innerHTML = '<option value="">All Categories</option>';
-      if (window._invAssetCats && window._invAssetCats.length) {
-        window._invAssetCats.forEach(c => {
-          catFilter.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
-        });
-      }
+      window._invAssetCats.forEach(c => {
+        catFilter.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)}</option>`;
+      });
     }
-    
-    if (window.AST) window.AST.page = 1;
-    invFilterAssetTable();
-    
-  } catch (error) {
-    console.error('Error loading assets:', error);
+
+    AST.page = 1;
+    if (AST.view === 'location') astRenderLocationCards();
+    else invFilterAssetTable();
+
+  } catch (err) {
+    console.error('loadAssets error:', err);
     toast('Failed to load assets', 'error');
   }
 };
 
-function astSetStatus(status, btn){
-  AST.statusF=status;
-  document.querySelectorAll('.ast-status-chip').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  AST.page=1;
+window.invLoadAssets = window.loadAssets;
+
+/* ══════════════════════════════════════════════════════════════════════
+   VIEW SWITCHING
+══════════════════════════════════════════════════════════════════════ */
+function astSwitchView(mode) {
+  AST.view = mode;
+  document.getElementById('astViewByLoc').classList.toggle('active', mode === 'location');
+  document.getElementById('astViewAll').classList.toggle('active',    mode === 'all');
+
+  const grid      = document.getElementById('astLocationGrid');
+  const tableWrap = document.getElementById('astTableWrap');
+  const tableMeta = document.getElementById('astTableMeta');
+
+  if (mode === 'location') {
+    if (grid)      grid.style.display      = 'grid';
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (tableMeta) tableMeta.style.display = 'none';
+    astRenderLocationCards();
+  } else {
+    if (grid)      grid.style.display      = 'none';
+    if (tableWrap) tableWrap.style.display = 'block';
+    if (tableMeta) tableMeta.style.display = 'flex';
+    invFilterAssetTable();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LOCATION CARD RENDERER
+   Footer buttons: Details | Add (bulk) | Assign | View all
+══════════════════════════════════════════════════════════════════════ */
+async function astRenderLocationCards() {
+  const grid = document.getElementById('astLocationGrid');
+  if (!grid) return;
+
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;"><div class="spinner"></div></div>';
+
+  try {
+    const r = await fetch('/inventory/assets/by-location/', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
+      credentials: 'same-origin',
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+    const data   = await r.json();
+    let   groups = data.groups || [];
+
+    const statusF = AST.statusF;
+    const deptF   = document.getElementById('ast-dept-filter')?.value || '';
+    const search  = (document.getElementById('ast-search')?.value || '').toLowerCase().trim();
+
+    if (statusF || deptF || search) {
+      groups = groups.map(g => ({
+        ...g,
+        assets: g.assets.filter(a => {
+          if (statusF && a.status !== statusF) return false;
+          if (deptF   && (a.department || '') !== deptF) return false;
+          if (search  && !(a.name || '').toLowerCase().includes(search)) return false;
+          return true;
+        }),
+      })).filter(g => g.assets.length > 0);
+    }
+
+    if (!groups.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3);">
+        <i class="fas fa-box-open" style="font-size:2rem;margin-bottom:10px;display:block;"></i>No assets found</div>`;
+      return;
+    }
+
+    const statusDot = s => {
+      const c = { active:'var(--green)', maintenance:'var(--amber)', inactive:'var(--text-3)', disposed:'var(--red)' }[s] || 'var(--text-3)';
+      return `<span style="width:7px;height:7px;border-radius:50%;background:${c};display:inline-block;flex-shrink:0;"></span>`;
+    };
+
+    const iconMap  = { room:'fa-bed', area:'fa-map-marker-alt', unset:'fa-question-circle' };
+    const MAX_SHOW = 5;
+
+    grid.innerHTML = groups.map(g => {
+      const locLabel = g.location || 'Unassigned';
+      const isDashed = !g.location;
+      const iconCls  = iconMap[g.icon_type] || 'fa-map-marker-alt';
+      const shown    = g.assets.slice(0, MAX_SHOW);
+      const extra    = g.assets.length - shown.length;
+      const subLabel = { room:'Room type', area:'Area', unset:'No location set' }[g.icon_type] || '';
+
+      const groupData = encodeURIComponent(JSON.stringify({
+        location:   g.location,
+        icon_type:  g.icon_type,
+        room_id:    g.room_id    || null,
+        room_units: g.room_units || [],
+        department: g.department || null,
+        assets:     g.assets,
+      }));
+
+      const rows = shown.map(a => `
+        <div class="loc-asset-row"
+             onclick="invOpenAssetStatusModal(${a.id},'${escapeHtml(a.name)}','${escapeHtml(a.status)}')">
+          ${statusDot(a.status)}
+          <span style="font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-1);">
+            ${escapeHtml(a.name)}
+          </span>
+          <span style="font-size:11px;color:var(--text-3);white-space:nowrap;">${escapeHtml(a.type || '')}</span>
+          <span class="a-actions">
+            <button class="btn btn-outline btn-xs"
+                    onclick="event.stopPropagation();invOpenAssetStatusModal(${a.id},'${escapeHtml(a.name)}','${escapeHtml(a.status)}')">
+              <i class="fas fa-exchange-alt"></i>
+            </button>
+            <button class="btn btn-amber btn-xs"
+                    onclick="event.stopPropagation();invOpenAddMaintModal(${a.id})">
+              <i class="fas fa-wrench"></i>
+            </button>
+          </span>
+        </div>`).join('');
+
+      const extraRow = extra > 0
+        ? `<div style="padding:4px 14px 8px;font-size:11px;color:var(--text-3);font-style:italic;">
+             +${extra} more asset${extra > 1 ? 's' : ''}
+           </div>`
+        : '';
+
+      /* ── View all button: only shown when assets > MAX_SHOW ── */
+      const viewAllBtn = g.assets.length > 0
+        
+
+      /* ── Card footer: Details | Add | Assign | (View all) ── */
+      return `
+        <div class="loc-card" style="${isDashed ? 'border-style:dashed;opacity:.7;' : ''}">
+
+          <div class="loc-card-head" style="cursor:pointer;"
+               onclick="astOpenLocationDetailModal(decodeURIComponent('${groupData}'))">
+            <div class="loc-card-icon ${g.icon_type}"><i class="fas ${iconCls}"></i></div>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--text-1);
+                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${escapeHtml(locLabel)}
+              </div>
+              <div style="font-size:11px;color:var(--text-3);">${subLabel}</div>
+            </div>
+            <span class="loc-count-badge">${g.assets.length}</span>
+          </div>
+
+          <div style="flex:1;">${rows}${extraRow}</div>
+
+          <div class="loc-card-foot">
+
+            <!-- Details -->
+            <button class="btn btn-outline btn-xs" style="flex:1;"
+                    onclick="astOpenLocationDetailModal(decodeURIComponent('${groupData}'))">
+              <i class="fas fa-info-circle"></i> Details
+            </button>
+
+            <!-- Add (opens Bulk Add modal pre-set to this location) -->
+            <button class="btn btn-outline btn-xs" style="flex:1;"
+                    data-loc="${escapeHtml(g.location || '')}"
+                    data-icon-type="${escapeHtml(g.icon_type || '')}"
+                    data-room-id="${escapeHtml(String(g.room_id || ''))}"
+                    onclick="invOpenBulkAddModal(this.dataset.loc, this.dataset.iconType, this.dataset.roomId)">
+              <i class="fas fa-layer-group"></i> Add
+            </button>
+
+            <!-- Assign existing asset -->
+            <button class="btn btn-outline btn-xs" style="flex:1;"
+                    data-loc="${escapeHtml(g.location || '')}"
+                    data-icon-type="${escapeHtml(g.icon_type || '')}"
+                    data-room-id="${escapeHtml(String(g.room_id || ''))}"
+                    onclick="invOpenAssignAssetModal(this.dataset.loc, this.dataset.iconType, this.dataset.roomId)">
+              <i class="fas fa-link"></i> Assign
+            </button>
+
+            <!-- View all: only when there are hidden assets -->
+            
+
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    console.error('astRenderLocationCards error:', e);
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--red);">Failed to load location cards</div>';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LOCATION DETAIL MODAL
+   Footer: Close | Assign asset | Add assets (bulk)
+══════════════════════════════════════════════════════════════════════ */
+window.astOpenLocationDetailModal = function(groupDataRaw) {
+  let g;
+  try {
+    g = typeof groupDataRaw === 'string' ? JSON.parse(groupDataRaw) : groupDataRaw;
+  } catch(e) {
+    console.error('astOpenLocationDetailModal: bad data', e);
+    return;
+  }
+
+  let modal = document.getElementById('astLocDetailModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id        = 'astLocDetailModal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  const locLabel = g.location || 'Unassigned';
+  const iconMap  = { room:'fa-bed', area:'fa-map-marker-alt', unset:'fa-question-circle' };
+  const iconCls  = iconMap[g.icon_type] || 'fa-map-marker-alt';
+  const assets   = g.assets || [];
+
+  const activeCount = assets.filter(a => a.status === 'active').length;
+  const maintCount  = assets.filter(a => a.status === 'maintenance').length;
+
+  const statusDot = s => {
+    const c = {
+      active:      'var(--green,#1a7a4a)',
+      maintenance: 'var(--amber,#b45309)',
+      inactive:    'var(--text-3)',
+      disposed:    'var(--red,#b91c1c)',
+    }[s] || 'var(--text-3)';
+    return `<span style="width:7px;height:7px;border-radius:50%;background:${c};
+                         display:inline-block;flex-shrink:0;margin-top:1px;"></span>`;
+  };
+
+  const statusBadgeStyle = {
+    active:      'background:var(--success-bg,#e6f9f0);color:var(--green,#1a7a4a)',
+    maintenance: 'background:var(--amber-bg,#fff3e0);color:var(--amber,#b45309)',
+    inactive:    'background:var(--surface-2);color:var(--text-3)',
+    disposed:    'background:#fff0f0;color:var(--red,#b91c1c)',
+  };
+
+  const roomUnits = g.room_units || [];
+
+  const deptChip = g.department
+    ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;
+                   padding:2px 9px;border-radius:20px;border:1px solid var(--border);
+                   background:var(--surface-2);color:var(--text-2);">
+         <i class="fas fa-building" style="font-size:10px;color:var(--text-3);"></i>
+         ${escapeHtml(g.department)}
+       </span>`
+    : '';
+
+  const unitTags = roomUnits.length
+    ? roomUnits.map(u => `
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;
+                     border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);">
+          Unit ${escapeHtml(String(u))}
+        </span>`).join('')
+    : '';
+
+  let locationInfoHtml = '';
+  if (g.icon_type === 'room') {
+    locationInfoHtml = `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--text-3);margin-bottom:6px;">Room type</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
+                       padding:3px 10px;border-radius:20px;border:1px solid var(--border);
+                       background:var(--surface-2);color:var(--text-1);">
+            <i class="fas fa-bed" style="font-size:11px;color:var(--text-3);"></i>
+            ${escapeHtml(locLabel)}
+          </span>
+          ${unitTags || deptChip}
+        </div>
+      </div>`;
+  } else if (g.icon_type === 'area') {
+    locationInfoHtml = `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+                    color:var(--text-3);margin-bottom:6px;">Area</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;
+                       padding:3px 10px;border-radius:20px;border:1px solid var(--border);
+                       background:var(--surface-2);color:var(--text-1);">
+            <i class="fas fa-map-marker-alt" style="font-size:11px;color:var(--text-3);"></i>
+            ${escapeHtml(locLabel)}
+          </span>
+          ${deptChip}
+        </div>
+      </div>`;
+  }
+
+  const assetRows = assets.length
+    ? assets.map(a => `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;
+                    border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;"
+             onmouseover="this.style.background='var(--surface-2)'"
+             onmouseout="this.style.background=''"
+             onclick="_astCloseModal('astLocDetailModal');
+                      invOpenAssetStatusModal(${a.id},'${escapeHtml(a.name)}','${escapeHtml(a.status)}')">
+          ${statusDot(a.status)}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:var(--text-1);
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${escapeHtml(a.name)}
+            </div>
+            <div style="font-size:11px;color:var(--text-3);">
+              ${escapeHtml(a.type || '—')}
+              ${a.department ? `<span style="margin-left:5px;opacity:.7;">· ${escapeHtml(a.department)}</span>` : ''}
+            </div>
+          </div>
+          <span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;flex-shrink:0;
+                       ${statusBadgeStyle[a.status] || 'background:var(--surface-2);color:var(--text-3)'}">
+            ${escapeHtml(a.status || '—')}
+          </span>
+          <button class="btn btn-amber btn-xs"
+                  onclick="event.stopPropagation();_astCloseModal('astLocDetailModal');invOpenAddMaintModal(${a.id})"
+                  title="Schedule maintenance">
+            <i class="fas fa-wrench"></i>
+          </button>
+        </div>`).join('')
+    : `<div style="padding:24px;text-align:center;color:var(--text-3);">
+         <i class="fas fa-box-open" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+         No assets in this location
+       </div>`;
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:540px;">
+
+      <div class="modal-head">
+        <strong style="display:flex;align-items:center;gap:9px;">
+          <span style="width:30px;height:30px;border-radius:8px;
+                       background:var(--blue-bg,#e8f0fe);
+                       display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas ${iconCls}" style="font-size:13px;color:var(--blue,#1a56db);"></i>
+          </span>
+          ${escapeHtml(locLabel)}
+        </strong>
+        <button class="modal-close" onclick="_astCloseModal('astLocDetailModal')">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:16px 18px;">
+        <!-- KPI row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:var(--text-1);">${assets.length}</div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Total</div>
+          </div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:var(--green,#1a7a4a);">${activeCount}</div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Active</div>
+          </div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px 12px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:var(--amber,#b45309);">${maintCount}</div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:2px;">Maintenance</div>
+          </div>
+        </div>
+
+        ${locationInfoHtml}
+
+        <div>
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+                      color:var(--text-3);margin-bottom:6px;">
+            Assets
+            <span style="font-size:10px;font-weight:400;color:var(--text-3);
+                         margin-left:4px;text-transform:none;">(${assets.length})</span>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;
+                      max-height:320px;overflow-y:auto;">
+            ${assetRows}
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <!-- Close -->
+        <button class="btn btn-outline"
+                onclick="_astCloseModal('astLocDetailModal')">
+          Close
+        </button>
+        <!-- Assign existing asset -->
+        <button class="btn btn-outline"
+                data-loc="${escapeHtml(g.location || '')}"
+                data-icon-type="${escapeHtml(g.icon_type || '')}"
+                data-room-id="${escapeHtml(String(g.room_id || ''))}"
+                onclick="_astCloseModal('astLocDetailModal');
+                         invOpenAssignAssetModal(this.dataset.loc, this.dataset.iconType, this.dataset.roomId)">
+          <i class="fas fa-link"></i> Assign asset
+        </button>
+        <!-- Add assets — opens bulk modal -->
+        <button class="btn btn-primary"
+        data-loc="${escapeHtml(g.location || '')}"
+        data-icon-type="${escapeHtml(g.icon_type || '')}"
+        data-room-id="${escapeHtml(String(g.room_id || ''))}"
+        onclick="_astCloseModal('astLocDetailModal');
+                 invOpenBulkAddModal(this.dataset.loc, this.dataset.iconType, this.dataset.roomId)">
+          <i class="fas fa-layer-group"></i> Add assets
+        </button>
+      </div>
+
+    </div>`;
+
+  _astOpenModal('astLocDetailModal');
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   ADD ASSET MODAL — pre-filled with location (single-asset, kept for
+   direct invocation if needed elsewhere)
+══════════════════════════════════════════════════════════════════════ */
+window.invOpenAddAssetModalForLocation = async function(location, iconType) {
+  await invOpenAddAssetModal();
+  if (!location) return;
+
+  await _astWaitFor('invAssetCatSel', el => el.options.length > 1, 4000);
+
+  if (iconType === 'area') {
+    const areaEl = document.getElementById('invAssetArea');
+    if (areaEl) areaEl.value = location;
+  } else if (iconType === 'room') {
+    const roomSel = document.getElementById('invAssetRoomSel');
+    if (roomSel) {
+      [...roomSel.options].forEach(o => { if (o.text.trim() === location.trim()) o.selected = true; });
+    }
+    const areaEl = document.getElementById('invAssetArea');
+    if (areaEl && !roomSel) areaEl.value = location;
+  }
+
+  const body = document.getElementById('invItemMsg') || document.querySelector('#invAddAssetModal .modal-body');
+  let hint = document.getElementById('invAssetLocHint');
+  if (!hint && body) {
+    hint = document.createElement('div');
+    hint.id = 'invAssetLocHint';
+    hint.style.cssText = 'background:var(--surface-2);border:1px solid var(--border);border-radius:6px;' +
+      'padding:7px 12px;font-size:12px;color:var(--text-2);margin-bottom:10px;display:flex;align-items:center;gap:7px;';
+    body.prepend(hint);
+  }
+  if (hint) {
+    hint.innerHTML = `<i class="fas fa-map-marker-alt" style="color:var(--blue)"></i> Adding to: <strong>${escapeHtml(location)}</strong>`;
+  }
+};
+
+function _astWaitFor(id, predicate, timeout) {
+  return new Promise(resolve => {
+    const deadline = Date.now() + timeout;
+    (function poll() {
+      const el = document.getElementById(id);
+      if (el && predicate(el)) return resolve(el);
+      if (Date.now() >= deadline)  return resolve(null);
+      setTimeout(poll, 60);
+    })();
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BULK ADD MODAL
+   Two tabs: Manual entry rows  |  Import from file (CSV/Excel/TXT)
+══════════════════════════════════════════════════════════════════════ */
+window.invOpenBulkAddModal = async function (location, iconType, roomId) {
+  BULK.rows       = [];
+  BULK.uploadRows = [];
+  BULK.nextId     = 1;
+  BULK.locCtx     = { location: location || null, iconType: iconType || null, roomId: roomId || null };
+
+  let modal = document.getElementById('invBulkAddModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id        = 'invBulkAddModal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = _bulkModalHtml(location);
+  _astOpenModal('invBulkAddModal');
+
+  /* load categories if not already cached */
+  if (!window._invAssetCats || !window._invAssetCats.length) {
+    try {
+      const r = await fetch('/inventory/asset-categories/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
+        credentials: 'same-origin',
+      });
+      if (r.ok) {
+        const d = await r.json();
+        window._invAssetCats = d.asset_categories || d.categories || (Array.isArray(d) ? d : []);
+      }
+    } catch (e) { console.error('bulkAdd: failed to load cats', e); }
+  }
+  BULK.cats = window._invAssetCats || [];
+
+  /* seed 3 empty rows */
+  _bulkAddRow();
+  _bulkAddRow();
+  _bulkAddRow();
+};
+
+/* ── Modal skeleton ── */
+function _bulkModalHtml(location) {
+  const locBanner = location
+    ? `<div style="display:flex;align-items:center;gap:7px;padding:7px 18px 0;font-size:12px;color:var(--text-2);">
+         <i class="fas fa-map-marker-alt" style="color:var(--blue,#1a56db);font-size:11px;"></i>
+         Adding to: <strong>${escapeHtml(location)}</strong>
+       </div>`
+    : '';
+
+  return `
+  <div class="modal-box" style="max-width:1100px;width:98vw;">
+
+    <div class="modal-head">
+      <strong style="display:flex;align-items:center;gap:8px;">
+        <span style="width:28px;height:28px;border-radius:7px;background:var(--blue-bg,#e8f0fe);
+                     display:flex;align-items:center;justify-content:center;">
+          <i class="fas fa-layer-group" style="font-size:12px;color:var(--blue,#1a56db);"></i>
+        </span>
+        Bulk Add Assets
+      </strong>
+      <button class="modal-close" onclick="_astCloseModal('invBulkAddModal')">✕</button>
+    </div>
+
+    ${locBanner}
+
+    <!-- Tab bar -->
+    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 18px;margin-top:4px;">
+      <button id="bulkTabManual" onclick="bulkSwitchTab('manual')"
+              style="padding:9px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;
+                     border-bottom:2px solid var(--blue,#1a56db);color:var(--blue,#1a56db);margin-bottom:-1px;">
+        <i class="fas fa-list"></i> Manual entry
+      </button>
+      <button id="bulkTabUpload" onclick="bulkSwitchTab('upload')"
+              style="padding:9px 16px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;
+                     border-bottom:2px solid transparent;color:var(--text-2);margin-bottom:-1px;">
+        <i class="fas fa-file-upload"></i> Import from file
+      </button>
+    </div>
+
+    <!-- ── MANUAL TAB ── -->
+    <div id="bulkPaneManual" class="modal-body" style="padding:14px 18px;max-height:58vh;overflow-y:auto;">
+      <div style="display:grid;grid-template-columns:1.6fr 1.2fr 1fr 1fr 1fr 1fr auto;
+                  gap:6px;margin-bottom:5px;padding:0 2px;">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Asset name *</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Category *</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Serial no.</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Price</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Warranty end</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);">Next maint.</span>
+        <span></span>
+      </div>
+      <div id="bulkRowsContainer"></div>
+      <button onclick="bulkAddRow()"
+              style="margin-top:8px;background:none;border:1px dashed var(--border);border-radius:6px;
+                     width:100%;padding:7px;font-size:12px;color:var(--text-3);cursor:pointer;
+                     display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;"
+              onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">
+        <i class="fas fa-plus"></i> Add another row
+      </button>
+    </div>
+
+    <!-- ── UPLOAD TAB ── -->
+    <div id="bulkPaneUpload" class="modal-body" style="padding:18px;display:none;">
+      <div id="bulkDropZone"
+           style="border:2px dashed var(--border);border-radius:10px;padding:32px 24px;
+                  text-align:center;cursor:pointer;transition:border-color .2s,background .2s;"
+           onclick="document.getElementById('bulkFileInput').click()"
+           ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='var(--blue-bg,#e8f0fe)20'"
+           ondragleave="this.style.borderColor='var(--border)';this.style.background=''"
+           ondrop="bulkHandleDrop(event)">
+        <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--text-3);display:block;margin-bottom:10px;"></i>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1);margin-bottom:4px;">
+          Drop a file here, or click to browse
+        </div>
+        <div style="font-size:11px;color:var(--text-3);">
+          Supports CSV, TXT, and Excel (.xlsx / .xls) — first column is read as asset names
+        </div>
+        <input type="file" id="bulkFileInput" accept=".csv,.txt,.xlsx,.xls"
+               style="display:none;" onchange="bulkHandleFile(this.files[0])">
+      </div>
+      <div id="bulkParseStatus" style="margin-top:12px;display:none;"></div>
+      <div id="bulkUploadPreview" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer" style="justify-content:space-between;align-items:center;">
+      <span id="bulkRowCount" style="font-size:12px;color:var(--text-3);">3 assets</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="_astCloseModal('invBulkAddModal')">Cancel</button>
+        <button class="btn btn-primary" id="bulkSubmitBtn" onclick="invSubmitBulk()">
+          <i class="fas fa-save"></i> Add all assets
+        </button>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+/* ── Tab switching ── */
+window.bulkSwitchTab = function (tab) {
+  const manual = document.getElementById('bulkPaneManual');
+  const upload = document.getElementById('bulkPaneUpload');
+  const tMan   = document.getElementById('bulkTabManual');
+  const tUp    = document.getElementById('bulkTabUpload');
+  if (!manual || !upload) return;
+
+  if (tab === 'manual') {
+    manual.style.display = '';
+    upload.style.display = 'none';
+    tMan.style.borderBottomColor = 'var(--blue,#1a56db)'; tMan.style.color = 'var(--blue,#1a56db)';
+    tUp.style.borderBottomColor  = 'transparent';         tUp.style.color  = 'var(--text-2)';
+  } else {
+    manual.style.display = 'none';
+    upload.style.display = '';
+    tMan.style.borderBottomColor = 'transparent';         tMan.style.color = 'var(--text-2)';
+    tUp.style.borderBottomColor  = 'var(--blue,#1a56db)'; tUp.style.color  = 'var(--blue,#1a56db)';
+  }
+};
+
+/* ── Category options helper ── */
+function _catOptions() {
+  const cats = window._invAssetCats || [];
+  if (!cats.length) return '<option value="">— no categories —</option>';
+  return '<option value="">— Category —</option>' +
+    cats.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+/* ── Manual rows ── */
+function _bulkAddRow() {
+  const id  = BULK.nextId++;
+  BULK.rows.push({ _id: id, name: '', catId: '', serial: '', price: '', warranty: '', nextMaint: '' });
+
+  const container = document.getElementById('bulkRowsContainer');
+  if (!container) return;
+
+  const div = document.createElement('div');
+  div.id    = `bulkRow_${id}`;
+  div.style.cssText = 'display:grid;grid-template-columns:1.6fr 1.2fr 1fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:5px;align-items:center;';
+  div.innerHTML = `
+    <input class="form-control" style="font-size:12px;padding:5px 8px;" placeholder="e.g. Laptop Dell XPS"
+           oninput="bulkRowUpdate(${id},'name',this.value)">
+    <select class="form-control" style="font-size:12px;padding:5px 8px;"
+            onchange="bulkRowUpdate(${id},'catId',this.value)">
+      ${_catOptions()}
+    </select>
+    <input class="form-control" style="font-size:12px;padding:5px 8px;" placeholder="Optional"
+           oninput="bulkRowUpdate(${id},'serial',this.value)">
+    <input class="form-control" style="font-size:12px;padding:5px 8px;" placeholder="0.00" type="number" min="0" step="0.01"
+           oninput="bulkRowUpdate(${id},'price',this.value)">
+    <input class="form-control" style="font-size:12px;padding:5px 8px;" type="date"
+           oninput="bulkRowUpdate(${id},'warranty',this.value)">
+    <input class="form-control" style="font-size:12px;padding:5px 8px;" type="date"
+           oninput="bulkRowUpdate(${id},'nextMaint',this.value)">
+    <button onclick="bulkRemoveRow(${id})" title="Remove row"
+            style="background:none;border:1px solid var(--border);border-radius:5px;
+                   padding:4px 7px;cursor:pointer;color:var(--text-3);font-size:11px;"
+            onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">
+      <i class="fas fa-times"></i>
+    </button>`;
+  container.appendChild(div);
+  _bulkUpdateCount();
+}
+
+window.bulkAddRow    = _bulkAddRow;
+
+window.bulkRemoveRow = function (id) {
+  BULK.rows = BULK.rows.filter(r => r._id !== id);
+  document.getElementById(`bulkRow_${id}`)?.remove();
+  _bulkUpdateCount();
+};
+
+window.bulkRowUpdate = function (id, field, value) {
+  const row = BULK.rows.find(r => r._id === id);
+  if (row) row[field] = value;
+};
+
+function _bulkUpdateCount() {
+  const el    = document.getElementById('bulkRowCount');
+  const rows  = _allBulkRows();
+  const n     = rows.length;
+  if (el) el.textContent = `${n} asset${n !== 1 ? 's' : ''}`;
+}
+
+/* ── File upload + parsing ── */
+window.bulkHandleDrop = function (ev) {
+  ev.preventDefault();
+  const dz = document.getElementById('bulkDropZone');
+  if (dz) { dz.style.borderColor = 'var(--border)'; dz.style.background = ''; }
+  const file = ev.dataTransfer?.files?.[0];
+  if (file) bulkHandleFile(file);
+};
+
+window.bulkHandleFile = async function (file) {
+  if (!file) return;
+  _bulkShowParseStatus('loading', `Reading "${escapeHtml(file.name)}"…`);
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  try {
+    let rows = [];
+    if (ext === 'csv' || ext === 'txt') {
+      rows = await _parseTextFile(file);
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      rows = await _parseExcelFile(file);
+    } else {
+      _bulkShowParseStatus('error', 'Unsupported file type. Please use CSV, TXT, or Excel (.xlsx/.xls).');
+      return;
+    }
+
+    rows = rows.filter(r => r.name);
+
+    if (!rows.length) {
+      _bulkShowParseStatus('error', 'No asset names found. Make sure names are in the first column.');
+      return;
+    }
+
+    _bulkShowParseStatus('success', `Found ${rows.length} asset${rows.length > 1 ? 's' : ''}. Assign categories below.`);
+    _bulkRenderUploadPreview(rows);
+
+  } catch (e) {
+    console.error('bulkHandleFile error:', e);
+    _bulkShowParseStatus('error', `Could not parse file: ${escapeHtml(e.message)}`);
+  }
+};
+
+async function _parseTextFile(file) {
+  const text  = await file.text();
+  const lines = text.split(/\r?\n/);
+  const skip  = new Set(['name', 'asset name', 'asset', 'item', 'item name', 'description']);
+  const rows  = [];
+  for (const line of lines) {
+    const cols = line.split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
+    const name = cols[0];
+    if (name && !skip.has(name.toLowerCase())) {
+      rows.push({
+        name,
+        serial:    cols[1] || '',
+        price:     cols[2] || '',
+        warranty:  cols[3] || '',
+        nextMaint: cols[4] || '',
+      });
+    }
+  }
+  return rows;
+}
+
+async function _parseExcelFile(file) {
+  if (!window.XLSX) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  const ab   = await file.arrayBuffer();
+  const wb   = XLSX.read(ab, { type: 'array' });
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  const skip = new Set(['name', 'asset name', 'asset', 'item', 'item name', 'description']);
+  const rows = [];
+  for (const row of data) {
+    const name = String(row[0] || '').trim();
+    if (name && !skip.has(name.toLowerCase())) {
+      rows.push({
+        name,
+        serial:    String(row[1] || '').trim(),
+        price:     String(row[2] || '').trim(),
+        warranty:  String(row[3] || '').trim(),
+        nextMaint: String(row[4] || '').trim(),
+      });
+    }
+  }
+  return rows;
+}
+
+function _bulkShowParseStatus(type, msg) {
+  const el = document.getElementById('bulkParseStatus');
+  if (!el) return;
+  el.style.display = '';
+  const color = { loading:'var(--blue,#1a56db)', success:'var(--green,#1a7a4a)', error:'var(--red,#b91c1c)' }[type] || 'var(--text-2)';
+  const icon  = { loading:'fa-spinner fa-spin', success:'fa-check-circle', error:'fa-exclamation-circle' }[type];
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;
+                background:var(--surface-2);border:1px solid var(--border);font-size:12px;">
+      <i class="fas ${icon}" style="color:${color};flex-shrink:0;"></i>
+      <span style="color:var(--text-1);">${msg}</span>
+    </div>`;
+}
+
+function _bulkRenderUploadPreview(rows) {
+  const container = document.getElementById('bulkUploadPreview');
+  if (!container) return;
+
+  BULK.uploadRows = rows.map((r, i) => ({
+    _uid:      i,
+    name:      r.name,
+    catId:     '',
+    serial:    r.serial    || '',
+    price:     r.price     || '',
+    warranty:  r.warranty  || '',
+    nextMaint: r.nextMaint || '',
+  }));
+
+  container.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                color:var(--text-3);margin-bottom:6px;">
+      Assign categories before adding
+    </div>
+    <!-- Global apply row -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--text-3);white-space:nowrap;">Apply category to all:</span>
+      <select id="bulkUploadGlobalCat" class="form-control" style="font-size:12px;width:auto;flex:1;max-width:200px;">
+        ${_catOptions()}
+      </select>
+      <button class="btn btn-outline btn-xs" onclick="bulkUploadSetAllCat()">Apply to all</button>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:320px;overflow-y:auto;">
+      <!-- Header -->
+      <div style="display:grid;grid-template-columns:1.4fr 1.2fr 1fr 1fr 1fr 1fr auto;gap:6px;
+                  padding:7px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Name</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Category *</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Serial no.</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Price</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Warranty end</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);">Next maint.</span>
+        <span></span>
+      </div>
+      <div id="bulkUploadRows">
+        ${BULK.uploadRows.map(r => _bulkUploadRowHtml(r)).join('')}
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-3);">
+      <i class="fas fa-info-circle"></i>
+      CSV/Excel column order: Name, Serial, Price, Warranty end (YYYY-MM-DD), Next maintenance (YYYY-MM-DD)
+    </div>`;
+
+  _bulkUpdateCount();
+}
+
+function _bulkUploadRowHtml(r) {
+  return `
+    <div id="bulkUpRow_${r._uid}"
+         style="display:grid;grid-template-columns:1.4fr 1.2fr 1fr 1fr 1fr 1fr auto;gap:6px;
+                padding:7px 12px;border-bottom:1px solid var(--border);align-items:center;">
+      <span style="font-size:12px;font-weight:600;color:var(--text-1);
+                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+            title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</span>
+      <select class="form-control" style="font-size:12px;padding:4px 6px;"
+              onchange="bulkUploadRowUpdate(${r._uid},'catId',this.value)">
+        ${_catOptions()}
+      </select>
+      <input class="form-control" style="font-size:12px;padding:4px 6px;" placeholder="Optional"
+             oninput="bulkUploadRowUpdate(${r._uid},'serial',this.value)"
+             value="${escapeHtml(r.serial || '')}">
+      <input class="form-control" style="font-size:12px;padding:4px 6px;" placeholder="0.00"
+             type="number" min="0" step="0.01"
+             oninput="bulkUploadRowUpdate(${r._uid},'price',this.value)"
+             value="${escapeHtml(r.price || '')}">
+      <input class="form-control" style="font-size:12px;padding:4px 6px;" type="date"
+             oninput="bulkUploadRowUpdate(${r._uid},'warranty',this.value)"
+             value="${escapeHtml(r.warranty || '')}">
+      <input class="form-control" style="font-size:12px;padding:4px 6px;" type="date"
+             oninput="bulkUploadRowUpdate(${r._uid},'nextMaint',this.value)"
+             value="${escapeHtml(r.nextMaint || '')}">
+      <button onclick="bulkUploadRemoveRow(${r._uid})"
+              style="background:none;border:1px solid var(--border);border-radius:5px;
+                     padding:3px 7px;cursor:pointer;color:var(--text-3);font-size:11px;"
+              onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+              onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>`;
+}
+
+window.bulkUploadRowUpdate = function (uid, field, value) {
+  const r = (BULK.uploadRows || []).find(x => x._uid === uid);
+  if (r) r[field] = value;
+};
+
+window.bulkUploadRemoveRow = function (uid) {
+  BULK.uploadRows = (BULK.uploadRows || []).filter(r => r._uid !== uid);
+  document.getElementById(`bulkUpRow_${uid}`)?.remove();
+  _bulkUpdateCount();
+};
+
+window.bulkUploadSetAllCat = function () {
+  const catId = document.getElementById('bulkUploadGlobalCat')?.value || '';
+  if (!catId) { toast('Pick a category first', 'error'); return; }
+  (BULK.uploadRows || []).forEach(r => {
+    r.catId = catId;
+    const sel = document.querySelector(`#bulkUpRow_${r._uid} select`);
+    if (sel) sel.value = catId;
+  });
+};
+
+/* ── Which rows are active based on current tab ── */
+function _allBulkRows() {
+  const uploadPane = document.getElementById('bulkPaneUpload');
+  const isUpload   = uploadPane && uploadPane.style.display !== 'none';
+  return isUpload ? (BULK.uploadRows || []) : BULK.rows;
+}
+
+/* ── Submit all rows ── */
+window.invSubmitBulk = async function () {
+  const rows = _allBulkRows();
+
+  if (!rows.length) { toast('Add at least one asset', 'error'); return; }
+  if (rows.some(r => !r.name?.trim())) { toast('Every row needs an asset name', 'error'); return; }
+  const noCat = rows.filter(r => !r.catId);
+  if (noCat.length) {
+    toast(`Assign a category to all ${noCat.length} row${noCat.length > 1 ? 's' : ''}`, 'error');
+    return;
+  }
+
+  const btn = document.getElementById('bulkSubmitBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding…'; }
+
+  const { location, iconType, roomId } = BULK.locCtx || {};
+
+  const assets = rows.map(r => {
+    const p = {
+      name:              r.name.trim(),
+      asset_category_id: parseInt(r.catId),
+      serial_number:     r.serial?.trim()    || '',
+      purchase_cost:     parseFloat(r.price) || 0,
+      warranty_end:      r.warranty?.trim()  || null,
+      next_maintenance:  r.nextMaint?.trim() || null,
+      area:              '',
+    };
+    if (iconType === 'area' && location) p.area    = location;
+    if (iconType === 'room' && roomId)   p.room_id = parseInt(roomId);
+    return p;
+  });
+
+  try {
+    const r = await fetch('/inventory/assets/bulk-add/', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body:    JSON.stringify({ assets }),
+    });
+
+    const data = await r.json().catch(() => ({}));
+
+    if (r.ok && data.success) {
+      const msg = data.errors?.length
+        ? `${data.count} added, ${data.errors.length} failed`
+        : `${data.count} asset${data.count > 1 ? 's' : ''} added successfully!`;
+      toast(msg, data.errors?.length ? 'warning' : 'success');
+      _astCloseModal('invBulkAddModal');
+      await loadAssets();
+      if (AST?.view === 'location') await astRenderLocationCards();
+      if (data.errors?.length) data.errors.forEach(e => console.error('bulkAdd error:', e));
+    } else {
+      toast(data.error || 'Failed to add assets', 'error');
+    }
+  } catch (e) {
+    console.error('invSubmitBulk error:', e);
+    toast('Network error', 'error');
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Add all assets'; }
+};
+/* ══════════════════════════════════════════════════════════════════════
+   ASSIGN EXISTING ASSET TO A LOCATION
+══════════════════════════════════════════════════════════════════════ */
+window.invOpenAssignAssetModal = async function(location, iconType, roomId) {
+  if (!window._invAssets || !window._invAssets.length) {
+    try {
+      const r = await fetch('/inventory/assets/', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() },
+        credentials: 'same-origin',
+      });
+      if (r.ok) {
+        const d   = await r.json();
+        const raw = d?.assets || (Array.isArray(d) ? d : []);
+        window._invAssets = raw.map(a => ({
+          id:       a.id,
+          name:     a.name,
+          type:     a.type,
+          status:   a.status,
+          location: a.location,
+          area:     a.area,
+          room_id:  a.room_id,
+        }));
+      }
+    } catch (e) {
+      console.error('invOpenAssignAssetModal: failed to fetch assets', e);
+      toast('Could not load asset list', 'error');
+      return;
+    }
+  }
+
+  let modal = document.getElementById('invAssignAssetModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id        = 'invAssignAssetModal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  const all      = window._invAssets || [];
+  const locLabel = location || 'Unassigned';
+
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-head">
+        <strong><i class="fas fa-link"></i> Assign Asset → ${escapeHtml(locLabel)}</strong>
+        <button class="modal-close" onclick="_astCloseModal('invAssignAssetModal')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:16px;">
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;
+                      text-transform:uppercase;letter-spacing:.04em;">Filter assets</div>
+          <div style="display:flex;gap:8px;">
+            <div style="position:relative;flex:1;">
+              <i class="fas fa-search" style="position:absolute;left:9px;top:50%;
+                 transform:translateY(-50%);color:var(--text-3);font-size:11px;pointer-events:none;"></i>
+              <input type="text" id="assignAssetSearch" class="form-control"
+                     placeholder="Search by name…" style="padding-left:28px;font-size:12px;"
+                     oninput="invFilterAssignList()">
+            </div>
+            <select id="assignAssetStatusFilter" class="form-control"
+                    style="width:auto;font-size:12px;" onchange="invFilterAssignList()">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:.04em;">
+          Select one asset to assign
+        </div>
+        <div id="assignAssetList"
+             style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+          ${_buildAssignList(all)}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="_astCloseModal('invAssignAssetModal')">Cancel</button>
+        <button class="btn btn-primary" id="assignAssetSubmitBtn" onclick="invSubmitAssignAsset()">
+          <i class="fas fa-save"></i> Assign
+        </button>
+      </div>
+    </div>`;
+
+  window._assignCtx = { location, iconType, roomId: roomId || null, allAssets: all };
+  _astOpenModal('invAssignAssetModal');
+};
+
+function _buildAssignList(assets) {
+  if (!assets || !assets.length) {
+    return `<div style="padding:20px;text-align:center;color:var(--text-3);">
+      <i class="fas fa-inbox" style="display:block;font-size:1.5rem;margin-bottom:8px;"></i>
+      No assets available</div>`;
+  }
+  const scls = {
+    active:      'asset-status-active',
+    maintenance: 'asset-status-maintenance',
+    inactive:    'asset-status-inactive',
+    disposed:    'asset-status-disposed',
+  };
+  return assets.map(a => `
+    <label style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+                  border-bottom:1px solid var(--border);transition:background .15s;"
+           onmouseover="this.style.background='var(--surface-2)'"
+           onmouseout="this.style.background=''">
+      <input type="radio" name="assignAssetPick" value="${a.id}"
+             style="flex-shrink:0;accent-color:var(--blue);width:15px;height:15px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-1);
+                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${escapeHtml(a.name)}
+        </div>
+        <div style="font-size:11px;color:var(--text-3);">
+          ${escapeHtml(a.type || '—')} &nbsp;·&nbsp; Currently: ${escapeHtml(a.location || 'Unassigned')}
+        </div>
+      </div>
+      <span class="${scls[a.status] || 'b-gray'}" style="flex-shrink:0;">
+        ${escapeHtml(a.status || '—')}
+      </span>
+    </label>`).join('');
+}
+
+function invFilterAssignList() {
+  const search  = (document.getElementById('assignAssetSearch')?.value || '').toLowerCase().trim();
+  const statusF = document.getElementById('assignAssetStatusFilter')?.value || '';
+  let assets    = window._assignCtx?.allAssets || [];
+  if (search)  assets = assets.filter(a => (a.name || '').toLowerCase().includes(search));
+  if (statusF) assets = assets.filter(a => a.status === statusF);
+  const list = document.getElementById('assignAssetList');
+  if (list) list.innerHTML = _buildAssignList(assets);
+}
+
+async function invSubmitAssignAsset() {
+  const picked = document.querySelector('#assignAssetList input[name="assignAssetPick"]:checked');
+  if (!picked) { toast('Select an asset first', 'error'); return; }
+
+  const { location, iconType, roomId } = window._assignCtx || {};
+  const assetId = parseInt(picked.value);
+
+  const btn = document.getElementById('assignAssetSubmitBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+
+  try {
+    const payload = { asset_ids: [assetId] };
+    if (iconType === 'area') { payload.area     = location; }
+    else if (roomId)         { payload.room_id  = parseInt(roomId); }
+    else                     { payload.location = location; }
+
+    console.log('invSubmitAssignAsset payload:', payload);
+
+    const r = await fetch('/inventory/assets/assign-room/', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body:    JSON.stringify(payload),
+    });
+    let data = {};
+    try { data = await r.json(); } catch (_) {}
+
+    if (r.ok && data.success) {
+      toast('Asset assigned successfully', 'success');
+      _astCloseModal('invAssignAssetModal');
+      await loadAssets();
+      if (AST.view === 'location') await astRenderLocationCards();
+    } else {
+      toast(data.error || `Server error ${r.status}`, 'error');
+      console.error('assign-room response:', r.status, data);
+    }
+  } catch (e) {
+    console.error('invSubmitAssignAsset error:', e);
+    toast('Network error', 'error');
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Assign'; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SWITCH TABLE VIEW FILTERED BY LOCATION
+══════════════════════════════════════════════════════════════════════ */
+function astViewLocationAll(locationLabel) {
+  astSwitchView('all');
+  const search = document.getElementById('ast-search');
+  if (search) { search.value = locationLabel; }
   invFilterAssetTable();
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   FILTER / SEARCH HELPERS
+══════════════════════════════════════════════════════════════════════ */
+function astOnSearch() {
+  AST.page = 1;
+  if (AST.view === 'location') astRenderLocationCards();
+  else invFilterAssetTable();
+}
+
+function astOnFilterChange() {
+  AST.page = 1;
+  if (AST.view === 'location') astRenderLocationCards();
+  else invFilterAssetTable();
+}
+
+function astSetStatus(status, btn) {
+  AST.statusF = status;
+  document.querySelectorAll('.ast-status-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  AST.page = 1;
+  if (AST.view === 'location') astRenderLocationCards();
+  else invFilterAssetTable();
+}
+
+function resetAssetFilters() {
+  const s = document.getElementById('ast-search');      if (s) s.value = '';
+  const d = document.getElementById('ast-dept-filter'); if (d) d.value = '';
+  AST.statusF = '';
+  AST.page    = 1;
+  document.querySelectorAll('.ast-status-chip').forEach(b => b.classList.remove('active'));
+  document.querySelector('.ast-status-chip[data-status=""]')?.classList.add('active');
+  if (AST.view === 'location') astRenderLocationCards();
+  else invFilterAssetTable();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TABLE RENDERER
+══════════════════════════════════════════════════════════════════════ */
 function invFilterAssetTable() {
   const search = (document.getElementById('ast-search')?.value || '').toLowerCase().trim();
-  const deptF = document.getElementById('ast-dept-filter')?.value || '';
-  const catF = document.getElementById('ast-cat-filter')?.value || '';
+  const deptF  = document.getElementById('ast-dept-filter')?.value || '';
+  const catF   = document.getElementById('ast-cat-filter')?.value  || '';
 
   let rows = window._invAssets || [];
-  
-  if (window.AST && window.AST.statusF) rows = rows.filter(a => a.status === window.AST.statusF);
-  if (deptF) rows = rows.filter(a => (a.department || '') === deptF);
-  if (catF) rows = rows.filter(a => String(a.category_id) === String(catF));
-  if (search) rows = rows.filter(a =>
+
+  if (AST.statusF) rows = rows.filter(a => a.status === AST.statusF);
+  if (deptF)       rows = rows.filter(a => (a.department || '') === deptF);
+  if (catF)        rows = rows.filter(a => String(a.category_id) === String(catF));
+  if (search)      rows = rows.filter(a =>
     (a.name || '').toLowerCase().includes(search) ||
     (a.serial_number || '').toLowerCase().includes(search)
   );
 
   const perPage = parseInt(document.getElementById('astPageSize')?.value) || 25;
-  const pages = Math.ceil(rows.length / perPage) || 1;
-  if (window.AST) window.AST.page = Math.max(1, Math.min(window.AST.page, pages));
-  const currentPage = window.AST ? window.AST.page : 1;
-  const slice = rows.slice((currentPage - 1) * perPage, currentPage * perPage);
+  const pages   = Math.ceil(rows.length / perPage) || 1;
+  AST.page      = Math.max(1, Math.min(AST.page, pages));
+  const slice   = rows.slice((AST.page - 1) * perPage, AST.page * perPage);
 
-  const cnt = document.getElementById('astRowCount');
-  if (cnt) cnt.textContent = `${rows.length} asset${rows.length !== 1 ? 's' : ''}`;
-  
+  const cnt    = document.getElementById('astRowCount');
   const pgInfo = document.getElementById('astPgInfo');
-  if (pgInfo) pgInfo.textContent = `Page ${currentPage} of ${pages}`;
+  if (cnt)    cnt.textContent    = `${rows.length} asset${rows.length !== 1 ? 's' : ''}`;
+  if (pgInfo) pgInfo.textContent = `Page ${AST.page} of ${pages}`;
 
   const today = new Date().toISOString().split('T')[0];
-  const scls = {
-    active: 'asset-status-active',
+  const scls  = {
+    active:      'asset-status-active',
     maintenance: 'asset-status-maintenance',
-    inactive: 'asset-status-inactive',
-    disposed: 'asset-status-disposed'
+    inactive:    'asset-status-inactive',
+    disposed:    'asset-status-disposed',
   };
 
   const tbody = document.getElementById('inv-assets-tbody');
   if (!tbody) return;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-muted)"><i class="fas fa-server"></i> No assets found</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text-muted);">
+      <i class="fas fa-server"></i> No assets found</td></tr>`;
     _astRenderPag(pages);
     return;
   }
 
   tbody.innerHTML = slice.map(a => {
-    // FIX: Use 'type' from backend, not 'asset_type'
-    const assetType = a.type || a.asset_type || '—';
-    const department = a.department || '—';
-    const location = a.location || a.area || '—';
+    const assetType    = a.type || a.asset_type || '—';
+    const department   = a.department    || '—';
     const serialNumber = a.serial_number || '—';
     const purchaseCost = a.purchase_cost || 0;
-    
-    // FIX: Use 'warranty_end' from backend, not 'warranty_end_date'
+    const location     = a.location      || '—';
+
     let wCls = 'warranty-none', wTxt = '—';
     if (a.warranty_end) {
       wTxt = a.warranty_end;
-      const warrantyDate = new Date(a.warranty_end);
-      const todayDate = new Date(today);
-      wCls = warrantyDate >= todayDate ? 'warranty-active' : 'warranty-expired';
+      wCls = new Date(a.warranty_end) >= new Date(today) ? 'warranty-active' : 'warranty-expired';
     }
-    
-    // FIX: Use 'next_maintenance' from backend, not 'next_maintenance_date'
+
     let mCls = 'maint-due-none', mTxt = '—';
     if (a.next_maintenance) {
       mTxt = a.next_maintenance;
-      const maintDate = new Date(a.next_maintenance);
-      const todayDate = new Date(today);
-      if (maintDate < todayDate) {
-        mCls = 'maint-due-overdue';
-      } else {
-        const diff = Math.ceil((maintDate - todayDate) / 86400000);
-        mCls = diff <= 7 ? 'maint-due-soon' : 'maint-due-ok';
-      }
+      const diff = Math.ceil((new Date(a.next_maintenance) - new Date(today)) / 86400000);
+      mCls = diff < 0 ? 'maint-due-overdue' : diff <= 7 ? 'maint-due-soon' : 'maint-due-ok';
     }
-    
+
     return `<tr>
       <td><strong style="font-size:.82rem">${escapeHtml(a.name)}</strong></td>
       <td style="font-size:.73rem">${escapeHtml(assetType)}</td>
       <td style="font-size:.73rem">${escapeHtml(department)}</td>
-      <td style="font-size:.73rem;color:var(--text-muted)">${escapeHtml(location)}</td>
+      <td style="font-size:.73rem;color:var(--text-muted);max-width:160px;
+                 white-space:normal;line-height:1.4">${escapeHtml(location)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.72rem">${escapeHtml(serialNumber)}</td>
       <td style="font-weight:700">${_iFmt(purchaseCost)}</td>
       <td><span class="${wCls}">${escapeHtml(wTxt)}</span></td>
       <td><span class="maint-due-pill ${mCls}">${escapeHtml(mTxt)}</span></td>
       <td><span class="${scls[a.status] || 'b-gray'}">${escapeHtml(a.status || '—')}</span></td>
       <td style="white-space:nowrap">
-       
-        </button>
         <button class="btn btn-outline btn-xs"
                 onclick="invOpenAssetStatusModal(${a.id},'${escapeHtml(a.name)}','${escapeHtml(a.status)}')">
           <i class="fas fa-exchange-alt"></i>
@@ -22203,237 +24480,213 @@ function invFilterAssetTable() {
   _astRenderPag(pages);
 }
 
-function _astRenderPag(pages){
-  const prev=document.getElementById('astPrevBtn');
-  const next=document.getElementById('astNextBtn');
-  const nums=document.getElementById('astPageNums');
-  if(prev) prev.disabled=(AST.page<=1);
-  if(next) next.disabled=(AST.page>=pages);
-  if(nums){
-    let h='';
-    for(let i=1;i<=pages;i++){
-      h+=`<button class="pg-btn ${i===AST.page?'active':''}" onclick="astGoPage(${i})">${i}</button>`;
+function _astRenderPag(pages) {
+  const prev = document.getElementById('astPrevBtn');
+  const next  = document.getElementById('astNextBtn');
+  const nums  = document.getElementById('astPageNums');
+  if (prev) prev.disabled = (AST.page <= 1);
+  if (next) next.disabled = (AST.page >= pages);
+  if (nums) {
+    let h = '';
+    for (let i = 1; i <= pages; i++) {
+      h += `<button class="pg-btn ${i === AST.page ? 'active' : ''}" onclick="astGoPage(${i})">${i}</button>`;
     }
-    nums.innerHTML=h;
+    nums.innerHTML = h;
   }
 }
-function astGoPage(p){ AST.page=p; invFilterAssetTable(); }
-function resetAssetFilters(){
-  ['ast-search','ast-dept-filter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  AST.statusF=''; AST.page=1;
-  document.querySelectorAll('.ast-status-chip').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.ast-status-chip[data-status=""]')?.classList.add('active');
+
+function astGoPage(p) {
+  AST.page = p;
   invFilterAssetTable();
 }
 
-/* ── Open Add Asset Modal ── */
-// Update button onclick to call this function instead
-// Make sure this function is defined (it should load the categories)
-window.invOpenAddAssetModal = async function() {
-  console.log('Opening Add Asset modal...');
-  
+/* ══════════════════════════════════════════════════════════════════════
+   ADD ASSET MODAL (single, kept for backward compat)
+══════════════════════════════════════════════════════════════════════ */
+window.invOpenAddAssetModal = async function () {
+  const oldHint = document.getElementById('invAssetLocHint');
+  if (oldHint) oldHint.remove();
+
   const cSel = document.getElementById('invAssetCatSel');
   const dSel = document.getElementById('invAssetDeptSel');
   const vSel = document.getElementById('invAssetVendorSel');
-  
-  // Show loading states immediately
-  if (cSel) cSel.innerHTML = '<option value="">⏳ Loading categories…</option>';
-  if (dSel) dSel.innerHTML = '<option value="">⏳ Loading departments…</option>';
-  if (vSel) vSel.innerHTML = '<option value="">⏳ Loading vendors…</option>';
-  
-  // Reset form fields
-  ['invAssetName', 'invAssetArea', 'invAssetSerial', 'invAssetNotes'].forEach(id => {
+
+  if (cSel) cSel.innerHTML = '<option value="">⏳ Loading…</option>';
+  if (dSel) dSel.innerHTML = '<option value="">⏳ Loading…</option>';
+  if (vSel) vSel.innerHTML = '<option value="">⏳ Loading…</option>';
+
+  ['invAssetName','invAssetArea','invAssetSerial','invAssetNotes'].forEach(id => {
     const e = document.getElementById(id); if (e) e.value = '';
   });
-  ['invAssetPurchaseDate', 'invAssetWarranty', 'invAssetNextMaint'].forEach(id => {
+  ['invAssetPurchaseDate','invAssetWarranty','invAssetNextMaint'].forEach(id => {
     const e = document.getElementById(id); if (e) e.value = '';
   });
   const costEl = document.getElementById('invAssetCost');
   if (costEl) costEl.value = '0';
-  
-  // Open modal first so user sees loading state
-  openModal('invAddAssetModal');
-  
-  const headers = {
-    'X-Requested-With': 'XMLHttpRequest',
-    'X-CSRFToken': getCsrf(),
-  };
-  const opts = { headers, credentials: 'same-origin' };
-  
+
+  _astOpenModal('invAddAssetModal');
+
+  const headers = { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf() };
+  const opts    = { headers, credentials: 'same-origin' };
+
   try {
-    // Fetch all three data sources in parallel
     const [catRes, deptRes, vendorRes] = await Promise.all([
       fetch('/inventory/asset-categories/', opts),
-      fetch('/get-departments/', opts),
-      fetch('/inventory/vendors/', opts),
+      fetch('/get-departments/',            opts),
+      fetch('/inventory/vendors/',          opts),
     ]);
-    
-    // Parse asset categories - FIX: Look for "asset_categories" key
-    let assetCats = [];
+
+    let assetCats = [], depts = [], vendors = [];
+
     if (catRes.ok) {
-      const cData = await catRes.json();
-      // Your API returns "asset_categories", not "categories"
-      assetCats = cData.asset_categories || cData.categories || (Array.isArray(cData) ? cData : []);
+      const d = await catRes.json();
+      assetCats = d.asset_categories || d.categories || (Array.isArray(d) ? d : []);
       window._invAssetCats = assetCats;
-      console.log('Loaded asset categories:', assetCats.length, assetCats);
-    } else {
-      console.error('Failed to load asset categories:', catRes.status);
     }
-    
-    // Parse departments
-    let depts = [];
     if (deptRes.ok) {
-      const dData = await deptRes.json();
-      depts = dData.departments || (Array.isArray(dData) ? dData : []);
+      const d = await deptRes.json();
+      depts = d.departments || (Array.isArray(d) ? d : []);
       window.depts = depts;
-      console.log('Loaded departments:', depts.length);
-    } else {
-      console.error('Failed to load departments:', deptRes.status);
     }
-    
-    // Parse vendors
-    let vendors = [];
     if (vendorRes.ok) {
-      const vData = await vendorRes.json();
-      vendors = vData.vendors || (Array.isArray(vData) ? vData : []);
+      const d = await vendorRes.json();
+      vendors = d.vendors || (Array.isArray(d) ? d : []);
       window._invVendors = vendors;
-      console.log('Loaded vendors:', vendors.length);
-    } else {
-      console.error('Failed to load vendors:', vendorRes.status);
     }
-    
-    // Populate category dropdown
+
     if (cSel) {
-      if (assetCats.length) {
-        cSel.innerHTML = '<option value="">— Select Category —</option>';
-        assetCats.forEach(cat => {
-          cSel.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`;
-        });
-        console.log('Category dropdown populated with', assetCats.length, 'options');
-      } else {
-        cSel.innerHTML = '<option value="">⚠ No categories — add one first</option>';
-        console.warn('No asset categories found in database');
-      }
+      cSel.innerHTML = assetCats.length
+        ? '<option value="">— Select Category —</option>'
+        : '<option value="">⚠ No categories yet</option>';
+      assetCats.forEach(c => { cSel.innerHTML += `<option value="${c.id}">${escapeHtml(c.name)}</option>`; });
     }
-    
-    // Populate department dropdown
     if (dSel) {
-      if (depts.length) {
-        dSel.innerHTML = '<option value="">— Optional —</option>';
-        depts.forEach(dept => {
-          dSel.innerHTML += `<option value="${dept.id}">${escapeHtml(dept.name)}</option>`;
-        });
-      } else {
-        dSel.innerHTML = '<option value="">— Optional —</option>';
-      }
+      dSel.innerHTML = '<option value="">— Optional —</option>';
+      depts.forEach(d => { dSel.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)}</option>`; });
     }
-    
-    // Populate vendor dropdown
     if (vSel) {
-      if (vendors.length) {
-        vSel.innerHTML = '<option value="">— Optional —</option>';
-        vendors.forEach(vendor => {
-          vSel.innerHTML += `<option value="${vendor.id}">${escapeHtml(vendor.name)}</option>`;
-        });
-      } else {
-        vSel.innerHTML = '<option value="">— Optional —</option>';
-      }
+      vSel.innerHTML = '<option value="">— Optional —</option>';
+      vendors.forEach(v => { vSel.innerHTML += `<option value="${v.id}">${escapeHtml(v.name)}</option>`; });
     }
-    
-  } catch (error) {
-    console.error('Error loading asset modal data:', error);
-    toast('Failed to load form data. Please try again.', 'error');
-    
-    // Set error states in dropdowns
-    if (cSel) cSel.innerHTML = '<option value="">❌ Failed to load categories</option>';
-    if (dSel) dSel.innerHTML = '<option value="">❌ Failed to load departments</option>';
-    if (vSel) vSel.innerHTML = '<option value="">❌ Failed to load vendors</option>';
-  }
-};
-// Updated invSubmitAsset with better error handling
-window.invSubmitAsset = async function() {
-  const name = document.getElementById('invAssetName')?.value.trim();
-  const catId = document.getElementById('invAssetCatSel')?.value;
-  
-  if (!name) {
-    toast('Asset name required', 'error');
-    return;
-  }
-  
-  if (!catId) {
-    toast('Select a category', 'error');
-    return;
-  }
-  
-  const btn = document.querySelector('#invAddAssetModal .btn-primary');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-  }
-  
-  try {
-    const payload = {
-      name: name,
-      category_id: parseInt(catId),
-      department_id: document.getElementById('invAssetDeptSel')?.value ? parseInt(document.getElementById('invAssetDeptSel').value) : null,
-      location: document.getElementById('invAssetArea')?.value.trim() || '',
-      serial_number: document.getElementById('invAssetSerial')?.value.trim() || '',
-      vendor_id: document.getElementById('invAssetVendorSel')?.value ? parseInt(document.getElementById('invAssetVendorSel').value) : null,
-      purchase_date: document.getElementById('invAssetPurchaseDate')?.value || null,
-      purchase_cost: parseFloat(document.getElementById('invAssetCost')?.value) || 0,
-      warranty_end_date: document.getElementById('invAssetWarranty')?.value || null,
-      next_maintenance_date: document.getElementById('invAssetNextMaint')?.value || null,
-      notes: document.getElementById('invAssetNotes')?.value.trim() || '',
-    };
-    
-    console.log('Submitting asset payload:', payload);
-    
-    const r = await fetch('/inventory/assets/add/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrf(),
-      },
-      body: JSON.stringify(payload),
-    });
-    
-    const data = await r.json();
-    
-    if (r.ok && (data.success || data.id)) {
-      toast(`Asset "${name}" added successfully!`, 'success');
-      closeModal('invAddAssetModal');
-      
-      // Refresh the assets list
-      if (typeof loadAssets === 'function') {
-        await loadAssets();
-      }
-      
-      // Also refresh the maintenance panel if it's open
-      if (document.getElementById('panel-inventory-maintenance')?.classList.contains('active')) {
-        if (typeof loadInventoryMaintenancePanel === 'function') {
-          await loadInventoryMaintenancePanel();
-        }
-      }
-      
-    } else {
-      toast(data.error || 'Failed to add asset', 'error');
-      console.error('Asset add error:', data);
-    }
-    
-  } catch (error) {
-    console.error('Network error adding asset:', error);
-    toast('Network error. Please try again.', 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-save"></i> Add Asset';
-    }
+
+  } catch (err) {
+    console.error('invOpenAddAssetModal error:', err);
+    toast('Failed to load form data', 'error');
+    if (cSel) cSel.innerHTML = '<option value="">❌ Failed to load</option>';
+    if (dSel) dSel.innerHTML = '<option value="">❌ Failed to load</option>';
+    if (vSel) vSel.innerHTML = '<option value="">❌ Failed to load</option>';
   }
 };
 
-// Helper function for escaping HTML
+window.invSubmitAsset = async function () {
+  const name  = document.getElementById('invAssetName')?.value.trim();
+  const catId = document.getElementById('invAssetCatSel')?.value;
+
+  if (!name)  { toast('Asset name required', 'error'); return; }
+  if (!catId) { toast('Select a category',   'error'); return; }
+
+  const btn = document.querySelector('#invAddAssetModal .btn-primary');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+
+  try {
+    const payload = {
+      name,
+      asset_category_id: parseInt(catId),
+      department_id:     document.getElementById('invAssetDeptSel')?.value
+                           ? parseInt(document.getElementById('invAssetDeptSel').value) : null,
+      area:              document.getElementById('invAssetArea')?.value.trim()     || '',
+      serial_number:     document.getElementById('invAssetSerial')?.value.trim()   || '',
+      vendor_id:         document.getElementById('invAssetVendorSel')?.value
+                           ? parseInt(document.getElementById('invAssetVendorSel').value) : null,
+      purchase_date:     document.getElementById('invAssetPurchaseDate')?.value    || null,
+      purchase_cost:     parseFloat(document.getElementById('invAssetCost')?.value) || 0,
+      warranty_end:      document.getElementById('invAssetWarranty')?.value         || null,
+      next_maintenance:  document.getElementById('invAssetNextMaint')?.value        || null,
+      notes:             document.getElementById('invAssetNotes')?.value.trim()     || '',
+    };
+
+    const r    = await fetch('/inventory/assets/add/', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+      body:    JSON.stringify(payload),
+    });
+    const data = await r.json();
+
+    if (r.ok && (data.success || data.id)) {
+      toast(`Asset "${name}" added successfully!`, 'success');
+      _astCloseModal('invAddAssetModal');
+      await loadAssets();
+      if (document.getElementById('panel-inventory-maintenance')?.classList.contains('active')) {
+        if (typeof loadInventoryMaintenancePanel === 'function') await loadInventoryMaintenancePanel();
+      }
+    } else {
+      toast(data.error || 'Failed to add asset', 'error');
+    }
+  } catch (err) {
+    console.error('invSubmitAsset error:', err);
+    toast('Network error. Please try again.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Add Asset'; }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   ASSET STATUS MODAL
+══════════════════════════════════════════════════════════════════════ */
+function invOpenAssetStatusModal(assetId, assetName, currentStatus) {
+  const idEl   = document.getElementById('invAssetStatusId');
+  const nameEl = document.getElementById('invAssetStatusName');
+  const newEl  = document.getElementById('invAssetNewStatus');
+  if (idEl)   idEl.value         = assetId;
+  if (nameEl) nameEl.textContent = `${assetName} · Current: ${currentStatus}`;
+  if (newEl)  newEl.value        = '';
+  document.querySelectorAll('#invAssetStatusModal .rs-status-btn').forEach(b => b.classList.remove('selected'));
+  _astOpenModal('invAssetStatusModal');
+}
+
+function invSelectAssetStatus(btn, status) {
+  document.querySelectorAll('#invAssetStatusModal .rs-status-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('invAssetNewStatus').value = status;
+}
+
+async function invSubmitAssetStatus() {
+  const id     = document.getElementById('invAssetStatusId')?.value;
+  const status = document.getElementById('invAssetNewStatus')?.value;
+  if (!status) { toast('Select a status', 'error'); return; }
+
+  const btn = document.querySelector('#invAssetStatusModal .btn-primary');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+
+  try {
+    const r    = await _iPost(`/inventory/assets/${id}/status/`, {
+      status,
+      notes: document.getElementById('invAssetStatusNotes')?.value || '',
+    });
+    const data = await r.json();
+
+    if (r.ok && (data.success || data.status)) {
+      toast(`Asset status → ${status}`, 'success');
+      _astCloseModal('invAssetStatusModal');
+      const asset = window._invAssets?.find(a => a.id === parseInt(id));
+      if (asset) asset.status = status;
+      if (AST.view === 'location') astRenderLocationCards();
+      else invFilterAssetTable();
+    } else {
+      toast(data.error || 'Update failed', 'error');
+    }
+  } catch {
+    toast('Network error', 'error');
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Update'; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   UTILITY
+══════════════════════════════════════════════════════════════════════ */
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str === null || str === undefined) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -22441,44 +24694,6 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
-function invOpenAssetStatusModal(assetId, assetName, currentStatus){
-  document.getElementById('invAssetStatusId').value=assetId;
-  document.getElementById('invAssetStatusName').textContent=`${assetName} · Current: ${currentStatus}`;
-  document.getElementById('invAssetNewStatus').value='';
-  document.querySelectorAll('#invAssetStatusModal .rs-status-btn').forEach(b=>b.classList.remove('selected'));
-  _iOpenModal('invAssetStatusModal');
-}
-
-function invSelectAssetStatus(btn, status){
-  document.querySelectorAll('#invAssetStatusModal .rs-status-btn').forEach(b=>b.classList.remove('selected'));
-  btn.classList.add('selected');
-  document.getElementById('invAssetNewStatus').value=status;
-}
-
-async function invSubmitAssetStatus(){
-  const id=document.getElementById('invAssetStatusId').value;
-  const status=document.getElementById('invAssetNewStatus').value;
-  if(!status){_iToast('Select a status','error');return;}
-  const btn=document.querySelector('#invAssetStatusModal .btn-primary');
-  if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';}
-  try{
-    const r=await _iPost(`/inventory/assets/${id}/status/`,{
-      status,
-      notes:document.getElementById('invAssetStatusNotes')?.value||''
-    });
-    const data=await r.json();
-    if(r.ok&&(data.success||data.status)){
-      _iToast(`Asset status → ${status}`,'success');
-      _iCloseModal('invAssetStatusModal');
-      const asset=_invAssets.find(a=>a.id===parseInt(id));
-      if(asset) asset.status=status;
-      invFilterAssetTable();
-    } else { _iToast(data.error||'Update failed','error'); }
-  } catch{ _iToast('Network error','error'); }
-  if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> Update';}
-}
-
 /* ───────────────────────────────────────────────────────────
    MAINTENANCE PANEL
 ─────────────────────────────────────────────────────────── */
@@ -23556,7 +25771,12 @@ function openEditStaffModal(staffId) {
 
       // Notes
       document.getElementById('editNotes').value = s.notes || '';
-
+      const faceStatus = document.getElementById('editStaffFaceStatus');
+      if (faceStatus) {
+        faceStatus.textContent = s.face_registered_at
+          ? `Registered ${new Date(s.face_registered_at).toLocaleDateString()}`
+          : 'Not registered';
+      }
       // Department select
       const deptSel = document.getElementById('editDept');
       if (deptSel) {

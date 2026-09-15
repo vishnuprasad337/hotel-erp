@@ -155,6 +155,8 @@ path(
     expense_update,
     name="expense_update",
 ),
+path('attendance/face-lookup/', face_attendance_lookup, name='face_attendance_lookup'),
+path('attendance/mark-with-face/', verify_face_and_mark_attendance, name='verify_face_and_mark_attendance'),
 
  # ── Staff list ─────────────────────────────────────────────────
     path('messages/staff-list/', StaffListView.as_view()),

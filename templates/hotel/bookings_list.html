@@ -1,0 +1,459 @@
+{% extends 'hotel/base.html' %}
+{% load static %}
+
+{% block title %}All Bookings - {{ hotel.hotel_name|default:"Admio" }}{% endblock %}
+
+{% block nav_bookings_active %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0"><i class="fas fa-book"></i> All Bookings</h2>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadBookings()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+      <a href="{% url 'new_booking' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> New Booking
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="row g-3 mb-4" id="bkKpiRow">
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold text-primary" id="bk-kpi-total">0</div>
+          <small class="text-muted text-uppercase fw-semibold">Total</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold" style="color:#0369a1" id="bk-kpi-confirmed">0</div>
+          <small class="text-muted text-uppercase fw-semibold">Confirmed</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold text-success" id="bk-kpi-in">0</div>
+          <small class="text-muted text-uppercase fw-semibold">Checked In</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold text-secondary" id="bk-kpi-out">0</div>
+          <small class="text-muted text-uppercase fw-semibold">Checked Out</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold text-danger" id="bk-kpi-cancelled">0</div>
+          <small class="text-muted text-uppercase fw-semibold">Cancelled</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-sm-4 col-lg-2">
+      <div class="card text-center">
+        <div class="card-body p-3">
+          <div class="fs-5 fw-bold text-success" id="bk-kpi-revenue">₹0</div>
+          <small class="text-muted text-uppercase fw-semibold">Revenue</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="mb-4 p-3" style="border: 1px solid #dee2e6; border-radius: 4px; background-color: #ffffff;">
+      <!-- Row 1: Search + Status Tabs -->
+      <div class="d-flex gap-3 align-items-center flex-wrap mb-3">
+        <div class="flex-grow-1" style="min-width:250px;max-width:350px;">
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control form-control-sm" id="bkSearch" 
+                   placeholder="Guest name, phone, booking code…" oninput="debounce(_bkApplyFilters,280)()">
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap" id="bkStatusTabs">
+          <button class="btn btn-sm btn-dark active" data-status="" onclick="_bkSetStatus('',this)">
+            All
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" data-status="confirmed" onclick="_bkSetStatus('confirmed',this)">
+            <span class="badge bg-info me-1" style="width:8px;height:8px;border-radius:50%;"></span> Confirmed
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" data-status="checked_in" onclick="_bkSetStatus('checked_in',this)">
+            <span class="badge bg-success me-1" style="width:8px;height:8px;border-radius:50%;"></span> Checked In
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" data-status="checked_out" onclick="_bkSetStatus('checked_out',this)">
+            <span class="badge bg-secondary me-1" style="width:8px;height:8px;border-radius:50%;"></span> Checked Out
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" data-status="cancelled" onclick="_bkSetStatus('cancelled',this)">
+            <span class="badge bg-danger me-1" style="width:8px;height:8px;border-radius:50%;"></span> Cancelled
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" data-status="no_show" onclick="_bkSetStatus('no_show',this)">
+            <span class="badge bg-secondary me-1" style="width:8px;height:8px;border-radius:50%;"></span> No Show
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Extra Filters -->
+      <div class="d-flex gap-3 align-items-end flex-wrap mb-3">
+        <div class="flex-column">
+          <label class="form-label small fw-semibold text-muted">Source</label>
+          <select class="form-select form-select-sm" id="bkSourceFilter" style="width:150px;" onchange="_bkApplyFilters()">
+            <option value="">All Sources</option>
+            <option value="walk-in">Walk-in</option>
+            <option value="online">Online</option>
+            <option value="phone">Phone</option>
+            <option value="booking.com">Booking.com</option>
+          </select>
+        </div>
+        <div class="flex-column">
+          <label class="form-label small fw-semibold text-muted">Payment</label>
+          <select class="form-select form-select-sm" id="bkPayFilter" style="width:150px;" onchange="_bkApplyFilters()">
+            <option value="">All Payments</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="no_payment">No Record</option>
+          </select>
+        </div>
+        <div class="flex-column">
+          <label class="form-label small fw-semibold text-muted">Check-in From</label>
+          <input type="date" class="form-control form-control-sm" id="bkDateFrom" style="width:160px;" onchange="_bkApplyFilters()">
+        </div>
+        <div class="flex-column">
+          <label class="form-label small fw-semibold text-muted">Check-in To</label>
+          <input type="date" class="form-control form-control-sm" id="bkDateTo" style="width:160px;" onchange="_bkApplyFilters()">
+        </div>
+        <div class="flex-column">
+          <label class="form-label small fw-semibold text-muted">Per Page</label>
+          <select class="form-select form-select-sm" id="bkPerPage" style="width:100px;" onchange="_bkChangePerPage()">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="_bkClearFilters()">
+          <i class="fas fa-times"></i> Clear
+        </button>
+      </div>
+
+      <!-- Active Filter Chips -->
+      <div id="bkActiveChips" class="d-flex gap-2 flex-wrap"></div>
+  </div>
+
+  <!-- Table Header & Info -->
+  <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+    <h5 class="mb-0">Bookings</h5>
+    <div class="d-flex align-items-center gap-2">
+      <small class="text-muted">
+        Showing <strong id="bkResultsFrom">0</strong>–<strong id="bkResultsTo">0</strong> of <strong id="bkResultsTotal">0</strong>
+      </small>
+      <span class="badge bg-primary" id="bkCount">0 records</span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-responsive" style="border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+    <table class="table table-hover table-sm mb-0">
+      <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+        <tr>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Code</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Guest</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Phone</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Room</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Check-in</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Check-out</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Nights</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Guests</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Amount</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Advance</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Balance Due</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Payment</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Source</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Status</th>
+          <th style="padding: 10px 12px; font-size: 0.875rem;">Booked By</th>
+        </tr>
+      </thead>
+      <tbody id="bkTable" style="background-color: #ffffff;">
+        <tr><td colspan="15" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center mt-3 pt-2">
+    <small class="text-muted">
+      Page <strong id="bkCurrentPage">1</strong> of <strong id="bkTotalPages">1</strong>
+    </small>
+    <div id="bkPagination" class="d-flex gap-1 align-items-center flex-wrap"></div>
+  </div>
+
+</div>
+
+<div id="toastStack" class="position-fixed top-0 end-0 p-3" style="z-index:999;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrf = (document.cookie.split(';').find(c => c.trim().startsWith('csrftoken=')) || '=').split('=')[1] || '';
+
+let bookings = [];
+let _bkFiltered    = [];
+let _bkCurrentPage = 1;
+let _bkPerPage     = 25;
+let _bkStatusF     = '';
+
+function debounce(fn, d) { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+function fmtInr(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
+
+function toast(msg, type = 'success') {
+  let stack = document.getElementById('toastStack');
+  if (!stack) return;
+  const el = document.createElement('div');
+  const classMap = { success: 'alert-success', error: 'alert-danger', info: 'alert-info' };
+  const iconMap = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+  el.className = 'alert ' + classMap[type] + ' alert-dismissible fade show';
+  el.setAttribute('role', 'alert');
+  el.innerHTML = `<i class="fas ${iconMap[type] || iconMap.info}"></i> <span>${esc(msg)}</span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function api(url) {
+  try {
+    const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function loadBookings() {
+  const data = await api('/get-bookings/');
+  bookings = Array.isArray(data) ? data : (data && data.bookings ? data.bookings : []);
+  updateBookingKPIs();
+  _bkCurrentPage = 1;
+  _bkApplyFilters();
+}
+
+function updateBookingKPIs() {
+  document.getElementById('bk-kpi-total').textContent     = bookings.length;
+  document.getElementById('bk-kpi-confirmed').textContent = bookings.filter(b => b.status === 'confirmed').length;
+  document.getElementById('bk-kpi-in').textContent        = bookings.filter(b => b.status === 'checked_in').length;
+  document.getElementById('bk-kpi-out').textContent       = bookings.filter(b => b.status === 'checked_out').length;
+  document.getElementById('bk-kpi-cancelled').textContent = bookings.filter(b => b.status === 'cancelled').length;
+  document.getElementById('bk-kpi-revenue').textContent   = '₹' + Math.round(
+    bookings.filter(b => b.payment_status === 'paid').reduce((s, b) => s + Number(b.total || 0), 0)
+  ).toLocaleString('en-IN');
+}
+
+function _bkSetStatus(status, btn) {
+  _bkStatusF = status;
+  document.querySelectorAll('#bkStatusTabs button').forEach(b => b.classList.remove('active', 'btn-dark'));
+  if (btn) {
+    btn.classList.add('active', 'btn-dark');
+    btn.classList.remove('btn-outline-secondary');
+  }
+  _bkCurrentPage = 1;
+  _bkApplyFilters();
+}
+
+function _bkChangePerPage() {
+  _bkPerPage = parseInt(document.getElementById('bkPerPage')?.value) || 25;
+  _bkCurrentPage = 1;
+  _bkApplyFilters();
+}
+
+function _bkClearFilters() {
+  _bkStatusF = '';
+  _bkCurrentPage = 1;
+  ['bkSearch', 'bkSourceFilter', 'bkPayFilter', 'bkDateFrom', 'bkDateTo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.querySelectorAll('#bkStatusTabs button').forEach((b, i) => {
+    if (i === 0) { b.classList.add('active', 'btn-dark'); b.classList.remove('btn-outline-secondary'); }
+    else { b.classList.remove('active', 'btn-dark'); b.classList.add('btn-outline-secondary'); }
+  });
+  _bkApplyFilters();
+}
+
+function _parseDate(val) {
+  if (!val) return '';
+  if (/^\d{2}-\d{2}-\d{4}$/.test(val)) { const [d, m, y] = val.split('-'); return `${y}-${m}-${d}`; }
+  return String(val).split('T')[0];
+}
+
+function _bkApplyFilters() {
+  const search   = (document.getElementById('bkSearch')?.value || '').toLowerCase().trim();
+  const srcF     = document.getElementById('bkSourceFilter')?.value || '';
+  const payF     = document.getElementById('bkPayFilter')?.value || '';
+  const dateFrom = document.getElementById('bkDateFrom')?.value || '';
+  const dateTo   = document.getElementById('bkDateTo')?.value || '';
+
+  let filtered = bookings;
+
+  if (_bkStatusF)
+    filtered = filtered.filter(b => (b.status || '').toLowerCase().trim() === _bkStatusF.toLowerCase().trim());
+
+  if (search)
+    filtered = filtered.filter(b =>
+      (b.guest || '').toLowerCase().includes(search) ||
+      (b.booking_code || '').toLowerCase().includes(search) ||
+      (b.phone || '').includes(search)
+    );
+
+  if (srcF) filtered = filtered.filter(b => (b.source || '') === srcF);
+  if (payF) filtered = filtered.filter(b => (b.payment_status || 'no_payment') === payF);
+
+  if (dateFrom && (!dateTo || dateTo === dateFrom)) {
+    filtered = filtered.filter(b => _parseDate(b.check_in) === dateFrom);
+  } else {
+    if (dateFrom) filtered = filtered.filter(b => _parseDate(b.check_in) >= dateFrom);
+    if (dateTo)   filtered = filtered.filter(b => _parseDate(b.check_in) <= dateTo);
+  }
+
+  _bkFiltered = filtered;
+  _bkCurrentPage = Math.max(1, Math.min(_bkCurrentPage, Math.ceil(filtered.length / _bkPerPage) || 1));
+
+  _bkUpdateChips(search, srcF, payF, dateFrom, dateTo);
+  _bkRenderPage();
+}
+
+function _bkUpdateChips(search, srcF, payF, dateFrom, dateTo) {
+  const chips = [];
+  if (_bkStatusF) chips.push({ label: _bkStatusF.replace('_', ' '), clear: () => _bkSetStatus('', document.querySelector('#bkStatusTabs button')) });
+  if (search)     chips.push({ label: `"${search}"`, clear: () => { document.getElementById('bkSearch').value = ''; _bkApplyFilters(); } });
+  if (srcF)       chips.push({ label: `Source: ${srcF}`, clear: () => { document.getElementById('bkSourceFilter').value = ''; _bkApplyFilters(); } });
+  if (payF)       chips.push({ label: `Pay: ${payF}`, clear: () => { document.getElementById('bkPayFilter').value = ''; _bkApplyFilters(); } });
+  if (dateFrom)   chips.push({ label: `From: ${dateFrom}`, clear: () => { document.getElementById('bkDateFrom').value = ''; _bkApplyFilters(); } });
+  if (dateTo)     chips.push({ label: `To: ${dateTo}`, clear: () => { document.getElementById('bkDateTo').value = ''; _bkApplyFilters(); } });
+
+  const el = document.getElementById('bkActiveChips');
+  if (!el) return;
+  el.innerHTML = chips.map((c, i) => `
+    <span class="badge bg-primary">
+      ${esc(c.label)}
+      <button onclick="_bkRemoveChip(${i})" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;padding-left:6px;margin-left:6px;">✕</button>
+    </span>`).join('');
+  el._chips = chips;
+}
+
+function _bkRemoveChip(i) {
+  const el = document.getElementById('bkActiveChips');
+  if (el && el._chips && el._chips[i]) el._chips[i].clear();
+}
+
+function _bkRenderPage() {
+  const total = _bkFiltered.length;
+  const pages = Math.ceil(total / _bkPerPage) || 1;
+  const start = (_bkCurrentPage - 1) * _bkPerPage;
+  const end   = Math.min(start + _bkPerPage, total);
+  const slice = _bkFiltered.slice(start, end);
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setEl('bkResultsFrom', total ? start + 1 : 0);
+  setEl('bkResultsTo', end);
+  setEl('bkResultsTotal', total);
+  setEl('bkCount', total + ' records');
+  setEl('bkCurrentPage', _bkCurrentPage);
+  setEl('bkTotalPages', pages);
+
+  const scls = { confirmed: 'bg-info', checked_in: 'bg-success', checked_out: 'bg-secondary', cancelled: 'bg-danger', no_show: 'bg-danger' };
+  const pcls = { paid: 'bg-success', pending: 'bg-warning', no_payment: 'bg-secondary', partial: 'bg-info' };
+  const srcIcon = { 'walk-in': 'fa-walking', 'online': 'fa-globe', 'phone': 'fa-phone', 'booking.com': 'fa-bed' };
+
+  const tbody = document.getElementById('bkTable');
+  if (!tbody) return;
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr style="border: none;"><td colspan="15" style="padding: 40px 12px; text-align: center; color: #6c757d;">
+      <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
+      <div>No bookings match your filters.</div>
+      <button class="btn btn-outline-secondary btn-sm mt-3" onclick="_bkClearFilters()">
+        <i class="fas fa-times"></i> Clear Filters
+      </button>
+    </td></tr>`;
+    _bkRenderPagination(pages);
+    return;
+  }
+
+  tbody.innerHTML = slice.map(b => {
+    const nights = b.check_in && b.check_out
+      ? Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / 86400000)
+      : '—';
+    const payStatus = b.payment_status || 'no_payment';
+    const totalAmount = b.total || 0;
+    const advancePaid = b.amount_paid || 0;
+    const balanceDue  = (b.balance_due !== undefined && b.balance_due !== null) ? b.balance_due : (totalAmount - advancePaid);
+
+    return `<tr style="border-bottom: 1px solid #f1f3f5;">
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><code style="background: transparent; color: #6c757d;">${esc(b.booking_code || '#' + b.id)}</code></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><strong>${esc(b.guest || '—')}</strong></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem; color: #6c757d;">${esc(b.phone || '—')}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;">${esc(b.room_type || '—')} ${b.room_no ? `<small style="color: #6c757d;">(${esc(b.room_no)})</small>` : ''}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.check_in || '—'}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.check_out || '—'}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem; text-align: center; font-weight: 600;">${nights}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem; text-align: center;">${Number(b.adults || 1) + Number(b.children || 0)}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><strong>${fmtInr(totalAmount)}</strong></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem; color: #2563eb;"><code style="background: transparent;">${advancePaid > 0 ? fmtInr(advancePaid) : '—'}</code></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem; font-weight: 600; color: ${balanceDue > 0 ? '#ef4444' : '#10b981'};"><code style="background: transparent;">${(balanceDue > 0 || (balanceDue === 0 && totalAmount > 0)) ? fmtInr(balanceDue) : '—'}</code></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><span class="badge ${pcls[payStatus] || 'bg-secondary'} text-white">${payStatus.replace('_', ' ')}</span></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><i class="fas ${srcIcon[b.source || ''] || 'fa-question'}" style="margin-right: 4px;"></i>${esc(b.source || '—')}</td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;"><span class="badge ${scls[b.status] || 'bg-secondary'} text-white">${(b.status || '').replace('_', ' ')}</span></td>
+      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.booked_by ? esc(b.booked_by) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  _bkRenderPagination(pages);
+}
+
+function _bkRenderPagination(pages) {
+  const el = document.getElementById('bkPagination');
+  if (!el) return;
+  if (pages <= 1) { el.innerHTML = ''; return; }
+
+  let html = `<button onclick="_bkGoPage(${_bkCurrentPage - 1})" class="btn btn-sm btn-outline-secondary"
+    ${_bkCurrentPage === 1 ? 'disabled' : ''}>
+    <i class="fas fa-chevron-left"></i></button>`;
+
+  for (let i = 1; i <= pages; i++) {
+    if (pages > 7 && Math.abs(i - _bkCurrentPage) > 2 && i !== 1 && i !== pages) {
+      if (i === 2 || i === pages - 1) html += `<span class="px-2 text-muted">…</span>`;
+      continue;
+    }
+    const active = i === _bkCurrentPage;
+    html += `<button onclick="_bkGoPage(${i})" class="btn btn-sm ${active ? 'btn-primary' : 'btn-outline-secondary'}">${i}</button>`;
+  }
+
+  html += `<button onclick="_bkGoPage(${_bkCurrentPage + 1})" class="btn btn-sm btn-outline-secondary"
+    ${_bkCurrentPage === pages ? 'disabled' : ''}>
+    <i class="fas fa-chevron-right"></i></button>`;
+
+  el.innerHTML = html;
+}
+
+function _bkGoPage(page) {
+  const pages = Math.ceil(_bkFiltered.length / _bkPerPage) || 1;
+  _bkCurrentPage = Math.max(1, Math.min(page, pages));
+  _bkRenderPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', loadBookings);
+</script>
+{% endblock %}

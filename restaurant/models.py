@@ -69,6 +69,19 @@ class RestaurantOrder(models.Model):
     tax_amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     served_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True)
     staff = models.ForeignKey('accounts.Staff', on_delete=models.SET_NULL, null=True, blank=True)
+
+    preparing_by = models.ForeignKey(
+        'accounts.Staff', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders_marked_preparing'
+    )
+    preparing_at = models.DateTimeField(null=True, blank=True)
+
+    served_status_by = models.ForeignKey(
+        'accounts.Staff', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders_marked_served'
+    )
+    served_status_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):

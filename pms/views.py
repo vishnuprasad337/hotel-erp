@@ -91,6 +91,27 @@ def add_room(request):
                 files = request.FILES
 
             with transaction.atomic():
+
+                # ---------------- FEATURES ----------------
+                # Accepts either a JSON list (["WiFi","AC","TV"])
+                # or a comma-separated string ("WiFi,AC,TV")
+                # or multiple form fields (features=WiFi&features=AC)
+                if request.content_type == "application/json":
+                    features = data.get('features', [])
+                    if isinstance(features, str):
+                        features = [f.strip() for f in features.split(',') if f.strip()]
+                    elif isinstance(features, list):
+                        features = [str(f).strip() for f in features if str(f).strip()]
+                    else:
+                        features = []
+                else:
+                    features = data.getlist('features') if hasattr(data, 'getlist') else []
+                    if not features:
+                        raw = data.get('features', '')
+                        if raw:
+                            features = [f.strip() for f in raw.split(',') if f.strip()]
+                    features = [str(f).strip() for f in features if str(f).strip()]
+
                 room = Room.objects.create(
                     room_type=data.get('room_type'),
                     base_price=data.get('base_price'),
@@ -99,6 +120,8 @@ def add_room(request):
                     description=data.get('description', ''),
                     extra_adult_price=data.get('extra_adult_price', 0),
                     extra_child_price=data.get('extra_child_price', 0),
+                    overstay_price=data.get('overstay_price', 0),
+                    features=features,
                 )
 
                 amenities = data.get('amenities')
@@ -145,7 +168,11 @@ def add_room(request):
                             is_primary=(i == 0)
                         )
 
-            return JsonResponse({"success": True, "room_id": room.id})
+            return JsonResponse({
+                "success": True,
+                "room_id": room.id,
+                "features": room.features,
+            })
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
@@ -160,11 +187,29 @@ def get_room(request, room_id):
         if not room:
             return JsonResponse({"error": "Room not found"}, status=404)
 
+        # NEW: read the selected period from query params
+        check_in = request.GET.get("check_in")    # e.g. "2026-08-25"
+        check_out = request.GET.get("check_out")  # e.g. "2026-08-27"
+        if check_in:
+            try:
+                check_in = datetime.strptime(check_in, "%Y-%m-%d").date()
+            except ValueError:
+                check_in = None
+        if check_out:
+            try:
+                check_out = datetime.strptime(check_out, "%Y-%m-%d").date()
+            except ValueError:
+                check_out = None
+
         today = today_date.today()
         seasonal = room.seasonal_rates.filter(
             start_date__lte=today,
             end_date__gte=today
         ).first()
+
+        # NEW: compute availability for that period (falls back to physical status if no dates)
+        availability = get_units_availability_for_period(room, check_in, check_out)
+        available_count = sum(1 for v in availability.values() if v)
 
         return JsonResponse({
             "id": room.id,
@@ -173,9 +218,11 @@ def get_room(request, room_id):
             "max_adults": room.max_adults,
             "max_children": room.max_children,
             "total_units": room.total_units(),
-            "available_units": room.available_units(),
+            "available_units": available_count,   # CHANGED: was room.available_units()
             "description": room.description,
             "amenities": [a.name for a in room.amenities.all()],
+            "features": room.features,  
+            "overstay_price": str(room.overstay_price),                     # NEW — e.g. ["WiFi","AC","TV"]
             "images": [img.image.url for img in room.images.all()]
         })
 
@@ -186,14 +233,88 @@ def get_room(request, room_id):
 def get_rooms(request):
     try:
         today = timezone.now().date()
+
+        # ============================================================
+        # GET SELECTED BOOKING DATES
+        # ============================================================
+
+        check_in = request.GET.get("check_in")
+        check_out = request.GET.get("check_out")
+
+        # Convert query-string values to Python date objects
+        if check_in:
+            try:
+                check_in = datetime.strptime(
+                    check_in,
+                    "%Y-%m-%d"
+                ).date()
+            except (ValueError, TypeError):
+                check_in = None
+
+        if check_out:
+            try:
+                check_out = datetime.strptime(
+                    check_out,
+                    "%Y-%m-%d"
+                ).date()
+            except (ValueError, TypeError):
+                check_out = None
+
+        # Only use date-range availability when BOTH dates exist
+        has_date_range = bool(check_in and check_out)
+
         rooms = Room.objects.all()
         room_list = []
 
+        # ============================================================
+        # LOOP THROUGH ROOM TYPES
+        # ============================================================
+
         for room in rooms:
-            units = room.units.all().order_by('room_number')
+
+            units = room.units.all().order_by("room_number")
             units_list = []
 
+            # ========================================================
+            # AVAILABILITY FOR SELECTED DATES
+            # ========================================================
+
+            if has_date_range:
+
+                # IMPORTANT:
+                # This checks bookings only for the selected
+                # check-in/check-out period.
+                availability = get_units_availability_for_period(
+                    room,
+                    check_in,
+                    check_out
+                )
+
+            else:
+
+                # DO NOT fall back to today's booking availability.
+                #
+                # If the user has not selected both dates yet,
+                # only physical room conditions should determine
+                # whether the room can be selected.
+
+                availability = {
+                    unit.id: (
+                        unit.status not in [
+                            "Maintenance",
+                            "Dirty",
+                            "Cleaning"
+                        ]
+                    )
+                    for unit in units
+                }
+
+            # ========================================================
+            # ROOM UNITS
+            # ========================================================
+
             for unit in units:
+
                 color_map = {
                     "Available": "green",
                     "Occupied": "red",
@@ -203,74 +324,445 @@ def get_rooms(request):
                     "Maintenance": "gray",
                 }
 
+                # ----------------------------------------------------
+                # AVAILABILITY FOR SELECTED DATES
+                # ----------------------------------------------------
+
+                available_for_dates = availability.get(
+                    unit.id,
+                    True
+                )
+
+                # ----------------------------------------------------
+                # PHYSICAL STATUS
+                # ----------------------------------------------------
+
+                physical_status = unit.status
+
+                # ----------------------------------------------------
+                # DISPLAY STATUS
+                # ----------------------------------------------------
+
+                if physical_status == "Maintenance":
+
+                    # Maintenance always blocks the room
+                    display_status = "Maintenance"
+
+                elif has_date_range:
+
+                    # When dates are selected:
+                    #
+                    # Available = no booking conflict for those dates
+                    # Occupied  = booking conflict for those dates
+                    #
+                    display_status = (
+                        "Available"
+                        if available_for_dates
+                        else "Occupied"
+                    )
+
+                else:
+
+                    # No selected date range:
+                    # show actual physical room status
+                    display_status = physical_status
+
+                # ====================================================
+                # CURRENT ACTIVE BOOKING
+                # ====================================================
+
                 active_booking = Booking.objects.filter(
                     room_unit=unit,
                     status="checked_in"
-                ).select_related("guest").order_by("-actual_check_in").first()
+                ).select_related(
+                    "guest"
+                ).order_by(
+                    "-actual_check_in"
+                ).first()
 
+                # If no checked-in booking exists,
+                # find today's confirmed booking
                 if not active_booking:
+
                     active_booking = Booking.objects.filter(
                         room_unit=unit,
                         status="confirmed",
                         check_in__lte=today,
                         check_out__gt=today,
-                    ).select_related("guest").order_by("-check_in").first()
+                    ).select_related(
+                        "guest"
+                    ).order_by(
+                        "-check_in"
+                    ).first()
+
+                # ====================================================
+                # NEXT UPCOMING BOOKING
+                # ====================================================
 
                 upcoming_booking = Booking.objects.filter(
                     room_unit=unit,
                     status="confirmed",
                     check_in__gt=today,
-                ).select_related("guest").order_by("check_in").first()
+                ).select_related(
+                    "guest"
+                ).order_by(
+                    "check_in"
+                ).first()
 
-                if active_booking and upcoming_booking and active_booking.id == upcoming_booking.id:
+                # Prevent same booking from appearing
+                # as both current and upcoming
+                if (
+                    active_booking
+                    and upcoming_booking
+                    and active_booking.id == upcoming_booking.id
+                ):
                     upcoming_booking = None
 
+                # ====================================================
+                # UNIT JSON
+                # ====================================================
+
                 units_list.append({
+
                     "id": unit.id,
+
                     "number": unit.room_number,
-                    "status": unit.status,
-                    "color": color_map.get(unit.status, "gray"),
+
+                    # Actual physical status
+                    #
+                    # Example:
+                    # "Occupied"
+                    # "Dirty"
+                    # "Available"
+                    "physical_status": physical_status,
+
+                    # IMPORTANT:
+                    # This is availability specifically for
+                    # the selected booking dates.
+                    #
+                    # true  = available for selected dates
+                    # false = booking conflict / physical block
+                    "available_for_dates": available_for_dates,
+
+                    # Display status
+                    "status": display_status,
+
+                    "color": color_map.get(
+                        display_status,
+                        "gray"
+                    ),
+
+                    # ------------------------------------------------
+                    # CURRENT GUEST
+                    # ------------------------------------------------
+
                     "current_guest": {
+
                         "booking_id": active_booking.id,
-                        "guest_name": active_booking.guest.full_name if active_booking.guest else "N/A",
-                        "phone": active_booking.guest.phone if active_booking.guest else "",
-                        "check_in": active_booking.check_in.isoformat(),
-                        "check_out": active_booking.check_out.isoformat(),
+
+                        "guest_name": (
+                            active_booking.guest.full_name
+                            if active_booking.guest
+                            else "N/A"
+                        ),
+
+                        "phone": (
+                            active_booking.guest.phone
+                            if active_booking.guest
+                            else ""
+                        ),
+
+                        "check_in": (
+                            active_booking.check_in.isoformat()
+                        ),
+
+                        "check_out": (
+                            active_booking.check_out.isoformat()
+                        ),
+
                         "status": active_booking.status,
+
                     } if active_booking else None,
+
+                    # ------------------------------------------------
+                    # UPCOMING GUEST
+                    # ------------------------------------------------
+
                     "upcoming_guest": {
+
                         "booking_id": upcoming_booking.id,
-                        "guest_name": upcoming_booking.guest.full_name if upcoming_booking.guest else "N/A",
-                        "phone": upcoming_booking.guest.phone if upcoming_booking.guest else "",
-                        "check_in": upcoming_booking.check_in.isoformat(),
-                        "check_out": upcoming_booking.check_out.isoformat(),
+
+                        "guest_name": (
+                            upcoming_booking.guest.full_name
+                            if upcoming_booking.guest
+                            else "N/A"
+                        ),
+
+                        "phone": (
+                            upcoming_booking.guest.phone
+                            if upcoming_booking.guest
+                            else ""
+                        ),
+
+                        "check_in": (
+                            upcoming_booking.check_in.isoformat()
+                        ),
+
+                        "check_out": (
+                            upcoming_booking.check_out.isoformat()
+                        ),
+
                     } if upcoming_booking else None,
                 })
 
-            # ── Seasonal price check for today ──
+            # ========================================================
+            # SEASONAL RATE
+            # ========================================================
+
             seasonal = room.seasonal_rates.filter(
                 start_date__lte=today,
                 end_date__gte=today
             ).first()
 
+            # ========================================================
+            # AVAILABLE ROOM COUNT
+            # ========================================================
+
+            if has_date_range:
+
+                # Count units available for the selected dates
+                available_count = sum(
+                    1
+                    for value in availability.values()
+                    if value
+                )
+
+            else:
+
+                # No dates selected:
+                # count physically available units
+                available_count = sum(
+                    1
+                    for unit in units
+                    if unit.status not in [
+                        "Maintenance",
+                        "Dirty",
+                        "Cleaning"
+                    ]
+                )
+
+            # ========================================================
+            # ROOM TYPE JSON
+            # ========================================================
+
             room_list.append({
+
                 "id": room.id,
-                "room_type": room.custom_room_type if room.room_type == "Custom" and room.custom_room_type else room.room_type,
-                "price": str(seasonal.price if seasonal else room.base_price),
+
+                "room_type": (
+                    room.custom_room_type
+                    if (
+                        room.room_type == "Custom"
+                        and room.custom_room_type
+                    )
+                    else room.room_type
+                ),
+
+                "price": str(
+                    seasonal.price
+                    if seasonal
+                    else room.base_price
+                ),
+
                 "total_units": room.total_units(),
-                "available_units": room.available_units(),
+
+                "available_units": available_count,
+
                 "max_adults": room.max_adults,
+
                 "max_children": room.max_children,
-                "amenities": [a.name for a in room.amenities.all()],
+
+                "amenities": [
+                    a.name
+                    for a in room.amenities.all()
+                ],
+
+                "features": room.features,          # NEW — e.g. ["WiFi","AC","TV"]
+                "overstay_price": str(room.overstay_price),
                 "description": room.description,
-                "images": [img.image.url for img in room.images.all()],
-                "units": units_list
+
+                "images": [
+                    img.image.url
+                    for img in room.images.all()
+                ],
+
+                "units": units_list,
             })
 
-        return JsonResponse({"success": True, "rooms": room_list})
+        # ============================================================
+        # RETURN RESPONSE
+        # ============================================================
+
+        return JsonResponse({
+            "success": True,
+            "rooms": room_list
+        })
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+
+# ---------------- EDIT ROOM ----------------
+@csrf_exempt
+def edit_room(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        room_id = data.get("room_id")
+        if not room_id:
+            return JsonResponse({"error": "room_id is required"}, status=400)
+
+        room = Room.objects.filter(id=room_id).first()
+        if not room:
+            return JsonResponse({"error": "Room not found"}, status=404)
+
+        display_name = (data.get("display_name") or "").strip()
+        if display_name:
+            if room.room_type == "Custom":
+                room.custom_room_type = display_name
+            # For standard types we don't rename room_type itself,
+            # only custom_room_type carries a free-text label.
+
+        if data.get("total_units") is not None:
+            new_total = int(data.get("total_units") or 1)
+            current_total = room.units.count()
+            if new_total > current_total:
+                # Add extra units with the next available numbers
+                prefix_map = {
+                    "Single": "S", "Double": "D", "Deluxe": "DL",
+                    "Suite": "SU", "Custom": "CR",
+                }
+                prefix = prefix_map.get(room.room_type, "R")
+                existing_numbers = set(RoomUnit.objects.values_list('room_number', flat=True))
+                to_add = new_total - current_total
+                counter = 1
+                added = []
+                while len(added) < to_add:
+                    number = f"{prefix}{counter}"
+                    if number not in existing_numbers:
+                        added.append(RoomUnit(room=room, room_number=number))
+                        existing_numbers.add(number)
+                    counter += 1
+                RoomUnit.objects.bulk_create(added)
+            elif new_total < current_total:
+                # Remove extra units, preferring ones with no active bookings
+                removable = room.units.exclude(
+                    id__in=Booking.objects.filter(
+                        room=room, status__in=["confirmed", "checked_in"]
+                    ).values_list("room_unit_id", flat=True)
+                ).order_by("-id")[: current_total - new_total]
+                RoomUnit.objects.filter(id__in=[u.id for u in removable]).delete()
+
+        if data.get("base_price") is not None:
+            room.base_price = data.get("base_price") or 0
+        if data.get("max_adults") is not None:
+            room.max_adults = data.get("max_adults") or 1
+        if data.get("max_children") is not None:
+            room.max_children = data.get("max_children") or 0
+        if data.get("overstay_price") is not None:
+            room.overstay_price = data.get("overstay_price") or 0
+        if data.get("description") is not None:
+            room.description = data.get("description")
+
+        # ── NEW: update features (free-text amenities with no Property id) ──
+        features = data.get("features")
+        if features is not None:
+            if isinstance(features, str):
+                features = [f.strip() for f in features.split(',') if f.strip()]
+            room.features = [str(f).strip() for f in features if str(f).strip()]
+
+        room.save()
+
+        # ── update amenities ──────────────────────────────────
+        amenity_ids = data.get("amenity_ids")
+        if amenity_ids is not None:
+            room.amenities.set(amenity_ids)
+
+        # ── update linked assets ──────────────────────────────
+        asset_ids = data.get("asset_ids")
+        if asset_ids is not None:
+            from inventory.models import HotelAsset, AssetLocation
+
+            asset_ids_int = [int(a) for a in asset_ids if str(a).isdigit()]
+
+            # Unlink assets that were on this room but are no longer selected
+            AssetLocation.objects.filter(room=room, is_current=True).exclude(
+                asset_id__in=asset_ids_int
+            ).update(is_current=False)
+            HotelAsset.objects.filter(room=room).exclude(
+                id__in=asset_ids_int
+            ).update(room=None, room_unit=None, area="")
+
+            # Link the currently selected assets to this room
+            assets = HotelAsset.objects.filter(id__in=asset_ids_int)
+            for asset in assets:
+                AssetLocation.objects.filter(asset=asset).update(is_current=False)
+                AssetLocation.objects.create(
+                    asset=asset,
+                    room=room,
+                    room_unit=None,
+                    area="",
+                    is_current=True,
+                )
+                asset.room = room
+                asset.room_unit = None
+                asset.area = ""
+                asset.save()
+
+        return JsonResponse({
+            "success": True,
+            "room_id": room.id,
+            "display_type": room.display_type(),
+            "total_units": room.total_units(),
+            "features": room.features,
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+# ---------------- DELETE ROOM ----------------
+@csrf_exempt
+def delete_room(request, room_id):
+    if request.method != "DELETE":
+        return JsonResponse({"error": "DELETE required"}, status=405)
+
+    try:
+        room = Room.objects.filter(id=room_id).first()
+        if not room:
+            return JsonResponse({"error": "Room not found"}, status=404)
+
+        active_bookings = Booking.objects.filter(
+            room=room, status__in=["confirmed", "checked_in"]
+        ).exists()
+        if active_bookings:
+            return JsonResponse(
+                {"error": "Cannot delete a room with active or upcoming bookings."},
+                status=400,
+            )
+
+        with transaction.atomic():
+            room.delete()  # cascades to RoomUnit, RoomImage, amenities M2M
+
+        return JsonResponse({"success": True, "room_id": int(room_id)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 from django.utils import timezone  
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
@@ -512,12 +1004,227 @@ def frontoffice_dashboard(request):
         "payroll_month_label":  MONTH_NAMES[month],
         "payroll_year":         year,
     })
-from datetime import timedelta
+
+
+def get_units_availability_for_period(
+    room,
+    check_in=None,
+    check_out=None
+):
+    """
+    Return availability of every room unit.
+
+    Booking rule:
+    - ONLY Maintenance blocks booking automatically.
+    - Available, Occupied, Dirty, Cleaning and Reserved
+      can all be booked.
+    - Existing confirmed/checked-in bookings block only
+      when their dates overlap the requested dates.
+
+    Returns:
+        {
+            unit_id: True/False
+        }
+    """
+
+    units = room.units.all()
+
+    # ============================================================
+    # ONLY MAINTENANCE BLOCKS BOOKING
+    # ============================================================
+
+    maintenance_ids = set(
+        units.filter(
+            status="Maintenance"
+        ).values_list(
+            "id",
+            flat=True
+        )
+    )
+
+    # ============================================================
+    # NO DATES SELECTED
+    # ============================================================
+    #
+    # Do not use today's booking status.
+    # Only Maintenance is unavailable.
+    # ============================================================
+
+    if not check_in or not check_out:
+
+        return {
+            unit.id: (
+                unit.id not in maintenance_ids
+            )
+            for unit in units
+        }
+
+    # ============================================================
+    # INVALID DATE RANGE
+    # ============================================================
+
+    if check_out <= check_in:
+
+        return {
+            unit.id: (
+                unit.id not in maintenance_ids
+            )
+            for unit in units
+        }
+
+    # ============================================================
+    # TODAY / TOMORROW
+    # ============================================================
+
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+
+    # ============================================================
+    # CHECKED-IN BOOKINGS
+    # ============================================================
+
+    checked_in_unit_ids = set()
+
+    checked_in_bookings = Booking.objects.filter(
+        room=room,
+        status="checked_in"
+    ).values_list(
+        "check_in",
+        "check_out",
+        "room_unit_id"
+    )
+
+    for (
+        booking_check_in,
+        booking_check_out,
+        unit_id
+    ) in checked_in_bookings:
+
+        effective_start = booking_check_in
+
+        # If guest is still checked in after their original
+        # checkout date, keep blocking at least through tomorrow.
+        effective_end = max(
+            booking_check_out,
+            tomorrow
+        )
+
+        # Check overlap with requested dates
+        if (
+            effective_start < check_out
+            and
+            effective_end > check_in
+        ):
+            checked_in_unit_ids.add(unit_id)
+
+    # ============================================================
+    # CONFIRMED BOOKINGS
+    # ============================================================
+
+    confirmed_overlap_ids = set(
+        Booking.objects.filter(
+            room=room,
+            status="confirmed",
+
+            # Existing booking starts before requested checkout
+            check_in__lt=check_out,
+
+            # Existing booking ends after requested check-in
+            check_out__gt=check_in,
+
+        ).values_list(
+            "room_unit_id",
+            flat=True
+        )
+    )
+
+    # ============================================================
+    # ALL BOOKING CONFLICTS
+    # ============================================================
+
+    overlapping_unit_ids = (
+        checked_in_unit_ids
+        |
+        confirmed_overlap_ids
+    )
+
+    # ============================================================
+    # FINAL AVAILABILITY
+    # ============================================================
+    #
+    # ONLY TWO THINGS can make a unit unavailable:
+    #
+    # 1. Maintenance
+    # 2. Existing booking overlapping selected dates
+    #
+    # Dirty / Cleaning / Reserved / Occupied do NOT block
+    # booking by themselves.
+    # ============================================================
+
+    availability = {}
+
+    for unit in units:
+
+        is_maintenance = (
+            unit.id in maintenance_ids
+        )
+
+        has_booking_conflict = (
+            unit.id in overlapping_unit_ids
+        )
+
+        availability[unit.id] = (
+            not is_maintenance
+            and
+            not has_booking_conflict
+        )
+
+    return availability
 def get_price_for_date(room,date):
     rate=SeasonalRate.objects.filter(room=room,start_date__lte=date,end_date__gte=date).first()
     return float(rate.price) if rate else float(room.base_price)
 
+def apply_overstay_charge(booking, folio):
+    """
+    If the guest is still checked-in past their booked check_out date,
+    add/update a day-wise FolioCharge for the overstay.
+    Safe to call repeatedly — updates the existing charge instead of duplicating it.
+    """
+    from decimal import Decimal
+    from billing.models import FolioCharge
 
+    room = booking.room
+    overstay_price = room.overstay_price or 0
+    if overstay_price <= 0:
+        return None
+
+    today = timezone.localdate()
+    if today <= booking.check_out:
+        return None  # not overstaying yet
+
+    overstay_days = (today - booking.check_out).days
+    amount = Decimal(str(overstay_price)) * overstay_days
+    tax_amount = round(amount * Decimal("0.18"), 2)
+    description = f"Overstay Charge ({overstay_days} day{'s' if overstay_days > 1 else ''} beyond checkout)"
+
+    existing = FolioCharge.objects.filter(folio=folio, charge_type="overstay").first()
+    if existing:
+        if existing.amount != amount:
+            existing.amount = amount
+            existing.tax_amount = tax_amount
+            existing.description = description
+            existing.date = today
+            existing.save()
+        return existing
+
+    return FolioCharge.objects.create(
+        folio=folio,
+        charge_type="overstay",
+        description=description,
+        amount=amount,
+        tax_amount=tax_amount,
+        date=today,
+    )
 
 from django.db.models import Count
 
@@ -529,219 +1236,784 @@ from django.http import JsonResponse
 import json
 from datetime import datetime
 from billing.models import GuestFolio,FolioCharge
+from datetime import timedelta
 from datetime import date
 # ── 1. UPDATED create_booking ────────────────────────────────
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_booking(request):
-    
+
     try:
+        # ============================================================
+        # 1. READ REQUEST DATA
+        # ============================================================
+
         data = json.loads(request.body)
 
         def clean(val):
             return val.strip() if isinstance(val, str) else None
 
-        room_id          = data.get("room")
-        room_unit_id     = data.get("room_unit")
-        check_in         = data.get("check_in")
-        check_out        = data.get("check_out")
-        adults           = int(data.get("adults", 1))
-        children         = int(data.get("children", 0))
-        source           = clean(data.get("source")) or "walk-in"
+        room_id = data.get("room")
+        room_unit_id = data.get("room_unit")
+
+        check_in = data.get("check_in")
+        check_out = data.get("check_out")
+
+        adults = int(data.get("adults", 1))
+        children = int(data.get("children", 0))
+
+        source = clean(data.get("source")) or "walk-in"
         special_requests = clean(data.get("special_requests"))
 
-        
-        full_name   = clean(data.get("full_name")) or ""
-        phone       = clean(data.get("phone")) or ""
-        email       = clean(data.get("email"))
+        # Guest details
+        full_name = clean(data.get("full_name")) or ""
+        phone = clean(data.get("phone")) or ""
+        email = clean(data.get("email"))
         nationality = clean(data.get("nationality"))
-        id_type     = clean(data.get("id_type"))
-        id_number   = clean(data.get("id_number"))
+        id_type = clean(data.get("id_type"))
+        id_number = clean(data.get("id_number"))
 
-       
-        advance_amount = float(data.get("advance_amount") or 0)
+        # Payment
+        try:
+            advance_amount = float(data.get("advance_amount") or 0)
+        except (TypeError, ValueError):
+            advance_amount = 0
+
         advance_method = clean(data.get("advance_method")) or "Cash"
 
-       
+        # ============================================================
+        # 2. REQUIRED FIELD VALIDATION
+        # ============================================================
+
         errors = {}
-        if not room_id:      errors["room"]       = "Room ID is required"
-        if not room_unit_id: errors["room_unit"]  = "Room unit ID is required"
-        if not check_in:     errors["check_in"]   = "Check-in date is required"
-        if not check_out:    errors["check_out"]  = "Check-out date is required"
-        if not full_name:    errors["full_name"]  = "Guest full name is required"
-        if not phone:        errors["phone"]      = "Guest phone number is required"
+
+        if not room_id:
+            errors["room"] = "Room ID is required"
+
+        if not room_unit_id:
+            errors["room_unit"] = "Room unit ID is required"
+
+        if not check_in:
+            errors["check_in"] = "Check-in date is required"
+
+        if not check_out:
+            errors["check_out"] = "Check-out date is required"
+
+        if not full_name:
+            errors["full_name"] = "Guest full name is required"
+
+        if not phone:
+            errors["phone"] = "Guest phone number is required"
+
+        if advance_amount < 0:
+            errors["advance_amount"] = "Advance amount cannot be negative"
+
         if errors:
-            return JsonResponse({"errors": errors}, status=400)
+            return JsonResponse(
+                {"errors": errors},
+                status=400
+            )
+
+        # ============================================================
+        # 3. PARSE DATES
+        # ============================================================
 
         try:
             from datetime import date as _date
-            check_in_date  = datetime.strptime(check_in,  "%Y-%m-%d").date()
-            check_out_date = datetime.strptime(check_out, "%Y-%m-%d").date()
-        except ValueError:
-            return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+            check_in_date = datetime.strptime(
+                check_in,
+                "%Y-%m-%d"
+            ).date()
+
+            check_out_date = datetime.strptime(
+                check_out,
+                "%Y-%m-%d"
+            ).date()
+
+        except (ValueError, TypeError):
+            return JsonResponse(
+                {
+                    "error": "Invalid date format. Use YYYY-MM-DD"
+                },
+                status=400
+            )
+
+        # ============================================================
+        # 4. VALIDATE DATE RANGE
+        # ============================================================
 
         if check_in_date < _date.today():
-            return JsonResponse({"error": "Check-in cannot be in the past."}, status=400)
+            return JsonResponse(
+                {
+                    "error": "Check-in cannot be in the past."
+                },
+                status=400
+            )
+
         if check_out_date <= check_in_date:
-            return JsonResponse({"error": "Check-out must be after check-in."}, status=400)
+            return JsonResponse(
+                {
+                    "error": "Check-out must be after check-in."
+                },
+                status=400
+            )
+
+        # ============================================================
+        # 5. GET ROOM
+        # ============================================================
 
         try:
-            room = Room.objects.get(id=room_id)
+            room = Room.objects.get(
+                id=room_id
+            )
+
         except Room.DoesNotExist:
-            return JsonResponse({"error": f"Room {room_id} not found"}, status=404)
+            return JsonResponse(
+                {
+                    "error": f"Room {room_id} not found"
+                },
+                status=404
+            )
+
+        # ============================================================
+        # 6. GET ROOM UNIT
+        # ============================================================
 
         try:
-            room_unit = RoomUnit.objects.get(id=room_unit_id)
+            room_unit = RoomUnit.objects.get(
+                id=room_unit_id
+            )
+
         except RoomUnit.DoesNotExist:
-            return JsonResponse({"error": f"Room unit {room_unit_id} not found"}, status=404)
+            return JsonResponse(
+                {
+                    "error": f"Room unit {room_unit_id} not found"
+                },
+                status=404
+            )
 
-        if room_unit.status in ["Maintenance", "Cleaning", "Dirty"]:
-            return JsonResponse({
-                "error": f"Room {room_unit.room_number} is {room_unit.status} and cannot be booked."
-            }, status=400)
+        # ============================================================
+        # 7. MAKE SURE ROOM UNIT BELONGS TO SELECTED ROOM
+        # ============================================================
 
-        date_conflict = Booking.objects.filter(
-            room_unit=room_unit,
-            status__in=["confirmed", "checked_in"],
-            check_in__lt=check_out_date,
-            check_out__gt=check_in_date,
-        ).exists()
-        if date_conflict:
-            return JsonResponse({
-                "error": f"Room {room_unit.room_number} is already booked for those dates."
-            }, status=400)
+        if room_unit.room_id != room.id:
+            return JsonResponse(
+                {
+                    "error": (
+                        f"Room unit {room_unit.room_number} "
+                        f"does not belong to the selected room."
+                    )
+                },
+                status=400
+            )
 
-        nights       = (check_out_date - check_in_date).days
-        room_charges = sum(get_price_for_date(room, check_in_date + timedelta(days=i))
+        # ============================================================
+        # 8. MAINTENANCE CHECK
+        #
+        # Maintenance blocks booking regardless of dates.
+        # Other statuses do NOT automatically block booking.
+        # ============================================================
+
+        if str(room_unit.status).lower() == "maintenance":
+
+            return JsonResponse(
+                {
+                    "error": (
+                        f"Room {room_unit.room_number} is under "
+                        f"maintenance and cannot be booked."
+                    )
+                },
+                status=400
+            )
+
+        # ============================================================
+        # 9. DATE-BASED BOOKING CONFLICT CHECK
+        #
+        # IMPORTANT:
+        #
+        # Existing booking:
+        #
+        #     existing_check_in < new_check_out
+        #
+        # AND
+        #
+        #     existing_check_out > new_check_in
+        #
+        # means the two booking periods overlap.
+        #
+        # Example:
+        #
+        # Existing: 20 Aug -> 25 Aug
+        # New:      25 Aug -> 28 Aug
+        #
+        # NO conflict.
+        #
+        # Existing: 20 Aug -> 26 Aug
+        # New:      25 Aug -> 28 Aug
+        #
+        # CONFLICT.
+        # ============================================================
+
+        active_booking_statuses = [
+            "confirmed",
+            "checked_in",
+        ]
+
+        conflicting_booking = (
+            Booking.objects
+            
+            .filter(
+                room_unit_id=room_unit.id,
+
+                # Only active bookings block the room
+                status__in=active_booking_statuses,
+
+                # Existing booking starts before new booking ends
+                check_in__lt=check_out_date,
+
+                # Existing booking ends after new booking starts
+                check_out__gt=check_in_date,
+            )
+            .order_by("check_in")
+            .first()
+        )
+
+        # ============================================================
+        # 10. RETURN CONFLICT ONLY IF ACTUAL DATE OVERLAP EXISTS
+        # ============================================================
+
+        if conflicting_booking:
+
+            return JsonResponse(
+                {
+                    "error": (
+                        f"Room {room_unit.room_number} is already "
+                        f"booked for the selected dates."
+                    ),
+
+                    "room_number": room_unit.room_number,
+
+                    "conflict": {
+                        "booking_id": conflicting_booking.id,
+                        "check_in": conflicting_booking.check_in.strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "check_out": conflicting_booking.check_out.strftime(
+                            "%Y-%m-%d"
+                        ),
+                        "status": conflicting_booking.status,
+                    },
+
+                    "requested_dates": {
+                        "check_in": check_in_date.strftime("%Y-%m-%d"),
+                        "check_out": check_out_date.strftime("%Y-%m-%d"),
+                    },
+
+                    "message": (
+                        f"Room {room_unit.room_number} is occupied "
+                        f"from "
+                        f"{conflicting_booking.check_in.strftime('%d %b %Y')} "
+                        f"to "
+                        f"{conflicting_booking.check_out.strftime('%d %b %Y')}. "
+                        f"Please choose another room or different dates."
+                    ),
+                },
+                status=400
+            )
+
+        # ============================================================
+        # 11. CALCULATE NIGHTS
+        # ============================================================
+
+        nights = (
+            check_out_date - check_in_date
+        ).days
+
+        # ============================================================
+        # 12. CALCULATE ROOM PRICE
+        # ============================================================
+
+        room_charges = sum(
+            get_price_for_date(
+                room,
+                check_in_date + timedelta(days=i)
+            )
             for i in range(nights)
         )
-        
-        tax          = room_charges * 0.18
+
+        # ============================================================
+        # 13. TAX
+        # ============================================================
+
+        tax = room_charges * 0.18
+
         total_amount = room_charges + tax
 
-       
+        # ============================================================
+        # 14. LIMIT ADVANCE PAYMENT
+        # ============================================================
+
         if advance_amount > total_amount:
             advance_amount = total_amount
 
-       
+        # ============================================================
+        # 15. PAYMENT STATUS
+        # ============================================================
+
         if advance_amount <= 0:
+
             pay_status = "pending"
+
         elif advance_amount >= total_amount:
+
             pay_status = "paid"
+
         else:
+
             pay_status = "partial"
 
-        session_staff_id = request.session.get("staff_id")
-        created_by_staff = Staff.objects.filter(id=session_staff_id).first()
+        # ============================================================
+        # 16. CREATED BY STAFF
+        # ============================================================
+
+        session_staff_id = request.session.get(
+            "staff_id"
+        )
+
+        created_by_staff = (
+            Staff.objects
+            .filter(id=session_staff_id)
+            .first()
+        )
+
+        # ============================================================
+        # 17. CREATE / UPDATE GUEST
+        # ============================================================
 
         guest, created = Guest.objects.get_or_create(
             phone=phone,
             defaults={
-                "full_name":   full_name,
-                "email":       email,
+                "full_name": full_name,
+                "email": email,
                 "nationality": nationality,
-                "id_type":     id_type,
-                "id_number":   id_number,
+                "id_type": id_type,
+                "id_number": id_number,
             }
         )
+
         if not created:
+
             changed = False
-            if full_name   and guest.full_name   != full_name:   guest.full_name   = full_name;   changed = True
-            if email       is not None and guest.email       != email:      guest.email       = email;      changed = True
-            if nationality is not None and guest.nationality != nationality:guest.nationality = nationality; changed = True
-            if id_type     is not None and guest.id_type     != id_type:    guest.id_type     = id_type;    changed = True
-            if id_number   is not None and guest.id_number   != id_number:  guest.id_number   = id_number;  changed = True
+
+            if (
+                full_name
+                and guest.full_name != full_name
+            ):
+                guest.full_name = full_name
+                changed = True
+
+            if (
+                email is not None
+                and guest.email != email
+            ):
+                guest.email = email
+                changed = True
+
+            if (
+                nationality is not None
+                and guest.nationality != nationality
+            ):
+                guest.nationality = nationality
+                changed = True
+
+            if (
+                id_type is not None
+                and guest.id_type != id_type
+            ):
+                guest.id_type = id_type
+                changed = True
+
+            if (
+                id_number is not None
+                and guest.id_number != id_number
+            ):
+                guest.id_number = id_number
+                changed = True
+
             if changed:
                 guest.save()
 
+        # ============================================================
+        # 18. CREATE BOOKING + PAYMENT + FOLIO
+        # ============================================================
+
         with transaction.atomic():
+
+            # Re-check the room conflict INSIDE the transaction.
+            #
+            # This protects against two admins trying to book the
+            # same room at almost exactly the same time.
+
+            conflicting_booking = (
+                Booking.objects
+                .select_for_update()
+                .filter(
+                    room_unit_id=room_unit.id,
+                    status__in=[
+                        "confirmed",
+                        "checked_in",
+                    ],
+                    check_in__lt=check_out_date,
+                    check_out__gt=check_in_date,
+                )
+                .order_by("check_in")
+                .first()
+            )
+
+            if conflicting_booking:
+
+                return JsonResponse(
+                    {
+                        "error": (
+                            f"Room {room_unit.room_number} "
+                            f"is already booked for the selected dates."
+                        ),
+                        "conflict": {
+                            "booking_id": conflicting_booking.id,
+                            "check_in": conflicting_booking.check_in.strftime(
+                                "%Y-%m-%d"
+                            ),
+                            "check_out": conflicting_booking.check_out.strftime(
+                                "%Y-%m-%d"
+                            ),
+                            "status": conflicting_booking.status,
+                        },
+                        "requested_dates": {
+                            "check_in": check_in_date.strftime(
+                                "%Y-%m-%d"
+                            ),
+                            "check_out": check_out_date.strftime(
+                                "%Y-%m-%d"
+                            ),
+                        },
+                    },
+                    status=400
+                )
+
+            # ========================================================
+            # CREATE BOOKING
+            # ========================================================
+
             booking = Booking.objects.create(
-                guest            = guest,
-                room             = room,
-                room_unit        = room_unit,
-                check_in         = check_in_date,
-                check_out        = check_out_date,
-                adults           = adults,
-                children         = children,
-                guests_count     = adults + children,
-                special_requests = special_requests,
-                source           = source,
-                base_price       = room.base_price,
-                tax              = round(tax, 2),
-                total_amount     = round(total_amount, 2),
-                status           = "confirmed",
-                created_by       = created_by_staff,
+
+                guest=guest,
+
+                room=room,
+
+                room_unit=room_unit,
+
+                check_in=check_in_date,
+
+                check_out=check_out_date,
+
+                adults=adults,
+
+                children=children,
+
+                guests_count=adults + children,
+
+                special_requests=special_requests,
+
+                source=source,
+
+                base_price=room.base_price,
+
+                tax=round(tax, 2),
+
+                total_amount=round(total_amount, 2),
+
+                status="confirmed",
+
+                created_by=created_by_staff,
             )
 
-            
+            # ========================================================
+            # CREATE PAYMENT
+            # ========================================================
+
             payment = Payment.objects.create(
-                booking        = booking,
-                room_charges   = round(room_charges, 2),
-                tax            = round(tax, 2),
-                total_amount   = round(total_amount, 2),
-                amount_paid    = round(advance_amount, 2),   
-                payment_status = pay_status,
-                payment_method = advance_method if advance_amount > 0 else None,
-                paid_at        = timezone.now() if advance_amount > 0 else None,
-                collected_by   = created_by_staff,
+
+                booking=booking,
+
+                room_charges=round(
+                    room_charges,
+                    2
+                ),
+
+                tax=round(
+                    tax,
+                    2
+                ),
+
+                total_amount=round(
+                    total_amount,
+                    2
+                ),
+
+                amount_paid=round(
+                    advance_amount,
+                    2
+                ),
+
+                payment_status=pay_status,
+
+                payment_method=(
+                    advance_method
+                    if advance_amount > 0
+                    else None
+                ),
+
+                paid_at=(
+                    timezone.now()
+                    if advance_amount > 0
+                    else None
+                ),
+
+                collected_by=created_by_staff,
             )
 
-           
-            from billing.models import GuestFolio, FolioCharge, BillingPayment
-            folio = GuestFolio.objects.create(booking=booking)
+            # ========================================================
+            # CREATE GUEST FOLIO
+            # ========================================================
+
+            from billing.models import (
+                GuestFolio,
+                FolioCharge,
+                BillingPayment
+            )
+
+            folio = GuestFolio.objects.create(
+                booking=booking
+            )
+
+            # ========================================================
+            # ROOM FOLIO CHARGE
+            # ========================================================
 
             FolioCharge.objects.create(
-                folio        = folio,
-                charge_type  = "room",
-                description  = f"{room.room_type} Room Charge ({nights} night{'s' if nights > 1 else ''})",
-                amount       = round(room_charges, 2),
-                tax_amount   = round(tax, 2),
-                date         = check_in_date,
+
+                folio=folio,
+
+                charge_type="room",
+
+                description=(
+                    f"{room.room_type} Room Charge "
+                    f"({nights} night"
+                    f"{'s' if nights > 1 else ''})"
+                ),
+
+                amount=round(
+                    room_charges,
+                    2
+                ),
+
+                tax_amount=round(
+                    tax,
+                    2
+                ),
+
+                date=check_in_date,
             )
 
-            # Record advance as a folio payment immediately
+            # ========================================================
+            # RECORD ADVANCE PAYMENT
+            # ========================================================
+
             if advance_amount > 0:
+
                 BillingPayment.objects.create(
-                    folio   = folio,
-                    amount  = round(advance_amount, 2),
-                    method  = advance_method,
-                    note    = "Advance payment at booking",
+
+                    folio=folio,
+
+                    amount=round(
+                        advance_amount,
+                        2
+                    ),
+
+                    method=advance_method,
+
+                    note="Advance payment at booking",
                 )
+
+            # ========================================================
+            # CHANNEL MANAGER SYNC
+            # ========================================================
+
             try:
+
                 from channelmanager.models import WebsiteChannel
-                from channelmanager.tasks import push_availability_to_channel, push_booking_to_channel
-                channel = WebsiteChannel.objects.filter(is_active=True).first()
+
+                from channelmanager.tasks import (
+                    push_availability_to_channel,
+                    push_booking_to_channel
+                )
+
+                channel = (
+                    WebsiteChannel.objects
+                    .filter(is_active=True)
+                    .first()
+                )
+
                 if channel:
-                    push_booking_to_channel(channel.pk, booking.pk)
-                    push_availability_to_channel(channel.pk)
+
+                    push_booking_to_channel(
+                        channel.pk,
+                        booking.pk
+                    )
+
+                    push_availability_to_channel(
+                        channel.pk
+                    )
+
             except Exception as e:
-                print(f"Channel sync failed: {e}")
-        return JsonResponse({
-            "success":        True,
-            "booking_id":     booking.id,
-            "booking_code":   f"BK{booking.id:06d}",
-            "guest_id":       guest.id,
-            "guest_created":  created,
-            "room_number":    room_unit.room_number,
-            "nights":         nights,
-            "room_charges":   round(room_charges, 2),
-            "tax":            round(tax, 2),
-            "total_amount":   round(total_amount, 2),
-            "advance_paid":   round(advance_amount, 2),
-            "balance_due":    round(total_amount - advance_amount, 2),
-            "payment_status": pay_status,
-            "message":        "Booking created successfully",
-            "created_by":     created_by_staff.name if created_by_staff else None,
-        }, status=201)
+
+                print(
+                    f"Channel sync failed: {e}"
+                )
+
+        # ============================================================
+        # 19. GENERATE GUEST PORTAL TOKEN
+        # ============================================================
+
+        if not booking.guest_token:
+
+            booking.guest_token = str(
+                uuid.uuid4()
+            )
+
+            booking.save(
+                update_fields=["guest_token"]
+            )
+
+        # ============================================================
+        # 20. SEND GUEST PORTAL EMAIL
+        # ============================================================
+
+        try:
+
+            send_guest_portal_email(
+                request,
+                booking
+            )
+
+        except Exception as e:
+
+            print(
+                f"Guest portal email failed: {e}"
+            )
+
+        # ============================================================
+        # 21. SUCCESS RESPONSE
+        # ============================================================
+
+        return JsonResponse(
+            {
+                "success": True,
+
+                "booking_id": booking.id,
+
+                "booking_code": (
+                    f"BK{booking.id:06d}"
+                ),
+
+                "guest_id": guest.id,
+
+                "guest_created": created,
+
+                "room_number": room_unit.room_number,
+
+                "room_unit_id": room_unit.id,
+
+                "check_in": check_in_date.strftime(
+                    "%Y-%m-%d"
+                ),
+
+                "check_out": check_out_date.strftime(
+                    "%Y-%m-%d"
+                ),
+
+                "nights": nights,
+
+                "room_charges": round(
+                    room_charges,
+                    2
+                ),
+
+                "tax": round(
+                    tax,
+                    2
+                ),
+
+                "total_amount": round(
+                    total_amount,
+                    2
+                ),
+
+                "advance_paid": round(
+                    advance_amount,
+                    2
+                ),
+
+                "balance_due": round(
+                    total_amount - advance_amount,
+                    2
+                ),
+
+                "payment_status": pay_status,
+
+                "message": (
+                    "Booking created successfully"
+                ),
+
+                "created_by": (
+                    created_by_staff.name
+                    if created_by_staff
+                    else None
+                ),
+            },
+            status=201
+        )
+
+    # ================================================================
+    # INVALID JSON
+    # ================================================================
 
     except json.JSONDecodeError as e:
-        return JsonResponse({"error": f"Invalid JSON: {e}"}, status=400)
+
+        return JsonResponse(
+            {
+                "error": f"Invalid JSON: {e}"
+            },
+            status=400
+        )
+
+    # ================================================================
+    # UNEXPECTED ERROR
+    # ================================================================
+
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return JsonResponse({"error": str(e)}, status=500)
 
+        import traceback
 
+        traceback.print_exc()
 
+        return JsonResponse(
+            {
+                "error": str(e)
+            },
+            status=500
+        )
 from pms.models import Booking, GuestIDPhoto
 
 
@@ -793,7 +2065,7 @@ def check_in(request):
                 booking.room_unit.status = "Occupied"
                 booking.room_unit.save()
 
-            send_guest_portal_email(request, booking)
+            
             try:
                 from channelmanager.models import WebsiteChannel
                 from channelmanager.tasks import push_availability_to_channel
@@ -811,9 +2083,149 @@ def check_in(request):
         "message": "Check-in successful",
         "checked_in_by": checked_in_by.name if checked_in_by else None,   # ← ADD THIS
     })
+
+from datetime import time as time_type
+from django.utils import timezone
+from hotel.models import Shift, ShiftTemplate, Task, Attendance
+from accounts.models import Staff, Department, Hotel
+
+
+def _get_shift_window(shift_obj, hotel_id):
+    """
+    Resolve a Shift row's actual start/end time, fully dynamic:
+      1. Custom start/end saved directly on the Shift row (highest priority)
+      2. ShiftTemplate configured by this hotel for this shift name
+      3. If neither exists, return None (caller skips this staff member)
+    """
+    if shift_obj.custom_start and shift_obj.custom_end:
+        return shift_obj.custom_start, shift_obj.custom_end
+
+    tpl = ShiftTemplate.objects.filter(
+        hotel_id=hotel_id, shift_name=shift_obj.shift, is_active=True
+    ).first()
+    if tpl:
+        return tpl.start_time, tpl.end_time
+
+    return None
+
+
+def _is_shift_active_now(start_t, end_t, now_t):
+    """Handles overnight shifts (e.g. 22:00 -> 06:00)."""
+    if start_t <= end_t:
+        return start_t <= now_t <= end_t
+    return now_t >= start_t or now_t <= end_t
+
+
+def _is_currently_checked_in(staff, today):
+    """
+    True only if staff has an attendance row for today,
+    has clocked in, and hasn't clocked out yet.
+    """
+    att = Attendance.objects.filter(staff=staff, date=today).first()
+    if not att:
+        return False
+    return att.check_in is not None and att.check_out is None
+
+
+def get_available_housekeeping_staff(hotel, at_datetime=None):
+    """
+    Housekeeping staff who are:
+      - on a Shift today, with that shift window covering right now
+      - marked is_available
+      - actually clocked in today (Attendance) and not yet clocked out
+    Sorted by current open task load (least busy first).
+
+    FALLBACK: if no one matches the strict shift-window criteria
+    (e.g. checkout happens slightly after shift end, or no Shift
+    row was created for today), fall back to ANY housekeeping staff
+    who is marked available and currently clocked in, regardless
+    of shift window.
+    """
+    now = timezone.now()
+    at_datetime = at_datetime or (timezone.localtime(now) if timezone.is_aware(now) else now)
+    today = at_datetime.date()
+    now_t = at_datetime.time()
+
+    hk_dept_ids = Department.objects.filter(
+        hotel=hotel, name__icontains="housekeeping"
+    ).values_list("id", flat=True)
+
+    todays_shifts = Shift.objects.filter(
+        hotel=hotel, date=today
+    ).select_related("staff", "staff__department")
+
+    candidates = []
+    for s in todays_shifts:
+        staff = s.staff
+        if not staff or staff.department_id not in hk_dept_ids:
+            continue
+        if not getattr(staff, "is_available", True):
+            continue
+
+        window = _get_shift_window(s, hotel.id)
+        if window is None:
+            continue
+
+        start_t, end_t = window
+        if not _is_shift_active_now(start_t, end_t, now_t):
+            continue
+
+        if not _is_currently_checked_in(staff, today):
+            continue
+
+        candidates.append(staff)
+
+    # ── FALLBACK: strict shift-window match found nobody ──────────────
+    if not candidates:
+        fallback_staff = Staff.objects.filter(
+            hotel=hotel,
+            department_id__in=hk_dept_ids,
+            is_available=True,
+        ).select_related("department")
+
+        candidates = [
+            staff for staff in fallback_staff
+            if _is_currently_checked_in(staff, today)
+        ]
+
+    if not candidates:
+        return []
+
+    candidates.sort(
+        key=lambda st: Task.objects.filter(
+            staff=st, status__in=["Pending", "In Progress"]
+        ).count()
+    )
+    return candidates
+
+def auto_assign_housekeeping_task(room_unit, hotel, booking=None):
+    """
+    Creates a cleaning Task for room_unit, assigned to the least-loaded
+    housekeeping staff currently on shift AND clocked in.
+    Returns the Task, or None if nobody qualifies right now
+    (room just stays Dirty/unassigned as a fallback for manual assignment).
+    """
+    staff_list = get_available_housekeeping_staff(hotel)
+    if not staff_list:
+        return None
+
+    chosen = staff_list[0]
+
+    return Task.objects.create(
+        staff=chosen,
+        room=room_unit.room,
+        room_unit=room_unit,
+        title=f"Clean Room {room_unit.room_number}",
+        description=(
+            "Auto-assigned after guest checkout"
+            + (f" (Booking #{booking.id})" if booking else "")
+        ),
+        status="Pending",
+    )
+from accounts.models import Hotel
 @csrf_exempt
 def check_out(request):
-   
+
     if request.method != "POST":
         return JsonResponse({"error": "Invalid method"}, status=405)
 
@@ -834,7 +2246,9 @@ def check_out(request):
     except GuestFolio.DoesNotExist:
         return JsonResponse({"error": "Folio not found for this booking."}, status=400)
 
-    
+    apply_overstay_charge(booking, folio)   # NEW — add overstay charge if applicable
+    folio.refresh_from_db()
+
     final_payment = float(data.get("final_payment", 0) or 0)
     final_method  = data.get("method") or data.get("payment_method") or "Cash"
 
@@ -845,24 +2259,23 @@ def check_out(request):
             method = final_method,
             note   = "Final payment at check-out",
         )
-      
-        payment = Payment.objects.filter(booking=booking).first()
-        if payment:
-            payment.amount_paid    = float(payment.amount_paid or 0) + final_payment
-            payment.payment_method = final_method
-            payment.paid_at        = timezone.now()
-            total_paid_so_far      = float(folio.total_paid) 
-            if total_paid_so_far >= float(payment.total_amount):
-                payment.payment_status = "paid"
-            else:
-                payment.payment_status = "partial"
-            payment.save()
 
-    
+    payment = Payment.objects.filter(booking=booking).first()
+    if payment:
+        payment.amount_paid    = float(payment.amount_paid or 0) + final_payment
+        payment.payment_method = final_method
+        payment.paid_at        = timezone.now()
+        total_paid_so_far      = float(folio.total_paid)
+        if total_paid_so_far >= float(payment.total_amount):
+            payment.payment_status = "paid"
+        else:
+            payment.payment_status = "partial"
+        payment.save()
+
     folio.refresh_from_db()
     balance = float(folio.balance_due)
 
-    if balance > 0.50:   
+    if balance > 0.50:
         return JsonResponse({
             "error":          "Balance is still pending. Please collect payment before checking out.",
             "balance_due":    balance,
@@ -873,36 +2286,56 @@ def check_out(request):
     session_staff_id = request.session.get("staff_id")
     checked_out_by   = Staff.objects.filter(id=session_staff_id).first()
 
-    booking.status          = "checked_out"
+    booking.status           = "checked_out"
     booking.actual_check_out = timezone.now()
-    booking.checked_out_by  = checked_out_by
+    booking.checked_out_by   = checked_out_by
     booking.save()
+
+    # ── NEW: auto-assign housekeeping task on checkout ──────────────────
+    housekeeping_task = None
 
     if booking.room_unit:
         booking.room_unit.status = "Dirty"
         booking.room_unit.save()
 
-    
+        hotel_id = request.session.get("hotel_id") or (
+            checked_out_by.hotel_id if checked_out_by else None
+        )
+
+        if hotel_id:
+            hotel = Hotel.objects.filter(id=hotel_id).first()
+            if hotel:
+                try:
+                    housekeeping_task = auto_assign_housekeeping_task(
+                        booking.room_unit, hotel, booking=booking
+                    )
+                except Exception as e:
+                    # Never let auto-assign failure block checkout itself
+                    print(f"Auto-assign housekeeping failed: {e}")
+    # ──────────────────────────────────────────────────────────────────
+
     folio.status = "closed"
     folio.save()
     try:
-         from channelmanager.models import WebsiteChannel
-         from channelmanager.tasks import push_availability_to_channel
-         channel = WebsiteChannel.objects.filter(is_active=True).first()
-         if channel:
-             push_availability_to_channel(channel.pk)
+        from channelmanager.models import WebsiteChannel
+        from channelmanager.tasks import push_availability_to_channel
+        channel = WebsiteChannel.objects.filter(is_active=True).first()
+        if channel:
+            push_availability_to_channel(channel.pk)
     except Exception as e:
         print(f"Channel sync failed: {e}")
 
     return JsonResponse({
-        "success":         True,
-        "message":         "Check-out completed successfully",
-        "checked_out_by":  checked_out_by.name if checked_out_by else None,
-        "total_charges":   float(folio.total_charges),
-        "total_paid":      float(folio.total_paid),
-        "balance_due":     float(folio.balance_due),
+        "success":               True,
+        "message":               "Check-out completed successfully",
+        "checked_out_by":        checked_out_by.name if checked_out_by else None,
+        "total_charges":         float(folio.total_charges),
+        "total_paid":            float(folio.total_paid),
+        "balance_due":           float(folio.balance_due),
+        "housekeeping_assigned": bool(housekeeping_task),
+        "housekeeping_task_id":  housekeeping_task.id if housekeeping_task else None,
+        "housekeeping_staff":    housekeeping_task.staff.name if housekeeping_task else None,
     })
-
 @csrf_exempt
 def record_payment(request):
    
@@ -988,6 +2421,9 @@ def get_bill(request):
         folio = GuestFolio.objects.get(booking=booking)
     except GuestFolio.DoesNotExist:
         return JsonResponse({"error": "Folio not created yet"}, status=404)
+
+    apply_overstay_charge(booking, folio)   # NEW — add overstay charge if applicable
+    folio.refresh_from_db()
 
     charges = [
         {
@@ -1216,7 +2652,15 @@ def guest_portal(request, schema, token):
 
         if not booking:
             return JsonResponse({"error": "Invalid link"}, status=404)
-
+        portal_expired = booking.status in ("checked_out", "cancelled")
+        portal_expired_reason = (
+            "checked_out" if booking.status == "checked_out"
+            else "cancelled" if booking.status == "cancelled"
+            else ""
+        )
+        from accounts.models import Hotel
+        with schema_context('public'):
+            hotel = Hotel.objects.filter(schema_name=schema).first()
         
         categories = MenuCategory.objects.prefetch_related("items").all()
         menu_data = []
@@ -1281,7 +2725,12 @@ def guest_portal(request, schema, token):
                 "total": float(o.total_amount),
                 "created_at": o.created_at.isoformat(),
             })
+        from accounts.models import HotelModule
 
+        active_modules = HotelModule.objects.filter(
+        hotel=hotel, is_enabled=True
+        ).values_list('module__name', flat=True)
+        active_module_names = [m.lower() for m in active_modules]
        
         from billing.models import GuestFolio, FolioCharge
 
@@ -1302,6 +2751,10 @@ def guest_portal(request, schema, token):
             "guest": booking.guest,
             "room": booking.room_unit,
             "token": token,
+            "hotel": hotel, 
+            "portal_expired": portal_expired,
+            "portal_expired_reason": portal_expired_reason,
+            'active_module_names': active_module_names,
             "schema": schema,
             "menu": menu_data,
             "tasks": tasks,
@@ -1933,3 +3386,705 @@ def get_price_for_dates(request):
         'total_amount':  total_amount,
         'breakdown':     breakdown,
     })
+
+@csrf_exempt
+def guest_cancel_order(request, schema, token, order_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    with schema_context(schema):
+        booking = get_object_or_404(Booking, guest_token=token)
+        order = RestaurantOrder.objects.filter(
+            id=order_id, booking=booking, order_type="room_service"
+        ).first()
+
+        if not order:
+            return JsonResponse({"error": "Order not found"}, status=404)
+
+        if order.status.lower() not in ("pending", "received"):
+            return JsonResponse({"error": "This order can no longer be cancelled."}, status=400)
+
+        order.status = "cancelled"
+        order.save(update_fields=["status"])
+
+        # optional: reverse the folio charge for this order
+        try:
+            from billing.models import GuestFolio, FolioCharge
+            folio = GuestFolio.objects.filter(booking=booking).first()
+            if folio:
+                FolioCharge.objects.filter(
+                    folio=folio,
+                    charge_type="restaurant",
+                    description=f"Room Service Order #{order.order_number}",
+                ).delete()
+        except Exception:
+            pass
+
+        return JsonResponse({"success": True})
+
+@csrf_exempt
+def guest_available_tables(request, schema, token):
+    if request.method != "GET":
+        return JsonResponse({"error": "GET required"}, status=405)
+    with schema_context(schema):
+        booking = Booking.objects.filter(guest_token=token).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+        try:
+            from datetime import datetime, timedelta, date
+            from restaurant.models import Table, TableReservation
+            date_str = request.GET.get("date")
+            time_str = request.GET.get("time")
+            guests_count = int(request.GET.get("guests", 2))
+            if not date_str or not time_str:
+                return JsonResponse({"error": "date and time required"}, status=400)
+            try:
+                reservation_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                return JsonResponse({"error": "Invalid date/time format"}, status=400)
+            check_in = booking.check_in if isinstance(booking.check_in, date) else booking.check_in.date()
+            check_out = booking.check_out if isinstance(booking.check_out, date) else booking.check_out.date()
+            if not (check_in <= reservation_dt.date() <= check_out):
+                return JsonResponse({"error": "Date must be within your stay"}, status=400)
+            end_time = reservation_dt + timedelta(hours=2)
+            tables = Table.objects.all().order_by("number")
+            available = []
+            for table in tables:
+                if table.capacity < guests_count:
+                    continue
+                conflict = TableReservation.objects.filter(
+                    table=table,
+                    status__in=["reserved", "seated"],
+                    reservation_time__lt=end_time,
+                    reservation_time__gte=reservation_dt - timedelta(hours=2)
+                ).exists()
+                if not conflict:
+                    available.append({
+                        "id": table.id,
+                        "number": table.number,
+                        "capacity": table.capacity,
+                        "is_occupied": table.is_occupied
+                    })
+            return JsonResponse({"success": True, "date": date_str, "time": time_str, "guests": guests_count, "tables": available, "count": len(available)})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+ 
+ 
+@csrf_exempt
+def guest_book_table(request, schema, token):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    with schema_context(schema):
+        booking = Booking.objects.select_related("guest").filter(guest_token=token).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+        try:
+            from datetime import datetime, timedelta, date
+            from restaurant.models import Table, TableReservation
+            data = json.loads(request.body)
+            table_id = data.get("table_id")
+            date_str = data.get("date")
+            time_str = data.get("time")
+            guests_count = int(data.get("guests", 2))
+            if not all([table_id, date_str, time_str]):
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+            table = Table.objects.filter(id=table_id).first()
+            if not table:
+                return JsonResponse({"error": "Table not found"}, status=404)
+            if table.capacity < guests_count:
+                return JsonResponse({"error": "Table capacity too small"}, status=400)
+            try:
+                reservation_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                return JsonResponse({"error": "Invalid date/time format"}, status=400)
+            check_in = booking.check_in if isinstance(booking.check_in, date) else booking.check_in.date()
+            check_out = booking.check_out if isinstance(booking.check_out, date) else booking.check_out.date()
+            if not (check_in <= reservation_dt.date() <= check_out):
+                return JsonResponse({"error": "Date must be within your stay"}, status=400)
+            end_time = reservation_dt + timedelta(hours=2)
+            conflict = TableReservation.objects.filter(table=table, status__in=["reserved", "seated"], reservation_time__lt=end_time, reservation_time__gte=reservation_dt - timedelta(hours=2)).exists()
+            if conflict:
+                return JsonResponse({"error": "Table no longer available at this time"}, status=400)
+            reservation = TableReservation.objects.create(table=table, guest_name=booking.guest.full_name if booking.guest else "Guest", phone=booking.guest.phone if booking.guest else "", reservation_time=reservation_dt, guests_count=guests_count, status="reserved")
+            return JsonResponse({"success": True, "reservation_id": reservation.id, "confirmation_code": f"TR{reservation.id:06d}", "table": table.number, "reservation_time": reservation_dt.isoformat(), "guests_count": guests_count, "message": f"Table {table.number} reserved for {guests_count} guests"})
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON"}, status=400)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+ 
+ 
+@csrf_exempt
+def guest_cancel_table_reservation(request, schema, token, reservation_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    with schema_context(schema):
+        booking = Booking.objects.filter(guest_token=token).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+        try:
+            from restaurant.models import TableReservation
+            reservation = TableReservation.objects.filter(id=reservation_id).first()
+            if not reservation:
+                return JsonResponse({"error": "Reservation not found"}, status=404)
+            if reservation.status not in ["reserved", "seated"]:
+                return JsonResponse({"error": "Reservation cannot be cancelled"}, status=400)
+            reservation.status = "cancelled"
+            reservation.save()
+            return JsonResponse({"success": True, "message": f"Reservation for Table {reservation.table.number} cancelled"})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+ 
+
+
+def guest_list_table_reservations(request, schema, token):
+    if request.method != "GET":
+        return JsonResponse({"error": "GET required"}, status=405)
+    with schema_context(schema):
+        booking = Booking.objects.select_related("guest").filter(guest_token=token).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+
+        from restaurant.models import TableReservation
+
+        guest_phone = booking.guest.phone if booking.guest else None
+
+        reservations = TableReservation.objects.select_related("table").filter(
+            phone=guest_phone
+        ).order_by("-reservation_time")
+
+        data = []
+        for r in reservations:
+            data.append({
+                "id": r.id,
+                "table": r.table.number,
+                "guests_count": r.guests_count,
+                "reservation_time": r.reservation_time.isoformat(),
+                "status": r.status,
+                "can_cancel": r.status in ("reserved", "seated"),
+            })
+
+        return JsonResponse({"success": True, "reservations": data})
+@csrf_exempt
+def guest_cancel_table_reservation(request, schema, token, reservation_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    with schema_context(schema):
+        booking = Booking.objects.filter(guest_token=token).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+        try:
+            from restaurant.models import TableReservation
+            reservation = TableReservation.objects.filter(id=reservation_id).first()
+            if not reservation:
+                return JsonResponse({"error": "Reservation not found"}, status=404)
+            if reservation.status not in ["reserved", "seated"]:
+                return JsonResponse({"error": "Reservation cannot be cancelled"}, status=400)
+            reservation.status = "cancelled"
+            reservation.save()
+            return JsonResponse({"success": True, "message": f"Reservation for Table {reservation.table.number} cancelled"})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def guest_self_check_in(request, schema, token):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    with schema_context(schema):
+        booking = Booking.objects.select_related("guest", "room_unit").filter(
+            guest_token=token
+        ).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid or expired link"}, status=403)
+
+        if booking.status == "checked_in":
+            return JsonResponse({"error": "You are already checked in"}, status=400)
+        if booking.status != "confirmed":
+            return JsonResponse({"error": "This booking cannot be checked in"}, status=400)
+
+        from datetime import date as _date
+        if booking.check_in > _date.today():
+            return JsonResponse({
+                "error": f"Check-in opens on {booking.check_in.strftime('%d %b %Y')}. Please come back then.",
+                "check_in_date": booking.check_in.isoformat(),
+            }, status=400)
+        guest = booking.guest
+        if not guest:
+            return JsonResponse({"error": "Guest data missing"}, status=400)
+        if booking.room_unit and booking.room_unit.status in ("Cleaning", "Dirty", "Maintenance"):
+            return JsonResponse({
+                "error": "Your room is still being prepared. Please try again shortly, or contact the front desk.",
+                "room_status": booking.room_unit.status,
+            }, status=400)
+
+        id_photos = request.FILES.getlist("id_photos")
+        if not id_photos:
+            return JsonResponse({"error": "Please upload at least one ID photo"}, status=400)
+
+        try:
+            with transaction.atomic():
+                for photo in id_photos:
+                    if not photo.content_type.startswith("image/"):
+                        return JsonResponse({"error": "Only image files are allowed"}, status=400)
+                    GuestIDPhoto.objects.create(guest=guest, image=photo)
+
+                booking.status = "checked_in"
+                booking.actual_check_in = timezone.now()
+                booking.save()
+
+                if booking.room_unit:
+                    booking.room_unit.status = "Occupied"
+                    booking.room_unit.save()
+
+            try:
+                from channelmanager.models import WebsiteChannel
+                from channelmanager.tasks import push_availability_to_channel
+                channel = WebsiteChannel.objects.filter(is_active=True).first()
+                if channel:
+                    push_availability_to_channel(channel.pk)
+            except Exception as e:
+                print(f"Channel sync failed: {e}")
+
+        except Exception as e:
+            return JsonResponse({"error": f"Check-in failed: {str(e)}"}, status=500)
+
+        return JsonResponse({"success": True, "message": "You're checked in! Enjoy your stay."})
+
+@csrf_exempt
+def guest_self_check_out(request, schema, token):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    with schema_context(schema):
+        from accounts.models import Hotel, HotelModule
+
+        booking = Booking.objects.select_related("guest", "room_unit").filter(
+            guest_token=token
+        ).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid or expired link"}, status=403)
+
+        # Resolve hotel the same way guest_portal() does
+        with schema_context('public'):
+            hotel = Hotel.objects.filter(schema_name=schema).first()
+
+        if not hotel:
+            return JsonResponse({"error": "Hotel not found"}, status=404)
+
+        # ── ADMIN TOGGLE CHECK ──────────────────────────────────────
+        # Mirrors the restaurant/laundry module pattern used in guest_portal()
+        module_enabled = HotelModule.objects.filter(
+            hotel=hotel,
+            module__name__iexact="self_checkout",
+            is_enabled=True
+        ).exists()
+
+        if not module_enabled:
+            return JsonResponse({
+                "error": "Self check-out isn't available for this property. Please check out at the front desk."
+            }, status=403)
+
+        if booking.status != "checked_in":
+            return JsonResponse({"error": "You are not currently checked in"}, status=400)
+
+        from billing.models import GuestFolio
+        try:
+            folio = GuestFolio.objects.get(booking=booking)
+        except GuestFolio.DoesNotExist:
+            return JsonResponse({"error": "Folio not found. Please contact the front desk."}, status=400)
+
+        apply_overstay_charge(booking, folio)   # NEW — add overstay charge if applicable
+        folio.refresh_from_db()
+        balance = float(folio.balance_due)
+
+        if balance > 0.50:
+            return JsonResponse({
+                "error": "You have an outstanding balance. Please settle your bill to check out.",
+                "balance_due": balance,
+            }, status=400)
+
+        booking.status = "checked_out"
+        booking.actual_check_out = timezone.now()
+        booking.save()
+
+        housekeeping_task = None
+        if booking.room_unit:
+            booking.room_unit.status = "Dirty"
+            booking.room_unit.save()
+            try:
+                housekeeping_task = auto_assign_housekeeping_task(
+                    booking.room_unit, hotel, booking=booking
+                )
+            except Exception as e:
+                print(f"Auto-assign housekeeping failed: {e}")
+
+        folio.status = "closed"
+        folio.save()
+        
+
+        try:
+            from channelmanager.models import WebsiteChannel
+            from channelmanager.tasks import push_availability_to_channel
+            channel = WebsiteChannel.objects.filter(is_active=True).first()
+            if channel:
+                push_availability_to_channel(channel.pk)
+        except Exception as e:
+            print(f"Channel sync failed: {e}")
+
+        return JsonResponse({
+            "success": True,
+            "message": "You're checked out. Thank you for staying with us!",
+            "housekeeping_assigned": bool(housekeeping_task),
+        })
+
+def guest_checkout_summary(request, schema, token):
+    """
+    Returns the folio breakdown for the pre-checkout review screen.
+    Guest sees this BEFORE the actual check-out action fires.
+    """
+    with schema_context(schema):
+        from accounts.models import Hotel, HotelModule
+
+        booking = Booking.objects.select_related("guest", "room_unit").filter(
+            guest_token=token
+        ).first()
+        if not booking:
+            return JsonResponse({"error": "Invalid link"}, status=403)
+
+        with schema_context('public'):
+            hotel = Hotel.objects.filter(schema_name=schema).first()
+
+        module_enabled = HotelModule.objects.filter(
+            hotel=hotel, module__name__iexact="self_checkout", is_enabled=True
+        ).exists()
+        if not module_enabled:
+            return JsonResponse({"error": "Self check-out isn't available for this property."}, status=403)
+
+        if booking.status != "checked_in":
+            return JsonResponse({"error": "You are not currently checked in"}, status=400)
+
+        from billing.models import GuestFolio
+        try:
+            folio = GuestFolio.objects.get(booking=booking)
+        except GuestFolio.DoesNotExist:
+            return JsonResponse({"error": "Folio not found. Please contact the front desk."}, status=400)
+
+        apply_overstay_charge(booking, folio)   # NEW
+        folio.refresh_from_db()
+
+        charges = [
+            {
+                "description": c.description,
+                "amount": float(c.amount),
+                "tax": float(c.tax_amount),
+                "total": float(c.total),
+                "charge_type": c.charge_type,
+            }
+            for c in folio.charges.all().order_by("charge_type", "date")
+        ]
+
+        payments = [
+            {"amount": float(p.amount), "method": p.method, "note": p.note or ""}
+            for p in folio.payments.all().order_by("id")
+        ]
+
+        balance = float(folio.balance_due)
+
+        return JsonResponse({
+            "success": True,
+            "room": booking.room_unit.room_number if booking.room_unit else "N/A",
+            "check_in": str(booking.check_in),
+            "check_out": str(booking.check_out),
+            "charges": charges,
+            "payments": payments,
+            "total_charges": float(folio.total_charges),
+            "total_paid": float(folio.total_paid),
+            "balance_due": balance,
+            "can_checkout": balance <= 0.50,
+        })
+    
+
+#render page
+# ============================================================
+# ROOM STATUS VIEW (Template Render)
+# ============================================================
+@login_required
+
+@never_cache
+def room_status(request):
+    """
+    Renders room status page with real-time availability.
+    Similar to get_rooms but returns HTML instead of JSON.
+    """
+    try:
+        from django.utils import timezone
+        from datetime import datetime
+        
+        today = timezone.now().date()
+        
+        # Get query parameters for date range filter
+        check_in = request.GET.get("check_in")
+        check_out = request.GET.get("check_out")
+        
+        # Convert query-string values to Python date objects
+        if check_in:
+            try:
+                check_in = datetime.strptime(check_in, "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                check_in = None
+        
+        if check_out:
+            try:
+                check_out = datetime.strptime(check_out, "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                check_out = None
+        
+        has_date_range = bool(check_in and check_out)
+        
+        rooms = Room.objects.filter(is_active=True).prefetch_related(
+            'units', 'seasonal_rates', 'amenities', 'images'
+        )
+        
+        room_list = []
+        
+        for room in rooms:
+            units = room.units.all().order_by("room_number")
+            units_list = []
+            
+            # Get availability for selected dates or physical status
+            if has_date_range:
+                availability = get_units_availability_for_period(
+                    room, check_in, check_out
+                )
+            else:
+                availability = {
+                    unit.id: (
+                        unit.status not in ["Maintenance", "Dirty", "Cleaning"]
+                    )
+                    for unit in units
+                }
+            
+            # Build units list
+            for unit in units:
+                color_map = {
+                    "Available": "green",
+                    "Occupied": "red",
+                    "Dirty": "yellow",
+                    "Reserved": "blue",
+                    "Cleaning": "orange",
+                    "Maintenance": "gray",
+                }
+                
+                available_for_dates = availability.get(unit.id, True)
+                physical_status = unit.status
+                
+                if physical_status == "Maintenance":
+                    display_status = "Maintenance"
+                elif has_date_range:
+                    display_status = "Available" if available_for_dates else "Occupied"
+                else:
+                    display_status = physical_status
+                
+                # Get active booking
+                active_booking = Booking.objects.filter(
+                    room_unit=unit,
+                    status="checked_in"
+                ).select_related("guest").order_by("-actual_check_in").first()
+                
+                if not active_booking:
+                    active_booking = Booking.objects.filter(
+                        room_unit=unit,
+                        status="confirmed",
+                        check_in__lte=today,
+                        check_out__gt=today,
+                    ).select_related("guest").order_by("-check_in").first()
+                
+                units_list.append({
+                    "id": unit.id,
+                    "number": unit.room_number,
+                    "physical_status": physical_status,
+                    "available_for_dates": available_for_dates,
+                    "status": display_status,
+                    "color": color_map.get(display_status, "gray"),
+                    "current_guest": {
+                        "booking_id": active_booking.id,
+                        "guest_name": active_booking.guest.full_name if active_booking.guest else "N/A",
+                        "phone": active_booking.guest.phone if active_booking.guest else "",
+                        "check_in": active_booking.check_in.isoformat(),
+                        "check_out": active_booking.check_out.isoformat(),
+                        "status": active_booking.status,
+                    } if active_booking else None,
+                })
+            
+            # Get seasonal rate
+            seasonal = room.seasonal_rates.filter(
+                start_date__lte=today,
+                end_date__gte=today
+            ).first()
+            
+            # Count available units
+            if has_date_range:
+                available_count = sum(1 for v in availability.values() if v)
+            else:
+                available_count = sum(
+                    1 for unit in units
+                    if unit.status not in ["Maintenance", "Dirty", "Cleaning"]
+                )
+            
+            room_list.append({
+                "id": room.id,
+                "room_type": (
+                    room.custom_room_type
+                    if room.room_type == "Custom" and room.custom_room_type
+                    else room.room_type
+                ),
+                "price": str(seasonal.price if seasonal else room.base_price),
+                "total_units": room.total_units(),
+                "available_units": available_count,
+                "max_adults": room.max_adults,
+                "max_children": room.max_children,
+                "amenities": [a.name for a in room.amenities.all()],
+                "features": room.features,
+                "overstay_price": str(room.overstay_price),
+                "description": room.description,
+                "images": [img.image.url for img in room.images.all()],
+                "units": units_list,
+            })
+        
+        return render(request, "hotel/rooms.html", {
+            "rooms": room_list,
+            "check_in": check_in.isoformat() if check_in else None,
+            "check_out": check_out.isoformat() if check_out else None,
+            "has_date_range": has_date_range,
+            "today": today.isoformat(),
+        })
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return render(request, "room_status.html", {
+            "rooms": [],
+            "error": str(e),
+        })
+
+# ============================================================
+# ADD THESE TO views.py (pms app) — alongside create_booking etc.
+# These are the two PAGE-RENDERING views the New Booking wizard
+# template (document 3) and its JS reference but that don't
+# exist yet in your views.py:
+#
+#   - new_booking          -> renders the wizard page itself
+#   - get_bookings_page    -> "All Bookings" list page the
+#                              wizard redirects to after success
+#                              and that the sidebar's "All Bookings"
+#                              link should point to
+# ============================================================
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
+
+
+@login_required
+@never_cache
+def new_booking(request):
+    """
+    Renders the 4-step New Booking wizard (document 3 template).
+    No context is strictly required — the page fetches everything
+    it needs (rooms, seasonal rates, bookings-for-lookup) via JS
+    from the API endpoints below.
+    """
+    return render(request, "hotel/booking.html", {})
+
+
+@login_required
+@never_cache
+def get_bookings_page(request):
+    """
+    Renders the All Bookings list page. Reuses the same
+    Booking queryset shape as the get_bookings() JSON API
+    so the template can render server-side on first load,
+    then the page's own JS can refresh via /get-bookings/.
+    """
+    bookings = Booking.objects.select_related(
+        "guest", "room", "room_unit", "payment", "created_by"
+    ).order_by("-created_at")
+
+    return render(request, "hotel/bookings_list.html", {
+        "bookings": bookings,
+    })
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_payment(request, payment_id):
+    from billing.models import GuestFolio, BillingPayment
+
+    payment = BillingPayment.objects.select_related("folio").filter(id=payment_id).first()
+    if not payment:
+        return JsonResponse({"error": "Payment not found"}, status=404)
+
+    folio = payment.folio
+    payment.delete()
+
+    # keep pms.Payment in sync (best-effort)
+    try:
+        pms_pay = Payment.objects.filter(booking=folio.booking).first()
+        if pms_pay:
+            pms_pay.payment_status = "paid" if folio.is_settled else (
+                "partial" if folio.total_paid > 0 else "pending"
+            )
+            pms_pay.save()
+    except Exception:
+        pass
+
+    return JsonResponse({
+        "success": True,
+        "folio_balance": float(folio.balance_due),
+        "is_settled": folio.is_settled,
+    })
+def get_housekeeping_staff(request):
+    """
+    Returns housekeeping department staff for the assignment dropdown,
+    each with their current open-task load so front desk can pick
+    the least-busy person (mirrors get_available_housekeeping_staff's
+    department lookup, but returns ALL housekeeping staff, not just
+    those currently on-shift, since manual assignment shouldn't be
+    limited to shift windows).
+    """
+    hotel_id = request.session.get("hotel_id")
+    staff_id = request.session.get("staff_id")
+
+    hotel = None
+    if hotel_id:
+        from accounts.models import Hotel
+        hotel = Hotel.objects.filter(id=hotel_id).first()
+    if not hotel and staff_id:
+        me = Staff.objects.filter(id=staff_id).select_related("hotel").first()
+        hotel = me.hotel if me else None
+
+    if not hotel:
+        return JsonResponse({"success": False, "error": "Hotel context not found"}, status=400)
+
+    hk_dept_ids = Department.objects.filter(
+        hotel=hotel, name__icontains="housekeeping"
+    ).values_list("id", flat=True)
+
+    staff_qs = Staff.objects.filter(
+        hotel=hotel, department_id__in=hk_dept_ids
+    ).order_by("name")
+
+    data = []
+    for s in staff_qs:
+        open_tasks = Task.objects.filter(
+            staff=s, status__in=["Pending", "In Progress"]
+        ).count()
+        data.append({
+            "id": s.id,
+            "name": s.name,
+            "is_available": getattr(s, "is_available", True),
+            "open_tasks": open_tasks,
+        })
+
+    # Least-busy first so it's the natural top-of-list pick
+    data.sort(key=lambda s: s["open_tasks"])
+
+    return JsonResponse({"success": True, "staff": data})

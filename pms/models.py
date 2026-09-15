@@ -27,10 +27,10 @@ class Room(models.Model):
     description = models.TextField(blank=True)
 
     amenities = models.ManyToManyField(Property, blank=True)
-
+    features = models.JSONField(default=list, blank=True)
     extra_adult_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     extra_child_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
+    overstay_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
    
     def display_type(self):

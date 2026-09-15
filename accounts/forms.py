@@ -36,9 +36,16 @@ class HotelForm(ModelForm):
             'owner_name': forms.TextInput(attrs={'placeholder': 'Owner Full Name...'}),
             'address': forms.Textarea(attrs={'rows': 3}),
             'city': forms.TextInput(attrs={'placeholder': 'City...'}),
-            'description': forms.Textarea(attrs={'rows': 3}),
-            'amenities': forms.Textarea(attrs={'rows': 3}),
+            'property_type': forms.TextInput(attrs={'placeholder': 'Hotel,Resort...'}),
+            'description': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Optional description...'}),
+            'amenities': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Optional amenities...'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make description and amenities optional
+        self.fields['description'].required = False
+        self.fields['amenities'].required = False
 
     def clean_password(self):
         password = self.cleaned_data.get("password")

@@ -1,0 +1,1438 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Admio - Room Status{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── KPI STRIP ── */
+  .rs-kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px}
+  .rs-kpi-pill{display:flex;align-items:center;gap:9px;background:var(--admio-card-bg,#fff);
+    border:1px solid var(--admio-border-color,#e5e7eb);border-radius:14px;padding:14px 16px;cursor:pointer;transition:.15s}
+  .rs-kpi-pill:hover{box-shadow:0 4px 14px rgba(0,0,0,.06)}
+  .rs-kpi-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .rs-kpi-count{font-size:1.5rem;font-weight:800;font-family:monospace;line-height:1}
+  .rs-kpi-lbl{font-size:.72rem;color:var(--admio-text-muted,#6b7280);margin-top:2px}
+
+  /* ── FILTER BAR ── */
+  .rs-filter-card{background:var(--admio-card-bg,#fff);border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:14px;padding:16px 18px;margin-bottom:18px}
+  .rs-tabs{display:flex;gap:3px;background:var(--admio-input-bg,#f1f5f9);padding:3px;border-radius:9px;flex-wrap:wrap}
+  .rs-tab{padding:7px 15px;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;
+    border:none;background:transparent;color:var(--admio-text-muted,#6b7280);transition:.15s;display:flex;align-items:center;gap:6px}
+  .rs-tab.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .rs-tab-dot{width:7px;height:7px;border-radius:50%}
+  .rs-search-wrap{position:relative;margin-left:auto}
+  .rs-search-wrap input{padding:9px 14px 9px 34px;border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:9px;font-size:.82rem;width:230px;background:var(--admio-input-bg,#f9fafb)}
+  .rs-search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:12px}
+  .rs-filter-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:14px}
+  .rs-fg label{display:block;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--admio-text-muted,#6b7280);margin-bottom:5px}
+  .rs-fg select,.rs-fg input{padding:8px 12px;border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:8px;font-size:.8rem;min-width:130px;background:var(--admio-input-bg,#f9fafb)}
+  .rs-clear-btn{margin-left:auto;padding:8px 16px;border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:8px;background:transparent;font-size:.8rem;font-weight:600;color:var(--admio-text-muted,#6b7280);
+    cursor:pointer;display:flex;align-items:center;gap:6px}
+
+  /* ── RESULT COUNT ── */
+  .rs-result-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:.8rem;color:var(--admio-text-muted,#6b7280)}
+
+  /* ── ROOM CARDS ── */
+  .rs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
+  .rs-card{background:var(--admio-card-bg,#fff);border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:16px;overflow:hidden;transition:.18s;cursor:pointer}
+  .rs-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .rs-card-bar{height:4px}
+  .rs-card-bar.available{background:#22c55e}.rs-card-bar.occupied{background:#ef4444}
+  .rs-card-bar.dirty{background:#f59e0b}.rs-card-bar.reserved{background:#7c3aed}
+  .rs-card-bar.cleaning{background:#06b6d4}.rs-card-bar.maintenance{background:#6b7280}
+  .rs-card-img{height:150px;background:#f1f5f9;position:relative;overflow:hidden}
+  .rs-card-img img{width:100%;height:100%;object-fit:cover}
+  .rs-status-pill{position:absolute;top:10px;right:10px;padding:4px 12px;border-radius:100px;
+    font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#fff}
+  .rs-card-body{padding:16px 18px}
+  .rs-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+  .rs-room-num{font-size:1.3rem;font-weight:800;color:#111}
+  .rs-room-floor{font-size:.68rem;color:var(--admio-text-muted,#6b7280);margin-top:2px}
+  .rs-room-price{font-size:1.05rem;font-weight:800;color:#2563eb;text-align:right}
+  .rs-room-price small{display:block;font-size:.62rem;color:var(--admio-text-muted,#6b7280);font-weight:500}
+  .rs-badge{display:inline-block;font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:6px;
+    background:#f1f5f9;color:#374151;margin-bottom:8px}
+  .rs-capacity{font-size:.73rem;color:var(--admio-text-muted,#6b7280);margin-bottom:10px;display:flex;align-items:center;gap:5px}
+  .rs-guest-strip{background:#faf5ff;border:1px solid #e9d5ff;border-radius:9px;padding:9px 11px;margin-bottom:10px}
+  .rs-guest-strip.reserved{background:#eff6ff;border-color:#bfdbfe}
+  .rs-guest-strip.occupied{background:#fef2f2;border-color:#fecaca}
+  .rs-guest-name{font-weight:700;font-size:.8rem;display:flex;align-items:center;gap:6px}
+  .rs-guest-dates{font-size:.68rem;color:var(--admio-text-muted,#6b7280);margin-top:2px}
+  .rs-guest-badge{margin-left:auto;font-size:.6rem;font-weight:800;padding:2px 7px;border-radius:100px;
+    background:#dbeafe;color:#1d4ed8;text-transform:uppercase}
+  .rs-actions{display:flex;gap:7px}
+  .rs-btn{flex:1;padding:8px 10px;border-radius:8px;font-size:.76rem;font-weight:700;
+    border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+  .rs-btn-book{background:#2563eb;color:#fff}
+  .rs-btn-danger{background:#ef4444;color:#fff}
+  .rs-btn-success{background:#22c55e;color:#fff}
+  .rs-btn-cyan{background:#06b6d4;color:#fff}
+  .rs-btn-gold{background:#B8952A;color:#fff}
+  .rs-btn-outline{background:transparent;border:1px solid var(--admio-border-color,#e5e7eb);color:#374151;flex:0 0 auto;width:40px}
+
+  /* ── MODALS ── */
+   .rs-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:none;
+    align-items:center;justify-content:center;padding:20px}
+  .rs-modal-overlay.open{display:flex}
+  .rs-modal-box{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .rs-modal-box.rs-modal-wide{max-width:620px}
+  .rs-modal-head{padding:16px 20px;border-bottom:1px solid var(--admio-border-color,#e5e7eb);
+    display:flex;align-items:center;justify-content:space-between;background:#0f172a;border-radius:16px 16px 0 0;gap:10px}
+  .rs-modal-head strong{color:#fff;font-size:.95rem;display:flex;align-items:center;gap:8px;min-width:0}
+  .rs-modal-head strong span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rs-modal-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:1.2rem;cursor:pointer;line-height:1;flex-shrink:0}
+  .rs-modal-close:hover{color:#fff}
+  .rs-modal-body{padding:18px 20px}
+  .rs-modal-footer{padding:14px 20px;border-top:1px solid var(--admio-border-color,#e5e7eb);
+    display:flex;justify-content:flex-end;gap:8px}
+  .rs-status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+  .rs-status-opt{padding:12px 8px;border:2px solid var(--admio-border-color,#e5e7eb);border-radius:10px;
+    background:#fff;cursor:pointer;text-align:center;transition:.15s}
+  .rs-status-opt.selected{box-shadow:0 0 0 3px rgba(37,99,235,.2)}
+  .rs-status-opt i{display:block;font-size:16px;margin-bottom:5px}
+  .rs-status-opt span{font-size:.72rem;font-weight:700}
+  .rs-field-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--admio-text-muted,#6b7280);margin-bottom:4px}
+  .rs-field-val{font-size:.85rem;font-weight:600;color:#111;margin-bottom:12px}
+  .rs-input{width:100%;padding:8px 12px;border:1px solid var(--admio-border-color,#e5e7eb);border-radius:8px;font-size:.82rem}
+  .rs-select{width:100%;padding:8px 12px;border:1px solid var(--admio-border-color,#e5e7eb);border-radius:8px;font-size:.82rem;background:#fff}
+
+  /* ── DETAIL MODAL: banner + tabs ── */
+  .rs-detail-banner{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;margin-bottom:14px}
+  .rs-detail-dot{width:9px;height:9px;border-radius:50%}
+  .rs-detail-status-txt{font-weight:700;font-size:.85rem}
+  .rs-detail-meta{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:.75rem;color:#4b5563}
+  .rs-detail-tabs{display:flex;border-bottom:1px solid var(--admio-border-color,#e5e7eb);margin-bottom:16px;flex-wrap:wrap}
+  .rs-detail-tab{padding:9px 4px;margin-right:20px;font-size:.8rem;font-weight:600;color:#6b7280;
+    background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .rs-detail-tab.active{color:#2563eb;border-bottom-color:#2563eb}
+
+  .rs-guest-avatar{width:44px;height:44px;border-radius:50%;background:#4f46e5;color:#fff;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+  .rs-guest-row{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .rs-guest-row .name{font-weight:800;font-size:1rem}
+  .rs-guest-row .sub{font-size:.75rem;color:#6b7280}
+  .rs-pill-status{margin-left:auto;padding:4px 12px;border-radius:100px;font-size:.68rem;font-weight:800}
+  .rs-stay-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px}
+  .rs-stay-box{background:#f9fafb;border-radius:10px;padding:10px;text-align:center}
+  .rs-stay-box.active{background:#eff6ff}
+  .rs-stay-box .l{font-size:.6rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em}
+  .rs-stay-box .v{font-size:.85rem;font-weight:800;color:#111;margin-top:3px}
+  .rs-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .rs-2col-box{background:#f9fafb;border-radius:10px;padding:10px}
+
+  .rs-pay-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:#0f172a;border-radius:10px;
+    padding:14px 16px;margin-bottom:14px;color:#fff}
+  .rs-pay-summary .col{text-align:left}
+  .rs-pay-summary .col + .col{border-left:1px solid rgba(255,255,255,.12);padding-left:16px}
+  .rs-pay-summary .l{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8}
+  .rs-pay-summary .v{font-size:1.05rem;font-weight:800;margin-top:3px}
+  .rs-progress-row{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:#6b7280;margin-bottom:6px}
+  .rs-progress-track{height:8px;background:#e5e7eb;border-radius:100px;overflow:hidden;margin-bottom:16px}
+  .rs-progress-fill{height:100%;background:#f59e0b;border-radius:100px}
+  .rs-progress-fill.full{background:#22c55e}
+  .rs-section-lbl{display:flex;justify-content:space-between;font-size:.68rem;font-weight:800;text-transform:uppercase;
+    letter-spacing:.05em;color:#6b7280;margin-bottom:8px}
+  .rs-charge-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f1f5f9}
+  .rs-charge-row:last-child{border-bottom:none}
+  .rs-charge-info{flex:1;min-width:0}
+  .rs-charge-desc{font-size:.8rem;font-weight:600;color:#111}
+  .rs-charge-date{font-size:.68rem;color:#9ca3af;margin-top:1px}
+  .rs-charge-amt{font-size:.85rem;font-weight:800;text-align:right}
+  .rs-charge-del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:.9rem;padding:2px}
+  .rs-pay-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#f0fdf4;border-radius:8px;margin-bottom:6px}
+  .rs-pay-row .m{font-weight:700;font-size:.8rem}
+  .rs-pay-row .s{font-size:.68rem;color:#6b7280}
+  .rs-pay-row .amt{margin-left:auto;font-weight:800;color:#166534;font-size:.85rem}
+  .rs-balance-box{padding:10px 12px;border-radius:8px;font-size:.8rem;font-weight:700;margin-top:8px}
+  .rs-balance-box.due{background:#fef2f2;color:#991b1b}
+  .rs-balance-box.settled{background:#dcfce7;color:#166534}
+
+  /* ── CHECK-IN MODAL ── */
+  .rs-dropzone{border:2px dashed var(--admio-border-color,#e5e7eb);border-radius:10px;padding:26px 14px;
+    text-align:center;cursor:pointer;color:#6b7280;font-size:.82rem;background:#fafafa}
+  .rs-dropzone:hover{border-color:#2563eb;color:#2563eb}
+  .rs-dropzone i{display:block;font-size:20px;margin-bottom:8px}
+  .rs-file-chip{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;color:#1d4ed8;font-size:.72rem;
+    font-weight:600;padding:4px 10px;border-radius:100px;margin:6px 6px 0 0}
+
+  /* ── CHECKOUT WIZARD ── */
+  .rs-wizard-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--admio-border-color,#e5e7eb)}
+  .rs-wizard-steps{display:flex;align-items:center;gap:0;padding:16px 20px 4px}
+  .rs-wstep{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.7rem;font-weight:700;color:#9ca3af}
+  .rs-wstep .circ{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:#e5e7eb;color:#6b7280;font-size:.75rem;font-weight:800}
+  .rs-wstep.done .circ{background:#22c55e;color:#fff}
+  .rs-wstep.active .circ{background:#2563eb;color:#fff}
+  .rs-wstep.active,.rs-wstep.done{color:#111}
+  .rs-wline{flex:1;height:2px;background:#e5e7eb;margin:0 6px 20px}
+  .rs-wline.done{background:#22c55e}
+  .rs-ai-banner{background:linear-gradient(90deg,#f5f3ff,#eef2ff);border:1px solid #ddd6fe;border-radius:10px;
+    padding:12px 14px;margin-bottom:14px}
+  .rs-ai-tag{display:inline-flex;align-items:center;gap:5px;background:#7c3aed;color:#fff;font-size:.65rem;
+    font-weight:800;padding:3px 10px;border-radius:100px;margin-bottom:6px}
+  .rs-ai-text{font-size:.8rem;color:#374151;margin-bottom:8px}
+  .rs-ai-actions{display:flex;gap:8px}
+  .rs-ai-actions button{font-size:.72rem;font-weight:700;padding:6px 12px;border-radius:7px;cursor:pointer;border:none}
+  .rs-ai-add{background:#fff;color:#7c3aed;border:1px solid #ddd6fe!important}
+  .rs-ai-dismiss{background:transparent;color:#6b7280}
+  .rs-cat-tabs{display:flex;gap:4px;overflow-x:auto;background:#f1f5f9;padding:3px;border-radius:9px;margin-bottom:14px}
+  .rs-cat-tab{padding:7px 13px;border-radius:7px;font-size:.75rem;font-weight:700;white-space:nowrap;
+    border:none;background:transparent;color:#6b7280;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .rs-cat-tab.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .rs-quick-add{display:flex;gap:8px;margin-bottom:14px}
+  .rs-quick-add input{flex:1}
+  .rs-quick-add .amt{width:100px;flex:0 0 auto}
+  .rs-folio-total{background:#0f172a;color:#fff;border-radius:10px;padding:14px 16px;margin-top:6px}
+  .rs-folio-total .big{font-size:1.4rem;font-weight:800}
+  .rs-folio-total .sub{font-size:.72rem;color:#94a3b8;margin-top:2px}
+  .rs-paymethod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+  .rs-paymethod-opt{padding:12px;border:2px solid var(--admio-border-color,#e5e7eb);border-radius:10px;cursor:pointer;
+    display:flex;align-items:center;gap:10px}
+  .rs-paymethod-opt.selected{border-color:#2563eb;background:#eff6ff}
+  .rs-paymethod-opt i{font-size:16px;color:#2563eb}
+  .rs-paymethod-opt .t{font-size:.8rem;font-weight:700;color:#111}
+  .rs-paymethod-opt .s{font-size:.68rem;color:#9ca3af}
+  .rs-summary-strip{display:flex;justify-content:space-between;background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .rs-summary-strip .item{text-align:center;flex:1}
+  .rs-summary-strip .l{font-size:.62rem;text-transform:uppercase;color:#6b7280;font-weight:700}
+  .rs-summary-strip .v{font-size:.95rem;font-weight:800;margin-top:3px}
+  .rs-big-confirm{width:100%;padding:13px;border-radius:9px;background:#22c55e;color:#fff;font-weight:800;
+    font-size:.88rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .rs-invoice-check{text-align:center;padding:20px 10px}
+  .rs-invoice-check i{font-size:44px;color:#22c55e;display:block;margin-bottom:10px}
+  .rs-invoice-num{font-size:1.3rem;font-weight:800;color:#111}
+  .rs-invoice-amt{font-size:1.6rem;font-weight:800;color:#2563eb;margin:6px 0 14px}
+
+  /* ── INVOICE PAPER (step 3 redesign) ── */
+  .rs-invoice-paper{border:1px solid #e5e7eb;border-radius:14px;padding:22px 20px;background:#fff}
+  .rs-invoice-hotel{text-align:center;margin-bottom:16px}
+  .rs-invoice-hotel .name{font-weight:800;font-size:1.1rem;color:#111}
+  .rs-invoice-hotel .sub{font-size:.72rem;color:#9ca3af;margin-top:2px}
+  .rs-invoice-row{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px}
+  .rs-invoice-row .l{color:#6b7280}
+  .rs-invoice-row .v{font-weight:600}
+  .rs-invoice-items{border-top:1px dashed #e5e7eb;padding-top:12px;margin:14px 0 10px}
+  .rs-invoice-item-row{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:8px}
+  .rs-invoice-totals{border-top:1px solid #e5e7eb;padding-top:10px}
+  .rs-invoice-totals .row{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:4px}
+  .rs-invoice-grand{border-top:2px solid #111;padding-top:10px;display:flex;justify-content:space-between;
+    font-weight:800;font-size:1rem;margin:10px 0}
+  .rs-invoice-paid{display:flex;justify-content:space-between;font-size:.82rem;font-weight:700;color:#166534;margin-bottom:2px}
+  .rs-invoice-balance{display:flex;justify-content:space-between;font-size:.82rem;font-weight:800}
+  .rs-invoice-balance.due{color:#dc2626}
+  .rs-invoice-balance.settled{color:#166534}
+
+  /* ── HOUSEKEEPING ASSIGN MODAL ── */
+  .rs-hk-note{display:none;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:.78rem;
+    border-radius:8px;padding:8px 10px;margin-bottom:12px}
+  .rs-hk-note.show{display:block}
+  .rs-hk-note.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+
+  @media (max-width:900px){
+    .rs-kpi-strip{grid-template-columns:repeat(3,1fr)}
+    .rs-search-wrap{margin-left:0;width:100%}
+    .rs-search-wrap input{width:100%}
+    .rs-stay-grid,.rs-paymethod-grid{grid-template-columns:1fr 1fr}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="icon-door-open"></i> Room Status</h1>
+  </div>
+  <button class="btn-admio btn-outline" onclick="rsLoadRooms()"><i class="icon-refresh-cw"></i> Refresh</button>
+</div>
+
+<!-- KPI Strip -->
+<div class="rs-kpi-strip" id="rsKpiStrip"></div>
+
+<!-- Filter Card -->
+<div class="rs-filter-card">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div class="rs-tabs" id="rsStatusTabs">
+      <button class="rs-tab active" data-status="" onclick="rsSetFilter('',this)">All</button>
+      <button class="rs-tab" data-status="Available" onclick="rsSetFilter('Available',this)"><span class="rs-tab-dot" style="background:#22c55e"></span>Available</button>
+      <button class="rs-tab" data-status="Occupied" onclick="rsSetFilter('Occupied',this)"><span class="rs-tab-dot" style="background:#ef4444"></span>Occupied</button>
+      <button class="rs-tab" data-status="Dirty" onclick="rsSetFilter('Dirty',this)"><span class="rs-tab-dot" style="background:#f59e0b"></span>Dirty</button>
+      <button class="rs-tab" data-status="Reserved" onclick="rsSetFilter('Reserved',this)"><span class="rs-tab-dot" style="background:#7c3aed"></span>Reserved</button>
+      <button class="rs-tab" data-status="Cleaning" onclick="rsSetFilter('Cleaning',this)"><span class="rs-tab-dot" style="background:#06b6d4"></span>Cleaning</button>
+      <button class="rs-tab" data-status="Maintenance" onclick="rsSetFilter('Maintenance',this)"><span class="rs-tab-dot" style="background:#6b7280"></span>Maintenance</button>
+    </div>
+    <div class="rs-search-wrap">
+      <i class="icon-search"></i>
+      <input type="text" id="rsSearch" placeholder="Search room number, guest…" oninput="rsApplyFilters()">
+    </div>
+  </div>
+
+  <div class="rs-filter-row">
+    <div class="rs-fg">
+      <label>Room Type</label>
+      <select id="rsTypeFilter" onchange="rsApplyFilters()">
+        <option value="">All Types</option>
+        <option>Single</option><option>Double</option><option>Deluxe</option><option>Suite</option>
+      </select>
+    </div>
+    <div class="rs-fg">
+      <label>Floor</label>
+      <select id="rsFloorFilter" onchange="rsApplyFilters()">
+        <option value="">All Floors</option>
+        <option value="1">Floor 1</option><option value="2">Floor 2</option><option value="3">Floor 3</option>
+        <option value="4">Floor 4</option><option value="5">Floor 5</option>
+      </select>
+    </div>
+    <div class="rs-fg">
+      <label>Sort By</label>
+      <select id="rsSortBy" onchange="rsApplyFilters()">
+        <option value="number_asc">Room No. (A→Z)</option>
+        <option value="number_desc">Room No. (Z→A)</option>
+        <option value="status">Status</option>
+        <option value="type">Room Type</option>
+        <option value="price_asc">Price (Low→High)</option>
+        <option value="price_desc">Price (High→Low)</option>
+      </select>
+    </div>
+    <div class="rs-fg">
+      <label>Per Page</label>
+      <select id="rsPerPage" onchange="rsApplyFilters()">
+        <option value="12">12</option><option value="24" selected>24</option>
+        <option value="48">48</option><option value="9999">All</option>
+      </select>
+    </div>
+    <button class="rs-clear-btn" onclick="rsClearFilters()"><i class="icon-x"></i> Clear</button>
+  </div>
+</div>
+
+<div class="rs-result-row">
+  <span>Showing <strong id="rsFrom">0</strong>–<strong id="rsTo">0</strong> of <strong id="rsTotal">0</strong> rooms</span>
+</div>
+
+<div class="rs-grid" id="rsGrid">
+  <div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af">
+    <i class="icon-loader" style="font-size:1.5rem"></i><br>Loading rooms…
+  </div>
+</div>
+
+<div id="rsPagination" style="display:flex;justify-content:center;gap:6px;margin-top:22px"></div>
+
+<!-- ══════════════ ROOM DETAIL MODAL ══════════════ -->
+<div class="rs-modal-overlay" id="rsDetailModal">
+  <div class="rs-modal-box">
+    <div class="rs-modal-head">
+      <strong><i class="icon-door-open"></i> <span id="rsDetailTitle">Room</span></strong>
+      <button class="rs-modal-close" onclick="rsCloseModal('rsDetailModal')">✕</button>
+    </div>
+    <div class="rs-modal-body" id="rsDetailBody"></div>
+    <div class="rs-modal-footer" id="rsDetailFooter">
+      <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ROOM STATUS UPDATE MODAL ══════════════ -->
+<div class="rs-modal-overlay" id="rsStatusModal">
+  <div class="rs-modal-box">
+    <div class="rs-modal-head">
+      <strong><i class="icon-refresh-cw"></i> Update Room Status</strong>
+      <button class="rs-modal-close" onclick="rsCloseModal('rsStatusModal')">✕</button>
+    </div>
+    <div class="rs-modal-body">
+      <input type="hidden" id="rsStatusUnitId">
+      <div class="rs-field-lbl">Room</div>
+      <div class="rs-field-val" id="rsStatusRoomLabel">—</div>
+
+      <div class="rs-field-lbl">New Status</div>
+      <div class="rs-status-grid" id="rsStatusOptions">
+        <div class="rs-status-opt" data-status="Available" onclick="rsSelectStatus(this,'Available')" style="border-color:#86efac">
+          <i class="icon-check-circle" style="color:#22c55e"></i><span style="color:#22c55e">Available</span>
+        </div>
+        <div class="rs-status-opt" data-status="Dirty" onclick="rsSelectStatus(this,'Dirty')" style="border-color:#fcd34d">
+          <i class="icon-alert-triangle" style="color:#f59e0b"></i><span style="color:#f59e0b">Dirty</span>
+        </div>
+        <div class="rs-status-opt" data-status="Cleaning" onclick="rsSelectStatus(this,'Cleaning')" style="border-color:#67e8f9">
+          <i class="icon-droplet" style="color:#06b6d4"></i><span style="color:#06b6d4">Cleaning</span>
+        </div>
+        <div class="rs-status-opt" data-status="Maintenance" onclick="rsSelectStatus(this,'Maintenance')" style="border-color:#d1d5db">
+          <i class="icon-tool" style="color:#6b7280"></i><span style="color:#6b7280">Maintenance</span>
+        </div>
+        <div class="rs-status-opt" data-status="Reserved" onclick="rsSelectStatus(this,'Reserved')" style="border-color:#c4b5fd">
+          <i class="icon-calendar" style="color:#7c3aed"></i><span style="color:#7c3aed">Reserved</span>
+        </div>
+        <div class="rs-status-opt" data-status="Occupied" onclick="rsSelectStatus(this,'Occupied')" style="border-color:#fca5a5">
+          <i class="icon-user" style="color:#ef4444"></i><span style="color:#ef4444">Occupied</span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="rs-field-lbl">Notes (optional)</div>
+        <input type="text" class="rs-input" id="rsStatusNotes" placeholder="Reason for status change…">
+      </div>
+    </div>
+    <div class="rs-modal-footer">
+      <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsStatusModal')">Cancel</button>
+      <button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 16px" id="rsStatusConfirmBtn" onclick="rsConfirmStatusUpdate()">
+        <i class="icon-save"></i> Update
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ GUEST CHECK-IN MODAL ══════════════ -->
+<div class="rs-modal-overlay" id="rsCheckinModal">
+  <div class="rs-modal-box">
+    <div class="rs-modal-head">
+      <strong><i class="icon-log-in"></i> Guest Check-In</strong>
+      <button class="rs-modal-close" onclick="rsCloseModal('rsCheckinModal')">✕</button>
+    </div>
+    <div class="rs-modal-body">
+      <input type="hidden" id="rsCheckinBookingId">
+      <div class="rs-guest-row">
+        <div class="rs-guest-avatar" id="rsCheckinAvatar">?</div>
+        <div>
+          <div class="name" id="rsCheckinGuestName">Guest</div>
+          <div class="sub" id="rsCheckinRoomLabel">Room</div>
+        </div>
+        <span class="rs-pill-status" style="background:#dbeafe;color:#1d4ed8">Confirmed</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div class="rs-field-lbl">ID Type</div>
+          <select class="rs-select" id="rsCheckinIdType">
+            <option>Aadhaar Card</option>
+            <option>PAN Card</option>
+            <option>Passport</option>
+            <option>Driving Licence</option>
+            <option>Voter ID</option>
+          </select>
+        </div>
+        <div>
+          <div class="rs-field-lbl">ID Number</div>
+          <input type="text" class="rs-input" id="rsCheckinIdNumber" placeholder="Enter ID number">
+        </div>
+      </div>
+
+      <div class="rs-field-lbl">ID Photos <span style="color:#ef4444">*</span> (multiple allowed)</div>
+      <div class="rs-dropzone" onclick="document.getElementById('rsCheckinFileInput').click()">
+        <i class="icon-image"></i>
+        Click to upload or drag &amp; drop
+      </div>
+      <input type="file" id="rsCheckinFileInput" accept="image/*" multiple style="display:none" onchange="rsCheckinFilesChosen(this.files)">
+      <div id="rsCheckinFileList"></div>
+    </div>
+    <div class="rs-modal-footer">
+      <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsCheckinModal')">Cancel</button>
+      <button class="rs-btn rs-btn-success" style="flex:0 0 auto;padding:8px 16px" id="rsCheckinConfirmBtn" onclick="rsConfirmCheckin()">
+        <i class="icon-log-in"></i> Confirm Check-In
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ GUEST CHECK-OUT & BILLING WIZARD ══════════════ -->
+<div class="rs-modal-overlay" id="rsCheckoutModal">
+  <div class="rs-modal-box rs-modal-wide">
+    <div class="rs-modal-head">
+      <strong><i class="icon-log-out"></i> Guest Check-Out &amp; Billing — <span id="rsCoGuestName">Guest</span></strong>
+      <button class="rs-modal-close" onclick="rsCloseModal('rsCheckoutModal')">✕</button>
+    </div>
+    <div class="rs-wizard-head">
+      <div>
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280">Balance Due</div>
+        <div style="font-size:1.15rem;font-weight:800;color:#2563eb" id="rsCoBalanceHead">₹0</div>
+      </div>
+      <span style="margin-left:auto;padding:5px 12px;border-radius:100px;font-size:.68rem;font-weight:800;
+        background:#fef3c7;color:#92400e">Open Folio</span>
+    </div>
+    <div class="rs-wizard-steps">
+      <div class="rs-wstep active" id="rsWstep1"><div class="circ">1</div>Charges</div>
+      <div class="rs-wline" id="rsWline1"></div>
+      <div class="rs-wstep" id="rsWstep2"><div class="circ">2</div>Payment</div>
+      <div class="rs-wline" id="rsWline2"></div>
+      <div class="rs-wstep" id="rsWstep3"><div class="circ">3</div>Invoice</div>
+    </div>
+    <div class="rs-modal-body" id="rsCoBody"></div>
+    <div class="rs-modal-footer" id="rsCoFooter"></div>
+  </div>
+</div>
+
+<!-- ══════════════ HOUSEKEEPING ASSIGNMENT MODAL (auto-opens after checkout email) ══════════════ -->
+<div class="rs-modal-overlay" id="rsHkModal" style="z-index:2010">
+  <div class="rs-modal-box">
+    <div class="rs-modal-head">
+      <strong><i class="icon-tool"></i> Assign Housekeeping</strong>
+      <button class="rs-modal-close" onclick="rsCloseModal('rsHkModal')">✕</button>
+    </div>
+    <div class="rs-modal-body">
+      <input type="hidden" id="rsHkUnitId">
+      <input type="hidden" id="rsHkTaskId">
+
+      <div class="rs-field-lbl">Room</div>
+      <div class="rs-field-val" id="rsHkRoomLabel">—</div>
+
+      <div class="rs-hk-note" id="rsHkAutoNote"></div>
+
+      <div class="rs-field-lbl">Housekeeping Staff</div>
+      <select class="rs-select" id="rsHkStaffSelect" style="margin-bottom:14px">
+        <option value="">Loading staff…</option>
+      </select>
+
+      <div class="rs-field-lbl">Task Type</div>
+      <select class="rs-select" id="rsHkTaskType" style="margin-bottom:14px">
+        <option>Cleaning</option>
+        <option>Deep Cleaning</option>
+        <option>Inspection</option>
+        <option>Turn Down</option>
+      </select>
+
+      <div class="rs-field-lbl">Notes (optional)</div>
+      <input type="text" class="rs-input" id="rsHkNotes" placeholder="Any special instructions…">
+    </div>
+    <div class="rs-modal-footer">
+      <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsHkModal')">Skip</button>
+      <button class="rs-btn rs-btn-cyan" style="flex:0 0 auto;padding:8px 16px" id="rsHkConfirmBtn" onclick="rsConfirmHkAssign()">
+        <i class="icon-check"></i> Assign
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let rsRoomData = [];
+let rsFilteredUnits = [];
+let rsCurrentPage = 1;
+let rsStatusFilter = '';
+let rsSelectedNewStatus = '';
+let rsCheckinFiles = [];
+let rsCo = null;           // active checkout-wizard state
+let rsInvoiceCache = null; // cache of /api/billing/invoice/list/ results
+let rsBookingsCache = null; // cache of /get-bookings/ results (used by Reservations tab)
+let rsHkStaffCache = null;  // cache of /api/housekeeping-staff/ results
+
+const RS_STATUS_META = {
+  Available:{color:'#22c55e',bar:'available'}, Occupied:{color:'#ef4444',bar:'occupied'},
+  Dirty:{color:'#f59e0b',bar:'dirty'}, Reserved:{color:'#7c3aed',bar:'reserved'},
+  Cleaning:{color:'#06b6d4',bar:'cleaning'}, Maintenance:{color:'#6b7280',bar:'maintenance'},
+};
+
+function rsEsc(s){const d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML;}
+function rsFmtInr(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});}
+function rsCsrf(){return (document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken='))||'=').split('=')[1]||'';}
+function rsOpenModal(id){document.getElementById(id)?.classList.add('open');}
+function rsCloseModal(id){document.getElementById(id)?.classList.remove('open');}
+function rsInitials(name){return (name||'?').trim().split(/\s+/).map(p=>p[0]).slice(0,2).join('').toUpperCase();}
+function rsFmtDate(d){ if(!d) return '—'; try{ return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;} }
+
+function rsToast(msg){
+  let el = document.getElementById('rsToastMsg');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'rsToastMsg';
+    el.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:#111;color:#fff;'+
+      'padding:10px 18px;border-radius:9px;font-size:.82rem;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.2);'+
+      'opacity:0;transition:opacity .3s';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(window._rsToastTimer);
+  window._rsToastTimer = setTimeout(()=>{ el.style.opacity='0'; }, 2800);
+}
+
+async function rsApiJson(url, opts){
+  const res = await fetch(url, opts);
+  let data = {};
+  try{ data = await res.json(); }catch(e){}
+  return {ok: res.ok, status: res.status, data};
+}
+
+/* ══════════════════════════════ LOAD ROOMS ══════════════════════════════ */
+async function rsLoadRooms(){
+  try{
+    const res = await fetch('/api/rooms/');
+    const data = await res.json();
+    rsRoomData = data.success ? (data.rooms || []) : [];
+  }catch(e){ rsRoomData = []; }
+  rsApplyFilters();
+}
+
+function rsRenderKpis(){
+  const el = document.getElementById('rsKpiStrip');
+  const counts = {Available:0,Occupied:0,Reserved:0,Dirty:0,Cleaning:0,Maintenance:0};
+  rsRoomData.forEach(r => (r.units||[]).forEach(u => { if(counts[u.status]!==undefined) counts[u.status]++; }));
+  el.innerHTML = Object.entries(counts).map(([status,count]) => {
+    const m = RS_STATUS_META[status];
+    return `<div class="rs-kpi-pill" onclick="rsSetFilter('${status}', document.querySelector('.rs-tab[data-status=\\'${status}\\']'))">
+      <div class="rs-kpi-dot" style="background:${m.color}"></div>
+      <div><div class="rs-kpi-count" style="color:${m.color}">${count}</div><div class="rs-kpi-lbl">${status}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function rsSetFilter(status, btn){
+  rsStatusFilter = status;
+  document.querySelectorAll('.rs-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  rsCurrentPage = 1;
+  rsApplyFilters();
+}
+
+function rsClearFilters(){
+  rsStatusFilter = '';
+  document.getElementById('rsTypeFilter').value = '';
+  document.getElementById('rsFloorFilter').value = '';
+  document.getElementById('rsSearch').value = '';
+  document.querySelectorAll('.rs-tab').forEach((b,i)=>b.classList.toggle('active', i===0));
+  rsCurrentPage = 1;
+  rsApplyFilters();
+}
+
+function rsApplyFilters(){
+  let units = [];
+  rsRoomData.forEach(r => (r.units||[]).forEach(u => units.push({...u, room:r})));
+
+  if(rsStatusFilter) units = units.filter(u => u.status === rsStatusFilter);
+  const tf = document.getElementById('rsTypeFilter')?.value;
+  if(tf) units = units.filter(u => u.room.room_type === tf);
+  const ff = document.getElementById('rsFloorFilter')?.value;
+  if(ff) units = units.filter(u => String(u.number||'').replace(/\D/g,'').charAt(0) === ff);
+  const sv = (document.getElementById('rsSearch')?.value||'').toLowerCase().trim();
+  if(sv){
+    units = units.filter(u => {
+      const gname = (u.current_guest?.guest_name || u.upcoming_guest?.guest_name || '').toLowerCase();
+      return (u.number||'').toLowerCase().includes(sv) || gname.includes(sv);
+    });
+  }
+
+  const sort = document.getElementById('rsSortBy')?.value || 'number_asc';
+  units.sort((a,b)=>{
+    if(sort==='number_asc') return (a.number||'').localeCompare(b.number||'');
+    if(sort==='number_desc') return (b.number||'').localeCompare(a.number||'');
+    if(sort==='status') return (a.status||'').localeCompare(b.status||'');
+    if(sort==='type') return (a.room.room_type||'').localeCompare(b.room.room_type||'');
+    if(sort==='price_asc') return (parseFloat(a.room.price)||0)-(parseFloat(b.room.price)||0);
+    if(sort==='price_desc') return (parseFloat(b.room.price)||0)-(parseFloat(a.room.price)||0);
+    return 0;
+  });
+
+  rsFilteredUnits = units;
+  rsRenderKpis();
+  rsRenderPage();
+}
+
+function rsRenderPage(){
+  const perPage = parseInt(document.getElementById('rsPerPage')?.value) || 24;
+  const total = rsFilteredUnits.length;
+  const pages = Math.ceil(total/perPage) || 1;
+  rsCurrentPage = Math.max(1, Math.min(rsCurrentPage, pages));
+  const start = (rsCurrentPage-1)*perPage;
+  const slice = rsFilteredUnits.slice(start, start+perPage);
+
+  document.getElementById('rsFrom').textContent = total ? start+1 : 0;
+  document.getElementById('rsTo').textContent = Math.min(start+perPage, total);
+  document.getElementById('rsTotal').textContent = total;
+
+  const grid = document.getElementById('rsGrid');
+  if(!slice.length){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af">
+      <i class="icon-door-closed"></i><br>No rooms match filters.</div>`;
+    rsRenderPagination(pages);
+    return;
+  }
+
+  grid.innerHTML = slice.map(u=>{
+    const r = u.room;
+    const m = RS_STATUS_META[u.status] || RS_STATUS_META.Maintenance;
+    const cg = u.current_guest;   // in-house guest (checked_in / today's confirmed)
+    const ug = u.upcoming_guest;  // future confirmed booking
+    const guest = cg || ug;
+
+    const img = (r.images && r.images.length) ? `<img src="${rsEsc(r.images[0])}" alt="Room">`
+      : `<div style="display:grid;place-items:center;height:100%;font-size:2rem;opacity:.2">🛏️</div>`;
+
+    let guestBox = '';
+    if(guest){
+      const isUpcoming = !cg && ug;
+      guestBox = `<div class="rs-guest-strip ${isUpcoming?'reserved':(u.status==='Occupied'?'occupied':'')}">
+          <div class="rs-guest-name"><i class="icon-user" style="font-size:11px"></i>${rsEsc(guest.guest_name)}
+            <span class="rs-guest-badge">${isUpcoming?'Confirmed':(guest.status||'')}</span></div>
+          <div class="rs-guest-dates">${rsFmtDate(guest.check_in)} → ${rsFmtDate(guest.check_out)}</div>
+        </div>`;
+    }
+
+    let actionBtn = '';
+    if(u.status === 'Occupied' && cg){
+      actionBtn = `<button class="rs-btn rs-btn-danger" onclick="event.stopPropagation();rsOpenCheckoutModal(${cg.booking_id},'${rsEsc(cg.guest_name)}','${rsEsc(u.number)} · ${rsEsc(r.room_type)}',${u.id})"><i class="icon-log-out"></i> Check Out</button>`;
+    } else if(u.status === 'Reserved' && guest){
+      actionBtn = `<button class="rs-btn rs-btn-success" onclick="event.stopPropagation();rsOpenCheckinModal(${guest.booking_id},'${rsEsc(guest.guest_name)}','${rsEsc(u.number)} · ${rsEsc(r.room_type)}')"><i class="icon-log-in"></i> Check In</button>`;
+    } else if(u.status === 'Available' && ug && ug.check_in <= window.rsToday){
+      actionBtn = `<button class="rs-btn rs-btn-success" onclick="event.stopPropagation();rsOpenCheckinModal(${ug.booking_id},'${rsEsc(ug.guest_name)}','${rsEsc(u.number)} · ${rsEsc(r.room_type)}')"><i class="icon-log-in"></i> Check In</button>`;
+    } else if(u.status === 'Available'){
+      actionBtn = `<button class="rs-btn rs-btn-book" onclick="event.stopPropagation();window.location.href='/bookings/new/?room_unit=${u.id}'"><i class="icon-calendar-plus"></i> Book</button>`;
+    } else if(u.status === 'Dirty' || u.status === 'Cleaning'){
+      actionBtn = `<button class="rs-btn rs-btn-cyan" onclick="event.stopPropagation();rsOpenHkModal(${u.id},'${rsEsc(u.number)} · ${rsEsc(r.room_type)}')"><i class="icon-tool"></i> Housekeeping</button>`;
+    } else {
+      actionBtn = `<button class="rs-btn rs-btn-book" disabled style="opacity:.5;cursor:not-allowed">${rsEsc(u.status)}</button>`;
+    }
+
+    // Invoice quick-access: only worth offering if there's a guest tied to this unit
+    const invoiceBtn = guest
+      ? `<button class="rs-btn rs-btn-outline" title="View invoice" onclick="event.stopPropagation();rsViewInvoiceForUnit('${rsEsc(u.number)}','${rsEsc(guest.guest_name)}','${guest.check_in||''}')"><i class="icon-file-text"></i></button>`
+      : '';
+
+    const unitData = encodeURIComponent(JSON.stringify({
+      id:u.id, number:u.number, status:u.status, room_type:r.room_type, price:r.price,
+      max_adults:r.max_adults, max_children:r.max_children, description:r.description||'',
+      current_guest: cg || null, upcoming_guest: ug || null,
+    }));
+
+    return `<div class="rs-card" onclick="rsOpenDetail('${unitData}')">
+      <div class="rs-card-bar ${m.bar}"></div>
+      <div class="rs-card-img">
+        ${img}
+        <span class="rs-status-pill" style="background:${m.color}">${rsEsc(u.status)}</span>
+      </div>
+      <div class="rs-card-body">
+        <div class="rs-card-top">
+          <div><div class="rs-room-num">${rsEsc(u.number)}</div>
+          <div class="rs-room-floor">Floor ${(u.number||'1').replace(/\D/g,'').charAt(0)||'1'}</div></div>
+          <div class="rs-room-price">${rsFmtInr(r.price)}<small>/night</small></div>
+        </div>
+        <span class="rs-badge">${rsEsc(r.room_type)}</span>
+        <div class="rs-capacity"><i class="icon-users" style="font-size:11px"></i>${r.max_adults||2} adults${r.max_children?' · '+r.max_children+' children':''}</div>
+        ${guestBox}
+        <div class="rs-actions">
+          ${actionBtn}
+          ${invoiceBtn}
+          <button class="rs-btn rs-btn-outline" title="Change status" onclick="event.stopPropagation();rsOpenStatusModal(${u.id},'${rsEsc(u.number)}','${rsEsc(u.status)}')"><i class="icon-refresh-cw"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  rsRenderPagination(pages);
+}
+
+function rsRenderPagination(pages){
+  const el = document.getElementById('rsPagination');
+  if(pages<=1){ el.innerHTML=''; return; }
+  let html='';
+  for(let i=1;i<=pages;i++){
+    const active = i===rsCurrentPage;
+    html += `<button onclick="rsCurrentPage=${i};rsRenderPage()" style="min-width:34px;padding:6px 10px;
+      border:1px solid ${active?'#2563eb':'#e5e7eb'};border-radius:7px;
+      background:${active?'#2563eb':'#fff'};color:${active?'#fff':'#111'};cursor:pointer;font-weight:${active?'700':'400'}">${i}</button>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ══════════════════════════════ ROOM DETAIL MODAL (tabbed) ══════════════════════════════ */
+let rsDetailUnit = null;
+let rsDetailFolio = null;
+
+function rsOpenDetail(encoded){
+  let u;
+  try{ u = JSON.parse(decodeURIComponent(encoded)); }catch(e){ return; }
+  rsDetailUnit = u;
+  rsDetailFolio = null;
+  document.getElementById('rsDetailTitle').textContent = 'Room ' + u.number;
+  rsRenderDetailTabs('guest');
+  rsOpenModal('rsDetailModal');
+}
+
+function rsRenderDetailTabs(active){
+  const u = rsDetailUnit;
+  const m = RS_STATUS_META[u.status] || RS_STATUS_META.Maintenance;
+  const guest = u.current_guest || u.upcoming_guest;
+  const isUpcoming = !u.current_guest && u.upcoming_guest;
+
+  const tabsHtml = `
+    <div class="rs-detail-banner" style="background:${m.color}18">
+      <div class="rs-detail-dot" style="background:${m.color}"></div>
+      <div class="rs-detail-status-txt" style="color:${m.color}">${rsEsc(u.status)}</div>
+      <div class="rs-detail-meta">
+        <span>${u.max_adults||2} adults</span>
+        <button class="btn-admio btn-outline" style="padding:6px 12px;font-size:.75rem" onclick="rsCloseModal('rsDetailModal');rsOpenStatusModal(${u.id},'${rsEsc(u.number)}','${rsEsc(u.status)}')">
+          <i class="icon-refresh-cw"></i> Update Status</button>
+      </div>
+    </div>
+    <div class="rs-detail-tabs">
+      <button class="rs-detail-tab ${active==='guest'?'active':''}" onclick="rsRenderDetailTabs('guest')"><i class="icon-user"></i> Guest Details</button>
+      <button class="rs-detail-tab ${active==='room'?'active':''}" onclick="rsRenderDetailTabs('room')"><i class="icon-info"></i> Room Info</button>
+      <button class="rs-detail-tab ${active==='payment'?'active':''}" onclick="rsRenderDetailTabs('payment')"><i class="icon-credit-card"></i> Payment</button>
+      <button class="rs-detail-tab ${active==='reservations'?'active':''}" onclick="rsRenderDetailTabs('reservations')"><i class="icon-list"></i> Reservations</button>
+    </div>
+    <div id="rsDetailTabBody"></div>
+  `;
+  document.getElementById('rsDetailBody').innerHTML = tabsHtml;
+
+  const body = document.getElementById('rsDetailTabBody');
+  const footer = document.getElementById('rsDetailFooter');
+  let footerHtml = `<button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal')">Close</button>`;
+
+  if(active === 'guest'){
+    if(!guest){
+      body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af">
+        <i class="icon-user-x" style="font-size:22px;display:block;margin-bottom:8px"></i>No guest linked to this room right now.</div>`;
+    } else {
+      body.innerHTML = `
+        <div class="rs-guest-row">
+          <div class="rs-guest-avatar">${rsInitials(guest.guest_name)}</div>
+          <div><div class="name">${rsEsc(guest.guest_name)}</div><div class="sub">${rsEsc(guest.phone||'')}</div></div>
+          <span class="rs-pill-status" style="background:#dbeafe;color:#1d4ed8">${isUpcoming?'Confirmed':rsEsc(guest.status||'')}</span>
+        </div>
+        <div class="rs-field-lbl">Stay</div>
+        <div class="rs-stay-grid">
+          <div class="rs-stay-box"><div class="l">Check-In</div><div class="v">${rsFmtDate(guest.check_in)}</div></div>
+          <div class="rs-stay-box"><div class="l">Check-Out</div><div class="v">${rsFmtDate(guest.check_out)}</div></div>
+          <div class="rs-stay-box active"><div class="l">Room</div><div class="v">${rsEsc(u.room_type)} — ${rsEsc(u.number)}</div></div>
+        </div>
+      `;
+      if(u.status === 'Occupied' && u.current_guest){
+        footerHtml = `<button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal')">Close</button>
+          <button class="rs-btn rs-btn-danger" style="flex:0 0 auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal');rsOpenCheckoutModal(${guest.booking_id},'${rsEsc(guest.guest_name)}','${rsEsc(u.number)} · ${rsEsc(u.room_type)}',${u.id})"><i class="icon-log-out"></i> Check Out</button>`;
+      } else if(guest && (u.status==='Reserved' || isUpcoming)){
+        footerHtml = `<button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal')">Close</button>
+          <button class="rs-btn rs-btn-success" style="flex:0 0 auto;padding:8px 16px" onclick="rsCloseModal('rsDetailModal');rsOpenCheckinModal(${guest.booking_id},'${rsEsc(guest.guest_name)}','${rsEsc(u.number)} · ${rsEsc(u.room_type)}')"><i class="icon-log-in"></i> Check In</button>`;
+      }
+    }
+  }
+
+  else if(active === 'room'){
+    body.innerHTML = `
+      <div class="rs-2col">
+        <div class="rs-2col-box"><div class="rs-field-lbl">Room Number</div><div class="rs-field-val" style="margin-bottom:0">${rsEsc(u.number)}</div></div>
+        <div class="rs-2col-box"><div class="rs-field-lbl">Room Type</div><div class="rs-field-val" style="margin-bottom:0">${rsEsc(u.room_type)}</div></div>
+        <div class="rs-2col-box"><div class="rs-field-lbl">Rate / Night</div><div class="rs-field-val" style="margin-bottom:0;color:#2563eb">${rsFmtInr(u.price)}</div></div>
+        <div class="rs-2col-box"><div class="rs-field-lbl">Max Adults</div><div class="rs-field-val" style="margin-bottom:0">${u.max_adults||2}${u.max_children?' · '+u.max_children+' children':''}</div></div>
+      </div>
+      ${u.description ? `<div style="font-size:.78rem;color:#6b7280;line-height:1.6;padding:10px 12px;background:#f9fafb;border-radius:8px;border-left:3px solid #2563eb">${rsEsc(u.description)}</div>` : ''}
+    `;
+  }
+
+  else if(active === 'payment'){
+    if(!guest){
+      body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af">
+        <i class="icon-credit-card" style="font-size:22px;display:block;margin-bottom:8px"></i>No billing folio — this room has no linked booking.</div>`;
+    } else {
+      body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af"><i class="icon-loader"></i> Loading folio…</div>`;
+      rsApiJson(`/api/billing/folio/?booking_id=${guest.booking_id}`).then(({ok,data})=>{
+        if(!ok || !data.success){ body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af">Could not load folio.</div>`; return; }
+        const f = data.folio;
+        const pct = f.total_charges > 0 ? Math.min(100, Math.round((f.total_paid/f.total_charges)*100)) : 0;
+        body.innerHTML = `
+          <div class="rs-pay-summary">
+            <div class="col"><div class="l">Charged</div><div class="v">${rsFmtInr(f.total_charges)}</div></div>
+            <div class="col"><div class="l">Paid</div><div class="v" style="color:#4ade80">${rsFmtInr(f.total_paid)}</div></div>
+            <div class="col"><div class="l">Balance Due</div><div class="v" style="color:${f.balance_due>0?'#fca5a5':'#4ade80'}">${rsFmtInr(f.balance_due)}</div></div>
+          </div>
+          <div class="rs-progress-row"><span>Payment Progress</span><span>${pct}% settled</span></div>
+          <div class="rs-progress-track"><div class="rs-progress-fill ${pct>=100?'full':''}" style="width:${pct}%"></div></div>
+          <div class="rs-section-lbl"><span>Charges</span><span>${rsFmtInr(f.total_charges)}</span></div>
+          ${f.charges.map(c=>`<div class="rs-charge-row">
+              <div class="rs-charge-info"><div class="rs-charge-desc">${rsEsc(c.label)} — ${rsEsc(c.description)}</div><div class="rs-charge-date">${rsEsc(c.date)}</div></div>
+              <div class="rs-charge-amt">${rsFmtInr(c.total)}</div>
+            </div>`).join('') || `<div style="color:#9ca3af;font-size:.8rem;padding:6px 0">No charges yet.</div>`}
+          ${f.payments.length ? `<div class="rs-section-lbl" style="margin-top:14px"><span>Payments</span><span>${rsFmtInr(f.total_paid)}</span></div>` : ''}
+          ${f.payments.map(p=>`<div class="rs-pay-row">
+              <div><div class="m">${rsEsc(p.method_label)}</div><div class="s">${rsEsc(p.note||'')}</div></div>
+              <div class="amt">${rsFmtInr(p.amount)}</div>
+              <button class="rs-charge-del" title="Delete this payment" onclick="rsDeletePaymentFromDetail(${p.id},${guest.booking_id})"><i class="icon-x"></i></button>
+            </div>`).join('')}
+          <div class="rs-balance-box ${f.balance_due>0.5?'due':'settled'}">
+            ${f.balance_due>0.5 ? `Balance Due at Checkout: ${rsFmtInr(f.balance_due)}` : '✓ Fully Settled'}
+          </div>
+        `;
+      });
+    }
+  }
+
+  else if(active === 'reservations'){
+    body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af"><i class="icon-loader"></i> Loading reservations…</div>`;
+
+    const renderReservations = (list) => {
+      const roomBookings = (list||[])
+        .filter(b => b.room_no === u.number)
+        .sort((a,b) => (b.check_in||'').localeCompare(a.check_in||''));
+
+      if(!roomBookings.length){
+        body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#9ca3af">
+          <i class="icon-calendar" style="font-size:22px;display:block;margin-bottom:8px"></i>No reservations found for this room.</div>`;
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="rs-field-lbl" style="margin-bottom:10px">All Reservations — Room ${rsEsc(u.number)}</div>
+        ${roomBookings.map(b=>`
+          <div class="rs-2col-box" style="margin-bottom:8px;display:flex;align-items:center;gap:10px">
+            <div class="rs-guest-avatar" style="width:34px;height:34px;font-size:.8rem">${rsInitials(b.guest)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:.82rem">${rsEsc(b.guest)}</div>
+              <div style="font-size:.7rem;color:#6b7280">${rsFmtDate(b.check_in)} → ${rsFmtDate(b.check_out)}</div>
+            </div>
+            <span class="rs-guest-badge" style="background:#f1f5f9;color:#374151">${rsEsc(b.status)}</span>
+          </div>
+        `).join('')}
+      `;
+    };
+
+    if(rsBookingsCache){
+      renderReservations(rsBookingsCache);
+    } else {
+      fetch('/get-bookings/').then(r=>r.json()).then(list=>{
+        rsBookingsCache = list || [];
+        renderReservations(rsBookingsCache);
+      }).catch(()=>{
+        body.innerHTML = `<div style="text-align:center;padding:24px 10px;color:#ef4444">Could not load reservations.</div>`;
+      });
+    }
+  }
+
+  footer.innerHTML = footerHtml;
+}
+
+async function rsDeletePaymentFromDetail(paymentId, bookingId){
+  if(!window.confirm('Delete this payment record? This cannot be undone.')) return;
+  const {ok, data} = await rsApiJson(`/api/billing/delete-payment/${paymentId}/`, {
+    method:'DELETE', headers:{'X-CSRFToken':rsCsrf()}
+  }).catch(()=>({ok:false,data:{}}));
+  if(ok && data.success){
+    rsToast('Payment removed');
+    rsRenderDetailTabs('payment');
+    rsLoadRooms();
+  } else {
+    rsToast(data.error || 'Could not delete payment');
+  }
+}
+
+/* ══════════════════════════════ ROOM STATUS MODAL ══════════════════════════════ */
+function rsOpenStatusModal(unitId, roomNumber, currentStatus){
+  document.getElementById('rsStatusUnitId').value = unitId;
+  document.getElementById('rsStatusRoomLabel').textContent = `Room ${roomNumber} — Current: ${currentStatus}`;
+  document.getElementById('rsStatusNotes').value = '';
+  rsSelectedNewStatus = '';
+  document.querySelectorAll('.rs-status-opt').forEach(o=>o.classList.remove('selected'));
+  rsOpenModal('rsStatusModal');
+}
+
+function rsSelectStatus(el, status){
+  document.querySelectorAll('.rs-status-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  rsSelectedNewStatus = status;
+}
+
+async function rsConfirmStatusUpdate(){
+  const unitId = document.getElementById('rsStatusUnitId').value;
+  if(!rsSelectedNewStatus){ rsToast('Select a status'); return; }
+  const btn = document.getElementById('rsStatusConfirmBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="icon-loader"></i>';
+  const {ok, data} = await rsApiJson('/api/update-room-status/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':rsCsrf()},
+    body: JSON.stringify({
+      room_unit_id: unitId,
+      status: rsSelectedNewStatus,
+      notes: document.getElementById('rsStatusNotes').value.trim(),
+    })
+  }).catch(()=>({ok:false,data:{}}));
+  if(ok && data.success){
+    rsToast(`Room status → ${rsSelectedNewStatus}`);
+    rsCloseModal('rsStatusModal');
+    await rsLoadRooms();
+  } else {
+    rsToast(data.error || 'Update failed');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+}
+
+/* ══════════════════════════════ GUEST CHECK-IN ══════════════════════════════ */
+function rsOpenCheckinModal(bookingId, guestName, roomLabel){
+  document.getElementById('rsCheckinBookingId').value = bookingId;
+  document.getElementById('rsCheckinAvatar').textContent = rsInitials(guestName);
+  document.getElementById('rsCheckinGuestName').textContent = guestName;
+  document.getElementById('rsCheckinRoomLabel').textContent = roomLabel;
+  document.getElementById('rsCheckinIdNumber').value = '';
+  rsCheckinFiles = [];
+  document.getElementById('rsCheckinFileList').innerHTML = '';
+  document.getElementById('rsCheckinFileInput').value = '';
+  rsOpenModal('rsCheckinModal');
+}
+
+function rsCheckinFilesChosen(fileList){
+  rsCheckinFiles = Array.from(fileList);
+  const wrap = document.getElementById('rsCheckinFileList');
+  wrap.innerHTML = rsCheckinFiles.map(f=>`<span class="rs-file-chip"><i class="icon-image"></i>${rsEsc(f.name)}</span>`).join('');
+}
+
+async function rsConfirmCheckin(){
+  const bookingId = document.getElementById('rsCheckinBookingId').value;
+  if(!rsCheckinFiles.length){ rsToast('Please upload at least one ID photo'); return; }
+
+  const btn = document.getElementById('rsCheckinConfirmBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="icon-loader"></i> Checking in…';
+
+  const fd = new FormData();
+  fd.append('booking_id', bookingId);
+  fd.append('id_type', document.getElementById('rsCheckinIdType').value);
+  fd.append('id_number', document.getElementById('rsCheckinIdNumber').value);
+  rsCheckinFiles.forEach(f => fd.append('id_photos', f));
+
+  const {ok, data} = await rsApiJson('/api/check-in/', {
+    method:'POST',
+    headers:{'X-CSRFToken':rsCsrf()},
+    body: fd,
+  }).catch(()=>({ok:false,data:{}}));
+
+  if(ok && data.success){
+    rsToast('Guest checked in successfully');
+    rsCloseModal('rsCheckinModal');
+    await rsLoadRooms();
+  } else {
+    rsToast(data.message || data.error || 'Check-in failed');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+}
+
+/* ══════════════════════════════ GUEST CHECK-OUT & BILLING WIZARD ══════════════════════════════ */
+const RS_CATEGORIES = [
+  {key:'room', label:'Room', icon:'icon-bed'},
+  {key:'restaurant', label:'Restaurant', icon:'icon-coffee'},
+  {key:'laundry', label:'Laundry', icon:'icon-shirt'},
+  {key:'minibar', label:'Minibar', icon:'icon-wine'},
+  {key:'spa', label:'Spa', icon:'icon-heart'},
+  {key:'extra', label:'Other', icon:'icon-more-horizontal'},
+];
+
+async function rsOpenCheckoutModal(bookingId, guestName, roomLabel, unitId){
+  rsCo = { bookingId, guestName, roomLabel, unitId: unitId || null, folio:null, step:1, category:'room', method:'', dismissAi:false, checkoutResult:null };
+  document.getElementById('rsCoGuestName').textContent = guestName;
+  document.getElementById('rsCoBody').innerHTML = `<div style="text-align:center;padding:30px;color:#9ca3af"><i class="icon-loader"></i> Loading folio…</div>`;
+  document.getElementById('rsCoFooter').innerHTML = '';
+  rsOpenModal('rsCheckoutModal');
+
+  const {ok, data} = await rsApiJson(`/api/billing/folio/?booking_id=${bookingId}`).catch(()=>({ok:false,data:{}}));
+  if(!ok || !data.success){
+    document.getElementById('rsCoBody').innerHTML = `<div style="text-align:center;padding:30px;color:#ef4444">Could not load billing folio for this booking.</div>`;
+    return;
+  }
+  rsCo.folio = data.folio;
+  rsGoCoStep(1);
+}
+
+function rsWizardStepUI(){
+  const s = rsCo.step;
+  [1,2,3].forEach(n=>{
+    const el = document.getElementById('rsWstep'+n);
+    el.classList.toggle('active', n===s);
+    el.classList.toggle('done', n<s);
+    el.querySelector('.circ').innerHTML = n<s ? '✓' : n;
+  });
+  document.getElementById('rsWline1').classList.toggle('done', s>1);
+  document.getElementById('rsWline2').classList.toggle('done', s>2);
+  document.getElementById('rsCoBalanceHead').textContent = rsFmtInr(rsCo.folio ? rsCo.folio.balance_due : 0);
+}
+
+function rsGoCoStep(n){
+  rsCo.step = n;
+  rsWizardStepUI();
+  if(n===1) rsRenderCoStep1();
+  else if(n===2) rsRenderCoStep2();
+  else rsRenderCoStep3();
+}
+
+function rsRenderCoStep1(){
+  const f = rsCo.folio;
+  const catTabs = RS_CATEGORIES.map(c=>`<button class="rs-cat-tab ${rsCo.category===c.key?'active':''}" onclick="rsCo.category='${c.key}';rsRenderCoStep1()"><i class="${c.icon}"></i>${c.label}</button>`).join('');
+
+  document.getElementById('rsCoBody').innerHTML = `
+    ${!rsCo.dismissAi ? `
+    <div class="rs-ai-banner">
+      <div class="rs-ai-tag"><i class="icon-cpu"></i> AI Assistant</div>
+      <div class="rs-ai-text">Check minibar status before checkout.</div>
+      <div class="rs-ai-actions">
+        <button class="rs-ai-add" onclick="rsCo.category='minibar';rsCo.dismissAi=true;rsRenderCoStep1()"><i class="icon-plus"></i> Add Minibar</button>
+        <button class="rs-ai-dismiss" onclick="rsCo.dismissAi=true;rsRenderCoStep1()">Dismiss</button>
+      </div>
+    </div>` : ''}
+
+    <div class="rs-cat-tabs">${catTabs}</div>
+
+    ${rsCo.category !== 'room' ? `
+    <div class="rs-quick-add">
+      <input type="text" class="rs-input" id="rsQaDesc" placeholder="Description (e.g. Coke x2)">
+      <input type="number" class="rs-input amt" id="rsQaAmt" placeholder="Amount" min="0" step="0.01">
+      <button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 14px" onclick="rsCoAddCharge()"><i class="icon-plus"></i></button>
+    </div>` : ''}
+
+    <div class="rs-section-lbl"><span>Charges — ${RS_CATEGORIES.find(c=>c.key===rsCo.category)?.label}</span><span>${f.charges.filter(c=>c.charge_type===rsCo.category).length} item(s)</span></div>
+    ${f.charges.filter(c=>c.charge_type===rsCo.category).map(c=>`
+      <div class="rs-charge-row">
+        <div class="rs-charge-info"><div class="rs-charge-desc">${rsEsc(c.description)}</div><div class="rs-charge-date">${rsEsc(c.date)}${c.tax_amount?' · +'+rsFmtInr(c.tax_amount)+' tax':''}</div></div>
+        <div class="rs-charge-amt">${rsFmtInr(c.total)}</div>
+        ${c.charge_type!=='room' ? `<button class="rs-charge-del" onclick="rsCoDeleteCharge(${c.id})"><i class="icon-x"></i></button>` : ''}
+      </div>`).join('') || `<div style="color:#9ca3af;font-size:.8rem;padding:6px 0">No ${RS_CATEGORIES.find(c=>c.key===rsCo.category)?.label.toLowerCase()} charges yet.</div>`}
+
+    <div class="rs-folio-total">
+      <div class="big">${rsFmtInr(f.total_charges)}</div>
+      <div class="sub">CURRENT FOLIO TOTAL · Charges: ${rsFmtInr(f.total_charges)} · Paid: ${rsFmtInr(f.total_paid)}</div>
+    </div>
+  `;
+  document.getElementById('rsCoFooter').innerHTML = `
+    <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsCheckoutModal')">Cancel</button>
+    <button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 16px" onclick="rsGoCoStep(2)">Next <i class="icon-arrow-right"></i></button>
+  `;
+}
+
+async function rsCoAddCharge(){
+  const desc = document.getElementById('rsQaDesc').value.trim();
+  const amt = parseFloat(document.getElementById('rsQaAmt').value);
+  if(!desc || !amt || amt<=0){ rsToast('Enter a description and amount'); return; }
+  const {ok, data} = await rsApiJson('/api/billing/add-charge/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':rsCsrf()},
+    body: JSON.stringify({ folio_id: rsCo.folio.folio_id, charge_type: rsCo.category, description: desc, amount: amt, tax_amount: 0 })
+  }).catch(()=>({ok:false,data:{}}));
+  if(ok && data.success){
+    await rsCoRefreshFolio();
+    rsRenderCoStep1();
+  } else {
+    rsToast(data.error || 'Could not add charge');
+  }
+}
+
+async function rsCoDeleteCharge(chargeId){
+  const {ok, data} = await rsApiJson(`/api/billing/delete-charge/${chargeId}/`, {
+    method:'DELETE', headers:{'X-CSRFToken':rsCsrf()}
+  }).catch(()=>({ok:false,data:{}}));
+  if(ok && data.success){
+    await rsCoRefreshFolio();
+    rsRenderCoStep1();
+  } else {
+    rsToast(data.error || 'Could not remove charge');
+  }
+}
+
+async function rsCoRefreshFolio(){
+  const {ok, data} = await rsApiJson(`/api/billing/folio/?booking_id=${rsCo.bookingId}`).catch(()=>({ok:false,data:{}}));
+  if(ok && data.success) rsCo.folio = data.folio;
+}
+
+function rsRenderCoStep2(){
+  const f = rsCo.folio;
+  const methods = [
+    {key:'cash', label:'Cash', sub:'Physical currency', icon:'icon-dollar-sign'},
+    {key:'card', label:'Card', sub:'Debit / Credit', icon:'icon-credit-card'},
+    {key:'upi', label:'UPI', sub:'BHIM / GPay', icon:'icon-smartphone'},
+    {key:'bank_transfer', label:'Bank Transfer', sub:'NEFT / IMPS', icon:'icon-landmark'},
+  ];
+  document.getElementById('rsCoBody').innerHTML = `
+    <div class="rs-summary-strip">
+      <div class="item"><div class="l">Total Charges</div><div class="v">${rsFmtInr(f.total_charges)}</div></div>
+      <div class="item"><div class="l">Already Paid</div><div class="v">${rsFmtInr(f.total_paid)}</div></div>
+      <div class="item"><div class="l">Balance Due</div><div class="v" style="color:#2563eb">${rsFmtInr(f.balance_due)}</div></div>
+    </div>
+    <div class="rs-field-lbl">Payment Method</div>
+    <div class="rs-paymethod-grid" id="rsPmGrid">
+      ${methods.map(m=>`<div class="rs-paymethod-opt ${rsCo.method===m.key?'selected':''}" data-m="${m.key}" onclick="rsCoSelectMethod('${m.key}')">
+        <i class="${m.icon}"></i><div><div class="t">${m.label}</div><div class="s">${m.sub}</div></div></div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div class="rs-field-lbl">Reference / Transaction ID</div><input type="text" class="rs-input" id="rsCoRef" placeholder="e.g. UTR123456789"></div>
+      <div><div class="rs-field-lbl">Note</div><input type="text" class="rs-input" id="rsCoNote" placeholder="Any note…"></div>
+    </div>
+    <div class="rs-field-lbl">Amount Received Now</div>
+    <input type="number" class="rs-input" id="rsCoAmount" style="margin-bottom:6px;font-weight:700" placeholder="Enter amount actually collected" min="0" step="0.01" oninput="rsCoAmountHint()">
+    <div style="font-size:.72rem;color:#9ca3af;margin-bottom:16px" id="rsCoAmountHintTxt">Balance due is ${rsFmtInr(f.balance_due)} — checkout requires this to be fully settled. Enter only what you actually collected.</div>
+    <button class="rs-big-confirm" onclick="rsCoConfirmPayment()"><i class="icon-check-circle"></i> Confirm Payment &amp; Proceed</button>
+  `;
+  document.getElementById('rsCoFooter').innerHTML = `
+    <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsGoCoStep(1)"><i class="icon-arrow-left"></i> Back</button>
+    <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCloseModal('rsCheckoutModal')">Cancel</button>
+  `;
+}
+
+function rsCoSelectMethod(key){
+  rsCo.method = key;
+  document.querySelectorAll('#rsPmGrid .rs-paymethod-opt').forEach(o=>o.classList.toggle('selected', o.dataset.m===key));
+}
+
+function rsCoAmountHint(){
+  const f = rsCo.folio;
+  const raw = document.getElementById('rsCoAmount').value;
+  const amount = parseFloat(raw) || 0;
+  const hint = document.getElementById('rsCoAmountHintTxt');
+  if(!raw){
+    hint.style.color = '#9ca3af';
+    hint.textContent = `Balance due is ${rsFmtInr(f.balance_due)} — checkout requires this to be fully settled. Enter only what you actually collected.`;
+  } else if(amount < f.balance_due - 0.5){
+    hint.style.color = '#b45309';
+    hint.textContent = `This leaves ${rsFmtInr(f.balance_due - amount)} still unpaid — checkout will be blocked until the full balance is collected.`;
+  } else {
+    hint.style.color = '#166534';
+    hint.textContent = `This fully settles the balance.`;
+  }
+}
+
+async function rsCoConfirmPayment(){
+  if(!rsCo.method){ rsToast('Select a payment method'); return; }
+  const raw = document.getElementById('rsCoAmount').value;
+  if(!raw){ rsToast('Enter the amount actually collected'); return; }
+  const amount = parseFloat(raw) || 0;
+  if(amount < 0){ rsToast('Amount cannot be negative'); return; }
+
+  const methodLabel = document.querySelector('#rsPmGrid .rs-paymethod-opt.selected .t')?.textContent || rsCo.method;
+  const confirmed = window.confirm(`Record ${rsFmtInr(amount)} received via ${methodLabel} for this checkout?\n\nOnly confirm if you have actually collected this amount.`);
+  if(!confirmed) return;
+
+  const {ok, data} = await rsApiJson('/api/check-out/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':rsCsrf()},
+    body: JSON.stringify({
+      booking_id: rsCo.bookingId,
+      final_payment: amount,
+      method: rsCo.method,
+    })
+  }).catch(()=>({ok:false,data:{}}));
+
+  if(ok && data.success){
+    rsCo.checkoutResult = data;   // includes housekeeping_assigned / housekeeping_task_id / housekeeping_staff
+    rsToast('Checked out successfully');
+    await rsCoRefreshFolio();
+    rsGoCoStep(3);
+    await rsLoadRooms();
+  } else {
+    rsToast(data.error || 'Checkout failed');
+  }
+}
+
+/* ── Step 3: redesigned invoice paper (matches printed-invoice layout) ── */
+async function rsRenderCoStep3(){
+  document.getElementById('rsCoBody').innerHTML = `<div style="text-align:center;padding:30px;color:#9ca3af"><i class="icon-loader"></i> Generating invoice…</div>`;
+  document.getElementById('rsCoFooter').innerHTML = '';
+
+  const {ok, data} = await rsApiJson('/api/billing/invoice/generate/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':rsCsrf()},
+    body: JSON.stringify({ folio_id: rsCo.folio.folio_id, discount: 0, send_email: true })
+  }).catch(()=>({ok:false,data:{}}));
+
+  if(!ok || !data.success){
+    document.getElementById('rsCoBody').innerHTML = `<div style="text-align:center;padding:24px;color:#ef4444">Checkout completed, but invoice generation failed: ${rsEsc(data.error||'unknown error')}</div>`;
+    document.getElementById('rsCoFooter').innerHTML = `<button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 16px" onclick="rsCloseModal('rsCheckoutModal')">Done</button>`;
+    return;
+  }
+
+  // Pull full invoice detail (hotel name, charges list, guest/room info)
+  const {ok: ok2, data: full} = await rsApiJson(`/api/billing/invoice/${data.invoice.id}/`).catch(()=>({ok:false,data:{}}));
+  const inv = (ok2 && full.success) ? full.invoice : null;
+
+  document.getElementById('rsCoFooter').innerHTML = `
+    <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCoResendInvoice(${data.invoice.id})"><i class="icon-mail"></i> Resend Email</button>
+    <button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 16px" onclick="rsCloseModal('rsCheckoutModal')">Done</button>
+  `;
+
+  if(!inv){
+    // fallback to the simple confirmation card if the detail fetch failed
+    document.getElementById('rsCoBody').innerHTML = `
+      <div class="rs-invoice-check">
+        <i class="icon-check-circle"></i>
+        <div style="font-weight:700;color:#166534;margin-bottom:10px">Guest checked out &amp; invoice generated</div>
+        <div class="rs-invoice-num">${rsEsc(data.invoice.invoice_number)}</div>
+        <div class="rs-invoice-amt">${rsFmtInr(data.invoice.grand_total)}</div>
+      </div>`;
+    rsMaybeAutoOpenHk();
+    return;
+  }
+
+  const genDate = inv.generated_at ? inv.generated_at.slice(0,10) : null;
+
+  document.getElementById('rsCoBody').innerHTML = `
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-weight:700;color:#166534;font-size:.85rem"><i class="icon-check-circle"></i> Guest checked out &amp; invoice generated</div>
+    </div>
+
+    <div class="rs-invoice-paper">
+      <div class="rs-invoice-hotel">
+        <div class="name">${rsEsc(inv.hotel_name || 'Hotel')}</div>
+        <div class="sub">Tax Invoice</div>
+      </div>
+
+      <div class="rs-invoice-row"><span class="l">Guest</span><span class="v">${rsEsc(inv.guest_name)}</span></div>
+      <div class="rs-invoice-row"><span class="l">Room</span><span class="v">${rsEsc(inv.room_type)} · Room ${rsEsc(inv.room_number)}</span></div>
+      <div class="rs-invoice-row"><span class="l">Date</span><span class="v">${rsFmtDate(genDate)}</span></div>
+
+      <div class="rs-invoice-items">
+        ${(inv.charges||[]).map(c=>`
+          <div class="rs-invoice-item-row"><span>${rsEsc(c.description)}</span><span>${rsFmtInr(c.total)}</span></div>
+        `).join('') || `<div style="color:#9ca3af;font-size:.8rem">No charges recorded.</div>`}
+      </div>
+
+      <div class="rs-invoice-totals">
+        <div class="row"><span>Subtotal</span><span>${rsFmtInr(inv.subtotal)}</span></div>
+        <div class="row"><span>Tax</span><span>${rsFmtInr(inv.tax)}</span></div>
+        <div class="row"><span>Discount</span><span>${inv.discount ? '- '+rsFmtInr(inv.discount) : '—'}</span></div>
+      </div>
+
+      <div class="rs-invoice-grand"><span>Grand Total</span><span>${rsFmtInr(inv.grand_total)}</span></div>
+
+      <div class="rs-invoice-paid"><span>Amount Paid</span><span>${rsFmtInr(inv.paid)}</span></div>
+      <div class="rs-invoice-balance ${inv.balance>0.5?'due':'settled'}"><span>Balance Due</span><span>${rsFmtInr(inv.balance)}</span></div>
+    </div>
+
+    <div style="text-align:center;font-size:.75rem;color:${data.email_sent?'#166534':'#9ca3af'};margin-top:10px">
+      ${data.email_sent ? `✓ Emailed to ${rsEsc(data.email_address)}` : (data.email_error ? 'Email not sent: '+rsEsc(data.email_error) : '')}
+    </div>
+  `;
+
+  // ── AUTO-OPEN HOUSEKEEPING MODAL after invoice/email step finishes ──
+  rsMaybeAutoOpenHk();
+}
+
+function rsMaybeAutoOpenHk(){
+  if(!rsCo) return;
+  const unitId = rsCo.unitId;
+  if(!unitId) return; // no room-unit reference available, nothing to assign
+  const staffName = rsCo.checkoutResult ? rsCo.checkoutResult.housekeeping_staff : null;
+  const taskId = rsCo.checkoutResult ? rsCo.checkoutResult.housekeeping_task_id : null;
+  // Small delay so the invoice paper is visible for a beat before the HK modal opens on top
+  setTimeout(()=>{ rsOpenHkModal(unitId, rsCo.roomLabel, staffName, taskId); }, 500);
+}
+
+async function rsCoResendInvoice(invoiceId){
+  const {ok, data} = await rsApiJson(`/api/billing/invoice/${invoiceId}/send-email/`, {
+    method:'POST', headers:{'X-CSRFToken':rsCsrf()}
+  }).catch(()=>({ok:false,data:{}}));
+  rsToast(ok && data.success ? `Sent to ${data.email_sent_to}` : (data.error || 'Send failed'));
+}
+
+/* ══════════════════════════════ INVOICE LOOKUP FROM CARD ══════════════════════════════ */
+async function rsViewInvoiceForUnit(roomNumber, guestName, checkIn){
+  rsToast('Looking up invoice…');
+  if(!rsInvoiceCache){
+    const {ok, data} = await rsApiJson('/api/billing/invoice/list/').catch(()=>({ok:false,data:{}}));
+    rsInvoiceCache = ok ? (data.invoices || []) : [];
+  }
+  const match = rsInvoiceCache.find(inv =>
+    inv.room_number === roomNumber &&
+    inv.guest_name === guestName &&
+    (!checkIn || inv.check_in === checkIn)
+  ) || rsInvoiceCache.find(inv => inv.room_number === roomNumber && inv.guest_name === guestName);
+
+  if(!match){ rsToast('No invoice found yet for this stay'); return; }
+  rsShowInvoiceSummary(match);
+}
+
+function rsShowInvoiceSummary(inv){
+  document.getElementById('rsCoGuestName').textContent = inv.guest_name;
+  document.getElementById('rsCoBalanceHead').textContent = rsFmtInr(inv.balance);
+  document.querySelectorAll('.rs-wstep').forEach(el=>el.classList.remove('active'));
+  document.getElementById('rsCoBody').innerHTML = `
+    <div class="rs-invoice-check">
+      <i class="icon-file-text" style="color:#2563eb"></i>
+      <div style="font-weight:700;margin-bottom:10px">${rsEsc(inv.status.toUpperCase())}</div>
+      <div class="rs-invoice-num">${rsEsc(inv.invoice_number)}</div>
+      <div class="rs-invoice-amt">${rsFmtInr(inv.grand_total)}</div>
+      <div style="font-size:.8rem;color:#6b7280">Room ${rsEsc(inv.room_number)} · ${rsFmtDate(inv.check_in)} → ${rsFmtDate(inv.check_out)}</div>
+      <div style="font-size:.8rem;color:#6b7280;margin-top:4px">Paid ${rsFmtInr(inv.paid)} · Balance ${rsFmtInr(inv.balance)}</div>
+    </div>
+  `;
+  document.getElementById('rsCoFooter').innerHTML = `
+    <button class="rs-btn rs-btn-outline" style="width:auto;padding:8px 16px" onclick="rsCoResendInvoice(${inv.id})"><i class="icon-mail"></i> Resend Email</button>
+    <button class="rs-btn rs-btn-book" style="flex:0 0 auto;padding:8px 16px" onclick="rsCloseModal('rsCheckoutModal')">Close</button>
+  `;
+  rsOpenModal('rsCheckoutModal');
+}
+
+/* ══════════════════════════════ HOUSEKEEPING ASSIGNMENT MODAL (HTML, replaces JS prompt/alert flow) ══════════════════════════════ */
+async function rsOpenHkModal(unitId, roomLabel, autoAssignedName, existingTaskId){
+  document.getElementById('rsHkUnitId').value = unitId || '';
+  document.getElementById('rsHkTaskId').value = existingTaskId || '';
+  document.getElementById('rsHkRoomLabel').textContent = roomLabel || '—';
+  document.getElementById('rsHkNotes').value = '';
+  document.getElementById('rsHkTaskType').value = 'Cleaning';
+
+  const noteEl = document.getElementById('rsHkAutoNote');
+  if(autoAssignedName){
+    noteEl.textContent = `Auto-assigned to ${autoAssignedName} on checkout. Reassign below if needed.`;
+    noteEl.classList.add('show');
+    noteEl.classList.remove('warn');
+  } else if(existingTaskId === null || existingTaskId === undefined){
+    noteEl.classList.remove('show');
+  } else {
+    noteEl.textContent = `No housekeeping staff was available to auto-assign. Please assign manually.`;
+    noteEl.classList.add('show','warn');
+  }
+
+  const sel = document.getElementById('rsHkStaffSelect');
+  sel.innerHTML = `<option value="">Loading staff…</option>`;
+  rsOpenModal('rsHkModal');
+
+  if(!rsHkStaffCache){
+    const {ok, data} = await rsApiJson('/api/housekeeping-staff/').catch(()=>({ok:false,data:{}}));
+    rsHkStaffCache = (ok && data.success) ? data.staff : [];
+  }
+  if(!rsHkStaffCache.length){
+    sel.innerHTML = `<option value="">No housekeeping staff found</option>`;
+    return;
+  }
+  sel.innerHTML = rsHkStaffCache.map(s =>
+    `<option value="${s.id}"${!autoAssignedName ? '' : (s.name===autoAssignedName ? ' selected' : '')}>${rsEsc(s.name)}${s.is_available?'':' (unavailable)'} — ${s.open_tasks} open task(s)</option>`
+  ).join('');
+}
+
+async function rsConfirmHkAssign(){
+  const unitId = document.getElementById('rsHkUnitId').value;
+  const staffId = document.getElementById('rsHkStaffSelect').value;
+  if(!unitId){ rsToast('Missing room reference'); return; }
+  if(!staffId){ rsToast('Select a staff member'); return; }
+
+  const btn = document.getElementById('rsHkConfirmBtn');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="icon-loader"></i>';
+
+  const {ok, data} = await rsApiJson('/api/assign-housekeeping-task/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRFToken':rsCsrf()},
+    body: JSON.stringify({
+      staff_id: staffId,
+      room_unit_id: unitId,
+      task_type: document.getElementById('rsHkTaskType').value,
+      notes: document.getElementById('rsHkNotes').value.trim(),
+    })
+  }).catch(()=>({ok:false,data:{}}));
+
+  if(ok && data.success){
+    rsToast('Housekeeping task assigned');
+    rsCloseModal('rsHkModal');
+    await rsLoadRooms();
+  } else {
+    rsToast(data.error || 'Could not assign task');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+}
+
+/* ══════════════════════════════ INIT ══════════════════════════════ */
+window.rsToday = new Date().toISOString().slice(0,10);
+rsLoadRooms();
+</script>
+{% endblock %}

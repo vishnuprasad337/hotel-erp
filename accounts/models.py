@@ -16,7 +16,7 @@ class Hotel(models.Model):
     owner_name = models.CharField(max_length=100)
     address = models.TextField(max_length=200)
     city = models.CharField(max_length=100)
-    property_type = models.CharField(max_length=50, default="Hotel")
+    property_type = models.CharField(max_length=50)
 
     image = models.ImageField(upload_to="property_images/", null=True, blank=True)
     description = models.TextField(blank=True, null=True)
@@ -294,6 +294,9 @@ class Staff(models.Model):
     ifsc = models.CharField(max_length=20, blank=True, null=True)
     pf_number = models.CharField(max_length=50, blank=True, null=True)
     esi_number = models.CharField(max_length=50, blank=True, null=True)
+    face_descriptor = models.JSONField(null=True, blank=True)   # 128-length float array from face-api.js
+    face_photo      = models.ImageField(upload_to='staff_faces/', null=True, blank=True)
+    face_registered_at = models.DateTimeField(null=True, blank=True)
 
     
     notes = models.TextField(blank=True, null=True)
@@ -343,3 +346,35 @@ class RejectedHotel(models.Model):
 
     def __str__(self):
         return f"{self.hotel_name} (rejected)"
+
+class PendingHotelRegistration(models.Model):
+    """
+    Holds hotel registration data until the OTP sent to the email
+    is verified. Nothing is written to Hotel/Client/User until then.
+    """
+    email = models.EmailField(unique=True)
+    hotel_name = models.CharField(max_length=100)
+    owner_name = models.CharField(max_length=100)
+    address = models.TextField(max_length=200)
+    city = models.CharField(max_length=100)
+    property_type = models.CharField(max_length=50)
+    image = models.ImageField(upload_to="pending_hotel_images/", null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    amenities = models.TextField(blank=True, null=True)
+
+    password_hash = models.CharField(max_length=255)
+
+    otp_code = models.CharField(max_length=6)
+    otp_created_at = models.DateTimeField(default=timezone.now)
+    otp_attempts = models.PositiveIntegerField(default=0)
+
+    # superadmin-only extra fields, carried through to finalize step
+    auto_approve = models.BooleanField(default=False)
+    grant_trial = models.BooleanField(default=False)
+    trial_days = models.PositiveIntegerField(default=14)
+    plan_id = models.PositiveIntegerField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Pending: {self.hotel_name} ({self.email})"

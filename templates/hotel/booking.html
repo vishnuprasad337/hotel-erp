@@ -1,0 +1,569 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Admio - New Booking{% endblock %}
+
+{% block extra_head %}
+<style>
+  .bk-wizard-card{max-width:820px;margin:0 auto}
+  .required{color:#ef4444}
+  .bk-guest-badge{display:none;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;
+    font-size:.78rem;font-weight:600;margin-bottom:14px}
+  .bk-guest-badge.returning{display:flex;background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+  .bk-guest-badge.new{display:flex;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+  .bk-price-box{display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+    padding:14px 16px;margin-top:12px;font-size:.82rem}
+  .bk-price-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .bk-price-row strong{color:#166534}
+  .bk-adv-summary{display:none;margin-top:10px;padding-top:9px;border-top:1px solid #bbf7d0;font-size:.76rem}
+  .bk-adv-summary .row-line{display:flex;justify-content:space-between;padding:2px 0}
+  .bk-review-box{background:var(--admio-input-bg,#f9fafb);border:1px solid var(--admio-border-color,#e5e7eb);
+    border-radius:10px;padding:16px 18px;font-size:.85rem;line-height:2}
+  .bk-review-box .r-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  .bk-review-box .r-row span:first-child{color:var(--admio-text-muted,#6b7280)}
+  .bk-review-box .r-row span:last-child{font-weight:600}
+  .bk-pay-methods{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .bk-pay-opt{display:flex;align-items:center;gap:7px;padding:8px 14px;border:1.5px solid var(--admio-border-color,#e5e7eb);
+    border-radius:9px;font-size:.8rem;font-weight:600;cursor:pointer;transition:.15s}
+  .bk-pay-opt input{accent-color:#2563eb}
+  .bk-pay-opt.selected{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}
+  .bk-msg{margin-top:10px;text-align:center;font-size:.8rem;min-height:20px}
+  .bk-msg.error{color:#ef4444}
+  .bk-msg.success{color:#16a34a}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="icon-calendar-plus"></i> New Booking</h1>
+    <p class="page-subtitle">Create a booking — phone lookup auto-fills returning guests</p>
+  </div>
+  <a href="{% url 'get_bookings_page' %}" class="btn-admio btn-outline"><i class="icon-arrow-left"></i> All Bookings</a>
+</div>
+
+<div class="admio-card bk-wizard-card">
+  <div class="admio-card-body p-32">
+
+    <!-- Step Indicators -->
+    <div class="wizard-progress-block d-flex justify-content-between mb-5 position-relative">
+      <div class="wizard-progress-track">
+        <div id="bkWizProgress" class="wizard-progress-fill"></div>
+      </div>
+      <div class="text-center z-1 active" id="bkStepNav1">
+        <div id="bkS1" class="number avatar-32 rounded-circle">1</div>
+        <div class="text-primary-c label">Personal Info</div>
+      </div>
+      <div class="text-center z-1" id="bkStepNav2">
+        <div id="bkS2" class="number avatar-32 rounded-circle">2</div>
+        <div class="label">Room Details</div>
+      </div>
+      <div class="text-center z-1" id="bkStepNav3">
+        <div id="bkS3" class="number avatar-32 rounded-circle">3</div>
+        <div class="label">Payment</div>
+      </div>
+      <div class="text-center z-1" id="bkStepNav4">
+        <div id="bkS4" class="number avatar-32 rounded-circle">4</div>
+        <div class="label">Confirm</div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1: PERSONAL INFO ═══ -->
+    <div id="bkStep1">
+      <h1 class="fw-700 mb-3 h5">Step 1: Guest Information</h1>
+      <div class="bk-guest-badge" id="bkGuestBadge"><i class="icon-circle-check"></i><span id="bkGuestBadgeText"></span></div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Phone <span class="required">*</span></label>
+            <input type="text" id="bkPhone" class="form-control-admio" placeholder="Enter phone to lookup guest">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input type="text" id="bkFullName" class="form-control-admio" placeholder="Guest full name">
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Email</label>
+            <input type="email" id="bkEmail" class="form-control-admio" placeholder="guest@email.com">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Nationality</label>
+            <input type="text" id="bkNationality" class="form-control-admio" placeholder="e.g. Indian">
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">ID Type</label>
+            <select id="bkIdType" class="form-control-admio form-select-admio">
+              <option value="">— Select —</option>
+              <option value="aadhar">Aadhar</option>
+              <option value="passport">Passport</option>
+              <option value="driving">Driving Licence</option>
+              <option value="voter">Voter ID</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">ID Number</label>
+            <input type="text" id="bkIdNumber" class="form-control-admio" placeholder="ID number">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2: ROOM & DATES ═══ -->
+    <div id="bkStep2" class="d-none">
+      <h1 class="fw-700 mb-3 h5">Step 2: Stay Dates &amp; Room</h1>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Check-in <span class="required">*</span></label>
+            <input type="date" id="bkCheckin" class="form-control-admio">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Check-out <span class="required">*</span></label>
+            <input type="date" id="bkCheckout" class="form-control-admio">
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-4">
+          <div class="form-group mb-0">
+            <label class="form-label">Adults</label>
+            <input type="number" id="bkAdults" class="form-control-admio" value="1" min="1">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group mb-0">
+            <label class="form-label">Children</label>
+            <input type="number" id="bkChildren" class="form-control-admio" value="0" min="0">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group mb-0">
+            <label class="form-label">Special Requests</label>
+            <input type="text" id="bkRequests" class="form-control-admio" placeholder="Optional…">
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Room Type <span class="required">*</span></label>
+            <select id="bkRoomType" class="form-control-admio form-select-admio">
+              <option value="">— Select Check-in/out first —</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Room Unit <span class="required">*</span></label>
+            <select id="bkUnit" class="form-control-admio form-select-admio">
+              <option value="">— Select Room Type first —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3: PAYMENT ═══ -->
+    <div id="bkStep3" class="d-none">
+      <h1 class="fw-700 mb-3 h5">Step 3: Advance Payment</h1>
+      <p class="text-muted small mb-3">Optional — collect a deposit now, balance is settled at check-out.</p>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="form-group mb-0">
+            <label class="form-label">Advance Amount (₹)</label>
+            <input type="number" id="bkAdvanceAmount" class="form-control-admio" min="0" step="0.01" value="0">
+          </div>
+        </div>
+        <div class="col-md-6" id="bkAdvMethodWrap" style="display:none">
+          <label class="form-label d-block">Payment Method</label>
+          <div class="bk-pay-methods">
+            <label class="bk-pay-opt selected" id="bkPmCash"><input type="radio" name="bkPayMethod" value="Cash" checked> Cash</label>
+            <label class="bk-pay-opt" id="bkPmCard"><input type="radio" name="bkPayMethod" value="Card"> Card</label>
+            <label class="bk-pay-opt" id="bkPmUpi"><input type="radio" name="bkPayMethod" value="UPI"> UPI</label>
+            <label class="bk-pay-opt" id="bkPmBank"><input type="radio" name="bkPayMethod" value="bank_transfer"> Bank Transfer</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="bk-price-box" id="bkPriceBox">
+        <div class="bk-price-row">
+          <span><i class="icon-calculator"></i> Estimated Charges</span>
+          <span><span id="bkEstNights">0</span> nights × ₹<span id="bkEstRate">0</span> = ₹<span id="bkEstBase">0</span>
+            + tax ₹<span id="bkEstTax">0</span> = <strong>₹<span id="bkEstTotal">0</span></strong></span>
+        </div>
+        <div class="bk-adv-summary" id="bkAdvSummary">
+          <div class="row-line"><span>Advance Payment:</span><strong id="bkAdvAmountDisplay">₹0</strong></div>
+          <div class="row-line"><span>Balance Due at Check-in:</span><strong id="bkAdvBalanceDisplay">₹0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 4: CONFIRM ═══ -->
+    <div id="bkStep4" class="d-none">
+      <h1 class="fw-700 mb-3 h5">Step 4: Review &amp; Confirm</h1>
+      <div class="bk-review-box" id="bkReviewSummary"></div>
+      <div class="bk-msg" id="bkMsg"></div>
+    </div>
+
+    <!-- NAV -->
+    <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
+      <button class="btn-admio btn-outline" id="bkPrevBtn" style="display:none" onclick="bkPrevStep()">
+        <i class="icon-arrow-left"></i> Back
+      </button>
+      <div class="ms-auto d-flex gap-2">
+        <button class="btn-admio btn-ai" id="bkNextBtn" onclick="bkNextStep()">
+          Next <i class="icon-arrow-right"></i>
+        </button>
+        <button class="btn-admio btn-ai" id="bkSubmitBtn" style="display:none" onclick="bkCreateBooking()">
+          <i class="icon-calendar-check"></i> Create Booking
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let bkCurrentStep = 1;
+let bkRoomData = [];
+let bkBookings = [];
+let bkCurrentRoomPrice = 0;
+
+function bkCsrf(){return (document.cookie.split(';').find(c=>c.trim().startsWith('csrftoken='))||'=').split('=')[1]||'';}
+function bkEsc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
+
+/* ═══════════════ WIZARD NAVIGATION ═══════════════ */
+function bkGoToStep(step){
+  if(step > bkCurrentStep){
+    for(let i=bkCurrentStep;i<step;i++){ if(!bkValidateStep(i)) return; }
+  }
+  bkCurrentStep = step;
+  for(let i=1;i<=4;i++){
+    document.getElementById('bkStep'+i)?.classList.toggle('d-none', i!==step);
+    const nav = document.getElementById('bkStepNav'+i);
+    const circ = document.getElementById('bkS'+i);
+    if(nav) nav.classList.toggle('active', i<=step);
+    if(circ) circ.textContent = i<step ? '✓' : i;
+  }
+  const pct = ((step-1)/3)*100;
+  const fill = document.getElementById('bkWizProgress');
+  if(fill) fill.style.width = pct+'%';
+
+  document.getElementById('bkPrevBtn').style.display = step>1 ? 'inline-flex':'none';
+  document.getElementById('bkNextBtn').style.display = step<4 ? 'inline-flex':'none';
+  document.getElementById('bkSubmitBtn').style.display = step===4 ? 'inline-flex':'none';
+
+  if(step===2) bkLoadRoomFormData();
+  if(step===4) bkRenderReview();
+}
+function bkNextStep(){ if(bkValidateStep(bkCurrentStep)) bkGoToStep(bkCurrentStep+1); }
+function bkPrevStep(){ bkGoToStep(bkCurrentStep-1); }
+
+function bkValidateStep(step){
+  if(step===1){
+    if(!document.getElementById('bkPhone').value.trim()){ alert('Phone is required'); return false; }
+    if(!document.getElementById('bkFullName').value.trim()){ alert('Guest name is required'); return false; }
+  }
+  if(step===2){
+    if(!document.getElementById('bkCheckin').value || !document.getElementById('bkCheckout').value){
+      alert('Select check-in and check-out dates'); return false;
+    }
+    if(!document.getElementById('bkRoomType').value){ alert('Select a room type'); return false; }
+    if(!document.getElementById('bkUnit').value){ alert('Select a room unit'); return false; }
+  }
+  return true;
+}
+
+/* ═══════════════ GUEST PHONE LOOKUP ═══════════════ */
+let bkLookupTimer = null;
+async function bkLookupGuestByPhone(){
+  const phone = document.getElementById('bkPhone').value.trim();
+  const badge = document.getElementById('bkGuestBadge');
+  const badgeText = document.getElementById('bkGuestBadgeText');
+  badge.className = 'bk-guest-badge';
+  if(phone.length < 6) return;
+  clearTimeout(bkLookupTimer);
+  bkLookupTimer = setTimeout(async ()=>{
+    try{
+      if(!bkBookings.length){
+        const res = await fetch('/get-bookings/');
+        bkBookings = await res.json();
+      }
+      const match = bkBookings.find(b => b.phone === phone);
+      if(match){
+        const nameEl = document.getElementById('bkFullName');
+        if(nameEl && !nameEl.value) nameEl.value = match.guest || '';
+        badge.className = 'bk-guest-badge returning';
+        badgeText.textContent = `Returning guest: ${match.guest}`;
+      } else {
+        badge.className = 'bk-guest-badge new';
+        badgeText.textContent = 'New guest — record will be created';
+      }
+    }catch(e){}
+  }, 500);
+}
+
+/* ═══════════════ ROOM AVAILABILITY ═══════════════ */
+async function bkFetchRoomsForRange(ci, co){
+  try{
+    const url = (ci && co) ? `/api/rooms/?check_in=${ci}&check_out=${co}` : '/api/rooms/';
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.success ? (data.rooms || []) : null;
+  }catch(e){ return null; }
+}
+
+async function bkLoadRoomFormData(){
+  const ci = document.getElementById('bkCheckin').value;
+  const co = document.getElementById('bkCheckout').value;
+  let rooms = [];
+
+  if(ci && co){
+    rooms = await bkFetchRoomsForRange(ci, co);
+    if(!rooms){ alert('Could not check availability for these dates'); rooms = []; }
+  } else {
+    const res = await fetch('/api/rooms/');
+    const data = await res.json();
+    rooms = data.success ? (data.rooms || []) : [];
+  }
+  bkRoomData = rooms;
+
+  let allRates = [];
+  try{
+    const r = await fetch('/api/seasonal-rates/');
+    if(r.ok){ const d = await r.json(); allRates = d.rates || []; }
+  }catch(e){}
+
+  const checkDate = ci || new Date().toISOString().split('T')[0];
+  const sel = document.getElementById('bkRoomType');
+  const prevVal = sel.value;
+
+  sel.innerHTML = '<option value="">— Select Room Type —</option>' + rooms.map(room => {
+    const seasonal = allRates.find(rate => Number(rate.room_id)===Number(room.id) &&
+      rate.start_date <= checkDate && rate.end_date >= checkDate);
+    const price = seasonal ? parseFloat(seasonal.price) : parseFloat(room.price) || 0;
+    const label = `${room.room_type} — ₹${Math.round(price).toLocaleString('en-IN')}/night` +
+      (seasonal ? ' (seasonal)' : '') + ` (${room.available_units} avail.)`;
+    return `<option value="${room.id}" data-price="${price}">${bkEsc(label)}</option>`;
+  }).join('');
+
+  if(prevVal && [...sel.options].some(o=>o.value===prevVal)) sel.value = prevVal;
+
+  bkCurrentRoomPrice = 0;
+  document.getElementById('bkPriceBox').style.display = 'none';
+  await bkLoadAvailUnits();
+}
+
+async function bkLoadAvailUnits(){
+  const rid = document.getElementById('bkRoomType').value;
+  const unitSel = document.getElementById('bkUnit');
+  bkCurrentRoomPrice = 0;
+
+  if(!rid){ unitSel.innerHTML = '<option value="">— Select Unit —</option>'; await bkUpdateNightCount(); return; }
+
+  const ci = document.getElementById('bkCheckin').value;
+  const co = document.getElementById('bkCheckout').value;
+
+  let rooms = bkRoomData;
+  if(ci && co){
+    const fresh = await bkFetchRoomsForRange(ci, co);
+    if(fresh) rooms = fresh;
+  }
+
+  const room = rooms.find(r => String(r.id) === String(rid));
+  if(!room){ unitSel.innerHTML = '<option value="">— No units —</option>'; return; }
+
+  let allRates = [];
+  try{
+    const r = await fetch(`/api/seasonal-rates/?room_id=${rid}`);
+    if(r.ok){ const d = await r.json(); allRates = d.rates || []; }
+  }catch(e){}
+
+  const checkDate = ci || new Date().toISOString().split('T')[0];
+  const seasonal = allRates.find(rate => rate.start_date <= checkDate && rate.end_date >= checkDate);
+  bkCurrentRoomPrice = seasonal ? parseFloat(seasonal.price) : parseFloat(room.price) || 0;
+
+  unitSel.innerHTML = '<option value="">— Select Unit —</option>' + (room.units||[]).map(unit => {
+    const physicalStatus = unit.physical_status || unit.status || 'Available';
+    const maintenance = physicalStatus === 'Maintenance';
+    const unavailable = (!ci || !co) ? maintenance : (maintenance || unit.available_for_dates === false);
+    return `<option value="${unit.id}" ${unavailable ? 'disabled':''}>${bkEsc(unit.number)}</option>`;
+  }).join('');
+
+  await bkUpdateNightCount();
+}
+
+/* ═══════════════ PRICE ESTIMATE ═══════════════ */
+async function bkUpdateNightCount(){
+  const ci = document.getElementById('bkCheckin').value;
+  const co = document.getElementById('bkCheckout').value;
+  const box = document.getElementById('bkPriceBox');
+  if(!ci || !co) { box.style.display='none'; return; }
+
+  const nights = Math.ceil((new Date(co) - new Date(ci)) / 86400000);
+  if(nights <= 0 || !bkCurrentRoomPrice){ box.style.display='none'; return; }
+
+  const base = bkCurrentRoomPrice * nights;
+  const tax = Math.round(base * 0.18);
+  const total = base + tax;
+
+  document.getElementById('bkEstNights').textContent = nights;
+  document.getElementById('bkEstRate').textContent = Math.round(bkCurrentRoomPrice).toLocaleString('en-IN');
+  document.getElementById('bkEstBase').textContent = Math.round(base).toLocaleString('en-IN');
+  document.getElementById('bkEstTax').textContent = tax.toLocaleString('en-IN');
+  document.getElementById('bkEstTotal').textContent = total.toLocaleString('en-IN');
+  box.style.display = 'block';
+
+  bkOnAdvanceAmountChange();
+}
+
+function bkOnAdvanceAmountChange(){
+  const advanceAmount = parseFloat(document.getElementById('bkAdvanceAmount')?.value) || 0;
+  const methodWrap = document.getElementById('bkAdvMethodWrap');
+  const summary = document.getElementById('bkAdvSummary');
+  const totalTxt = document.getElementById('bkEstTotal')?.textContent.replace(/,/g,'') || '0';
+  const total = parseFloat(totalTxt) || 0;
+
+  if(advanceAmount > 0){
+    methodWrap.style.display = 'block';
+    if(total > 0){
+      summary.style.display = 'block';
+      document.getElementById('bkAdvAmountDisplay').textContent = '₹'+advanceAmount.toLocaleString('en-IN');
+      const balance = Math.max(0, total - advanceAmount);
+      document.getElementById('bkAdvBalanceDisplay').textContent = '₹'+balance.toLocaleString('en-IN');
+    }
+  } else {
+    methodWrap.style.display = 'none';
+    summary.style.display = 'none';
+  }
+}
+
+function bkSelectPayMethod(el){
+  document.querySelectorAll('.bk-pay-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+/* ═══════════════ REVIEW ═══════════════ */
+function bkRenderReview(){
+  const g = id => document.getElementById(id)?.value || '—';
+  const roomTypeText = document.getElementById('bkRoomType')?.selectedOptions[0]?.text || '—';
+  const advAmt = parseFloat(document.getElementById('bkAdvanceAmount')?.value) || 0;
+  document.getElementById('bkReviewSummary').innerHTML = `
+    <div class="r-row"><span>Guest</span><span>${bkEsc(g('bkFullName'))} (${bkEsc(g('bkPhone'))})</span></div>
+    <div class="r-row"><span>Dates</span><span>${bkEsc(g('bkCheckin'))} → ${bkEsc(g('bkCheckout'))}</span></div>
+    <div class="r-row"><span>Room</span><span>${bkEsc(roomTypeText)}</span></div>
+    <div class="r-row"><span>Advance Paid</span><span>₹${advAmt.toLocaleString('en-IN')}</span></div>
+  `;
+}
+
+/* ═══════════════ SUBMIT BOOKING ═══════════════ */
+async function bkCreateBooking(){
+  const fullName = document.getElementById('bkFullName').value.trim();
+  const phone = document.getElementById('bkPhone').value.trim();
+  const rid = document.getElementById('bkRoomType').value;
+  const uid = document.getElementById('bkUnit').value;
+  const ci = document.getElementById('bkCheckin').value;
+  const co = document.getElementById('bkCheckout').value;
+  const msg = document.getElementById('bkMsg');
+
+  const errs = [];
+  if(!fullName) errs.push('Guest full name');
+  if(!phone) errs.push('Phone');
+  if(!rid) errs.push('Room type');
+  if(!uid) errs.push('Room unit');
+  if(!ci) errs.push('Check-in');
+  if(!co) errs.push('Check-out');
+  if(errs.length){ msg.className='bk-msg error'; msg.textContent = '❌ Required: '+errs.join(', '); return; }
+  if(co <= ci){ msg.className='bk-msg error'; msg.textContent = '❌ Check-out must be after check-in.'; return; }
+
+  const advanceAmount = parseFloat(document.getElementById('bkAdvanceAmount')?.value) || 0;
+  const advanceMethod = advanceAmount>0 ? (document.querySelector('input[name="bkPayMethod"]:checked')?.value || 'Cash') : null;
+
+  const btn = document.getElementById('bkSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="icon-loader"></i> Creating…';
+
+  const payload = {
+    full_name: fullName,
+    phone: phone,
+    email: document.getElementById('bkEmail').value.trim() || null,
+    nationality: document.getElementById('bkNationality').value.trim() || null,
+    id_type: document.getElementById('bkIdType').value || null,
+    id_number: document.getElementById('bkIdNumber').value.trim() || null,
+    room: parseInt(rid),
+    room_unit: parseInt(uid),
+    check_in: ci,
+    check_out: co,
+    adults: parseInt(document.getElementById('bkAdults').value) || 1,
+    children: parseInt(document.getElementById('bkChildren').value) || 0,
+    source: 'walk-in',
+    special_requests: document.getElementById('bkRequests').value.trim(),
+    advance_amount: advanceAmount,
+    advance_method: advanceMethod,
+  };
+
+  try{
+    const r = await fetch('/api/create-booking/', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':bkCsrf()},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if(r.ok && data.success){
+      msg.className = 'bk-msg success';
+      msg.textContent = `✅ Booking ${data.booking_code} created! Redirecting…`;
+      setTimeout(()=>{ window.location.href = "{% url 'get_bookings_page' %}"; }, 1400);
+    } else {
+      msg.className = 'bk-msg error';
+      msg.textContent = '❌ ' + (data.errors ? Object.values(data.errors).join(', ') : (data.error || 'Booking failed'));
+    }
+  }catch(e){
+    msg.className = 'bk-msg error';
+    msg.textContent = '❌ Network error';
+  }
+  btn.disabled = false; btn.innerHTML = '<i class="icon-calendar-check"></i> Create Booking';
+}
+
+/* ═══════════════ EVENT WIRING ═══════════════ */
+document.getElementById('bkPhone')?.addEventListener('input', bkLookupGuestByPhone);
+document.getElementById('bkRoomType')?.addEventListener('change', bkLoadAvailUnits);
+document.getElementById('bkCheckin')?.addEventListener('change', async ()=>{ await bkLoadRoomFormData(); });
+document.getElementById('bkCheckout')?.addEventListener('change', async ()=>{ await bkLoadRoomFormData(); });
+document.getElementById('bkAdvanceAmount')?.addEventListener('input', bkOnAdvanceAmountChange);
+document.querySelectorAll('.bk-pay-opt').forEach(el=>{
+  el.addEventListener('click', ()=>bkSelectPayMethod(el));
+});
+
+/* Default dates: today / tomorrow */
+(function bkInitDates(){
+  const today = new Date().toISOString().split('T')[0];
+  const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
+  document.getElementById('bkCheckin').value = today;
+  document.getElementById('bkCheckout').value = tmr.toISOString().split('T')[0];
+})();
+
+bkGoToStep(1);
+</script>
+{% endblock %}

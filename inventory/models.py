@@ -674,3 +674,18 @@ class HotelLinenBatchItem(models.Model):
 
     def __str__(self):
         return f"{self.item_label} x{self.quantity}"
+class AssetLocation(models.Model):
+    asset      = models.ForeignKey(HotelAsset, on_delete=models.CASCADE, related_name='location_history')
+    room       = models.ForeignKey('pms.Room', null=True, blank=True, on_delete=models.SET_NULL)
+    room_unit  = models.ForeignKey('pms.RoomUnit', null=True, blank=True, on_delete=models.SET_NULL)
+    area       = models.CharField(max_length=200, blank=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    is_current  = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["asset"],
+                condition=models.Q(is_current=True),
+                name="unique_current_asset_location",
+            )]

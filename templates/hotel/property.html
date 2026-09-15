@@ -1,0 +1,338 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Admio - Property Dashboard{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+{% block nav_dashboard_active_mobile %}active{% endblock %}
+
+{% block content %}
+
+<!-- Welcome Banner -->
+<div class="ai-insight-banner mb-4">
+  <div class="ai-banner-icon"><i class="icon-hotel"></i></div>
+  <div class="ai-banner-content">
+    <p class="ai-banner-title">{{ hotel.hotel_name }} — {{ occupied_rooms }} rooms occupied today</p>
+    <p class="ai-banner-text">{{ today_checkins }} check-ins today · {{ today_checkouts }} check-outs today · {{ reserved_count }} reservations pending</p>
+  </div>
+  <a href="#" class="ai-banner-action"><i class="icon-arrow-right"></i> View Bookings</a>
+  <button class="ai-banner-close"><i class="icon-x"></i></button>
+</div>
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Property Dashboard</h1>
+    <p class="page-subtitle">Welcome back — here's {{ hotel.hotel_name }}'s overview for today</p>
+  </div>
+  <div class="page-header-actions">
+    <span class="badge-admio {% if hotel.is_subscribed %}badge-green{% elif hotel.is_on_trial %}badge-orange{% else %}badge-red{% endif %} badge-dot">
+      {% if hotel.is_subscribed %}Subscribed{% elif hotel.is_on_trial %}Trial{% else %}Not Subscribed{% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- Stats — same card structure/size as original template -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card pb-0">
+      <div class="stat-card-header">
+        <div class="stat-icon purple admio-bg-purple"><i class="icon-bed"></i></div>
+        <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> {{ availability_rate }}%</span>
+      </div>
+      <div class="stat-value" data-target="{{ total_rooms }}">0</div>
+      <div class="stat-label">Total Rooms</div>
+      <div class="mini-chart-bar">
+        <div class="mini-bar bar-primary mh-40 op-30"></div><div class="mini-bar bar-primary mh-60 op-40"></div>
+        <div class="mini-bar bar-primary mh-45 op-50"></div><div class="mini-bar bar-primary mh-75 op-60"></div>
+        <div class="mini-bar bar-primary mh-55 op-70"></div><div class="mini-bar bar-primary mh-90 op-85"></div>
+        <div class="mini-bar bar-primary mh-100 op-100"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card pb-0">
+      <div class="stat-card-header">
+        <div class="stat-icon cyan admio-bg-cyan"><i class="icon-circle-check"></i></div>
+        <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> {{ availability_rate }}%</span>
+      </div>
+      <div class="stat-value" data-target="{{ available_rooms }}">0</div>
+      <div class="stat-label">Available Rooms</div>
+      <div class="mini-chart-bar">
+        <div class="mini-bar bar-secondary mh-30 op-30"></div><div class="mini-bar bar-secondary mh-50 op-40"></div>
+        <div class="mini-bar bar-secondary mh-40 op-50"></div><div class="mini-bar bar-secondary mh-70 op-60"></div>
+        <div class="mini-bar bar-secondary mh-85 op-75"></div><div class="mini-bar bar-secondary mh-75 op-85"></div>
+        <div class="mini-bar bar-secondary mh-100 op-100"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card pb-0">
+      <div class="stat-card-header">
+        <div class="stat-icon green admio-bg-green"><i class="icon-user-check"></i></div>
+        <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> {{ occupancy_rate }}%</span>
+      </div>
+      <div class="stat-value" data-target="{{ occupied_rooms }}">0</div>
+      <div class="stat-label">Occupied Rooms</div>
+      <div class="mini-chart-bar">
+        <div class="mini-bar bar-success mh-35 op-30"></div><div class="mini-bar bar-success mh-55 op-40"></div>
+        <div class="mini-bar bar-success mh-45 op-50"></div><div class="mini-bar bar-success mh-65 op-60"></div>
+        <div class="mini-bar bar-success mh-80 op-75"></div><div class="mini-bar bar-success mh-70 op-85"></div>
+        <div class="mini-bar bar-success mh-100 op-100"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card pb-0">
+      <div class="stat-card-header">
+        <div class="stat-icon orange admio-bg-orange"><i class="icon-calendar-days"></i></div>
+        <span class="stat-trend {% if bookings_growth_pct >= 0 %}up admio-bg-green{% else %}admio-bg-red{% endif %}">
+          <i class="icon-trending-{% if bookings_growth_pct >= 0 %}up{% else %}down{% endif %}"></i> {{ bookings_growth_pct }}%
+        </span>
+      </div>
+      <div class="stat-value" data-target="{{ total_bookings }}">0</div>
+      <div class="stat-label">Total Bookings</div>
+      <div class="mini-chart-bar">
+        <div class="mini-bar bar-warning mh-60 op-30"></div><div class="mini-bar bar-warning mh-75 op-40"></div>
+        <div class="mini-bar bar-warning mh-65 op-50"></div><div class="mini-bar bar-warning mh-85 op-60"></div>
+        <div class="mini-bar bar-warning mh-70 op-75"></div><div class="mini-bar bar-warning mh-90 op-85"></div>
+        <div class="mini-bar bar-warning mh-100 op-100"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0">Weekly Bookings Trend</h2>
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-primary"></span>Check-ins</span>
+          <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-secondary"></span>Check-outs</span>
+        </div>
+      </div>
+      <div class="admio-card-body chart-h-lg"><canvas id="weeklyBookingsChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="admio-card h-100">
+      <div class="admio-card-header"><h2 class="card-title mb-0">Live Room Status</h2></div>
+      <div class="admio-card-body chart-h-md"><canvas id="roomStatusChart"></canvas></div>
+      <div class="admio-card-body admio-card-body-sm pt-0-i">
+        <div class="d-flex flex-column gap-2">
+          {% for s in room_status_breakdown %}
+          <div class="d-flex justify-content-between">
+            <span class="d-flex align-items-center gap-2 text-xs">
+              <span class="legend-dot legend-{{ s.color }}"></span>{{ s.label }}
+            </span>
+            <span class="fw-700 text-xs">{{ s.count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Occupancy by Room Type (grouped bar chart) -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="admio-card">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-list"></i> Occupancy by Room Type</h2>
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-primary"></span>Occupied</span>
+          <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-secondary"></span>Total Units</span>
+        </div>
+      </div>
+      <div class="admio-card-body chart-h-md"><canvas id="roomTypeChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Today's Shifts + Recent Bookings -->
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-clock"></i> Today's Shifts</h2>
+        <span class="badge-admio badge-purple text-xs">{{ today_shifts|length }} Staff</span>
+      </div>
+      <div class="admio-table-wrapper">
+        <table class="admio-table" id="todayShiftsTable">
+          <thead>
+            <tr>
+              <th>Staff</th><th>Department</th><th>Shift</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in today_shifts %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="avatar-gen" data-name="{{ s.name }}" data-size="36"
+                        data-bg="{% cycle '#7C3AED' '#06B6D4' '#22c55e' '#f97316' %}"></span>
+                  <span class="fw-600 text-sm">{{ s.name }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge-admio badge-purple text-xs">{{ s.department__name|default:"—" }}</span>
+              </td>
+              <td class="text-sm text-muted mono">{{ s.shift_time|default:"09:00–18:00" }}</td>
+              <td>
+                <span class="badge-admio badge-gray badge-dot text-xs">Off Duty</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-sm py-4">No staff scheduled today</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-calendar-days"></i> Recent Bookings</h2>
+        <a href="#" class="btn-admio btn-ghost btn-sm">View All</a>
+      </div>
+      <div class="admio-table-wrapper">
+        <table class="admio-table" id="recentBookingsTable">
+          <thead>
+            <tr>
+              <th>Guest</th><th>Room</th><th>Check-in</th><th>Status</th><th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in recent_bookings %}
+            <tr>
+              <td class="fw-600">{{ b.guest_name }}</td>
+              <td class="text-sm">{{ b.room_label }}</td>
+              <td class="mono">{{ b.check_in }}</td>
+              <td>
+                <span class="badge-admio
+                  {% if b.status == 'checked_out' %}badge-gray
+                  {% elif b.status == 'confirmed' %}badge-cyan
+                  {% elif b.status == 'checked_in' %}badge-green
+                  {% else %}badge-orange{% endif %} text-xs">
+                  {{ b.status }}
+                </span>
+              </td>
+              <td class="fw-700">₹{{ b.total_amount }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-sm py-4">No bookings yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const weeklyCtx = document.getElementById('weeklyBookingsChart');
+  if (weeklyCtx && window.Chart) {
+    new Chart(weeklyCtx, {
+      type: 'line',
+      data: {
+        labels: {{ weekly_labels|safe }},
+        datasets: [
+          {
+            label: 'Check-ins',
+            data: {{ weekly_checkins|safe }},
+            borderColor: '#7C3AED',
+            backgroundColor: 'rgba(124,58,237,.12)',
+            fill: true,
+            tension: 0.4,
+          },
+          {
+            label: 'Check-outs',
+            data: {{ weekly_checkouts|safe }},
+            borderColor: '#06B6D4',
+            backgroundColor: 'rgba(6,182,212,.12)',
+            fill: true,
+            tension: 0.4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+  }
+
+  const roomStatusCtx = document.getElementById('roomStatusChart');
+  if (roomStatusCtx && window.Chart) {
+    const colorMap = {
+      green: '#22c55e', red: '#ef4444', orange: '#f97316',
+      purple: '#7C3AED', cyan: '#06B6D4', gray: '#9ca3af'
+    };
+    const statuses = {{ room_status_breakdown_json|safe }};
+    new Chart(roomStatusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: statuses.map(s => s.label),
+        datasets: [{
+          data: statuses.map(s => s.count),
+          backgroundColor: statuses.map(s => colorMap[s.color] || '#ccc'),
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  const roomTypeCtx = document.getElementById('roomTypeChart');
+  if (roomTypeCtx && window.Chart) {
+    new Chart(roomTypeCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ room_type_labels_json|safe }},
+        datasets: [
+          {
+            label: 'Occupied',
+            data: {{ room_type_occupied_json|safe }},
+            backgroundColor: '#7C3AED',
+            borderRadius: 6,
+          },
+          {
+            label: 'Total Units',
+            data: {{ room_type_total_json|safe }},
+            backgroundColor: '#06B6D4',
+            borderRadius: 6,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+
+});
+</script>
+{% endblock %}

@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurant POS | Hotel ERP</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         :root {
             --ink: #0d1117;
@@ -220,27 +221,40 @@
         .pos-search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 13px; pointer-events: none; }
         .pos-search-inp { width: 100%; padding: 8px 12px 8px 34px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface-2); outline: none; transition: border-color .15s; }
         .pos-search-inp:focus { border-color: var(--amber); background: var(--surface); }
-        .cat-strip { display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
+                .cat-strip { display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto; flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--border); }
         .cat-strip::-webkit-scrollbar { height: 0; }
-        .cat-btn { padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-3); white-space: nowrap; transition: all .15s; font-family: inherit; flex-shrink: 0; }
-        .cat-btn.active { background: var(--amber); border-color: var(--amber); color: white; }
+        .cat-btn { padding: 9px 18px; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); white-space: nowrap; transition: all .15s; font-family: inherit; flex-shrink: 0; }
+        .cat-btn.active { background: #1f6e4f; border-color: #1f6e4f; color: white; }
         .cat-btn:hover:not(.active) { background: var(--surface-2); color: var(--text); }
-        .menu-grid { flex: 1; overflow-y: auto; padding: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(155px,1fr)); gap: 10px; align-content: start; background: var(--surface-2); }
-        .menu-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px; cursor: pointer; transition: all .18s; position: relative; user-select: none; }
-        .menu-card:hover { border-color: var(--amber); transform: translateY(-2px); box-shadow: var(--shadow); }
-        .menu-card.in-cart { border-color: var(--amber); background: var(--amber-dim); }
+
+        .menu-grid { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 16px; align-content: start; background: var(--surface); }
+
+        .menu-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all .18s; position: relative; user-select: none; }
+        .menu-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+        .menu-card.in-cart { border-color: #1f6e4f; }
         .menu-card.unavail { opacity: .4; cursor: not-allowed; }
-        .mc-veg { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+        .mc-img-wrap { width: 100%; aspect-ratio: 1.25/1; overflow: hidden; background: var(--surface-2); position: relative; }
+        .mc-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .mc-img-wrap .mc-img-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: var(--text-4); font-size: 28px; }
+
+        .mc-veg { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; position: absolute; top: 10px; left: 10px; border: 2px solid white; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
         .mc-veg.v { background: var(--green); }
         .mc-veg.nv { background: var(--red); }
-        .mc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-        .mc-cat { font-size: 9px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-        .mc-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
-        .mc-desc { font-size: 10px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px; }
-        .mc-bottom { display: flex; align-items: baseline; justify-content: space-between; }
-        .mc-price { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; color: var(--amber); }
-        .mc-tax { font-size: 9px; color: var(--text-3); }
-        .mc-qty { position: absolute; top: 8px; right: 8px; background: var(--amber); color: white; border-radius: 100px; min-width: 20px; height: 20px; display: grid; place-items: center; font-size: 11px; font-weight: 800; padding: 0 5px; }
+
+        .mc-body { padding: 12px 14px 14px; }
+        .mc-name { font-size: 14.5px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+        .mc-desc { font-size: 11.5px; color: var(--text-3); line-height: 1.4; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 31px; }
+        .mc-bottom { display: flex; align-items: center; justify-content: space-between; }
+        .mc-price { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; color: #1f6e4f; }
+        .mc-tax { font-size: 9px; color: var(--text-3); display: block; margin-top: 1px; }
+
+        .mc-add-btn { width: 30px; height: 30px; border-radius: 50%; border: none; background: #1f6e4f; color: white; display: grid; place-items: center; font-size: 15px; cursor: pointer; flex-shrink: 0; transition: transform .12s, background .15s; }
+        .mc-add-btn:hover { background: #185c41; transform: scale(1.06); }
+        .mc-stepper { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 100px; padding: 3px; flex-shrink: 0; }
+        .mc-stepper button { width: 26px; height: 26px; border-radius: 50%; border: none; background: #1f6e4f; color: white; display: grid; place-items: center; font-size: 15px; cursor: pointer; font-family: inherit; line-height: 1; }
+        .mc-stepper button:hover { filter: brightness(0.92); }
+        .mc-stepper span { min-width: 16px; text-align: center; font-weight: 700; font-size: 13px; color: var(--text); }
         /* ── Send Email Button ── */
 .btn-send-email {
   display: inline-flex;
@@ -634,7 +648,21 @@
         .cart-top { padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
         .cart-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .cart-title { font-size: 14px; font-weight: 700; }
-        .cart-config { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+                .cart-config { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+        /* ── ORDER TYPE SEGMENTED TABS ── */
+        .pos-type-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+                .pt-btn { flex: 1; min-width: 108px; padding: 11px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; text-align: center; white-space: nowrap; }
+        .pt-btn:hover:not(.active) { background: var(--surface-2); border-color: var(--border-2); }
+        .pt-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+        /* ── ROOM PICKER (POS Room Service modal) ── */
+        .rp-card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); background: var(--blue-dim); padding: 14px 10px; text-align: left; cursor: pointer; transition: all .15s; font-family: inherit; display: flex; align-items: center; gap: 10px; }
+        .rp-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .rp-card-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--blue); color: white; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+        .rp-card-num { font-weight: 800; font-size: 13.5px; color: var(--text); }
+        .rp-card-guest { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+        .rp-card.rp-selected { border-color: var(--blue) !important; box-shadow: 0 0 0 3px rgba(26,101,245,0.18); }
         .cart-items { flex: 1; overflow-y: auto; padding: 10px 14px; }
         .ci { display: flex; align-items: center; gap: 9px; padding: 9px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 7px; }
         .ci-info { flex: 1; min-width: 0; }
@@ -680,7 +708,20 @@
         .kc-pay-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 100px; margin-top: 4px; }
         .kc-pay-pending { background: var(--red-dim); color: var(--red); border: 1px solid #fecaca; }
         .kc-pay-paid { background: var(--green-dim); color: #15803d; border: 1px solid #86efac; }
+                /* ── TABLE PICKER (POS Dine-In modal) ── */
+        .tp-card { border: 1.5px solid var(--border); border-radius: var(--radius-lg); background: var(--green-dim); padding: 14px 8px; text-align: center; cursor: pointer; transition: all .15s; font-family: inherit; }
+        .tp-card:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .tp-card-num { font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; color: var(--green); line-height: 1; }
+        .tp-card-cap { font-size: 10.5px; color: var(--text-3); margin-top: 4px; }
+        .tp-card-status { font-size: 9.5px; font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--green); }
+        .tp-card.tp-occ { background: var(--red-dim); border-color: #fca5a5; cursor: not-allowed; opacity: .55; }
+        .tp-card.tp-occ .tp-card-num, .tp-card.tp-occ .tp-card-status { color: var(--red); }
+        .tp-card.tp-selected { border-color: var(--blue) !important; box-shadow: 0 0 0 3px rgba(26,101,245,0.18); background: var(--blue-dim) !important; }
+        .tp-card.tp-selected .tp-card-num, .tp-card.tp-selected .tp-card-status { color: var(--blue) !important; }
+        .tp-picker-btn { display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left; background: var(--surface); }
+        .tp-picker-btn:hover { border-color: var(--border-2); }
 
+       
         /* ── FLOOR GRID ── */
         .floor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 12px; margin-bottom: 20px; }
         .floor-card { border-radius: var(--radius-lg); border: 1.5px solid; overflow: hidden; transition: all .18s; }
@@ -1043,6 +1084,44 @@
             .search-filter-bar { gap: 6px; }
             .search-wrap { max-width: 100%; }
         }
+
+                /* ── DASHBOARD 2.0 ── */
+        .dash-filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .stat-delta { font-size: 11px; font-weight: 600; margin-top: 3px; }
+        .stat-delta.up { color: var(--green); }
+        .stat-delta.down { color: var(--red); }
+        .dash-charts-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; margin-bottom: 14px; align-items: stretch; }
+        .dash-tables-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; margin-bottom: 14px; align-items: start; }
+        .top-item-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+        .top-item-row:last-child { border-bottom: none; }
+        .top-item-rank { width: 20px; height: 20px; border-radius: 50%; background: var(--amber-dim); color: var(--amber); font-weight: 700; font-size: 10.5px; display: grid; place-items: center; flex-shrink: 0; }
+        .pay-legend-row { display: flex; align-items: center; gap: 7px; padding: 4px 0; }
+        .pay-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .ord-summary-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .ord-summary-row:last-child { border-bottom: none; }
+        @media (max-width: 1100px) {
+            .dash-charts-row, .dash-tables-row { grid-template-columns: 1fr; }
+        }
+        /* ── ORDER HISTORY TABLE ── */
+        /* ── ORDER HISTORY TABLE ── */
+.stat-sub { font-size: 10.5px; color: var(--text-3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+.ordtype-cell { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12.5px; }
+.ordtype-icon { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 11px; flex-shrink: 0; }
+.oti-dine { background: var(--green-dim); color: #15803d; }
+.oti-room { background: var(--blue-dim); color: #1d4ed8; }
+.oti-take { background: var(--orange-dim); color: var(--orange); }
+.ordloc-main { font-weight: 700; font-size: 13px; }
+.ordloc-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.ord-actions-cell { display: flex; align-items: center; gap: 6px; }
+.ord-icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--text-3); transition: all .15s; }
+.ord-icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-2); }
+/* Autofill detection trick — browsers fire an animation on :-webkit-autofill,
+   which we hook into to catch and clear autofilled values instantly */
+@keyframes onAutoFillStart { from {} to {} }
+input:-webkit-autofill {
+    animation-name: onAutoFillStart;
+    animation-duration: 0.001s;
+}
     </style>
 </head>
 <body>
@@ -1098,7 +1177,7 @@
     <div class="topbar">
         <div class="topbar-left">
             <h1>Dashboard</h1>
-            <p>Welcome back, {{ staff.name }} &mdash; {{ today }}</p>
+            <p>Welcome back, {{ staff.name }} &mdash; here's what's happening today</p>
         </div>
         <div class="topbar-actions">
             <button class="btn btn-primary btn-sm" onclick="switchPanel('pos')"><i class="fas fa-plus"></i> New Order</button>
@@ -1111,73 +1190,124 @@
         </div>
     </div>
     <div class="content">
-        <div class="stat-grid">
-            <div class="stat-card" onclick="switchPanel('orders')">
+
+        <!-- Filter bar -->
+        <div class="dash-filter-bar">
+            <div class="tab-bar" id="dashRangeBar">
+                <button class="tab-btn active" onclick="setDashRange('today',this)">Today</button>
+                <button class="tab-btn" onclick="setDashRange('yesterday',this)">Yesterday</button>
+                <button class="tab-btn" onclick="setDashRange('week',this)">This Week</button>
+                <button class="tab-btn" onclick="setDashRange('month',this)">This Month</button>
+                <button class="tab-btn" onclick="toggleDashCustom()">Custom</button>
+            </div>
+            <div id="dashCustomWrap" style="display:none;align-items:center;gap:6px;">
+                <input type="date" class="date-inp" id="dashCustomFrom" autocomplete="off">
+                <span style="font-size:11px;color:var(--text-3);">to</span>
+                <input type="date" class="date-inp" id="dashCustomTo" autocomplete="off">
+                <button class="btn btn-primary btn-sm" onclick="applyDashCustomRange()">Apply</button>
+            </div>
+            <button class="clear-btn" style="margin-left:auto;" onclick="resetDashRange()"><i class="fas fa-rotate"></i> Reset</button>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="stat-grid" id="dashKpiGrid">
+            <div class="stat-card">
                 <div class="stat-icon si-amber"><i class="fas fa-indian-rupee-sign"></i></div>
-                <div><div class="stat-num amber">₹{{ stats.today_revenue|default:"0" }}</div><div class="stat-label">Today's Revenue</div></div>
+                <div>
+                    <div class="stat-num amber" id="kpiTotalSales">₹0.00</div>
+                    <div class="stat-label">Total Sales</div>
+                    <div class="stat-delta" id="kpiTotalSalesDelta"></div>
+                </div>
             </div>
-            <div class="stat-card" onclick="switchPanel('orders')">
-                <div class="stat-icon si-red"><i class="fas fa-hourglass-half"></i></div>
-                <div><div class="stat-num red">{{ stats.pending_orders|default:"0" }}</div><div class="stat-label">Pending / Preparing</div></div>
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-receipt"></i></div>
+                <div>
+                    <div class="stat-num green" id="kpiOrders">0</div>
+                    <div class="stat-label">Orders</div>
+                    <div class="stat-delta" id="kpiOrdersDelta"></div>
+                </div>
             </div>
-            <div class="stat-card" onclick="switchPanel('orders')">
-                <div class="stat-icon si-blue"><i class="fas fa-receipt"></i></div>
-                <div><div class="stat-num blue">{{ stats.total_orders|default:"0" }}</div><div class="stat-label">Total Orders</div></div>
-            </div>
+            
             <div class="stat-card" onclick="switchPanel('tables')">
-                <div class="stat-icon si-green"><i class="fas fa-chair"></i></div>
-                <div><div class="stat-num green">{{ stats.tables_occupied|default:"0" }}/{{ stats.tables_total|default:"0" }}</div><div class="stat-label">Tables Occupied</div></div>
+                <div class="stat-icon si-purple"><i class="fas fa-chair"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--purple);" id="kpiActiveTables">0 / 0</div>
+                    <div class="stat-label">Active Tables</div>
+                    <div class="stat-delta" id="kpiTablesOccPct" style="color:var(--text-3);"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-orange"><i class="fas fa-sack-dollar"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--orange);" id="kpiProfit">₹0.00</div>
+                    <div class="stat-label" id="kpiProfitLabel">Today's Profit</div>
+                    <div class="stat-delta" id="kpiProfitDelta"></div>
+                </div>
             </div>
         </div>
-        <div class="two-col">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title"><i class="fas fa-fire"></i> Active Orders</div>
-                    <button class="btn btn-outline btn-sm" onclick="switchPanel('orders')">View All</button>
-                </div>
-                <div id="db-orders-list">
-                {% for order in active_orders %}
-                <div class="booking-item">
-                    <div class="bk-avatar" style="font-size:12px;">
-                        {% if order.order_type == "dine_in" %}<i class="fas fa-utensils"></i>
-                        {% elif order.order_type == "room_service" %}<i class="fas fa-concierge-bell"></i>
-                        {% else %}<i class="fas fa-shopping-bag"></i>{% endif %}
-                    </div>
-                    <div class="bk-info">
-                        <div class="bk-name">#{{ order.order_number }} &mdash; {% if order.table %}Table {{ order.table }}{% elif order.room %}{{ order.room }}{% else %}Takeaway{% endif %}</div>
-                        <div class="bk-desc">{{ order.created_at }} &bull; {{ order.items|length }} item(s)</div>
-                    </div>
-                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-                        <strong style="font-family:'DM Mono',monospace;font-size:12px;">₹{{ order.total }}</strong>
-                        {% if order.status == "pending" %}<span class="pill pill-amber">Pending</span>
-                        {% elif order.status == "preparing" %}<span class="pill pill-blue">Preparing</span>
-                        {% elif order.status == "served" %}<span class="pill pill-green">Served</span>
-                        {% else %}<span class="pill pill-gray">{{ order.status }}</span>{% endif %}
-                    </div>
-                </div>
-                {% empty %}<div class="empty"><i class="fas fa-receipt"></i><p>No active orders</p></div>
-                {% endfor %}
+
+        <!-- Charts row -->
+        <div class="dash-charts-row">
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-chart-area"></i> Sales Overview</div></div>
+                <div class="card-body"><canvas id="salesOverviewChart" height="90"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-chart-pie"></i> Sales by Payment Method</div></div>
+                <div class="card-body" style="display:flex;align-items:center;gap:16px;">
+                    <canvas id="paymentDonutChart" height="140" style="max-width:140px;"></canvas>
+                    <div id="paymentLegend" style="flex:1;font-size:12px;"></div>
                 </div>
             </div>
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title"><i class="fas fa-chair"></i> Live Tables</div>
-                    <button class="btn btn-outline btn-sm" onclick="switchPanel('tables')">Full View</button>
-                </div>
-                <div style="padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px;">
-                {% for table in tables %}
-                <div onclick="switchPanel('tables')" style="border-radius:var(--radius);border:1.5px solid;padding:9px 6px;text-align:center;cursor:pointer;transition:all .16s;{% if table.is_occupied %}background:var(--red-dim);border-color:#fca5a5;{% else %}background:var(--green-dim);border-color:#86efac;{% endif %}">
-                    <div style="font-weight:800;font-size:13px;{% if table.is_occupied %}color:var(--red);{% else %}color:var(--green);{% endif %}">{{ table.number }}</div>
-                    <div style="font-size:9px;opacity:.6;margin-top:2px;{% if table.is_occupied %}color:var(--red);{% else %}color:var(--green);{% endif %}">{{ table.capacity }}p</div>
-                </div>
-                {% empty %}<div style="grid-column:1/-1" class="empty"><i class="fas fa-chair"></i><p>No tables</p></div>
-                {% endfor %}
-                </div>
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-fire"></i> Top Selling Items</div></div>
+                <div class="card-body" id="topItemsList" style="padding-top:8px;"></div>
+            </div>
+        </div>
+
+        <!-- Tables row -->
+        <div class="dash-tables-row">
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-receipt"></i> Recent Orders</div><button class="btn btn-outline btn-sm" onclick="switchPanel('orders')">View All</button></div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Order ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+                    <tbody id="dashRecentOrdersBody"><tr><td colspan="5" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                </table></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-chair"></i> Active Tables</div><button class="btn btn-outline btn-sm" onclick="switchPanel('tables')">View All</button></div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Table</th><th>Capacity</th><th>Status</th></tr></thead>
+                    <tbody id="dashActiveTablesBody"><tr><td colspan="3" class="empty"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+                </table></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><div class="card-title"><i class="fas fa-list-check"></i> Recent Orders (Summary)</div></div>
+                <div class="card-body" id="dashOrdersSummary" style="padding-top:8px;"></div>
+            </div>
+        </div>
+
+        <!-- Bottom stat strip -->
+        <div class="stat-grid" id="dashBottomStrip" style="margin-top:0;">
+            <div class="stat-card">
+                <div class="stat-icon si-blue"><i class="fas fa-users"></i></div>
+                <div><div class="stat-num blue" id="kpiTotalCustomers">0</div><div class="stat-label">Total Customers</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-user-check"></i></div>
+                <div><div class="stat-num green" id="kpiRepeatCustomers">0</div><div class="stat-label">Repeat Customers</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-red"><i class="fas fa-wallet"></i></div>
+                <div><div class="stat-num red" id="kpiExpenses">₹0.00</div><div class="stat-label">Expenses (Today)</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-amber"><i class="fas fa-sack-dollar"></i></div>
+                <div><div class="stat-num amber" id="kpiProfit2">₹0.00</div><div class="stat-label" id="kpiProfitLabel2">Today's Profit</div></div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- ══════════ POS ══════════ -->
 <div class="panel" id="panel-pos">
     <div class="topbar">
@@ -1200,26 +1330,37 @@
                 <button class="cat-btn" onclick="setCat('{{ cat.id }}',this)">{{ cat.name }}</button>
                 {% endfor %}
             </div>
-            <div class="menu-grid" id="menuGrid">
+                        <div class="menu-grid" id="menuGrid">
                 {% for cat in menu_categories %}
                 {% for item in cat.items.all %}
                 <div class="menu-card {% if not item.is_available %}unavail{% endif %}"
                      data-cat="{{ cat.id }}" data-name="{{ item.name|lower }}"
                      data-id="{{ item.id }}" data-price="{{ item.price }}"
                      data-tax="{{ item.tax_percent|default:5 }}"
-                     data-veg="{{ item.is_veg|yesno:'true,false' }}"
-                     onclick="{% if item.is_available %}addCart({{ item.id }}, '{{ item.name|escapejs }}', {{ item.price }}, {{ item.tax_percent|default:5 }}){% endif %}">
-                    <div class="mc-top">
+                     data-veg="{{ item.is_veg|yesno:'true,false' }}">
+                    <div class="mc-img-wrap">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}">
+                        {% else %}
+                            <div class="mc-img-placeholder"><i class="fas fa-utensils"></i></div>
+                        {% endif %}
                         <div class="mc-veg {% if item.is_veg %}v{% else %}nv{% endif %}"></div>
-                        <span class="mc-cat">{{ cat.name }}</span>
                     </div>
-                    <div class="mc-name">{{ item.name }}</div>
-                    {% if item.description %}<div class="mc-desc">{{ item.description }}</div>{% endif %}
-                    <div class="mc-bottom">
-                        <span class="mc-price">₹{{ item.price }}</span>
-                        {% if item.tax_percent %}<span class="mc-tax">+{{ item.tax_percent }}%</span>{% endif %}
+                    <div class="mc-body">
+                        <div class="mc-name">{{ item.name }}</div>
+                        {% if item.description %}<div class="mc-desc">{{ item.description }}</div>{% else %}<div class="mc-desc"></div>{% endif %}
+                        <div class="mc-bottom">
+                            <div>
+                                <span class="mc-price">₹{{ item.price }}</span>
+                                {% if item.tax_percent %}<span class="mc-tax">+{{ item.tax_percent }}% tax</span>{% endif %}
+                            </div>
+                            <div class="mc-qty-slot" id="mc-qty-slot-{{ item.id }}">
+                                {% if item.is_available %}
+                                <button class="mc-add-btn" onclick="event.stopPropagation();addCart({{ item.id }}, '{{ item.name|escapejs }}', {{ item.price }}, {{ item.tax_percent|default:5 }})"><i class="fas fa-plus"></i></button>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                    <div class="mc-qty" id="mc-qty-{{ item.id }}" style="display:none;">0</div>
                 </div>
                 {% endfor %}
                 {% endfor %}
@@ -1232,46 +1373,33 @@
                     <span class="pill pill-amber" id="cartCount">0 items</span>
                 </div>
             </div>
-            <div class="cart-config">
+                        <div class="cart-config">
                 <div>
                     <label class="form-label">Order Type</label>
-                    <select class="form-control" id="posType" onchange="onPosTypeChange()">
-                        <option value="dine_in">🍽 Dine In</option>
-                        <option value="room_service">🛎 Room Service</option>
-                        <option value="takeaway">🥡 Takeaway</option>
-                    </select>
+                    <input type="hidden" id="posType" value="dine_in">
+                    <div class="pos-type-tabs" id="posTypeTabs">
+                        <button type="button" class="pt-btn active" onclick="setOrderType('dine_in', this)">🍽 Dine In</button>
+                        <button type="button" class="pt-btn" onclick="setOrderType('room_service', this)">🛎 Room Service</button>
+                        <button type="button" class="pt-btn" onclick="setOrderType('takeaway', this)">🥡 Takeaway</button>
+                    </div>
                 </div>
                 <div id="posTableGrp">
                     <label class="form-label">Table</label>
-                    <select class="form-control" id="posTable">
-                        <option value="">— Select Table —</option>
-                        {% for table in tables_qs %}
-                        <option value="{{ table.id }}" {% if table.is_occupied %}disabled{% endif %}>
-                            Table {{ table.number }} ({{ table.capacity }}p){% if table.is_occupied %} [Occupied]{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <input type="hidden" id="posTable" value="">
+                    <button type="button" class="form-control tp-picker-btn" id="posTablePickerBtn" onclick="openTablePicker()">
+                        <span id="posTablePickerLabel" style="color:var(--text-3);">— Select Table —</span>
+                        <i class="fas fa-chair" style="color:var(--amber);"></i>
+                    </button>
                 </div>
                 <div id="posRoomGrp" style="display:none;">
                     <label class="form-label">Room</label>
-                    <select class="form-control" id="posRoom">
-                        <option value="">— Select Room —</option>
-                        {% for bk in occupied_bookings %}
-                        <option value="{{ bk.room_unit.id }}">Room {{ bk.room_unit.room_number }} — {{ bk.guest.full_name }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="hidden" id="posRoom" value="">
+                    <button type="button" class="form-control tp-picker-btn" id="posRoomPickerBtn" onclick="openRoomPicker()">
+                        <span id="posRoomPickerLabel" style="color:var(--text-3);">— Select Room —</span>
+                        <i class="fas fa-door-open" style="color:var(--blue);"></i>
+                    </button>
                 </div>
-                <div id="posPayMethodGrp" style="display:none;">
-                    <label class="form-label">Payment Method</label>
-                    <select class="form-control" id="posPayMethod">
-                        <option value="">— Select Method —</option>
-                        <option value="cash">💵 Cash</option>
-                        <option value="card">💳 Credit / Debit Card</option>
-                        <option value="upi">📱 UPI</option>
-                        <option value="online">🌐 Online Transfer</option>
-                        <option value="razorpay">⚡ Razorpay</option>
-                    </select>
-                </div>
+    
                 <div>
                     <label class="form-label">Note <span style="font-weight:400;color:var(--text-3);">(optional)</span></label>
                     <input class="form-control" id="posNote" placeholder="Allergies, special requests…">
@@ -1295,69 +1423,120 @@
     </div>
 </div>
 
-<!-- ══════════ ALL ORDERS ══════════ -->
+<<!-- ══════════ ALL ORDERS ══════════ -->
 <div class="panel" id="panel-orders">
     <div class="topbar">
-        <div class="topbar-left"><h1>All Orders</h1><p>Order tracking &amp; management</p></div>
+        <div class="topbar-left"><h1>Order History</h1><p>View and manage all past orders</p></div>
         <div class="topbar-actions">
-            <button class="btn btn-outline btn-sm" onclick="loadOrders()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button class="btn btn-outline btn-sm" onclick="exportOrdersCSV()"><i class="fas fa-download"></i> Export</button>
             <button class="btn btn-primary btn-sm" onclick="switchPanel('pos')"><i class="fas fa-plus"></i> New Order</button>
         </div>
     </div>
     <div class="content">
+        <div class="stat-grid-3" id="ordTypeStats">
+            <div class="stat-card">
+                <div class="stat-icon si-green"><i class="fas fa-utensils"></i></div>
+                <div>
+                    <div class="stat-num green" id="ordDineInCount">0</div>
+                    <div class="stat-label">Dine In Orders</div>
+                    <div class="stat-sub" id="ordDineInTotal">₹0.00 Total Sales</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-blue"><i class="fas fa-concierge-bell"></i></div>
+                <div>
+                    <div class="stat-num blue" id="ordRoomCount">0</div>
+                    <div class="stat-label">Room Service Orders</div>
+                    <div class="stat-sub" id="ordRoomTotal">₹0.00 Total Sales</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon si-orange"><i class="fas fa-shopping-bag"></i></div>
+                <div>
+                    <div class="stat-num" style="color:var(--orange);" id="ordTakeawayCount">0</div>
+                    <div class="stat-label">Takeaway Orders</div>
+                    <div class="stat-sub" id="ordTakeawayTotal">₹0.00 Total Sales</div>
+                </div>
+            </div>
+        </div>
+
         <div class="card" style="overflow:visible;">
-            <div class="search-filter-bar">
-                <div class="search-wrap">
-                    <i class="fas fa-search"></i>
-                    <input class="search-inp" id="ordSearch" placeholder="Order #, table…" oninput="renderOrders()">
+           <div class="search-filter-bar">
+    <div class="search-wrap" style="max-width:320px;">
+        <i class="fas fa-search"></i>
+        <input class="search-inp" id="ordSearch" name="ordSearchQuery" autocomplete="off" placeholder="Search Order ID, Table No, Customer, Phone…" oninput="renderOrders()">
+    </div>
+    <select class="filter-sel" id="ordType" onchange="syncOrdTypeFromDropdown()">
+        <option value="">All Order Types</option>
+        <option value="dine_in">Dine In</option>
+        <option value="room_service">Room Service</option>
+        <option value="takeaway">Takeaway</option>
+    </select>
+    <select class="filter-sel" id="ordStatus" onchange="renderOrders()">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="preparing">In Progress</option>
+        <option value="served">Completed</option>
+        <option value="cancelled">Cancelled</option>
+    </select>
+    <select class="filter-sel" id="ordPayFilter" onchange="renderOrders()">
+        <option value="">All Payments</option>
+        <option value="pending">Unpaid</option>
+        <option value="paid">Paid</option>
+    </select>
+        <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
+    <input type="date" class="date-inp" id="ordDateFrom" autocomplete="off">
+    <span class="date-label">To</span>
+    <input type="date" class="date-inp" id="ordDateTo" autocomplete="off">
+    <button class="btn btn-primary btn-sm" onclick="renderOrders()"><i class="fas fa-filter"></i> Filter</button>
+    <button class="clear-btn" onclick="clearOrdFilters()"><i class="fas fa-times"></i> Clear</button>
+    <span class="filter-count" id="ordFilterCount">0 orders</span>
+</div>
+
+            <div style="padding:12px 20px 0;">
+                <div class="tab-bar" id="ordTypeTabBar">
+                    <button class="tab-btn active" onclick="setOrdTab('all',this)">All Orders</button>
+                    <button class="tab-btn" onclick="setOrdTab('dine_in',this)">Dine In</button>
+                    <button class="tab-btn" onclick="setOrdTab('room_service',this)">Room Service</button>
+                    <button class="tab-btn" onclick="setOrdTab('takeaway',this)">Takeaway</button>
                 </div>
-                <select class="filter-sel" id="ordStatus" onchange="renderOrders()">
-                    <option value="">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="preparing">Preparing</option>
-                    <option value="served">Served</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-                <select class="filter-sel" id="ordType" onchange="renderOrders()">
-                    <option value="">All Types</option>
-                    <option value="dine_in">Dine In</option>
-                    <option value="room_service">Room Service</option>
-                    <option value="takeaway">Takeaway</option>
-                </select>
-                <select class="filter-sel" id="ordPayFilter" onchange="renderOrders()">
-                    <option value="">All Payments</option>
-                    <option value="pending">Unpaid</option>
-                    <option value="paid">Paid</option>
-                </select>
-                <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
-                <input type="date" class="date-inp" id="ordDateFrom" onchange="renderOrders()">
-                <span class="date-label">To</span>
-                <input type="date" class="date-inp" id="ordDateTo" onchange="renderOrders()">
-                <button class="clear-btn" onclick="clearOrdFilters()"><i class="fas fa-times"></i> Clear</button>
-                <span class="filter-count" id="ordFilterCount">0 orders</span>
             </div>
-            <div class="card-body" style="padding:20px;">
-                <div class="kanban" id="kanban">
-                    <div style="grid-column:1/-1" class="empty"><i class="fas fa-spinner fa-spin"></i><p>Loading orders…</p></div>
-                </div>
+
+            <div class="table-wrap" style="margin-top:12px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Order Type</th>
+                            <th>Table / Room / Customer</th>
+                            <th>Order Time</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordTableBody">
+                        <tr><td colspan="8" class="empty"><i class="fas fa-spinner fa-spin"></i><p>Loading orders…</p></td></tr>
+                    </tbody>
+                </table>
             </div>
-            <!-- Orders Pagination -->
+
             <div class="pagination-bar" id="ordPaginationBar" style="display:none;">
                 <div class="pagination-info" id="ordPageInfo"></div>
                 <div class="pagination-btns" id="ordPageBtns"></div>
                 <div class="per-page-wrap">
                     Per page:
                     <select class="per-page-sel" id="ordPerPage" onchange="changeOrdPerPage()">
-                        <option value="8" selected>8</option>
-                        <option value="16">16</option>
-                        <option value="32">32</option>
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
                     </select>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- ══════════ TABLES ══════════ -->
 <div class="panel" id="panel-tables">
     <div class="topbar">
@@ -1404,10 +1583,10 @@
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                 </select>
-                <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
-                <input type="date" class="date-inp" id="reservDateFrom" onchange="filterReservations()">
+                               <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
+                <input type="date" class="date-inp" id="reservDateFrom" autocomplete="off" onchange="filterReservations()">
                 <span class="date-label">To</span>
-                <input type="date" class="date-inp" id="reservDateTo" onchange="filterReservations()">
+                <input type="date" class="date-inp" id="reservDateTo" autocomplete="off" onchange="filterReservations()">
                 <button class="clear-btn" onclick="clearReservFilters()"><i class="fas fa-times"></i> Clear</button>
                 <span class="filter-count" id="reservFilterCount">0 reservations</span>
             </div>
@@ -1491,8 +1670,8 @@
                     {% for item in cat.items.all %}
                     <tr data-item-name="{{ item.name|lower }}" data-item-veg="{{ item.is_veg|yesno:'veg,nonveg' }}" data-item-avail="{{ item.is_available|yesno:'available,unavailable' }}">
                         <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <div style="width:7px;height:7px;border-radius:50%;background:{% if item.is_veg %}var(--green){% else %}var(--red){% endif %};flex-shrink:0;"></div>
+                             <div style="display:flex;align-items:center;gap:8px;">
+                                {% if item.image %}<img src="{{ item.image.url }}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;">{% else %}<div style="width:7px;height:7px;border-radius:50%;background:{% if item.is_veg %}var(--green){% else %}var(--red){% endif %};flex-shrink:0;"></div>{% endif %}
                                 <div>
                                     <div style="font-weight:600;font-size:13px;">{{ item.name }}</div>
                                     {% if item.description %}<div style="font-size:11px;color:var(--text-3);">{{ item.description }}</div>{% endif %}
@@ -1641,10 +1820,10 @@
                     <option value="corrective">Corrective</option>
                     <option value="inspection">Inspection</option>
                 </select>
-                <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
-                <input type="date" class="date-inp" id="maintDateFrom" onchange="applyMaintSearch()">
+                                <span class="date-label"><i class="fas fa-calendar-alt"></i> From</span>
+                <input type="date" class="date-inp" id="maintDateFrom" autocomplete="off" onchange="applyMaintSearch()">
                 <span class="date-label">To</span>
-                <input type="date" class="date-inp" id="maintDateTo" onchange="applyMaintSearch()">
+                <input type="date" class="date-inp" id="maintDateTo" autocomplete="off" onchange="applyMaintSearch()">
                 <button class="clear-btn" onclick="clearMaintSearch()"><i class="fas fa-times"></i> Clear</button>
                 <span class="filter-count" id="maintFilterCount">0 logs</span>
             </div>
@@ -1675,7 +1854,12 @@
                 <div class="card-title"><i class="fas fa-stopwatch"></i> Today's Clock</div>
                 <span id="todayStatusPill" class="pill pill-gray">Not clocked in</span>
             </div>
-            <div class="clock-wrap">
+                       <div class="clock-wrap"
+                 data-checked-in="{% if attendance_today.check_in %}true{% else %}false{% endif %}"
+                 data-checked-out="{% if attendance_today.check_out %}true{% else %}false{% endif %}"
+                 data-status="{{ attendance_today.status|default:'' }}"
+                 data-check-in-time="{{ attendance_today.check_in|time:'h:i A'|default:'' }}"
+data-working-hours="{{ attendance_working_hours|default:'' }}">
                 <div class="clock-btns">
                     <button class="ck-btn in" id="btnClockIn" onclick="clockIn()"><i class="fas fa-sign-in-alt"></i> Clock In</button>
                     <button class="ck-btn out" id="btnClockOut" onclick="clockOut()" disabled><i class="fas fa-sign-out-alt"></i> Clock Out</button>
@@ -2108,6 +2292,73 @@
         <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('addTableModal')">Cancel</button><button class="btn btn-primary" onclick="submitTable()"><i class="fas fa-save"></i> Add</button></div>
     </div>
 </div>
+<div class="modal-backdrop" id="tablePickerModal">
+    <div class="modal modal-lg" style="max-width:740px;">
+        <div class="modal-header">
+            <div class="modal-header-title"><i class="fas fa-chair" style="color:var(--amber);margin-right:8px;"></i>Select Table</div>
+            <button class="modal-close" onclick="closeModal('tablePickerModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:11px;font-weight:600;">
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;"></span> Free</span>
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;"></span> Occupied</span>
+                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:var(--blue);display:inline-block;"></span> Selected</span>
+            </div>
+            <div id="tablePickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;">
+                {% for table in tables_qs %}
+                <button type="button" class="tp-card {% if table.is_occupied %}tp-occ{% endif %}"
+                    data-table-id="{{ table.id }}" data-table-num="{{ table.number }}"
+                    {% if table.is_occupied %}disabled{% endif %}
+                    onclick="selectTableCard(this)">
+                    <div class="tp-card-num">{{ table.number }}</div>
+                    <div class="tp-card-cap">{{ table.capacity }}p</div>
+                    <div class="tp-card-status">{% if table.is_occupied %}Occupied{% else %}Free{% endif %}</div>
+                </button>
+                {% empty %}
+                <div class="empty" style="grid-column:1/-1;"><i class="fas fa-chair"></i><p>No tables available</p></div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <span id="tablePickerSelectedLabel" style="margin-right:auto;font-size:12px;color:var(--text-3);">No table selected</span>
+            <button class="btn btn-outline" onclick="closeModal('tablePickerModal')">Cancel</button>
+            <button class="btn btn-primary" id="tablePickerConfirmBtn" onclick="confirmTableSelection()" disabled><i class="fas fa-check"></i> Confirm</button>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal-backdrop" id="roomPickerModal">
+    <div class="modal modal-lg" style="max-width:640px;">
+        <div class="modal-header">
+            <div class="modal-header-title"><i class="fas fa-door-open" style="color:var(--blue);margin-right:8px;"></i>Select Room</div>
+            <button class="modal-close" onclick="closeModal('roomPickerModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="roomPickerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
+                {% for bk in occupied_bookings %}
+                <button type="button" class="rp-card"
+                    data-room-id="{{ bk.room_unit.id }}" data-room-num="{{ bk.room_unit.room_number }}" data-guest="{{ bk.guest.full_name|escapejs }}"
+                    onclick="selectRoomCard(this)">
+                    <div class="rp-card-icon"><i class="fas fa-bed"></i></div>
+                    <div>
+                        <div class="rp-card-num">Room {{ bk.room_unit.room_number }}</div>
+                        <div class="rp-card-guest">{{ bk.guest.full_name }}</div>
+                    </div>
+                </button>
+                {% empty %}
+                <div class="empty" style="grid-column:1/-1;"><i class="fas fa-door-open"></i><p>No occupied rooms currently</p></div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="modal-footer">
+            <span id="roomPickerSelectedLabel" style="margin-right:auto;font-size:12px;color:var(--text-3);">No room selected</span>
+            <button class="btn btn-outline" onclick="closeModal('roomPickerModal')">Cancel</button>
+            <button class="btn btn-primary" id="roomPickerConfirmBtn" onclick="confirmRoomSelection()" disabled><i class="fas fa-check"></i> Confirm</button>
+        </div>
+    </div>
+</div>
 
 <div class="modal-backdrop" id="reservModal">
     <div class="modal">
@@ -2153,6 +2404,25 @@
                 <div class="form-group"><label class="form-label">Tax %</label><input class="form-control" id="itemTax" type="number" value="5" min="0" max="100"></div>
             </div>
             <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="itemDesc" rows="2" placeholder="Short description…"></textarea></div>
+                        <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="itemDesc" rows="2" placeholder="Short description…"></textarea></div>
+
+            <div class="form-group">
+                <label class="form-label">Item Image <span style="font-weight:400;color:var(--text-3);">(optional)</span></label>
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <div id="itemImgPreviewWrap" style="width:64px;height:64px;border-radius:10px;border:1.5px dashed var(--border);background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                        <img id="itemImgPreview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+                        <i class="fas fa-image" id="itemImgPlaceholder" style="color:var(--text-3);font-size:18px;"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <label for="itemImageInput" class="btn btn-outline btn-sm" style="cursor:pointer;"><i class="fas fa-upload"></i> Choose Image</label>
+                        <input type="file" id="itemImageInput" accept="image/*" style="display:none;" onchange="previewItemImage(this)">
+                        <button type="button" class="btn btn-outline btn-sm" id="itemImgRemoveBtn" style="display:none;margin-left:6px;" onclick="removeItemImage()"><i class="fas fa-times"></i> Remove</button>
+                        <p style="font-size:11px;color:var(--text-3);margin-top:6px;">JPG or PNG · max 2 MB</p>
+                    </div>
+                </div>
+            </div>
+
+            
             <div style="display:flex;gap:20px;margin-top:8px;">
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;"><input type="checkbox" id="itemVeg" checked> <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;"></span> Vegetarian</span></label>
                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;"><input type="checkbox" id="itemAvail" checked> Available</label>
@@ -2192,7 +2462,17 @@
         <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('markPaidModal')">Cancel</button><button class="btn btn-success" id="confirmPayBtn" onclick="confirmPayment()"><i class="fas fa-check-circle"></i> Confirm Payment</button></div>
     </div>
 </div>
-
+<!-- Payment Success / Receipt Modal -->
+<div class="modal-backdrop" id="paymentSuccessModal">
+    <div class="modal" style="max-width:420px;">
+        <div class="modal-header">
+            <div class="modal-header-title"><i class="fas fa-check-circle" style="color:var(--green);margin-right:8px;"></i>Payment Received</div>
+            <button class="modal-close" onclick="closeModal('paymentSuccessModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="paymentSuccessBody"></div>
+        <div class="modal-footer" id="paymentSuccessFoot"></div>
+    </div>
+</div>
 <!-- Maintenance Modal -->
 <div class="modal-backdrop" id="maintenanceModal">
     <div class="modal modal-lg">
@@ -2446,7 +2726,6 @@ function addCart(id, name, price, taxPct) {
 function remCart(id) { const idx=_cart.findIndex(c=>c.id===id); if(idx===-1)return; if(_cart[idx].qty>1)_cart[idx].qty--; else _cart.splice(idx,1); updCartUI(); }
 function delCart(id) { _cart=_cart.filter(c=>c.id!==id); updCartUI(); }
 function clearCart() { if(!_cart.length)return; _cart=[]; updCartUI(); toast('Cart cleared','info'); }
-
 function updCartUI() {
     const total = _cart.reduce((s,c)=>s+c.qty,0);
     setEl('cartCount', total+' item'+(total!==1?'s':''));
@@ -2455,8 +2734,22 @@ function updCartUI() {
         const id=parseInt(card.dataset.id);
         const inCart=_cart.find(c=>c.id===id);
         card.classList.toggle('in-cart',!!inCart);
-        const qel=document.getElementById(`mc-qty-${id}`);
-        if(qel){qel.textContent=inCart?inCart.qty:''; qel.style.display=inCart?'grid':'none';}
+        const slot=document.getElementById(`mc-qty-slot-${id}`);
+        if(!slot) return;
+        const name = card.dataset.name;
+        const price = parseFloat(card.dataset.price);
+        const tax = parseFloat(card.dataset.tax)||0;
+        const isAvail = !card.classList.contains('unavail');
+        if(!isAvail) { slot.innerHTML=''; return; }
+        if(inCart){
+            slot.innerHTML = `<div class="mc-stepper">
+                <button onclick="event.stopPropagation();remCart(${id})">−</button>
+                <span>${inCart.qty}</span>
+                <button onclick="event.stopPropagation();addCart(${id},'${esc(card.querySelector('.mc-name').textContent)}',${price},${tax})">+</button>
+            </div>`;
+        } else {
+            slot.innerHTML = `<button class="mc-add-btn" onclick="event.stopPropagation();addCart(${id},'${esc(card.querySelector('.mc-name').textContent)}',${price},${tax})"><i class="fas fa-plus"></i></button>`;
+        }
     });
 }
 function renderCart() {
@@ -2479,11 +2772,115 @@ function renderCart() {
 }
 function updTotals(sub,tax){setEl('posSub',inr(sub));setEl('posTax',inr(tax));setEl('posGrand',inr(sub+tax));}
 
+// ── Table Picker (POS Dine-In) ──
+let _pendingTableId = null, _pendingTableNum = null;
+function openTablePicker(){
+    _pendingTableId = document.getElementById('posTable').value || null;
+    _pendingTableNum = null;
+    document.querySelectorAll('.tp-card').forEach(c=>{
+        const match = c.dataset.tableId === _pendingTableId;
+        c.classList.toggle('tp-selected', match);
+        if(match) _pendingTableNum = c.dataset.tableNum;
+    });
+    updateTablePickerFooter();
+    openModal('tablePickerModal');
+}
+function selectTableCard(btn){
+    if(btn.disabled) return;
+    _pendingTableId = btn.dataset.tableId;
+    _pendingTableNum = btn.dataset.tableNum;
+    document.querySelectorAll('.tp-card').forEach(c=>c.classList.remove('tp-selected'));
+    btn.classList.add('tp-selected');
+    updateTablePickerFooter();
+}
+function updateTablePickerFooter(){
+    const lbl = document.getElementById('tablePickerSelectedLabel');
+    const btn = document.getElementById('tablePickerConfirmBtn');
+    if(_pendingTableId){
+        lbl.textContent = `Table ${_pendingTableNum||''} selected`;
+        btn.disabled = false;
+    } else {
+        lbl.textContent = 'No table selected';
+        btn.disabled = true;
+    }
+}
+function confirmTableSelection(){
+    if(!_pendingTableId) return;
+    document.getElementById('posTable').value = _pendingTableId;
+    const labelEl = document.getElementById('posTablePickerLabel');
+    labelEl.textContent = `Table ${_pendingTableNum}`;
+    labelEl.style.color = 'var(--text)';
+    closeModal('tablePickerModal');
+}
+
+// ── Order Type tabs ──
+function setOrderType(type, btn){
+    document.getElementById('posType').value = type;
+    document.querySelectorAll('#posTypeTabs .pt-btn').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    onPosTypeChange();
+}
+
+// ── Room Picker (POS Room Service) ──
+let _pendingRoomId = null, _pendingRoomNum = null;
+function openRoomPicker(){
+    _pendingRoomId = document.getElementById('posRoom').value || null;
+    _pendingRoomNum = null;
+    document.querySelectorAll('.rp-card').forEach(c=>{
+        const match = c.dataset.roomId === _pendingRoomId;
+        c.classList.toggle('rp-selected', match);
+        if(match) _pendingRoomNum = c.dataset.roomNum;
+    });
+    updateRoomPickerFooter();
+    openModal('roomPickerModal');
+}
+function selectRoomCard(btn){
+    _pendingRoomId = btn.dataset.roomId;
+    _pendingRoomNum = btn.dataset.roomNum;
+    document.querySelectorAll('.rp-card').forEach(c=>c.classList.remove('rp-selected'));
+    btn.classList.add('rp-selected');
+    updateRoomPickerFooter();
+}
+function updateRoomPickerFooter(){
+    const lbl = document.getElementById('roomPickerSelectedLabel');
+    const btn = document.getElementById('roomPickerConfirmBtn');
+    if(_pendingRoomId){
+        lbl.textContent = `Room ${_pendingRoomNum||''} selected`;
+        btn.disabled = false;
+    } else {
+        lbl.textContent = 'No room selected';
+        btn.disabled = true;
+    }
+}
+function confirmRoomSelection(){
+    if(!_pendingRoomId) return;
+    document.getElementById('posRoom').value = _pendingRoomId;
+    const labelEl = document.getElementById('posRoomPickerLabel');
+    labelEl.textContent = `Room ${_pendingRoomNum}`;
+    labelEl.style.color = 'var(--text)';
+    closeModal('roomPickerModal');
+}
+
 function onPosTypeChange() {
     const type=document.getElementById('posType')?.value||'dine_in';
     document.getElementById('posTableGrp').style.display=type==='dine_in'?'block':'none';
     document.getElementById('posRoomGrp').style.display=type==='room_service'?'block':'none';
-    document.getElementById('posPayMethodGrp').style.display=type==='takeaway'?'block':'none';
+    if(type!=='dine_in'){
+        document.getElementById('posTable').value='';
+        document.getElementById('posTablePickerLabel').textContent='— Select Table —';
+        document.getElementById('posTablePickerLabel').style.color='var(--text-3)';
+    }
+    if(type!=='room_service'){
+        document.getElementById('posRoom').value='';
+        const rl = document.getElementById('posRoomPickerLabel');
+        if(rl){ rl.textContent='— Select Room —'; rl.style.color='var(--text-3)'; }
+    }
+    const btn=document.getElementById('placeOrderBtn');
+    if(btn){
+        btn.innerHTML = type==='takeaway'
+            ? '<i class="fas fa-money-bill-wave"></i> Place Order & Pay'
+            : '<i class="fas fa-check-circle"></i> Place Order';
+    }
 }
 
 let _activeCat='all';
@@ -2498,51 +2895,159 @@ function renderMenuGrid(){
 }
 
 async function placeOrder() {
-    const msgEl=document.getElementById('posMsg');
-    if(!_cart.length){msgEl.innerHTML='<span style="color:var(--red)">Add items first</span>';return;}
-    const type=document.getElementById('posType')?.value||'dine_in';
-    const tableId=document.getElementById('posTable')?.value||null;
-    const roomId=document.getElementById('posRoom')?.value||null;
-    const payMethod=document.getElementById('posPayMethod')?.value||null;
-    if(type==='dine_in'&&!tableId){msgEl.innerHTML='<span style="color:var(--red)">Select a table</span>';return;}
-    if(type==='room_service'&&!roomId){msgEl.innerHTML='<span style="color:var(--red)">Select a room</span>';return;}
-    const btn=document.getElementById('placeOrderBtn');
-    const orig=btn.innerHTML;
-    setLoading(btn,true,orig);
-    msgEl.textContent='';
-    const payload={order_type:type,table_id:(type==='dine_in'&&tableId)?parseInt(tableId):null,room_id:(type==='room_service'&&roomId)?parseInt(roomId):null,note:document.getElementById('posNote')?.value||'',payment_method:payMethod,items:_cart.map(c=>({id:c.id,qty:c.qty}))};
-    try {
-        const r=await postJ('/api/restaurant/orders/create/',payload);
-        const d=await r.json();
-        if(r.ok&&d.success){
-            msgEl.innerHTML=`<span style="color:var(--green)">✓ Order #${esc(d.order_number)} placed — ${inr(d.total)}</span>`;
-            toast(`Order #${d.order_number} placed!`);
-            _cart=[];updCartUI();
-            _cartOrderNum=Math.floor(Math.random()*9000)+1000;setEl('cartOrderNum',_cartOrderNum);
-            setTimeout(()=>{if(msgEl)msgEl.textContent='';},5000);
-        } else {msgEl.innerHTML=`<span style="color:var(--red)">✗ ${esc(d.error||'Failed')}</span>`;toast(d.error||'Failed','error');}
-    } catch {msgEl.innerHTML='<span style="color:var(--red)">Network error</span>';toast('Network error','error');}
-    setLoading(btn,false,orig);
-}
+    const msgEl = document.getElementById('posMsg');
+    if (!_cart.length) {
+        msgEl.innerHTML = '<span style="color:var(--red)">Add items first</span>';
+        return;
+    }
 
+    const type = document.getElementById('posType')?.value || 'dine_in';
+    const tableId = document.getElementById('posTable')?.value || null;
+    const roomId = document.getElementById('posRoom')?.value || null;
+
+    if (type === 'dine_in' && !tableId) {
+        msgEl.innerHTML = '<span style="color:var(--red)">Select a table</span>';
+        return;
+    }
+    if (type === 'room_service' && !roomId) {
+        msgEl.innerHTML = '<span style="color:var(--red)">Select a room</span>';
+        return;
+    }
+
+    const btn = document.getElementById('placeOrderBtn');
+    const orig = btn.innerHTML;
+    setLoading(btn, true, orig);
+    msgEl.textContent = '';
+
+    const payload = {
+        order_type: type,
+        table_id: (type === 'dine_in' && tableId) ? parseInt(tableId) : null,
+        room_id: (type === 'room_service' && roomId) ? parseInt(roomId) : null,
+        note: document.getElementById('posNote')?.value || '',
+        payment_method: null,
+        items: _cart.map(c => ({ id: c.id, qty: c.qty }))
+    };
+
+    try {
+        const r = await postJ('/api/restaurant/orders/create/', payload);
+        const d = await r.json();
+
+        if (r.ok && d.success) {
+            msgEl.innerHTML = `<span style="color:var(--green)">✓ Order #${esc(d.order_number)} placed — ${inr(d.total)}</span>`;
+            toast(`Order #${d.order_number} placed!`);
+            _cart = [];
+            updCartUI();
+            _cartOrderNum = Math.floor(Math.random() * 9000) + 1000;
+            setEl('cartOrderNum', _cartOrderNum);
+            setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 5000);
+            setLoading(btn, false, orig);
+
+            if (type === 'takeaway') {
+                await loadOrders();
+                const newOrder = _orders.find(o => o.order_number === d.order_number) || _orders.find(o => o.id === d.id);
+                if (newOrder) {
+                    openMarkPaid(newOrder.id);
+                } else {
+                    toast('Order placed — find it in All Orders to collect payment', 'info');
+                }
+            }
+        } else {
+            msgEl.innerHTML = `<span style="color:var(--red)">✗ ${esc(d.error || 'Failed')}</span>`;
+            toast(d.error || 'Failed', 'error');
+            setLoading(btn, false, orig);
+        }
+    } catch (err) {
+        msgEl.innerHTML = '<span style="color:var(--red)">Network error</span>';
+        toast('Network error', 'error');
+        setLoading(btn, false, orig);
+    }
+}
 // ═══════════════════════════════════════════
 // ORDERS — with date filter + pagination
 // ═══════════════════════════════════════════
 let _orders=[];
 let _ordPage=1, _ordPerPage=8;
+let _ordTypeTab='all';
 
 async function loadOrders() {
-    const data=await fetch('/api/restaurant/orders/').then(r=>r.ok?r.json():null).catch(()=>null);
-    _orders=data?.orders||[];
+    // Reset any stale/autofilled filters every time this panel loads
+    ['ordSearch','ordDateFrom','ordDateTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['ordStatus','ordType','ordPayFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.selectedIndex = 0;
+    });
+
+    try {
+        const res = await fetch('/api/restaurant/orders/');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        _orders = data?.orders || [];
+    } catch (err) {
+        toast('Could not refresh orders — keeping last loaded data', 'error');
+        return;
+    }
     _ordPage=1;
-    renderOrders();
+    renderOrders(); // renderOrders() now computes the stat cards from the filtered set
 }
 function clearOrdFilters(){
     ['ordSearch','ordStatus','ordType','ordPayFilter','ordDateFrom','ordDateTo'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     renderOrders();
 }
-function changeOrdPerPage(){_ordPerPage=parseInt(document.getElementById('ordPerPage').value)||8;_ordPage=1;renderOrders();}
+function changeOrdPerPage(){_ordPerPage=parseInt(document.getElementById('ordPerPage').value)||10;_ordPage=1;renderOrders();}
 function goOrdPage(p){_ordPage=p;renderOrders();}
+function setOrdTab(type,btn){
+    _ordTypeTab=type;_ordPage=1;
+    document.querySelectorAll('#ordTypeTabBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+    const df=document.getElementById('ordDateFrom'), dt=document.getElementById('ordDateTo');
+    if(df) df.value='';
+    if(dt) dt.value='';
+    // Keep the dropdown in sync with the tab so they never fight each other
+    const typeSel=document.getElementById('ordType');
+    if(typeSel) typeSel.value = type==='all' ? '' : type;
+    renderOrders();
+}
+function syncOrdTypeFromDropdown(){
+    const val = document.getElementById('ordType')?.value || 'all';
+    _ordTypeTab = val || 'all';
+    _ordPage = 1;
+    document.querySelectorAll('#ordTypeTabBar .tab-btn').forEach(b=>{
+        b.classList.toggle('active', (b.getAttribute('onclick')||'').includes(`'${val||'all'}'`));
+    });
+    renderOrders();
+}
+
+function computeOrderTypeStats(source){
+    // Defaults to all orders (used before any filter is applied); pass a
+    // filtered array to make the cards reflect the current search/date/status filters.
+    const list = source || _orders;
+    const byType = { dine_in: {count:0,total:0}, room_service: {count:0,total:0}, takeaway: {count:0,total:0} };
+    list.forEach(o=>{
+        if(!byType[o.type]) return;
+        byType[o.type].count++;
+        // Cancelled orders never contributed real revenue — exclude them from Total Sales
+        if(o.status !== 'cancelled'){
+            byType[o.type].total += parseFloat(o.total||0) + parseFloat(o.tax||0);
+        }
+    });
+    setEl('ordDineInCount', byType.dine_in.count);
+    setEl('ordDineInTotal', inr(byType.dine_in.total) + ' Total Sales');
+    setEl('ordRoomCount', byType.room_service.count);
+    setEl('ordRoomTotal', inr(byType.room_service.total) + ' Total Sales');
+    setEl('ordTakeawayCount', byType.takeaway.count);
+    setEl('ordTakeawayTotal', inr(byType.takeaway.total) + ' Total Sales');
+}
+const ORD_TYPE_ICON = {
+    dine_in: '<div class="ordtype-icon oti-dine"><i class="fas fa-utensils"></i></div>',
+    room_service: '<div class="ordtype-icon oti-room"><i class="fas fa-concierge-bell"></i></div>',
+    takeaway: '<div class="ordtype-icon oti-take"><i class="fas fa-shopping-bag"></i></div>',
+};
+const ORD_TYPE_LABEL = { dine_in: 'Dine In', room_service: 'Room Service', takeaway: 'Takeaway' };
+const ORD_STATUS_PILL = { pending: 'pill-amber', preparing: 'pill-purple', served: 'pill-green', cancelled: 'pill-red' };
+const ORD_STATUS_LABEL = { pending: 'Pending', preparing: 'In Progress', served: 'Completed', cancelled: 'Cancelled' };
 
 function renderOrders() {
     const search=(document.getElementById('ordSearch')?.value||'').toLowerCase().trim();
@@ -2553,51 +3058,116 @@ function renderOrders() {
     const dt=document.getElementById('ordDateTo')?.value||'';
 
     let filtered=_orders;
-    if(search) filtered=filtered.filter(o=>String(o.order_number||o.id).toLowerCase().includes(search)||(o.table&&String(o.table).toLowerCase().includes(search)));
+    if(_ordTypeTab!=='all') filtered=filtered.filter(o=>o.type===_ordTypeTab);
+    if(search) filtered=filtered.filter(o=>
+        String(o.order_number||o.id).toLowerCase().includes(search)||
+        (o.table&&String(o.table).toLowerCase().includes(search))||
+        (o.room&&String(o.room).toLowerCase().includes(search))||
+        (o.guest&&String(o.guest).toLowerCase().includes(search))
+    );
     if(sf) filtered=filtered.filter(o=>o.status===sf);
     if(tf) filtered=filtered.filter(o=>o.type===tf);
-    if(pf) filtered=filtered.filter(o=>o.type==='takeaway'&&o.payment_status===pf);
-    if(df) filtered=filtered.filter(o=>{if(!o.created_at)return false;return new Date(o.created_at)>=new Date(df);});
-    if(dt) filtered=filtered.filter(o=>{if(!o.created_at)return false;const d=new Date(dt);d.setHours(23,59,59,999);return new Date(o.created_at)<=d;});
-
+    if(pf) filtered=filtered.filter(o=>o.payment_status===pf);
+        if(df) filtered=filtered.filter(o=>{
+        if(!o.created_at) return true;
+        const od=new Date(o.created_at);
+        if(isNaN(od)) return true;
+        return od>=new Date(df);
+    });
+    if(dt) filtered=filtered.filter(o=>{
+        if(!o.created_at) return true;
+        const od=new Date(o.created_at);
+        if(isNaN(od)) return true;
+        const d=new Date(dt);d.setHours(23,59,59,999);
+        return od<=d;
+    });
     const countEl=document.getElementById('ordFilterCount');
     if(countEl) countEl.textContent=`${filtered.length} order${filtered.length!==1?'s':''}`;
 
-    const cols=['pending','preparing','served','cancelled'];
-    const hcfg={pending:{cls:'kh-pend',lbl:'Pending'},preparing:{cls:'kh-prep',lbl:'Preparing'},served:{cls:'kh-serv',lbl:'Served'},cancelled:{cls:'kh-canc',lbl:'Cancelled'}};
-    const el=document.getElementById('kanban');
-    if(!el)return;
+    // Stat cards always mirror whatever is currently filtered — search, type, status, payment, and date range
+    computeOrderTypeStats(filtered);
 
-    // Paginate each column independently by slicing the filtered list per column
-    el.innerHTML=cols.map(s=>{
-        const h=hcfg[s];
-        const colItems=filtered.filter(o=>o.status===s);
-        const paged=paginateArray(colItems,_ordPage,_ordPerPage);
-        return `<div class="kcol">
-            <div class="kcol-head ${h.cls}"><span class="kh-title">${h.lbl}</span><span class="kh-cnt">${colItems.length}</span></div>
-            ${paged.length?paged.map(o=>{
-                const payBadge=o.type==='takeaway'
-                    ?`<div><span class="kc-pay-badge ${o.payment_status==='paid'?'kc-pay-paid':'kc-pay-pending'}"><i class="fas fa-${o.payment_status==='paid'?'check':'clock'}"></i> ${o.payment_status==='paid'?'Paid':'Unpaid'}</span></div>`:'';
-                return `<div class="kcard" onclick="openOrdDetail(${o.id})">
-                    <div class="kc-id">#${esc(o.order_number||o.id)} · ${esc((o.type||'').replace('_',' '))}</div>
-                    <div class="kc-loc">${o.table?'Table '+esc(o.table):o.room||'Takeaway'}</div>
-                    <div class="kc-meta">${o.created_at||'—'}${o.guest?' · '+esc(o.guest):''}</div>
-                    ${payBadge}
-                    <div class="kc-foot"><span class="kc-amt">${inr(o.total)}</span>${nextStatusBtn(o)}</div>
-                </div>`;
-            }).join('')
-            :'<div class="empty" style="padding:18px 8px;"><i class="fas fa-check" style="opacity:.2;font-size:20px;"></i></div>'}
-        </div>`;
+    const tbody=document.getElementById('ordTableBody');
+    if(!tbody) return;
+
+    if(!filtered.length){
+        tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="fas fa-receipt"></i><p>No orders match your filters</p></td></tr>';
+        document.getElementById('ordPaginationBar').style.display='none';
+        return;
+    }
+
+    const paged = paginateArray(filtered, _ordPage, _ordPerPage);
+
+    tbody.innerHTML = paged.map(o=>{
+        let locMain, locSub;
+        if(o.type==='dine_in'){
+            locMain = o.table ? `Table ${esc(o.table)}` : '—';
+            locSub = o.guest ? esc(o.guest) : '';
+        } else if(o.type==='room_service'){
+            locMain = o.room ? esc(o.room) : '—';
+            locSub = o.guest ? esc(o.guest) : '';
+        } else {
+            locMain = o.guest ? esc(o.guest) : 'Walk-in Customer';
+            locSub = '';
+        }
+        const grandTotal = parseFloat(o.total||0)+parseFloat(o.tax||0);
+        const itemCount = (o.items||[]).reduce((s,i)=>s+i.qty,0);
+        const timeStr = o.created_at ? new Date(o.created_at).toLocaleString('en-IN',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+        const pillCls = ORD_STATUS_PILL[o.status] || 'pill-gray';
+        const pillLbl = ORD_STATUS_LABEL[o.status] || o.status;
+
+        return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-weight:700;">#${esc(o.order_number||o.id)}</td>
+            <td><div class="ordtype-cell">${ORD_TYPE_ICON[o.type]||''}${ORD_TYPE_LABEL[o.type]||o.type}</div></td>
+            <td><div class="ordloc-main">${locMain}</div>${locSub?`<div class="ordloc-sub">${locSub}</div>`:''}</td>
+            <td style="font-size:12px;color:var(--text-3);">${timeStr}</td>
+            <td>${itemCount} item${itemCount!==1?'s':''}</td>
+            <td style="font-family:'DM Mono',monospace;font-weight:700;">${inr(grandTotal)}</td>
+            <td><span class="pill ${pillCls}">${pillLbl}</span></td>
+            <td>
+                <div class="ord-actions-cell">
+                    <button class="ord-icon-btn" onclick="openOrdDetail(${o.id})" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="ord-icon-btn" onclick="openOrdDetail(${o.id})" title="More"><i class="fas fa-ellipsis-vertical"></i></button>
+                </div>
+            </td>
+        </tr>`;
     }).join('');
 
-    // Show pagination if any column has more than _ordPerPage items
-    const maxItems=Math.max(...cols.map(s=>filtered.filter(o=>o.status===s).length));
-    const bar=document.getElementById('ordPaginationBar');
-    if(bar) bar.style.display=maxItems>_ordPerPage?'flex':'none';
-    if(maxItems>_ordPerPage) buildPagination('ordPageBtns','ordPageInfo',maxItems,_ordPage,_ordPerPage,'goOrdPage');
+    buildPagination('ordPageBtns','ordPageInfo',filtered.length,_ordPage,_ordPerPage,'goOrdPage');
+    document.getElementById('ordPaginationBar').style.display = filtered.length>_ordPerPage?'flex':'none';
 }
 
+function exportOrdersCSV(){
+    const headers=['Order Number','Type','Table/Room','Guest','Time','Items','Total','Tax','Status'];
+    const rows=[headers.join(',')];
+    _orders.forEach(o=>{
+        const loc = o.table ? `Table ${o.table}` : (o.room || '');
+        rows.push([
+            `"#${o.order_number||o.id}"`,
+            ORD_TYPE_LABEL[o.type]||o.type,
+            `"${loc}"`,
+            `"${o.guest||''}"`,
+            `"${o.created_at||''}"`,
+            (o.items||[]).reduce((s,i)=>s+i.qty,0),
+            parseFloat(o.total||0).toFixed(2),
+            parseFloat(o.tax||0).toFixed(2),
+            ORD_STATUS_LABEL[o.status]||o.status
+        ].join(','));
+    });
+    const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='order_history.csv';a.click();
+    URL.revokeObjectURL(url);
+}
 function nextStatusBtn(o){
+    // Takeaway skips prep/serve entirely — just pay, then print
+    if(o.type==='takeaway'){
+        if(o.payment_status!=='paid'){
+            return `<button class="btn btn-xs btn-teal" onclick="event.stopPropagation();openMarkPaid(${o.id})"><i class="fas fa-money-bill-wave"></i> Pay</button>`;
+        }
+        return `<button class="btn btn-xs btn-outline" onclick="event.stopPropagation();printTakeawayReceipt(${o.id})"><i class="fas fa-print"></i> Print</button>`;
+    }
     if(o.status==='pending') return `<button class="btn btn-xs btn-warning" onclick="event.stopPropagation();updStatus(${o.id},'preparing')"><i class="fas fa-fire"></i> Prep</button>`;
     if(o.status==='preparing') return `<button class="btn btn-xs btn-success" onclick="event.stopPropagation();updStatus(${o.id},'served')"><i class="fas fa-check"></i> Serve</button>`;
     return '';
@@ -2623,6 +3193,18 @@ function openOrdDetail(id){
         </div>`).join('')
         :'<div class="empty"><i class="fas fa-utensils"></i><p>No items</p></div>';
     const grandTotal=parseFloat(o.total||0)+parseFloat(o.tax||0);
+        const prepServeBlock = (o.type!=='takeaway') ? `
+        <div class="pay-summary">
+            <div class="pay-summary-title"><i class="fas fa-clock"></i> Kitchen Timeline</div>
+            <div class="pay-row">
+                <span>Marked Preparing</span>
+                <span>${o.preparing_by ? esc(o.preparing_by) + ' · ' + new Date(o.preparing_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '<span style="color:var(--text-3)">— not yet —</span>'}</span>
+            </div>
+            <div class="pay-row">
+                <span>Marked Served</span>
+                <span>${o.served_status_by ? esc(o.served_status_by) + ' · ' + new Date(o.served_status_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '<span style="color:var(--text-3)">— not yet —</span>'}</span>
+            </div>
+        </div>` : '';
     const payBlock=o.type==='takeaway'?`
         <div class="pay-summary">
             <div class="pay-summary-title"><i class="fas fa-wallet"></i> Payment</div>
@@ -2644,13 +3226,24 @@ function openOrdDetail(id){
             <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${o.table?'Table '+esc(o.table):o.room||'Takeaway'}</div><div style="font-size:11px;color:var(--text-3);">${esc((o.type||'').replace('_',' '))} · ${o.created_at||'—'}${o.guest?' · '+esc(o.guest):''}</div></div>
             <span class="pill ${o.status==='pending'?'pill-amber':o.status==='preparing'?'pill-blue':o.status==='served'?'pill-green':'pill-gray'}">${esc(o.status)}</span>
         </div>
-        <div style="padding:14px;">${items}</div>${payBlock}`;
+                <div style="padding:14px;">${items}</div>${prepServeBlock}${payBlock}`;
     let btns=`<button class="btn btn-outline" onclick="closeModal('ordDetailModal')">Close</button>`;
+
+if(o.type==='takeaway'){
+    // Takeaway: only Pay (if unpaid) and Print (if paid) — no prep/serve
+    if(o.payment_status!=='paid'){
+        btns+=`<button class="btn btn-danger" onclick="updStatus(${o.id},'cancelled');closeModal('ordDetailModal')"><i class="fas fa-ban"></i> Cancel</button>`;
+        btns+=`<button class="btn btn-teal" onclick="closeModal('ordDetailModal');openMarkPaid(${o.id})"><i class="fas fa-money-bill-wave"></i> Collect Payment</button>`;
+    } else {
+        btns+=`<button class="btn btn-primary" onclick="printTakeawayReceipt(${o.id})"><i class="fas fa-print"></i> Print Bill</button>`;
+    }
+} else {
     if(o.status==='pending') btns+=`<button class="btn btn-primary" onclick="updStatus(${o.id},'preparing');closeModal('ordDetailModal')"><i class="fas fa-fire"></i> Mark Preparing</button>`;
     if(o.status==='preparing') btns+=`<button class="btn btn-success" onclick="updStatus(${o.id},'served');closeModal('ordDetailModal')"><i class="fas fa-check"></i> Mark Served</button>`;
     if(o.status!=='cancelled'&&o.status!=='served') btns+=`<button class="btn btn-danger" onclick="updStatus(${o.id},'cancelled');closeModal('ordDetailModal')"><i class="fas fa-ban"></i> Cancel</button>`;
-    if(o.type==='takeaway'&&o.payment_status!=='paid') btns+=`<button class="btn btn-teal" onclick="closeModal('ordDetailModal');openMarkPaid(${o.id})"><i class="fas fa-money-bill-wave"></i> Collect Payment</button>`;
-    document.getElementById('ordDetailFoot').innerHTML=btns;
+}
+
+document.getElementById('ordDetailFoot').innerHTML=btns;
     openModal('ordDetailModal');
 }
 
@@ -2665,29 +3258,280 @@ function openMarkPaid(orderId){
     document.getElementById('payMsg').textContent='';
     openModal('markPaidModal');
 }
-async function confirmPayment(){
-    const orderId=document.getElementById('payOrderId').value;
-    const method=document.getElementById('payMethod').value;
-    const ref=document.getElementById('payRef').value.trim();
-    const msgEl=document.getElementById('payMsg');
-    if(!method){msgEl.textContent='Please select a payment method.';return;}
-    const btn=document.getElementById('confirmPayBtn');
-    const orig=btn.innerHTML;
-    setLoading(btn,true,orig);
-    msgEl.textContent='';
-    try{
-        const r=await postJ(`/api/restaurant/orders/${orderId}/mark-paid/`,{method,reference_number:ref});
-        const d=await r.json();
-        if(r.ok&&d.success){
-            toast(`Payment collected — ${inr(d.total)}`);closeModal('markPaidModal');
-            const o=_orders.find(x=>x.id===parseInt(orderId));
-            if(o){o.payment_status='paid';o.payment_method=method;o.status='served';o.paid_at=new Date().toLocaleTimeString();}
+async function confirmPayment() {
+    const orderId = document.getElementById('payOrderId').value;
+    const method = document.getElementById('payMethod').value;
+    const ref = document.getElementById('payRef').value.trim();
+    const msgEl = document.getElementById('payMsg');
+    
+    if (!method) {
+        msgEl.textContent = 'Please select a payment method.';
+        return;
+    }
+
+    const btn = document.getElementById('confirmPayBtn');
+    const orig = btn.innerHTML;
+    setLoading(btn, true, orig);
+    msgEl.textContent = '';
+
+    try {
+        const r = await postJ(`/api/restaurant/orders/${orderId}/mark-paid/`, {
+            method,
+            reference_number: ref
+        });
+        const d = await r.json();
+
+        if (r.ok && d.success) {
+            toast(`✓ Payment collected — ${inr(d.total)}`);
+            
+            const o = _orders.find(x => x.id === parseInt(orderId));
+            if (o) {
+                o.payment_status = 'paid';
+                o.payment_method = method;
+                o.status = 'served';
+                o.paid_at = new Date().toLocaleTimeString();
+            }
             renderOrders();
-        } else {msgEl.textContent=d.error||'Payment failed. Please try again.';toast(d.error||'Payment failed','error');}
-    }catch{msgEl.textContent='Network error. Please try again.';toast('Network error','error');}
-    setLoading(btn,false,orig);
+            
+            // ✓ NEW: Show receipt options
+            setTimeout(() => {
+                closeModal('markPaidModal');
+                showTakeawayReceiptOptions(orderId, d);
+            }, 600);
+        } else {
+            msgEl.textContent = d.error || 'Payment failed. Please try again.';
+            toast(d.error || 'Payment failed', 'error');
+        }
+    } catch (err) {
+        msgEl.textContent = 'Network error. Please try again.';
+        toast('Network error', 'error');
+    } finally {
+        setLoading(btn, false, orig);
+    }
+}
+// ═══════════════════════════════════════════
+// TAKEAWAY RECEIPT FUNCTIONS
+// ═══════════════════════════════════════════
+
+function showTakeawayReceiptOptions(orderId, paymentData) {
+    const o = _orders.find(x => x.id === parseInt(orderId));
+    if (!o) return;
+
+    document.getElementById('paymentSuccessBody').innerHTML = `
+        <div style="text-align:center;">
+            <div style="width:52px;height:52px;border-radius:50%;background:var(--green-dim);color:var(--green);display:grid;place-items:center;font-size:22px;margin:0 auto 14px;">
+                <i class="fas fa-check"></i>
+            </div>
+            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:left;font-size:13px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--text-3);">Order Number</span>
+                    <strong style="font-family:'DM Mono',monospace;">#${esc(o.order_number)}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--text-3);">Payment Method</span>
+                    <strong>${esc(paymentData.method || 'N/A')}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                    <span style="color:var(--text-3);">Total Amount</span>
+                    <strong style="font-size:15px;color:var(--green);">${inr(paymentData.total)}</strong>
+                </div>
+            </div>
+        </div>`;
+
+    document.getElementById('paymentSuccessFoot').innerHTML = `
+        <button class="btn btn-outline" onclick="closeModal('paymentSuccessModal');closeTakeawayReceiptModal();">
+            <i class="fas fa-check"></i> Done
+        </button>
+        <button class="btn btn-primary" onclick="printTakeawayReceipt(${orderId});closeModal('paymentSuccessModal');closeTakeawayReceiptModal();">
+            <i class="fas fa-print"></i> Print Receipt
+        </button>`;
+
+    openModal('paymentSuccessModal');
+    toast('✓ Payment Complete!', 'success');
+}
+function printTakeawayReceipt(orderId) {
+    const o = _orders.find(x => x.id === orderId);
+    if (!o) {
+        toast('Order not found', 'error');
+        return;
+    }
+
+    const itemsHtml = o.items.map(i => `
+        <tr>
+            <td style="text-align:left;padding:6px 8px;">${esc(i.name)}</td>
+            <td style="text-align:center;padding:6px 8px;width:40px;">×${i.qty}</td>
+            <td style="text-align:right;padding:6px 8px;width:70px;">${inr(i.subtotal)}</td>
+        </tr>
+    `).join('');
+
+    const grandTotal = parseFloat(o.total) + parseFloat(o.tax || 0);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('en-IN');
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Takeaway Receipt - Order #${o.order_number}</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    padding: 20px; 
+                    max-width: 350px; 
+                    margin: 0 auto;
+                    font-size: 12px;
+                    background: #fff;
+                    color: #000;
+                }
+                .container { border: 2px solid #000; padding: 16px; }
+                .header { 
+                    text-align: center; 
+                    font-weight: bold; 
+                    margin-bottom: 16px; 
+                    font-size: 14px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 8px;
+                }
+                .receipt-type { font-size: 13px; color: #0f6e56; font-weight: bold; }
+                .order-info { 
+                    font-size: 11px; 
+                    margin-bottom: 12px; 
+                    line-height: 1.6;
+                    border-bottom: 1px dashed #000;
+                    padding-bottom: 8px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-bottom: 12px; 
+                    font-size: 11px;
+                }
+                th {
+                    text-align: left;
+                    padding: 6px 4px;
+                    border-bottom: 1px solid #000;
+                    font-weight: bold;
+                    font-size: 10px;
+                }
+                td { 
+                    padding: 6px 4px; 
+                    border-bottom: 1px dotted #ddd;
+                }
+                .totals {
+                    margin: 12px 0;
+                    font-size: 11px;
+                    border-top: 1px solid #000;
+                    border-bottom: 2px solid #000;
+                    padding: 8px 0;
+                }
+                .total-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 6px;
+                    padding: 0 4px;
+                }
+                .final-amount {
+                    font-size: 14px;
+                    font-weight: bold;
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 4px;
+                }
+                .footer {
+                    text-align: center; 
+                    margin-top: 12px; 
+                    font-size: 10px; 
+                    color: #000;
+                    border-top: 1px dashed #000;
+                    padding-top: 8px;
+                }
+                .thank-you { font-size: 12px; font-weight: bold; margin: 8px 0; }
+                @media print { 
+                    body { padding: 0; margin: 0; }
+                    .container { border: none; padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    🍽️ HOTEL ERP<br>
+                    <span class="receipt-type">TAKEAWAY RECEIPT</span>
+                </div>
+                
+                <div class="order-info">
+                    ORDER #: <strong>${o.order_number}</strong><br>
+                    DATE: ${dateStr}<br>
+                    TIME: ${timeStr}<br>
+                    STATUS: ✓ PAID
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">ITEM</th>
+                            <th style="text-align:center;width:35px;">QTY</th>
+                            <th style="text-align:right;width:70px;">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span>${inr(o.total)}</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Tax (GST):</span>
+                        <span>${inr(o.tax || 0)}</span>
+                    </div>
+                    <div class="final-amount">
+                        <span>TOTAL:</span>
+                        <span>${inr(grandTotal)}</span>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <div class="thank-you">THANK YOU!</div>
+                    <div>Come again soon!</div>
+                    <div style="margin-top:8px;font-size:9px;">
+                        This is your receipt. Please keep it safe.
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 300);
+    
+    toast('Receipt sent to printer', 'success');
 }
 
+function closeTakeawayReceiptModal() {
+    toast('Order completed!', 'success');
+    _cart = [];
+    updCartUI();
+    _cartOrderNum = Math.floor(Math.random() * 9000) + 1000;
+    setEl('cartOrderNum', _cartOrderNum);
+
+    document.getElementById('posType').value = 'dine_in';
+    document.getElementById('posNote').value = '';
+    onPosTypeChange();
+    // no switchPanel('orders') — stays on POS for the next order
+}
 // ═══════════════════════════════════════════
 // TABLES & RESERVATIONS — filter + pagination
 // ═══════════════════════════════════════════
@@ -2778,6 +3622,55 @@ function clearMenuFilters(){
 }
 
 // Menu CRUD
+// ═══════════════════════════════════════════
+// MENU ITEM IMAGE HANDLING
+// ═══════════════════════════════════════════
+let _itemImageFile = null;
+let _itemImageRemoved = false;
+
+function previewItemImage(input) {
+    if (!input.files?.[0]) return;
+    _itemImageFile = input.files[0];
+    _itemImageRemoved = false;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('itemImgPreview').src = e.target.result;
+        document.getElementById('itemImgPreview').style.display = 'block';
+        document.getElementById('itemImgPlaceholder').style.display = 'none';
+        document.getElementById('itemImgRemoveBtn').style.display = 'inline-flex';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+function removeItemImage() {
+    _itemImageFile = null;
+    _itemImageRemoved = true;
+    document.getElementById('itemImageInput').value = '';
+    document.getElementById('itemImgPreview').src = '';
+    document.getElementById('itemImgPreview').style.display = 'none';
+    document.getElementById('itemImgPlaceholder').style.display = 'block';
+    document.getElementById('itemImgRemoveBtn').style.display = 'none';
+}
+function setItemImagePreview(url) {
+    // Used by editItem to show an already-saved image
+    const prev = document.getElementById('itemImgPreview');
+    const ph = document.getElementById('itemImgPlaceholder');
+    const removeBtn = document.getElementById('itemImgRemoveBtn');
+    if (url) {
+        prev.src = url;
+        prev.style.display = 'block';
+        ph.style.display = 'none';
+        removeBtn.style.display = 'inline-flex';
+    } else {
+        prev.src = '';
+        prev.style.display = 'none';
+        ph.style.display = 'block';
+        removeBtn.style.display = 'none';
+    }
+}
+
+// ═══════════════════════════════════════════
+// MENU CRUD
+// ═══════════════════════════════════════════
 function openAddItemForCat(catId){
     document.getElementById('itemId').value='';
     document.getElementById('itemModalTitle').innerHTML='<i class="fas fa-utensils" style="color:var(--amber);margin-right:8px;"></i>Add Menu Item';
@@ -2786,8 +3679,10 @@ function openAddItemForCat(catId){
     document.getElementById('itemTax').value='5';
     document.getElementById('itemVeg').checked=true;
     document.getElementById('itemAvail').checked=true;
+    removeItemImage();
     openModal('addItemModal');
 }
+
 async function submitCat(){
     const name=document.getElementById('catName').value.trim();
     const order=parseInt(document.getElementById('catOrder').value)||0;
@@ -2797,6 +3692,7 @@ async function submitCat(){
     if(d.success||d.id){toast(`"${name}" added`);closeModal('addCatModal');window.location.reload();}
     else toast(d.error||'Failed','error');
 }
+
 async function submitItem(){
     const id=document.getElementById('itemId').value;
     const catId=document.getElementById('itemCat').value;
@@ -2805,31 +3701,54 @@ async function submitItem(){
     if(!catId){toast('Select a category','error');return;}
     if(!name){toast('Name required','error');return;}
     if(isNaN(price)||price<0){toast('Enter valid price','error');return;}
+
+    const fd = new FormData();
+    fd.append('category_id', catId);
+    fd.append('name', name);
+    fd.append('price', price);
+    fd.append('tax_percent', document.getElementById('itemTax').value || 0);
+    fd.append('description', document.getElementById('itemDesc').value);
+    fd.append('is_veg', document.getElementById('itemVeg').checked);
+    fd.append('is_available', document.getElementById('itemAvail').checked);
+    if (_itemImageFile) fd.append('image', _itemImageFile);
+
     const url=id?`/api/restaurant/items/${id}/update/`:'/api/restaurant/items/add/';
-    const r=await postJ(url,{category_id:parseInt(catId),name,price,tax_percent:parseFloat(document.getElementById('itemTax').value)||0,description:document.getElementById('itemDesc').value,is_veg:document.getElementById('itemVeg').checked,is_available:document.getElementById('itemAvail').checked});
-    const d=await r.json();
-    if(r.ok&&(d.success||d.id)){toast(`"${name}" ${id?'updated':'added'}`);closeModal('addItemModal');window.location.reload();}
-    else toast(d.error||'Failed','error');
+    try {
+        const r = await postF(url, fd);
+        const d = await r.json();
+        if(r.ok&&(d.success||d.id)){toast(`"${name}" ${id?'updated':'added'}`);closeModal('addItemModal');window.location.reload();}
+        else toast(d.error||'Failed','error');
+    } catch {
+        toast('Network error','error');
+    }
 }
+
 async function toggleItemAvail(id){
     const r=await fetch(`/api/restaurant/items/${id}/toggle/`,{method:'POST',headers:{'X-CSRFToken':getCsrf()}});
     const d=await r.json();
     if(r.ok&&d.success){toast(d.is_available?'Now Available':'Now Unavailable');window.location.reload();}
     else toast('Failed','error');
 }
+
 async function deleteItem(id){
     if(!confirm('Delete this item?'))return;
     const r=await fetch(`/api/restaurant/items/${id}/delete/`,{method:'DELETE',headers:{'X-CSRFToken':getCsrf()}});
     if(r.ok){toast('Deleted');window.location.reload();}else toast('Failed','error');
 }
+
 async function editItem(id){
     document.getElementById('itemId').value=id;
     document.getElementById('itemModalTitle').innerHTML='<i class="fas fa-edit" style="color:var(--amber);margin-right:8px;"></i>Edit Menu Item';
+    _itemImageFile = null;
+    _itemImageRemoved = false;
+    document.getElementById('itemImageInput').value = '';
+
     const row=document.querySelector(`button[onclick="editItem(${id})"]`)?.closest('tr');
     if(row){
         const cells=row.querySelectorAll('td');
         const nameEl=cells[0]?.querySelector('div > div div:first-child');
         const descEl=cells[0]?.querySelector('div > div div:last-child');
+        const imgEl=cells[0]?.querySelector('img');
         const priceText=cells[1]?.textContent?.replace('₹','').trim();
         const taxText=cells[2]?.textContent?.replace('%','').trim();
         const isVeg=cells[3]?.querySelector('.pill-green')!==null;
@@ -2840,6 +3759,9 @@ async function editItem(id){
         if(taxText)document.getElementById('itemTax').value=taxText;
         document.getElementById('itemVeg').checked=isVeg;
         document.getElementById('itemAvail').checked=isAvail;
+        setItemImagePreview(imgEl ? imgEl.src : null);
+    } else {
+        removeItemImage();
     }
     openModal('addItemModal');
 }
@@ -3106,12 +4028,11 @@ async function saveMaintenanceLog(){
     }catch{toast('Network error','error');}
     finally{setLoading(btn,false,orig);}
 }
-
 // ═══════════════════════════════════════════
 // ATTENDANCE
 // ═══════════════════════════════════════════
 function clockIn(){
-    const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());
+    const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());fd.append('action','check_in');
     fetch('/attendance/mark/',{method:'POST',body:fd}).then(r=>r.json()).then(data=>{
         if(data.success){
             document.getElementById('btnClockIn').disabled=true;document.getElementById('btnClockOut').disabled=false;
@@ -3122,13 +4043,45 @@ function clockIn(){
     }).catch(()=>toast('Network error','error'));
 }
 function clockOut(){
-    const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());
+    const fd=new FormData();fd.append('csrfmiddlewaretoken',getCsrf());fd.append('action','check_out');
     fetch('/attendance/mark/',{method:'POST',body:fd}).then(r=>r.json()).then(data=>{
-        if(data.success){document.getElementById('btnClockOut').disabled=true;document.getElementById('attLogMsg').textContent=`Clocked out · ${data.working_hours||'—'} hrs`;toast(`Clocked out · ${data.working_hours||'—'} hrs`);}
+        if(data.success){
+            document.getElementById('btnClockOut').disabled=true;
+            document.getElementById('attLogMsg').textContent=`Clocked out · ${data.working_hours||'—'} hrs`;
+            const p=document.getElementById('todayStatusPill');
+            if(p){p.className='pill pill-green';p.textContent=data.status||'Completed';}
+            toast(`Clocked out · ${data.working_hours||'—'} hrs`);
+        }
         else toast(data.message||'Already clocked out.','error');
     }).catch(()=>toast('Network error','error'));
 }
-
+function initAttendanceState(){
+    const wrap=document.querySelector('.clock-wrap');
+    if(!wrap)return;
+    const checkedIn=wrap.dataset.checkedIn==='true';
+    const checkedOut=wrap.dataset.checkedOut==='true';
+    const status=wrap.dataset.status;
+    const checkInTime=wrap.dataset.checkInTime;
+    const hours=wrap.dataset.workingHours;
+    const btnIn=document.getElementById('btnClockIn');
+    const btnOut=document.getElementById('btnClockOut');
+    const pill=document.getElementById('todayStatusPill');
+    const log=document.getElementById('attLogMsg');
+    if(!btnIn||!btnOut)return;
+    if(checkedOut){
+        btnIn.disabled=true;btnOut.disabled=true;
+        if(pill){pill.className='pill pill-green';pill.textContent=status||'Completed';}
+        if(log)log.textContent=`Clocked out today · ${hours||'—'} hrs`;
+    }else if(checkedIn){
+        btnIn.disabled=true;btnOut.disabled=false;
+        if(pill){pill.className=`pill ${status==='Late'?'pill-amber':'pill-green'}`;pill.textContent=status||'Present';}
+        if(log)log.textContent=`Clocked in at ${checkInTime||'—'}`;
+    }else{
+        btnIn.disabled=false;btnOut.disabled=true;
+        if(pill){pill.className='pill pill-gray';pill.textContent='Not clocked in';}
+        if(log)log.textContent='You have not clocked in today.';
+    }
+}
 // ═══════════════════════════════════════════
 // SHIFTS
 // ═══════════════════════════════════════════
@@ -4013,8 +4966,202 @@ if (_origSwitchPanel) {
     try { window.switchPanel = _wrappedSwitch; } catch(e) {}
 }
 // ═══════════════════════════════════════════
+// DASHBOARD 2.0
+// ═══════════════════════════════════════════
+let _dashRange = 'today';
+let _salesChart = null, _paymentChart = null;
+const PAY_COLORS = { cash:'#16a34a', card:'#1a65f5', upi:'#7c3aed', online:'#0891b2', razorpay:'#d97706', other:'#9ca3af' };
+const PAY_LABEL  = { cash:'Cash', card:'Card', upi:'UPI', online:'Online', razorpay:'Razorpay', other:'Other' };
+
+function setDashRange(range, btn){
+    _dashRange = range;
+    document.getElementById('dashCustomWrap').style.display = 'none';
+    document.querySelectorAll('#dashRangeBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    loadDashboard();
+}
+function toggleDashCustom(){
+    document.querySelectorAll('#dashRangeBar .tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('dashCustomWrap').style.display = 'flex';
+}
+function applyDashCustomRange(){
+    const f = document.getElementById('dashCustomFrom').value;
+    const t = document.getElementById('dashCustomTo').value;
+    if(!f || !t){ toast('Select both dates', 'error'); return; }
+    _dashRange = 'custom';
+    loadDashboard(f, t);
+}
+function resetDashRange(){
+    document.getElementById('dashCustomFrom').value = '';
+    document.getElementById('dashCustomTo').value = '';
+    setDashRange('today', document.querySelector('#dashRangeBar .tab-btn'));
+}
+
+function fmtDelta(el, pct){
+    if(!el) return;
+    if(pct === 0){ el.textContent = 'No change vs previous period'; el.className = 'stat-delta'; return; }
+    const up = pct > 0;
+    el.className = 'stat-delta ' + (up ? 'up' : 'down');
+    el.innerHTML = `<i class="fas fa-arrow-${up?'up':'down'}"></i> ${Math.abs(pct)}% vs previous period`;
+}
+
+async function loadDashboard(fromDate, toDate){
+    const params = new URLSearchParams({ range: _dashRange });
+    if(_dashRange === 'custom' && fromDate && toDate){ params.set('from', fromDate); params.set('to', toDate); }
+    try{
+        const res = await fetch(`?${params}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await res.json();
+        renderDashboard(data.dashboard);
+    }catch(e){ toast('Could not load dashboard stats', 'error'); }
+}
+
+function renderDashboard(d){
+    if(!d) return;
+    const profit = d.total_sales - (d.expenses_today || 0);
+
+    setEl('kpiTotalSales', inr(d.total_sales));
+    setEl('kpiOrders', d.order_count);
+    setEl('kpiAOV', inr(d.avg_order_value));
+    setEl('kpiActiveTables', `${d.tables_occupied} / ${d.tables_total}`);
+    setEl('kpiTablesOccPct', d.tables_total ? `${Math.round(d.tables_occupied/d.tables_total*100)}% occupied` : '');
+    setEl('kpiProfit', inr(profit));
+    setEl('kpiProfit2', inr(profit));
+    setEl('kpiExpenses', inr(d.expenses_today || 0));
+    setEl('kpiTotalCustomers', d.total_customers);
+    setEl('kpiRepeatCustomers', d.repeat_customers);
+
+    fmtDelta(document.getElementById('kpiTotalSalesDelta'), d.deltas?.total_sales ?? 0);
+    fmtDelta(document.getElementById('kpiOrdersDelta'), d.deltas?.order_count ?? 0);
+    fmtDelta(document.getElementById('kpiAOVDelta'), d.deltas?.avg_order_value ?? 0);
+
+    renderSalesChart(d.hourly_revenue || []);
+    renderPaymentChart(d.payment_breakdown || []);
+    renderTopItems(d.top_items || []);
+    renderDashRecentOrders(d.recent_orders || []);
+    renderDashActiveTables(d.tables_live || []);
+    renderDashOrdersSummary(d);
+}
+
+function renderSalesChart(hourly){
+    const labels = Array.from({length:24}, (_,h)=>`${h}:00`);
+    const ctx = document.getElementById('salesOverviewChart')?.getContext('2d');
+    if(!ctx) return;
+    if(_salesChart) _salesChart.destroy();
+    _salesChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{
+            label: 'Revenue', data: hourly, borderColor: '#d97706',
+            backgroundColor: 'rgba(217,119,6,0.08)', fill: true, tension: 0.35, pointRadius: 0
+        }]},
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { callback: v => '₹'+v } } }
+        }
+    });
+}
+
+function renderPaymentChart(breakdown){
+    const ctx = document.getElementById('paymentDonutChart')?.getContext('2d');
+    const legendEl = document.getElementById('paymentLegend');
+    if(!ctx) return;
+    if(_paymentChart) _paymentChart.destroy();
+    const total = breakdown.reduce((s,p)=>s+p.total, 0);
+    if(!breakdown.length){
+        legendEl.innerHTML = '<span style="color:var(--text-3);">No payments in this period</span>';
+        return;
+    }
+    _paymentChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: breakdown.map(p => PAY_LABEL[p.method] || p.method),
+            datasets: [{ data: breakdown.map(p=>p.total), backgroundColor: breakdown.map(p=>PAY_COLORS[p.method]||PAY_COLORS.other), borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '68%' }
+    });
+    legendEl.innerHTML = breakdown.map(p => {
+        const pct = total ? Math.round(p.total/total*100) : 0;
+        return `<div class="pay-legend-row">
+            <span class="pay-legend-dot" style="background:${PAY_COLORS[p.method]||PAY_COLORS.other};"></span>
+            <span style="flex:1;">${PAY_LABEL[p.method]||p.method}</span>
+            <span style="color:var(--text-3);">${pct}%</span>
+            <strong style="font-family:'DM Mono',monospace;">${inr(p.total)}</strong>
+        </div>`;
+    }).join('') + `<div class="pay-legend-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px;font-weight:700;"><span style="flex:1;">Total</span><strong>${inr(total)}</strong></div>`;
+}
+function renderTopItems(items){
+    const el = document.getElementById('topItemsList');
+    if(!el) return;
+    if(!items.length){ el.innerHTML = '<div class="empty" style="padding:10px;"><p>No sales yet</p></div>'; return; }
+    el.innerHTML = items.map((it,i)=>`
+        <div class="top-item-row">
+            <span class="top-item-rank">${i+1}</span>
+                        ${it.image
+                ? `<img src="${esc(it.image)}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;">`
+                : `<div style="width:40px;height:40px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;color:var(--text-4);font-size:14px;flex-shrink:0;"><i class="fas fa-utensils"></i></div>`
+            }
+            <span style="flex:1;">${esc(it.name)}</span>
+            <span style="color:var(--text-3);">${it.qty}</span>
+            <strong style="font-family:'DM Mono',monospace;">${inr(it.revenue)}</strong>
+        </div>`).join('');
+}
+function renderDashRecentOrders(orders){
+    const tbody = document.getElementById('dashRecentOrdersBody');
+    if(!tbody) return;
+    if(!orders.length){ tbody.innerHTML = '<tr><td colspan="5" class="empty"><p>No orders yet</p></td></tr>'; return; }
+    tbody.innerHTML = orders.map(o => {
+        const pillCls = ORD_STATUS_PILL[o.status]||'pill-gray';
+        const pillLbl = ORD_STATUS_LABEL[o.status]||o.status;
+        const time = o.created_at ? new Date(o.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '—';
+        return `<tr>
+            <td style="font-family:'DM Mono',monospace;">#${esc(o.order_number)}</td>
+            <td>${ORD_TYPE_LABEL[o.type]||o.type}</td>
+            <td style="font-family:'DM Mono',monospace;">${inr(o.total)}</td>
+            <td><span class="pill ${pillCls}">${pillLbl}</span></td>
+            <td style="color:var(--text-3);">${time}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderDashActiveTables(tables){
+    const tbody = document.getElementById('dashActiveTablesBody');
+    if(!tbody) return;
+    const occ = tables.filter(t=>t.is_occupied);
+    if(!occ.length){ tbody.innerHTML = '<tr><td colspan="3" class="empty"><p>No active tables</p></td></tr>'; return; }
+    tbody.innerHTML = occ.map(t => `<tr>
+        <td><span class="room-pill">T-${esc(t.number)}</span></td>
+        <td>${t.capacity}p</td>
+        <td><span class="pill pill-red">Occupied</span></td>
+    </tr>`).join('');
+}
+
+function renderDashOrdersSummary(d){
+    const el = document.getElementById('dashOrdersSummary');
+    if(!el) return;
+    const rows = [
+        ['Total Orders', d.order_count, ''],
+        ['Dine-in Orders', d.dine_in_count, d.order_count ? `${Math.round(d.dine_in_count/d.order_count*100)}%` : ''],
+        ['Takeaway Orders', d.takeaway_count, d.order_count ? `${Math.round(d.takeaway_count/d.order_count*100)}%` : ''],
+        ['Room Service Orders', d.room_service_count, d.order_count ? `${Math.round(d.room_service_count/d.order_count*100)}%` : ''],
+        ['Cancelled Orders', d.cancelled_count, d.order_count ? `${Math.round(d.cancelled_count/(d.order_count+d.cancelled_count)*100)}%` : ''],
+        ['Total Sales', inr(d.total_sales), ''],
+    ];
+    el.innerHTML = rows.map(([label,val,pct]) => `
+        <div class="ord-summary-row">
+            <span style="color:var(--text-3);">${label}</span>
+            <span><strong>${val}</strong>${pct?` <span style="color:var(--text-3);font-size:11px;">(${pct})</span>`:''}</span>
+        </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+loadDashboard();
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+initAttendanceState();
 document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 document.querySelectorAll('.modal-backdrop').forEach(bd=>{bd.addEventListener('click',e=>{if(e.target===bd)bd.classList.remove('open');});});
 document.querySelectorAll('.sb-btn[data-panel]').forEach(btn=>{btn.addEventListener('click',()=>{const p=btn.getAttribute('data-panel');if(p)switchPanel(p);});});
@@ -4024,6 +5171,44 @@ if(dt){const d=new Date(Date.now()+30*60*1000);const pad=n=>String(n).padStart(2
 // Init maintenance modal timestamp
 const pAt=document.getElementById('maintPerformedAt');
 if(pAt){const now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());pAt.value=now.toISOString().slice(0,16);}
+
+// Force-clear search + date fields — catches Chrome autofill on load, bfcache restore, and delayed autofill
+(function () {
+    const searchIds = ['ordSearch','posSearch','reservSearch','menuSearch','stockSearch','maintSearch','leaveSearch'];
+    const dateIds   = ['ordDateFrom','ordDateTo','reservDateFrom','reservDateTo','maintDateFrom','maintDateTo'];
+    const allIds    = [...searchIds, ...dateIds];
+
+    function clearAll() {
+        allIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+    }
+
+    // Initial sweep on load + a couple delayed retries for slow autofill
+    window.addEventListener('load', () => {
+        clearAll();
+        setTimeout(clearAll, 100);
+        setTimeout(clearAll, 500);
+    });
+
+    // Catches back/forward-cache page restores (browser back button etc.)
+    window.addEventListener('pageshow', (e) => {
+        clearAll();
+        if (e.persisted) setTimeout(clearAll, 50);
+    });
+
+    // Real-time catch: fires the instant the browser autofills any of these fields
+    allIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('animationstart', (e) => {
+            if (e.animationName === 'onAutoFillStart') {
+                el.value = '';
+            }
+        });
+    });
+})();
 </script>
 </body>
 </html>

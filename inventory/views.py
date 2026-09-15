@@ -800,23 +800,83 @@ def list_asset_categories(request):
    
     return JsonResponse({"asset_categories": list(AssetCategory.objects.values())})
 
+from django_tenants.utils import schema_context
+from django.db import connection
+from .models import AssetLocation
+VALID_ROOM_TYPES = {"Single", "Double", "Deluxe", "Suite", "Custom"}
+
+
+def _room_label(room):
+    if not room:
+        return None
+    rt = (room.room_type or "").strip()
+    if rt == "Custom":
+        return (room.custom_room_type or "").strip() or "Custom"
+    if rt in {"Single", "Double", "Deluxe", "Suite"}:
+        return rt
+    return room.custom_room_type.strip() if room.custom_room_type else rt or "Unknown"
 
 
 @csrf_exempt
-def add_asset(request):
-    
+def assign_room_to_assets(request):
     err = _require_post(request)
     if err:
         return err
     data = _json(request)
+    room_id   = data.get("room_id")
+    area      = data.get("area", "").strip()
+    asset_ids = data.get("asset_ids", [])
+
+    if not asset_ids:
+        return JsonResponse({"error": "No asset_ids provided"}, status=400)
+    if not room_id and not area:
+        return JsonResponse({"error": "Provide room_id or area"}, status=400)
+
+    with schema_context(connection.tenant.schema_name):
+        for asset in HotelAsset.objects.filter(id__in=asset_ids):
+
+            
+            AssetLocation.objects.filter(
+                asset=asset
+            ).update(is_current=False)          
+            if room_id:
+                AssetLocation.objects.create(
+                    asset=asset,
+                    room_id=int(room_id),
+                    is_current=True,
+                )
+                asset.room_id      = int(room_id)
+                asset.room_unit_id = None
+                asset.area         = ""
+
+            elif area:
+                AssetLocation.objects.create(
+                    asset=asset,
+                    area=area,
+                    is_current=True,
+                )
+                asset.room_id      = None
+                asset.room_unit_id = None
+                asset.area         = area
+
+            asset.save()
+
+    return JsonResponse({"success": True})
+@csrf_exempt  
+def add_asset(request):
+    err = _require_post(request)
+    if err:
+        return err
+    data = _json(request)
+    room_id = data.get("room_id")
+
     asset = HotelAsset.objects.create(
         name=data["name"],
         asset_category_id=data.get("asset_category_id"),
         department_id=data.get("department_id"),
         serial_number=data.get("serial_number", ""),
-        
         room_unit_id=data.get("room_unit_id"),
-        room_id=data.get("room_id"),
+        room_id=room_id,
         area=data.get("area", ""),
         purchase_date=data.get("purchase_date"),
         purchase_cost=data.get("purchase_cost", 0),
@@ -826,74 +886,202 @@ def add_asset(request):
         assigned_to_id=data.get("assigned_to_id"),
         notes=data.get("notes", ""),
     )
-    return JsonResponse({"id": asset.id}, status=201)
-
-@csrf_exempt
-def list_assets(request):
-    
-    qs = HotelAsset.objects.select_related(
-        "asset_category", "department", "vendor", "assigned_to",
-        "room_unit", "room",
-    )
-
-    if request.GET.get("department_id"):
-        qs = qs.filter(department_id=request.GET["department_id"])
-    if request.GET.get("status"):
-        qs = qs.filter(status=request.GET["status"])
-    if request.GET.get("type_id"):
-        qs = qs.filter(asset_category_id=request.GET["type_id"])
 
    
-    asset_map = {}
-    
-    for a in qs.order_by("name"):
-        
-        unique_key = f"{a.serial_number or a.name}_{a.department_id or ''}"
-        
-        if unique_key not in asset_map:
-          
-            asset_map[unique_key] = {
-                "id": a.id,
-                "name": a.name,
-                "type": a.asset_category.name if a.asset_category else None,
-                "department": a.department.name if a.department else None,
-                "department_id": a.department_id,
-                "status": a.status,
-                "serial_number": a.serial_number,
-                "purchase_date": str(a.purchase_date) if a.purchase_date else None,
-                "purchase_cost": float(a.purchase_cost),
-                "vendor": a.vendor.name if a.vendor else None,
-                "warranty_end": str(a.warranty_end) if a.warranty_end else None,
-                "warranty_active": a.is_warranty_active,
+    if room_id:
+        AssetLocation.objects.create(
+            asset=asset,
+            room_id=int(room_id),
+            room_unit_id=data.get("room_unit_id"),
+            area="",
+            is_current=True,
+        )
+    elif data.get("area", "").strip():
+        AssetLocation.objects.create(
+            asset=asset,
+            area=data.get("area", "").strip(),
+            is_current=True,
+        )
+
+    return JsonResponse({"id": asset.id}, status=201)
+from django.db import transaction 
+@csrf_exempt
+def bulk_add_assets(request):
+    err = _require_post(request)
+    if err:
+        return err
+
+    data = _json(request)
+    assets_data = data.get("assets", [])
+
+    if not assets_data:
+        return JsonResponse({"error": "No assets provided"}, status=400)
+
+    if len(assets_data) > 200:
+        return JsonResponse({"error": "Maximum 200 assets per bulk request"}, status=400)
+
+    created = []
+    errors  = []
+
+    with transaction.atomic():
+        for i, item in enumerate(assets_data):
+            name     = (item.get("name") or "").strip()
+            cat_id   = item.get("asset_category_id")
+            room_id  = item.get("room_id")
+            area     = (item.get("area") or "").strip()
+
+            if not name:
+                errors.append({"index": i, "error": "name is required"})
+                continue
+            if not cat_id:
+                errors.append({"index": i, "name": name, "error": "asset_category_id is required"})
+                continue
+
+            try:
+                asset = HotelAsset.objects.create(
+                    name=name,
+                    asset_category_id=int(cat_id),
+                    department_id=item.get("department_id") or None,
+                    serial_number=item.get("serial_number", ""),
+                    room_id=int(room_id) if room_id else None,
+                    room_unit_id=item.get("room_unit_id") or None,
+                    area=area,
+                    purchase_date=item.get("purchase_date") or None,
+                    purchase_cost=item.get("purchase_cost") or 0,
+                    vendor_id=item.get("vendor_id") or None,
+                    warranty_end=item.get("warranty_end") or None,
+                    next_maintenance=item.get("next_maintenance") or None,
+                    notes=item.get("notes", ""),
+                )
+
+                if room_id:
+                    AssetLocation.objects.create(
+                        asset=asset,
+                        room_id=int(room_id),
+                        room_unit_id=item.get("room_unit_id") or None,
+                        area="",
+                        is_current=True,
+                    )
+                elif area:
+                    AssetLocation.objects.create(
+                        asset=asset,
+                        area=area,
+                        is_current=True,
+                    )
+
+                created.append({"id": asset.id, "name": asset.name})
+
+            except Exception as e:
+                errors.append({"index": i, "name": name, "error": str(e)})
+
+    if errors and not created:
+        return JsonResponse({"error": "All assets failed", "errors": errors}, status=400)
+
+    return JsonResponse({
+        "success": True,
+        "created": created,
+        "count":   len(created),
+        "errors":  errors,          
+    }, status=201)
+@csrf_exempt
+def list_assets(request):
+    current_schema = connection.tenant.schema_name
+
+    with schema_context(current_schema):
+        qs = HotelAsset.objects.select_related(
+            "asset_category", "department", "vendor", "assigned_to",
+            "room_unit", "room",
+        )
+
+        if request.GET.get("department_id"):
+            qs = qs.filter(department_id=request.GET["department_id"])
+        if request.GET.get("status"):
+            qs = qs.filter(status=request.GET["status"])
+        if request.GET.get("type_id"):
+            qs = qs.filter(asset_category_id=request.GET["type_id"])
+
+        asset_list = list(qs.order_by("name"))
+        asset_ids  = [a.id for a in asset_list]
+
+        all_locations = (
+            AssetLocation.objects
+            .filter(asset_id__in=asset_ids,is_current = True)
+            .select_related("room", "room_unit")
+            .order_by("asset_id", "-assigned_at")
+        )
+
+        from collections import defaultdict
+        loc_map = defaultdict(list)
+        for loc in all_locations:
+            loc_map[loc.asset_id].append(loc)
+
+        assets = []
+
+        for a in asset_list:
+            locations = loc_map.get(a.id, [])
+
+            parts = []
+            loc_details = []
+
+            for loc in locations:
+                label = _room_label(loc.room)
+                if label and loc.room_unit:
+                    loc_label = f"{label} - Unit {loc.room_unit.name}"
+                elif label:
+                    loc_label = label
+                elif loc.area and loc.area.strip():
+                    loc_label = loc.area.strip()
+                else:
+                    loc_label = None
+
+                if loc_label and loc_label not in parts:
+                    parts.append(loc_label)
+
+                loc_details.append({
+                    "room_unit_id": loc.room_unit_id,
+                    "room_id":      loc.room_id,
+                    "area":         loc.area,
+                    "location":     loc_label or "—",
+                    "asset_id":     a.id,
+                    "is_current":   loc.is_current,
+                    "assigned_at":  str(loc.assigned_at) if loc.assigned_at else None,
+                })
+
+            if not parts:
+                if a.area and a.area.strip():
+                    parts.append(a.area.strip())
+                elif a.room:
+                    label = _room_label(a.room)
+                    if label:
+                        parts.append(label)
+
+            location_label = ", ".join(parts) if parts else "—"
+
+            assets.append({
+                "id":               a.id,
+                "name":             a.name,
+                "type":             a.asset_category.name if a.asset_category else None,
+                "category_id":      a.asset_category_id,
+                "department":       a.department.name if a.department else None,
+                "department_id":    a.department_id,
+                "status":           a.status,
+                "serial_number":    a.serial_number,
+                "purchase_date":    str(a.purchase_date) if a.purchase_date else None,
+                "purchase_cost":    float(a.purchase_cost),
+                "vendor":           a.vendor.name if a.vendor else None,
+                "warranty_end":     str(a.warranty_end) if a.warranty_end else None,
+                "warranty_active":  a.is_warranty_active,
                 "next_maintenance": str(a.next_maintenance) if a.next_maintenance else None,
-                "maintenance_due": a.maintenance_due,
-                "assigned_to": str(a.assigned_to) if a.assigned_to else None,
-              
-                "locations": [],
-            }
-        
-       
-        asset_map[unique_key]["locations"].append({
-            "room_unit_id": a.room_unit_id,
-            "room_id": a.room_id,
-            "area": a.area,
-            "location": a.location_display,
-            "asset_id": a.id, 
-        })
-        
-        
-        if len(asset_map[unique_key]["locations"]) == 1:
-            asset_map[unique_key]["room_unit_id"] = a.room_unit_id
-            asset_map[unique_key]["room_id"] = a.room_id
-            asset_map[unique_key]["area"] = a.area
-            asset_map[unique_key]["location"] = a.location_display
-    
-    
-    assets = list(asset_map.values())
-    
+                "maintenance_due":  a.maintenance_due,
+                "assigned_to":      str(a.assigned_to) if a.assigned_to else None,
+                "room_unit_id":     a.room_unit_id,
+                "room_id":          a.room_id,
+                "area":             a.area,
+                "location":         location_label,
+                "locations":        loc_details,
+            })
+
     return JsonResponse({"assets": assets})
-
-
 @csrf_exempt
 def update_asset_status(request, asset_id):
     
@@ -906,7 +1094,83 @@ def update_asset_status(request, asset_id):
         return JsonResponse({"error": "Asset not found"}, status=404)
     return JsonResponse({"success": True})
 
+@csrf_exempt
+def list_assets_by_location(request):
+    current_schema = connection.tenant.schema_name
+    with schema_context(current_schema):
+        qs = HotelAsset.objects.select_related(
+            "asset_category", "department", "room_unit", "room"
+        )
+        asset_list = list(qs.order_by("name"))
+        asset_ids  = [a.id for a in asset_list]
 
+        all_locations = (
+            AssetLocation.objects
+            .filter(asset_id__in=asset_ids, is_current=True)
+            .select_related("room", "room_unit")
+            .order_by("asset_id","-assigned_at")
+        )
+        from collections import defaultdict
+        loc_map = defaultdict(list)
+        for loc in all_locations:
+            loc_map[loc.asset_id].append(loc)
+
+        grouped = defaultdict(list)
+
+        for a in asset_list:
+            locs = loc_map.get(a.id, [])
+            if locs:
+                loc = locs[0]
+                label = _room_label(loc.room)
+                if label and loc.room_unit:
+                    key = f"{label} – Unit {loc.room_unit.name}"
+                    icon_type = "room"
+                elif label:
+                    key = label
+                    icon_type = "room"
+                elif loc.area and loc.area.strip():
+                    key = loc.area.strip()
+                    icon_type = "area"
+                else:
+                    key = "__unassigned__"
+                    icon_type = "unset"
+            elif a.area and a.area.strip():
+                key = a.area.strip()
+                icon_type = "area"
+            elif a.room_id:
+                key = _room_label(a.room) or "Unknown"
+                icon_type = "room"
+            else:
+                key = "__unassigned__"
+                icon_type = "unset"
+
+            grouped[key].append({
+    "id":          a.id,
+    "name":        a.name,
+    "type":        a.asset_category.name if a.asset_category else None,
+    "status":      a.status,
+    "department":  a.department.name if a.department else None,
+    "icon_type":   icon_type,
+    "room_id":     loc.room_id if locs else (a.room_id or None),
+    "room_unit":   loc.room_unit.name if (locs and loc.room_unit) else (
+                       a.room_unit.name if a.room_unit else None
+                   ),
+})
+
+        result = []
+        for loc_key, assets in sorted(grouped.items(), key=lambda x: (x[0] == "__unassigned__", x[0])):
+           result.append({
+            "location":   loc_key if loc_key != "__unassigned__" else None,
+            "icon_type":  assets[0]["icon_type"],
+            "room_id":    next((a["room_id"]   for a in assets if a.get("room_id")),   None),
+            "room_units": list(dict.fromkeys(              # preserves order, deduplicates
+                       a["room_unit"] for a in assets if a.get("room_unit")
+                   )),
+            "department": next((a["department"] for a in assets if a.get("department")), None),
+            "assets":     assets,
+})
+
+    return JsonResponse({"groups": result})
 
 from decimal import Decimal
 from django.http import JsonResponse

@@ -15,6 +15,7 @@
             --ink: #1A1410;
             --muted: #8A7A6A;
             --green: #1B5E3B;
+            --green-dark: #123D27;
             --green-mid: #2E7D52;
             --green-light: #E8F5EE;
             --green-pale: #F0FAF4;
@@ -24,55 +25,147 @@
             --red-bg: #FEF2F2;
             --blue: #1E40AF;
             --blue-bg: #EFF6FF;
+            --sidebar-from: #1C1C1C;
+            --sidebar-to: #0B0B0B;
+            --sidebar-active: #F97316;
             --radius: 18px;
             --radius-sm: 12px;
             --radius-xs: 8px;
             --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
             --shadow: 0 2px 12px rgba(0,0,0,0.08);
             --shadow-md: 0 6px 24px rgba(0,0,0,0.12);
+            --sidebar-w: 248px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 
-        /* ─── HEADER ─── */
-        .header {
-            background: var(--green);
+        /* ─── APP SHELL / SIDEBAR ─── */
+        .app-shell { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            background: linear-gradient(180deg, var(--sidebar-from) 0%, var(--sidebar-to) 100%);
             color: #fff;
-            padding: 32px 20px 80px;
-            position: relative;
-            overflow: hidden;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            display: flex; flex-direction: column;
+            z-index: 500;
+            box-shadow: 2px 0 16px rgba(0,0,0,0.08);
         }
-        .header-pattern {
-            position: absolute; inset: 0; opacity: 0.06;
+        .sidebar-pattern {
+            position: absolute; inset: 0; opacity: 0.05; pointer-events: none;
             background-image: radial-gradient(circle, #fff 1px, transparent 1px);
-            background-size: 24px 24px;
+            background-size: 22px 22px;
         }
-        .header-inner { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
-        .hotel-badge {
+        .sidebar-logo {
+            position: relative; z-index: 1;
+            display: flex; align-items: center; gap: 12px;
+            padding: 22px 22px 18px;
+        }
+        .sidebar-logo-icon {
+            width: 52px; height: 52px; border-radius: 13px; flex-shrink: 0;
+            background: var(--sidebar-active); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+        }
+        img.sidebar-logo-icon {
+            display: block; object-fit: cover; object-position: center;
+            background: transparent; padding: 0; border: none;
+        }
+        .sidebar-logo-title { font-size: 0.95rem; font-weight: 700; color: #fff; line-height: 1.2; }
+        .sidebar-logo-sub { font-size: 0.68rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+        .sidebar-brand {
+            position: relative; z-index: 1;
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 22px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-avatar {
+            width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+            background: rgba(249,115,22,0.18); color: var(--sidebar-active);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Serif Display', serif; font-size: 1.05rem; font-weight: 400;
+            border: 1px solid rgba(249,115,22,0.35);
+        }
+        .sidebar-guest-name {
+            font-size: 0.88rem; font-weight: 700;
+            line-height: 1.2; color: #fff; margin-bottom: 3px;
+        }
+        .sidebar-room-pill {
             display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 40px; padding: 5px 14px;
-            font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px;
-            text-transform: uppercase; color: rgba(255,255,255,0.85);
-            margin-bottom: 18px;
+            font-size: 0.7rem; color: rgba(255,255,255,0.55); font-weight: 500;
         }
-        .guest-welcome { font-size: 0.78rem; color: rgba(255,255,255,0.6); font-weight: 400; margin-bottom: 4px; }
-        .guest-name { font-family: 'DM Serif Display', serif; font-size: 2.1rem; font-weight: 400; line-height: 1.15; color: #fff; margin-bottom: 20px; }
+
+        .sidebar-nav {
+            position: relative; z-index: 1;
+            flex: 1; display: flex; flex-direction: column; gap: 3px;
+            padding: 14px 12px; overflow-y: auto;
+        }
+        .sidebar-link {
+            display: flex; align-items: center; gap: 13px;
+            padding: 12px 14px; border-radius: var(--radius-xs);
+            color: rgba(255,255,255,0.62); font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: background 0.16s, color 0.16s;
+            white-space: nowrap;
+        }
+        .sidebar-link i { width: 18px; text-align: center; font-size: 0.95rem; flex-shrink: 0; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar-link.active {
+            background: rgba(249,115,22,0.16); color: #fff;
+            box-shadow: inset 3px 0 0 var(--sidebar-active);
+        }
+        .sidebar-link.active i { color: var(--sidebar-active); }
+        .sidebar-link.locked { opacity: 0.4; }
+.sidebar-link.locked:hover { background: transparent; color: rgba(255,255,255,0.4); }
+        .sidebar-foot {
+            position: relative; z-index: 1;
+            padding: 16px 24px 22px;
+            border-top: 1px solid rgba(255,255,255,0.14);
+            font-size: 0.68rem; color: rgba(255,255,255,0.55);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .main-content { flex: 1; min-width: 0; margin-left: var(--sidebar-w); }
+
+        /* ─── HEADER / WELCOME BANNER (Dashboard tab) ─── */
+        .header {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            padding: 24px 22px;
+            margin-bottom: 14px;
+        }
+        .header-inner { max-width: 1080px; }
+        .guest-welcome { font-size: 0.78rem; color: var(--muted); font-weight: 400; margin-bottom: 4px; }
+        .guest-name { font-family: 'DM Serif Display', serif; font-size: 1.9rem; font-weight: 400; line-height: 1.15; color: var(--ink); margin-bottom: 16px; }
+
+        /* ─── PAGE HEADING (per-tab title, used on all tabs except Dashboard) ─── */
+        .page-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 2px 2px 0; }
+        .page-heading-icon {
+            width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+            background: var(--green-light); color: var(--green-mid);
+            display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+        }
+        .page-heading-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 400; color: var(--ink); line-height: 1.2; }
+        .page-heading-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
         .stay-pills { display: flex; flex-wrap: wrap; gap: 8px; }
         .stay-pill {
             display: inline-flex; align-items: center; gap: 7px;
-            background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+            background: #FFF3EA; border: 1px solid var(--border);
             border-radius: 40px; padding: 7px 14px;
-            font-size: 0.75rem; color: rgba(255,255,255,0.92); font-weight: 500;
+            font-size: 0.75rem; color: #C2530B; font-weight: 600;
         }
-        .stay-pill i { font-size: 0.7rem; opacity: 0.7; }
+        .stay-pill i { font-size: 0.7rem; opacity: 0.8; }
 
         /* ─── STAY CARD ─── */
-        .stay-float-wrap { max-width: 640px; margin: -44px auto 0; padding: 0 16px; position: relative; z-index: 10; }
+        .stay-float-wrap { margin-bottom: 14px; }
         .stay-card {
             background: var(--surface); border-radius: var(--radius);
-            box-shadow: var(--shadow-md); border: 1px solid var(--border);
+            box-shadow: var(--shadow); border: 1px solid var(--border);
             display: grid; grid-template-columns: repeat(3, 1fr);
             overflow: hidden;
         }
@@ -82,23 +175,8 @@
         .stay-value { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
         .stay-value small { font-size: 0.68rem; font-weight: 500; color: var(--muted); display: block; margin-top: 2px; }
 
-        /* ─── NAV TABS ─── */
-        .nav-wrap { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-        .nav-tabs { display: flex; max-width: 640px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
-        .nav-tabs::-webkit-scrollbar { display: none; }
-        .nav-tab {
-            flex: 1; min-width: 72px; padding: 12px 6px 11px;
-            display: flex; flex-direction: column; align-items: center; gap: 3px;
-            font-size: 0.62rem; font-weight: 600; color: var(--muted);
-            cursor: pointer; border-bottom: 2px solid transparent;
-            transition: all 0.2s; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .nav-tab i { font-size: 1rem; }
-        .nav-tab.active { color: var(--green-mid); border-bottom-color: var(--green-mid); }
-        .nav-tab.active i { color: var(--green-mid); }
-
         /* ─── MAIN CONTAINER ─── */
-        .container { max-width: 640px; margin: 0 auto; padding: 20px 16px 100px; }
+        .container { max-width: 1080px; margin: 0; padding: 20px 28px 100px; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; animation: fadeUp 0.25s ease; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -114,26 +192,45 @@
         .card-head-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--green-light); display: flex; align-items: center; justify-content: center; color: var(--green-mid); font-size: 0.8rem; }
         .card-body { padding: 0 18px 18px; }
 
-        /* ─── SECTION LABELS ─── */
-        .section-label {
-            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 1.5px; color: var(--gold);
-            padding: 14px 0 8px; display: flex; align-items: center; gap: 8px;
+        /* ─── SECTION HEADINGS ─── */
+        .section-heading {
+            display: flex; align-items: center; gap: 10px;
+            padding: 22px 0 14px;
         }
-        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .section-heading:first-child { padding-top: 2px; }
+        .section-heading-icon {
+            width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+            background: var(--gold-bg); color: var(--gold);
+            display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+        }
+        .section-heading-title {
+            font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--ink);
+            white-space: nowrap;
+        }
+        .section-heading-line { flex: 1; height: 1px; background: var(--border); margin: 0 4px; }
+        .section-heading-count {
+            font-size: 0.64rem; font-weight: 700; color: var(--muted);
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 40px; padding: 3px 11px; white-space: nowrap;
+        }
 
-        /* ─── MENU ITEMS ─── */
+        /* ─── MENU ITEMS (filled card grid) ─── */
+        .menu-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px; margin-bottom: 6px;
+        }
         .menu-item {
             display: flex; align-items: center; gap: 12px;
-            padding: 13px 0; border-bottom: 1px solid var(--border);
-            transition: background 0.15s;
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--surface2); padding: 12px;
+            transition: box-shadow 0.18s, border-color 0.18s, transform 0.18s;
         }
-        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { box-shadow: var(--shadow); border-color: var(--green-mid); transform: translateY(-2px); }
         .veg-indicator { width: 10px; height: 10px; border-radius: 2px; border: 1.5px solid; flex-shrink: 0; }
         .veg-indicator.veg { background: #16A34A; border-color: #16A34A; }
         .veg-indicator.nonveg { background: var(--red); border-color: var(--red); }
         .menu-img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
-        .menu-img-placeholder { width: 64px; height: 64px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1.3rem; flex-shrink: 0; }
+        .menu-img-placeholder { width: 64px; height: 64px; border-radius: 10px; background: var(--surface); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1.3rem; flex-shrink: 0; }
         .menu-info { flex: 1; min-width: 0; }
         .menu-name { font-size: 0.875rem; font-weight: 600; line-height: 1.3; }
         .menu-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -183,6 +280,85 @@
         .btn-primary:hover:not(:disabled) { background: var(--green); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(30,93,56,0.3); }
         .btn-primary:active:not(:disabled) { transform: translateY(0); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+                .id-upload-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        .id-upload-slot {
+            position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 6px;
+            border: 1.5px dashed var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            padding: 22px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 120px;
+            text-align: center;
+        }
+        .id-upload-slot:hover {
+            border-color: var(--green-mid);
+            background: var(--green-pale);
+        }
+        .id-upload-slot.filled {
+            border-style: solid;
+            border-color: var(--green-mid);
+            background: var(--green-light);
+            padding: 8px;
+        }
+        .id-upload-icon {
+            width: 34px; height: 34px; border-radius: 9px;
+            background: var(--surface); color: var(--muted);
+            display: flex; align-items: center; justify-content: center; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .id-upload-slot.filled .id-upload-icon { display: none; }
+        .id-upload-label { font-size: 0.78rem; font-weight: 700; color: var(--ink); }
+        .id-upload-sub { font-size: 0.66rem; color: var(--muted); }
+        .id-upload-slot.filled .id-upload-sub { display: none; }
+        .id-upload-preview {
+            width: 100%; height: 78px; object-fit: cover; border-radius: 8px;
+            display: block;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .id-upload-file-info {
+            width: 100%;
+            display: flex; align-items: center; gap: 6px;
+            margin-top: 5px;
+            padding: 5px 7px;
+            border-radius: 7px;
+            background: rgba(46,125,82,0.08);
+            color: var(--green-mid);
+            font-size: 0.64rem;
+            font-weight: 700;
+            text-align: left;
+        }
+        .id-upload-file-info i {
+            flex-shrink: 0;
+            font-size: 0.7rem;
+        }
+        .id-upload-file-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+        .id-upload-slot.filled .id-upload-label {
+            margin-top: 2px;
+        }
+        .id-upload-remove {
+            position: absolute; top: 6px; right: 6px;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--red); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; cursor: pointer; z-index: 2;
+        }
+        .id-upload-remove:hover { background: #971818; }
+        @media (max-width: 400px) {
+            .id-upload-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .id-upload-slot { min-height: 100px; padding: 16px 8px; }
+        }
 
         /* ─── BADGES ─── */
         .badge {
@@ -197,6 +373,63 @@
         .badge-served, .badge-delivered         { background: var(--green-light); color: var(--green); }
         .badge-cancelled, .badge-Cancelled      { background: var(--red-bg); color: var(--red); }
 
+        /* ─── ORDER TRACKER (guest order status, Flipkart-style) ─── */
+        .order-track-card {
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 16px; margin-bottom: 12px; background: var(--surface2);
+            transition: box-shadow 0.2s;
+        }
+        .order-track-card:hover { box-shadow: var(--shadow); }
+        .order-track-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+        .order-track-id { font-weight: 700; font-size: 0.88rem; }
+        .order-track-items { font-size: 0.75rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+        .order-track-meta { text-align: right; flex-shrink: 0; }
+        .order-track-amount { font-weight: 700; color: var(--green-mid); font-size: 0.85rem; }
+        .order-track-time { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+        .order-tracker { display: flex; align-items: flex-start; margin: 18px 2px 6px; }
+        .tracker-step { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 74px; flex-shrink: 0; }
+        .tracker-dot {
+            width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+            border: 2px solid var(--border); background: var(--surface); color: var(--muted);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.74rem; font-weight: 700;
+            transition: background 0.35s, border-color 0.35s, color 0.35s;
+        }
+        .tracker-dot.done { background: var(--green-mid); border-color: var(--green-mid); color: #fff; }
+        .tracker-dot.active {
+            background: var(--sidebar-active); border-color: var(--sidebar-active); color: #fff;
+            animation: trackerPulse 1.6s infinite;
+        }
+        @keyframes trackerPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.45); }
+            70%  { box-shadow: 0 0 0 9px rgba(249,115,22,0); }
+            100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+        }
+        .tracker-label { font-size: 0.64rem; font-weight: 700; color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: 0.3px; }
+        .tracker-line {
+            flex: 1; height: 3px; background: var(--border); border-radius: 2px;
+            margin-top: 14px; transition: background 0.5s ease;
+        }
+        .tracker-line.done { background: var(--green-mid); }
+
+        .order-cancelled-banner {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--red-bg); color: var(--red);
+            border-radius: var(--radius-xs); padding: 9px 13px;
+            font-size: 0.78rem; font-weight: 600; margin-top: 12px;
+        }
+        .btn-cancel-order {
+            margin-top: 12px;
+            background: var(--red-bg); color: var(--red);
+            border: 1.5px solid var(--red-bg); border-radius: 40px;
+            padding: 7px 15px; font-size: 0.72rem; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: all 0.18s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-cancel-order:hover:not(:disabled) { background: var(--red); color: #fff; border-color: var(--red); }
+        .btn-cancel-order:disabled { opacity: 0.6; cursor: not-allowed; }
+
         /* ─── ORDERS ─── */
         .order-card {
             border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -210,6 +443,37 @@
         .order-footer { display: flex; justify-content: space-between; align-items: center; }
         .order-total { font-weight: 700; color: var(--green-mid); font-size: 0.82rem; }
         .order-time { color: var(--muted); font-size: 0.72rem; }
+
+        /* ─── STAT CARDS (ERP-style summary row) ─── */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);
+        }
+        .stat-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .stat-icon.green  { background: var(--green-light); color: var(--green-mid); }
+        .stat-icon.gold   { background: var(--gold-bg); color: var(--gold); }
+        .stat-icon.orange { background: #FFF3EA; color: var(--sidebar-active); }
+        .stat-info { min-width: 0; }
+        .stat-value { font-size: 1.12rem; font-weight: 800; color: var(--ink); line-height: 1.15; white-space: nowrap; }
+        .stat-label { font-size: 0.66rem; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+
+        /* ─── STRUCTURED DATA TABLE (Order History style) ─── */
+        .table-scroll { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 480px; }
+        .data-table thead th {
+            font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--muted); text-align: left; padding: 10px; border-bottom: 1px solid var(--border);
+            font-weight: 700; white-space: nowrap;
+        }
+        .data-table tbody td { padding: 12px 10px; font-size: 0.8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tbody tr:hover { background: var(--surface2); }
+        .data-table .order-id-cell { font-weight: 700; white-space: nowrap; }
+        .data-table .order-items-cell { color: var(--muted); font-size: 0.75rem; max-width: 220px; }
+        .data-table .order-amount-cell { font-weight: 700; color: var(--green-mid); white-space: nowrap; }
+        .data-table .order-time-cell { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+        .data-table .empty-row td { padding: 0; border-bottom: none; }
 
         /* ─── BILL ─── */
         .bill-status-pill {
@@ -315,7 +579,7 @@
 
         /* ─── CART FAB ─── */
         .cart-fab {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+            position: fixed; bottom: 24px; left: calc(50% + (var(--sidebar-w) / 2)); transform: translateX(-50%) translateY(80px);
             background: var(--green-mid); color: #fff; border: none; border-radius: 50px;
             padding: 14px 24px; font-size: 0.84rem; font-weight: 700;
             cursor: pointer; box-shadow: var(--shadow-md);
@@ -329,7 +593,7 @@
 
         /* ─── TOAST ─── */
         .toast {
-            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(16px);
+            position: fixed; bottom: 90px; left: calc(50% + (var(--sidebar-w) / 2)); transform: translateX(-50%) translateY(16px);
             background: var(--ink); color: #fff; padding: 11px 22px; border-radius: 40px;
             font-size: 0.8rem; font-weight: 500; z-index: 9999;
             opacity: 0; transition: all 0.3s; white-space: nowrap; pointer-events: none;
@@ -345,384 +609,807 @@
         .empty i { font-size: 2.2rem; display: block; margin-bottom: 10px; opacity: 0.25; }
         .empty p { font-size: 0.82rem; line-height: 1.6; }
 
+        /* ─── CONFIRM MODAL ─── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(26,20,16,0.55);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+            padding: 20px;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: var(--surface); border-radius: var(--radius);
+            padding: 28px 26px; max-width: 360px; width: 100%;
+            box-shadow: var(--shadow-md); text-align: center;
+            transform: scale(0.92) translateY(10px); transition: transform 0.25s ease;
+        }
+        .modal-overlay.show .modal-card { transform: scale(1) translateY(0); }
+        .modal-icon {
+            width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 14px;
+            background: var(--red-bg); color: var(--red);
+            display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+        }
+        .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; font-weight: 400; color: var(--ink); margin-bottom: 6px; }
+        .modal-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.55; margin-bottom: 22px; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-btn {
+            flex: 1; padding: 11px; border-radius: var(--radius-sm); border: none;
+            font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: all 0.18s;
+        }
+        .modal-btn-secondary { background: var(--surface2); color: var(--ink); border: 1.5px solid var(--border); }
+        .modal-btn-secondary:hover { background: var(--border); }
+        .modal-btn-danger { background: var(--red); color: #fff; }
+        .modal-btn-danger:hover { background: #971818; }
+
         /* ─── SPINNER ─── */
         .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ─── RESPONSIVE: sidebar collapses to a top bar on small screens ─── */
+        @media (max-width: 860px) {
+            :root { --sidebar-w: 0px; }
+            .app-shell { flex-direction: column; }
+            .sidebar {
+                position: sticky; top: 0; left: auto; bottom: auto;
+                width: 100%; flex-direction: row; align-items: center;
+                z-index: 500; box-shadow: var(--shadow-sm);
+            }
+            .sidebar-logo { display: none; }
+            .sidebar-brand { display: none; }
+            .sidebar-nav {
+                flex-direction: row; overflow-x: auto; overflow-y: hidden;
+                -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+                padding: 6px 6px; gap: 2px;
+                width: 100%;
+            }
+            .sidebar-nav::-webkit-scrollbar { height: 3px; }
+            .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
+            .sidebar-link {
+                flex-direction: column; gap: 4px; padding: 9px 10px;
+                font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px;
+                flex: 1 1 0; flex-shrink: 0; min-width: 62px;
+                text-align: center; white-space: nowrap;
+                scroll-snap-align: start;
+            }
+            .sidebar-link i { width: auto; font-size: 1rem; }
+            .sidebar-link.active { box-shadow: inset 0 -3px 0 var(--sidebar-active); }
+            .sidebar-foot { display: none; }
+            .main-content { margin-left: 0; width: 100%; }
+            .cart-fab, .toast { left: 50%; }
+
+            .header { padding: 20px 18px; }
+            .guest-name { font-size: 1.5rem; margin-bottom: 12px; }
+            .page-heading-title { font-size: 1.25rem; }
+            .page-heading-icon { width: 36px; height: 36px; font-size: 0.92rem; }
+            .container { padding: 16px 14px 100px; }
+            .stay-float-wrap { padding: 0; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .menu-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+            .service-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .stay-card { grid-template-columns: repeat(3, 1fr); }
+            .stay-cell { padding: 12px 8px; }
+            .stay-value { font-size: 0.8rem; }
+            .menu-grid { grid-template-columns: 1fr; }
+            .menu-item { padding: 10px; gap: 10px; }
+            .menu-img, .menu-img-placeholder { width: 52px; height: 52px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card { padding: 12px; }
+            .card-head { padding: 14px 14px 0; }
+            .card-body { padding: 0 14px 14px; }
+            .service-grid { grid-template-columns: repeat(2, 1fr); }
+            .data-table { min-width: 560px; }
+            .sidebar-link { font-size: 0.56rem; padding: 8px 8px; min-width: 56px; }
+        }
+
         @media (max-width: 400px) {
             .stay-card { grid-template-columns: repeat(2, 1fr); }
             .service-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: 1fr; }
+            .menu-grid { grid-template-columns: 1fr; }
+            .guest-name { font-size: 1.3rem; }
+            .sidebar-link { padding: 7px 6px; font-size: 0.52rem; min-width: 50px; }
+            .sidebar-link i { font-size: 0.92rem; }
         }
+                /* ─── NOTIFY MODAL (order & dining alerts) ─── */
+        .notify-overlay {
+            position: fixed; inset: 0; background: rgba(26,20,16,0.55);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10001; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+            padding: 20px;
+        }
+        .notify-overlay.show { opacity: 1; pointer-events: auto; }
+        .notify-card {
+            background: var(--surface); border-radius: var(--radius);
+            padding: 28px 26px; max-width: 380px; width: 100%;
+            box-shadow: var(--shadow-md); text-align: center;
+            transform: scale(0.9) translateY(10px); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .notify-overlay.show .notify-card { transform: scale(1) translateY(0); }
+        .notify-icon {
+            width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+            animation: notifyPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .notify-icon.success { background: var(--green-light); color: var(--green-mid); }
+        .notify-icon.reminder { background: #FFF3EA; color: var(--sidebar-active); }
+        @keyframes notifyPop { 0% { transform: scale(0); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        .notify-title { font-family: 'DM Serif Display', serif; font-size: 1.25rem; font-weight: 400; color: var(--ink); margin-bottom: 8px; }
+        .notify-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.55; margin-bottom: 22px; }
+        .notify-ok-btn {
+            width: 100%; padding: 12px; border-radius: var(--radius-sm); border: none;
+            background: var(--green-mid); color: #fff;
+            font-size: 0.85rem; font-weight: 700; cursor: pointer; font-family: inherit;
+            transition: background 0.18s;
+        }
+        .notify-ok-btn:hover { background: var(--green); }
     </style>
 </head>
 <body>
 
-<!-- ══ HEADER ══ -->
-<div class="header">
-    <div class="header-pattern"></div>
-    <div class="header-inner">
-        <div class="hotel-badge"><i class="fas fa-star"></i> Guest Portal</div>
-        <div class="guest-welcome">Welcome back,</div>
-        <div class="guest-name">{{ guest.full_name }}</div>
-        <div class="stay-pills">
-            <div class="stay-pill"><i class="fas fa-door-open"></i> Room {{ room.room_number }} · {{ room.room.room_type }}</div>
-            <div class="stay-pill"><i class="fas fa-calendar-days"></i> {{ booking.check_in }} → {{ booking.check_out }}</div>
+<div class="app-shell">
+
+    <!-- ══ SIDEBAR ══ -->
+    <aside class="sidebar">
+        <div class="sidebar-pattern"></div>
+        <div class="sidebar-logo">
+            {% if hotel.logo %}
+            <img class="sidebar-logo-icon" src="{{ hotel.logo.url }}" alt="{{ hotel.hotel_name }}">
+            {% else %}
+            <div class="sidebar-logo-icon"><i class="fas fa-hotel"></i></div>
+            {% endif %}
+            <div>
+                <div class="sidebar-logo-title">{{ hotel.hotel_name|default:"Hotel" }}</div>
+                <div class="sidebar-logo-sub">Guest Portal</div>
+            </div>
+        </div>
+        <div class="sidebar-brand">
+            <div class="sidebar-avatar">{{ guest.full_name|first|upper }}</div>
+            <div>
+                <div class="sidebar-guest-name">{{ guest.full_name }}</div>
+                <div class="sidebar-room-pill"><i class="fas fa-door-open"></i> Room {{ room.room_number }} · {{ room.room.room_type }}</div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+    <div class="sidebar-link active" data-tab="dashboard"><i class="fas fa-gauge-high"></i>Dashboard</div>
+
+    {% if "restaurant" in active_module_names or "food" in active_module_names %}
+    <div class="sidebar-link" data-tab="menu"><i class="fas fa-utensils"></i>Menu</div>
+    <div class="sidebar-link" data-tab="cart"><i class="fas fa-shopping-bag"></i>Cart</div>
+    <div class="sidebar-link" data-tab="orders"><i class="fas fa-receipt"></i>Orders</div>
+    <div class="sidebar-link" data-tab="dining"><i class="fas fa-utensils"></i>Dining</div>
+    {% endif %}
+
+    {% if "laundry" in active_module_names %}
+    <div class="sidebar-link" data-tab="laundry"><i class="fas fa-shirt"></i>Laundry</div>
+    {% endif %}
+
+    <div class="sidebar-link" data-tab="bill"><i class="fas fa-file-invoice-dollar"></i>Bill</div>
+    <div class="sidebar-link" data-tab="service"><i class="fas fa-bell-concierge"></i>Service</div>
+</nav>
+        <div class="sidebar-foot"><i class="fas fa-calendar-days"></i> {{ booking.check_in }} → {{ booking.check_out }}</div>
+    </aside>
+
+    <!-- ══ MAIN CONTENT ══ -->
+    <div class="main-content">
+
+        <div class="container">
+
+                        <!-- ══ TAB: DASHBOARD ══ -->
+            <div class="tab-panel active" id="tab-dashboard">
+                <div class="header">
+                    <div class="header-inner">
+                        <div class="guest-welcome">Welcome back,</div>
+                        <div class="guest-name">{{ guest.full_name }}</div>
+                        <div class="stay-pills">
+                            <div class="stay-pill"><i class="fas fa-door-open"></i> Room {{ room.room_number }} · {{ room.room.room_type }}</div>
+                            <div class="stay-pill"><i class="fas fa-calendar-days"></i> {{ booking.check_in }} → {{ booking.check_out }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stay-float-wrap">
+                    <div class="stay-card">
+                        <div class="stay-cell">
+                            <span class="stay-label">Check-in</span>
+                            <div class="stay-value">{{ booking.check_in }}<small>After 2:00 PM</small></div>
+                        </div>
+                        <div class="stay-cell">
+                            <span class="stay-label">Check-out</span>
+                            <div class="stay-value">{{ booking.check_out }}<small>Before 11:00 AM</small></div>
+                        </div>
+                        <div class="stay-cell">
+                            <span class="stay-label">Guests</span>
+                            <div class="stay-value">{{ booking.adults }}A / {{ booking.children }}C<small>Room {{ room.room_number }}</small></div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if booking.status == "confirmed" %}
+                <div class="card" id="checkinCard">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-door-open"></i></div>Self Check-In</div>
+                    <div class="card-body">
+                        <div id="checkinNotYet" style="display:none; text-align:center; padding: 6px 0 10px;">
+                            <div style="font-size:0.85rem; color:var(--muted); margin-bottom:10px;">
+                                Check-in opens on <strong>{{ booking.check_in }}</strong>.
+                            </div>
+                            <div id="checkinCountdown" style="font-family:'DM Serif Display', serif; font-size:1.6rem; color:var(--green-mid);">--</div>
+                        </div>
+                                                <div id="checkinFormWrap" style="display:none;">
+                            <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
+                                Upload clear photos of your ID (front &amp; back) to complete check-in — no front desk visit needed.
+                            </p>
+                            <form id="checkinForm" enctype="multipart/form-data">
+                                <div class="id-upload-grid">
+                                    <label class="id-upload-slot" for="idFrontInput" data-slot="front">
+                                        <div class="id-upload-icon"><i class="fas fa-id-card"></i></div>
+                                        <div class="id-upload-label">ID — Front</div>
+                                        <div class="id-upload-sub">Tap to upload</div>
+                                        <img class="id-upload-preview" style="display:none;" alt="Selected ID preview">
+                                        <div class="id-upload-file-info" style="display:none;">
+                                            <i class="fas fa-circle-check"></i>
+                                            <span class="id-upload-file-name"></span>
+                                        </div>
+                                        <div class="id-upload-remove" style="display:none;" title="Remove document">
+                                            <i class="fas fa-xmark"></i>
+                                        </div>
+                                    </label>
+                                    <input type="file" name="id_photos" id="idFrontInput" accept="image/*" required style="display:none;">
+
+                                    <label class="id-upload-slot" for="idBackInput" data-slot="back">
+                                        <div class="id-upload-icon"><i class="fas fa-id-card"></i></div>
+                                        <div class="id-upload-label">ID — Back</div>
+                                        <div class="id-upload-sub">Optional</div>
+                                        <img class="id-upload-preview" style="display:none;" alt="Selected ID preview">
+                                        <div class="id-upload-file-info" style="display:none;">
+                                            <i class="fas fa-circle-check"></i>
+                                            <span class="id-upload-file-name"></span>
+                                        </div>
+                                        <div class="id-upload-remove" style="display:none;" title="Remove document">
+                                            <i class="fas fa-xmark"></i>
+                                        </div>
+                                    </label>
+                                    <input type="file" name="id_photos" id="idBackInput" accept="image/*" style="display:none;">
+                                </div>
+                                <button type="submit" class="btn-primary" id="checkinSubmitBtn" style="margin-top:16px;">
+                                    <i class="fas fa-door-open"></i> Check In Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if booking.status == "checked_in" and "self_checkout" in active_module_names %}
+<div class="card" id="checkoutCard">
+    <div class="card-head"><div class="card-head-icon"><i class="fas fa-door-closed"></i></div>Self Check-Out</div>
+    <div class="card-body">
+        <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
+            Review your final bill before checking out.
+        </p>
+        <button class="btn-primary" id="openCheckoutScreenBtn">
+            <i class="fas fa-receipt"></i> Review Bill &amp; Check Out
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══ CHECKOUT REVIEW MODAL ══ -->
+<div class="modal-overlay" id="checkoutScreenOverlay">
+    <div class="modal-card" style="max-width:420px; text-align:left;">
+        <div class="modal-title" style="text-align:center; margin-bottom:16px;">Final Bill</div>
+        <div id="checkoutScreenBody" style="max-height:50vh; overflow-y:auto; margin-bottom:16px;">
+            <div style="text-align:center; padding:20px; color:var(--muted);">
+                <span class="spinner" style="border-top-color:var(--green-mid); width:20px; height:20px;"></span>
+            </div>
+        </div>
+        <div id="checkoutBalanceBanner" style="display:none; margin-bottom:14px;"></div>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary" id="checkoutScreenCloseBtn">Not Yet</button>
+            <button class="modal-btn" id="checkoutScreenConfirmBtn"
+                style="background:var(--green-mid); color:#fff; display:none;">
+                Confirm &amp; Check Out
+            </button>
         </div>
     </div>
 </div>
 
-<!-- ══ STAY FLOAT CARD ══ -->
-<div class="stay-float-wrap">
-    <div class="stay-card">
-        <div class="stay-cell">
-            <span class="stay-label">Check-in</span>
-            <div class="stay-value">{{ booking.check_in }}<small>After 2:00 PM</small></div>
-        </div>
-        <div class="stay-cell">
-            <span class="stay-label">Check-out</span>
-            <div class="stay-value">{{ booking.check_out }}<small>Before 11:00 AM</small></div>
-        </div>
-        <div class="stay-cell">
-            <span class="stay-label">Guests</span>
-            <div class="stay-value">{{ booking.adults }}A / {{ booking.children }}C<small>Room {{ room.room_number }}</small></div>
-        </div>
-    </div>
-</div>
 
-<!-- ══ NAV TABS ══ -->
-<div class="nav-wrap">
-    <nav class="nav-tabs">
-        <div class="nav-tab active" data-tab="menu"><i class="fas fa-utensils"></i>Menu</div>
-        <div class="nav-tab" data-tab="cart"><i class="fas fa-shopping-bag"></i>Cart</div>
-        <div class="nav-tab" data-tab="orders"><i class="fas fa-receipt"></i>Orders</div>
-        <div class="nav-tab" data-tab="laundry"><i class="fas fa-shirt"></i>Laundry</div>
-        <div class="nav-tab" data-tab="bill"><i class="fas fa-file-invoice-dollar"></i>Bill</div>
-        <div class="nav-tab" data-tab="service"><i class="fas fa-bell-concierge"></i>Service</div>
-    </nav>
-</div>
-
-<div class="container">
-
-    <!-- ══ TAB: MENU ══ -->
-    <div class="tab-panel active" id="tab-menu">
-        <div class="card">
-            <div class="card-body" style="padding-top: 18px;">
-                {% for cat in menu %}
-                <div class="section-label">{{ cat.name }}</div>
-                {% for item in cat.items %}
-                <div class="menu-item"
-                     data-id="{{ item.id }}"
-                     data-name="{{ item.name }}"
-                     data-price="{{ item.price }}"
-                     data-tax="{{ item.tax_percent }}">
-                    <span class="veg-indicator {% if item.veg %}veg{% else %}nonveg{% endif %}"></span>
-                    {% if item.image %}
-                    <img class="menu-img" src="{{ item.image }}" alt="{{ item.name }}" loading="lazy">
-                    {% else %}
-                    <div class="menu-img-placeholder"><i class="fas fa-bowl-food"></i></div>
-                    {% endif %}
-                    <div class="menu-info">
-                        <div class="menu-name">{{ item.name }}</div>
-                        {% if item.description %}<div class="menu-desc">{{ item.description }}</div>{% endif %}
-                        <div class="menu-price">₹{{ item.price }}</div>
-                    </div>
-                    <div class="menu-actions">
-                        <button class="btn-add add-btn"><i class="fas fa-plus"></i> Add</button>
-                    </div>
-                </div>
-                {% endfor %}
-                {% empty %}
-                <div class="empty"><i class="fas fa-bowl-food"></i><p>Menu not available right now.</p></div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ TAB: CART ══ -->
-    <div class="tab-panel" id="tab-cart">
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-shopping-bag"></i></div>Your Cart</div>
-            <div class="card-body">
-                <div id="cartList">
-                    <div class="cart-empty">
-                        <div class="cart-empty-icon"><i class="fas fa-bag-shopping"></i></div>
-                        <p>Your cart is empty.<br>Browse the menu and add items.</p>
-                    </div>
-                </div>
-                <hr class="divider">
-                <div class="summary-row"><span>Subtotal</span><span id="cartSubtotal">₹0.00</span></div>
-                <div class="summary-row"><span>GST</span><span id="cartTax">₹0.00</span></div>
-                <div class="summary-row grand-total"><span>Total</span><span id="cartTotal">₹0.00</span></div>
-                <textarea class="note-input" id="orderNote" rows="2" placeholder="Any special instructions? (optional)"></textarea>
-                <button class="btn-primary" id="placeOrderBtn" disabled>
-                    <i class="fas fa-check-circle"></i> Place Room Service Order
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ TAB: ORDERS ══ -->
-    <div class="tab-panel" id="tab-orders">
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-receipt"></i></div>My Orders</div>
-            <div class="card-body">
-                <div id="ordersList">
-                    {% if existing_orders %}
-                        {% for o in existing_orders %}
-                        <div class="order-card">
-                            <div class="order-header-row">
-                                <span class="order-num">#{{ o.order_number }}</span>
-                                <span class="badge badge-{{ o.status }}">{{ o.status }}</span>
-                            </div>
-                            <div class="order-items-list">
-                                {% for item in o.items %}{{ item.qty }}&times; {{ item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                            </div>
-                            <div class="order-footer">
-                                <span class="order-total">₹{{ o.total }}</span>
-                                <span class="order-time">{{ o.created_at|slice:":16" }}</span>
-                            </div>
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-bed"></i></div>Your Room</div>
+                    <div class="card-body">
+                        <div class="stat-info" style="margin-bottom: {% if room.room.description %}10px{% else %}0{% endif %};">
+                            <div class="stat-value" style="font-size:1rem;">{{ room.room.room_type }} · Room {{ room.room_number }}</div>
+                            <div class="stat-label">Max {{ room.room.max_adults }} Adults, {{ room.room.max_children }} Children</div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                    <div class="empty"><i class="fas fa-mug-hot"></i><p>No orders yet.<br>Browse the menu and order something!</p></div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ TAB: LAUNDRY ══ -->
-    <div class="tab-panel" id="tab-laundry">
-
-        {% if laundry_orders %}
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>Laundry Orders</div>
-            <div class="card-body">
-                {% for lo in laundry_orders %}
-                <div class="laundry-order-card">
-                    <div class="order-header-row">
-                        <span class="order-num">Order #{{ lo.id }}</span>
-                        <span class="badge badge-{{ lo.status }}">{{ lo.status }}</span>
-                    </div>
-                    <div class="order-footer">
-                        <span class="order-total">₹{{ lo.total }}</span>
-                        <span class="order-time">{{ lo.created_at|slice:":16" }}</span>
+                        {% if room.room.description %}
+                        <p style="font-size:0.82rem; color:var(--muted); line-height:1.6;">{{ room.room.description }}</p>
+                        {% endif %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        </div>
-        {% endif %}
-
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-shirt"></i></div>Request Laundry</div>
-            <div class="card-body">
-                {% for svc in laundry_services %}
-                <div class="laundry-svc" data-id="{{ svc.id }}" data-price="{{ svc.price_per_unit }}">
-                    <div class="laundry-icon">
-                        {% if svc.service_type == "wash" %}<i class="fas fa-water"></i>
-                        {% elif svc.service_type == "dry_clean" %}<i class="fas fa-wind"></i>
-                        {% elif svc.service_type == "iron" %}<i class="fas fa-fire-flame-curved"></i>
-                        {% else %}<i class="fas fa-shirt"></i>{% endif %}
+            {% if "restaurant" in active_module_names or "food" in active_module_names %}
+            <!-- ══ TAB: MENU ══ -->
+            <div class="tab-panel" id="tab-menu">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-utensils"></i></div>
+                    <div>
+                        <div class="page-heading-title">Menu</div>
+                        <div class="page-heading-sub">Order food &amp; beverages, delivered to your room</div>
                     </div>
-                    <div class="laundry-info">
-                        <div class="laundry-name">{{ svc.name }}</div>
-                        <div class="laundry-meta">{{ svc.service_type|title }}{% if svc.turnaround_hours %} · Ready in {{ svc.turnaround_hours }}h{% endif %}</div>
-                        <div class="laundry-qty-row" style="display:none;">
-                            <span style="font-size:0.75rem;color:var(--muted);">Qty:</span>
-                            <input type="number" class="laundry-qty-input" value="1" min="1" max="20">
+                </div>
+                
+                <div class="card">
+                    <div class="card-body" style="padding-top: 6px;">
+                        {% for cat in menu %}
+                        <div class="section-heading">
+                            <div class="section-heading-icon"><i class="fas fa-utensils"></i></div>
+                            <div class="section-heading-title">{{ cat.name }}</div>
+                            <div class="section-heading-line"></div>
+                            <div class="section-heading-count">{{ cat.items|length }} item{{ cat.items|length|pluralize }}</div>
                         </div>
-                    </div>
-                    <div class="laundry-price">₹{{ svc.price_per_unit }}</div>
-                </div>
-                {% empty %}
-                <div class="empty"><i class="fas fa-shirt"></i><p>Laundry services not available right now.</p></div>
-                {% endfor %}
-                {% if laundry_services %}
-                <textarea class="note-input" id="laundryNote" rows="2" placeholder="Special instructions (e.g. stain on shirt, delicate fabric)…" style="margin-top:14px;"></textarea>
-                <button class="btn-primary" id="laundryOrderBtn">
-                    <i class="fas fa-paper-plane"></i> Request Laundry Pickup
-                </button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ TAB: BILL ══ -->
-    <div class="tab-panel" id="tab-bill">
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-file-invoice-dollar"></i></div>Bill Summary</div>
-            <div class="card-body">
-
-                {% if folio %}
-
-                <div class="bill-status-pill {% if folio.status == 'open' %}bill-status-open{% else %}bill-status-closed{% endif %}">
-                    <i class="fas {% if folio.status == 'open' %}fa-clock{% else %}fa-check-circle{% endif %}"></i>
-                    Folio {{ folio.status|title }}
-                </div>
-
-                {% regroup folio_charges by charge_type as charge_groups %}
-                {% for group in charge_groups %}
-                <div class="bill-section">
-                    <div class="bill-label">
-                        {% if group.grouper == "room" %}Room Charges
-                        {% elif group.grouper == "restaurant" %}Food &amp; Beverage
-                        {% elif group.grouper == "laundry" %}Laundry
-                        {% else %}Other Charges{% endif %}
-                    </div>
-                    {% for charge in group.list %}
-                    <div class="bill-charge-row">
-                        <div>
-                            <div class="bill-charge-desc">{{ charge.description }}</div>
-                            <div class="bill-charge-tax">Tax: ₹{{ charge.tax_amount }}</div>
-                        </div>
-                        <div class="bill-charge-amt">₹{{ charge.total }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% empty %}
-                <div class="bill-section">
-                    <div class="bill-label">Room Charges</div>
-                    <div class="bill-charge-row">
-                        <div class="bill-charge-desc">{{ room.room.room_type }} Room</div>
-                        <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-
-                {% if folio_payments %}
-                <div class="bill-section">
-                    <div class="bill-label">Payments Received</div>
-                    {% for p in folio_payments %}
-                    <div class="bill-charge-row">
-                        <div class="bill-charge-desc">{{ p.method|default:"Payment" }}</div>
-                        <div class="bill-charge-amt" style="color:var(--green-mid);">−₹{{ p.amount }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <hr class="divider">
-                <div class="summary-row"><span>Subtotal</span><span>₹{{ folio.total_charges }}</span></div>
-                {% if folio.total_paid %}
-                <div class="summary-row"><span>Paid</span><span style="color:var(--green-mid);">₹{{ folio.total_paid }}</span></div>
-                {% endif %}
-                <div class="summary-row grand-total"><span>Balance Due</span><span></span></div>
-
-                {% else %}
-
-                <div class="bill-status-pill bill-status-estimated">
-                    <i class="fas fa-calculator"></i> Estimated Bill
-                </div>
-                <div class="bill-section">
-                    <div class="bill-label">Room Charges</div>
-                    <div class="bill-charge-row">
-                        <div>
-                            <div class="bill-charge-desc">{{ room.room.room_type }} — {{ booking.check_in }} to {{ booking.check_out }}</div>
-                            <div class="bill-charge-tax">18% GST included</div>
-                        </div>
-                        <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
-                    </div>
-                </div>
-                {% if existing_orders %}
-                <div class="bill-section">
-                    <div class="bill-label">Food &amp; Beverage</div>
-                    {% for o in existing_orders %}{% if o.status != "cancelled" %}
-                    <div class="bill-charge-row">
-                        <div class="bill-charge-desc">Room Service #{{ o.order_number }}</div>
-                        <div class="bill-charge-amt">₹{{ o.total }}</div>
-                    </div>
-                    {% endif %}{% endfor %}
-                </div>
-                {% endif %}
-                <hr class="divider">
-                <div class="summary-row grand-total"><span>Estimated Total</span><span>₹{{ booking.total_amount }}</span></div>
-
-                {% endif %}
-
-                <p style="font-size:0.72rem;color:var(--muted);margin-top:14px;line-height:1.6;">
-                    <i class="fas fa-info-circle"></i> Final bill presented at checkout. All applicable taxes are included.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ TAB: SERVICE ══ -->
-    <div class="tab-panel" id="tab-service">
-        <div class="card">
-            <div class="card-head"><div class="card-head-icon"><i class="fas fa-bell-concierge"></i></div>Room Requests</div>
-            <div class="card-body">
-                <div class="service-grid">
-                    <div class="service-btn" data-service="water" data-msg="Extra water bottles requested">
-                        <i class="fas fa-bottle-water"></i><span>Water</span>
-                    </div>
-                    <div class="service-btn" data-service="towel" data-msg="Fresh towels requested">
-                        <i class="fas fa-scroll"></i><span>Towels</span>
-                    </div>
-                    <div class="service-btn" data-service="cleaning" data-msg="Room cleaning requested">
-                        <i class="fas fa-broom"></i><span>Housekeeping</span>
-                    </div>
-                    <div class="service-btn" data-service="maintenance" data-msg="Maintenance assistance needed">
-                        <i class="fas fa-tools"></i><span>Maintenance</span>
-                    </div>
-                    <div class="service-btn" data-service="pillow" data-msg="Extra pillows requested">
-                        <i class="fas fa-bed"></i><span>Pillows</span>
-                    </div>
-                    <div class="service-btn" data-service="dnd" data-msg="Do not disturb">
-                        <i class="fas fa-moon"></i><span>DND</span>
-                    </div>
-                </div>
-                <div class="custom-row">
-                    <input type="text" class="custom-input" id="customReqInput" placeholder="Custom request…">
-                    <button class="btn-send" id="sendCustomBtn">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-head">
-                <div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>
-                Recent Requests
-                <button id="refreshRequestsBtn"
-                    onclick="refreshServiceList()"
-                    style="margin-left:auto; background:none; border:none; cursor:pointer;
-                           color:var(--muted); font-size:0.8rem; padding:4px 8px;
-                           border-radius:6px; transition:all 0.2s; display:flex; align-items:center; gap:5px;">
-                    <i class="fas fa-rotate-right"></i>
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="serviceList">
-                    {% if tasks %}
-                        {% for task in tasks %}
-                        <div class="req-item" data-request-id="{{ task.id }}">
-                            <div style="flex:1;min-width:0;">
-                                <div class="req-title">{{ task.title }}</div>
-                                {% if task.description %}
-                                <div class="req-desc">{{ task.description }}</div>
+                        <div class="menu-grid">
+                            {% for item in cat.items %}
+                            <div class="menu-item"
+                                 data-id="{{ item.id }}"
+                                 data-name="{{ item.name }}"
+                                 data-price="{{ item.price }}"
+                                 data-tax="{{ item.tax_percent }}">
+                                <span class="veg-indicator {% if item.veg %}veg{% else %}nonveg{% endif %}"></span>
+                                {% if item.image %}
+                                <img class="menu-img" src="{{ item.image }}" alt="{{ item.name }}" loading="lazy">
+                                {% else %}
+                                <div class="menu-img-placeholder"><i class="fas fa-bowl-food"></i></div>
                                 {% endif %}
-                                {% if task.staff %}
-                                <div class="req-assigned"><i class="fas fa-user-check" style="font-size:0.6rem;"></i> {{ task.staff.name }}</div>
-                                {% endif %}
-                                <div class="req-time">
-                                    <i class="fas fa-clock" style="font-size:0.6rem;"></i>
-                                    {{ task.created_at|date:"d M Y, H:i" }}
+                                <div class="menu-info">
+                                    <div class="menu-name">{{ item.name }}</div>
+                                    {% if item.description %}<div class="menu-desc">{{ item.description }}</div>{% endif %}
+                                    <div class="menu-price">₹{{ item.price }}</div>
+                                </div>
+                                <div class="menu-actions">
+                                    <button class="btn-add add-btn"><i class="fas fa-plus"></i> Add</button>
                                 </div>
                             </div>
-                            <span class="badge badge-{{ task.status }}">{{ task.status }}</span>
+                            {% endfor %}
                         </div>
+                        {% empty %}
+                        <div class="empty"><i class="fas fa-bowl-food"></i><p>Menu not available right now.</p></div>
                         {% endfor %}
-                    {% else %}
-                    <div class="empty"><i class="fas fa-bell-slash"></i><p>No requests yet.<br>Use the buttons above to request something.</p></div>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
+            {% endif %}
+            {% if "restaurant" in active_module_names or "food" in active_module_names %}
+            <!-- ══ TAB: CART ══ -->
+            <div class="tab-panel" id="tab-cart">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-shopping-bag"></i></div>
+                    <div>
+                        <div class="page-heading-title">Cart</div>
+                        <div class="page-heading-sub">Review your items before placing the order</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-shopping-bag"></i></div>Your Cart</div>
+                    <div class="card-body">
+                        <div id="cartList">
+                            <div class="cart-empty">
+                                <div class="cart-empty-icon"><i class="fas fa-bag-shopping"></i></div>
+                                <p>Your cart is empty.<br>Browse the menu and add items.</p>
+                            </div>
+                        </div>
+                        <hr class="divider">
+                        <div class="summary-row"><span>Subtotal</span><span id="cartSubtotal">₹0.00</span></div>
+                        <div class="summary-row"><span>GST</span><span id="cartTax">₹0.00</span></div>
+                        <div class="summary-row grand-total"><span>Total</span><span id="cartTotal">₹0.00</span></div>
+                        <textarea class="note-input" id="orderNote" rows="2" placeholder="Any special instructions? (optional)"></textarea>
+                        <button class="btn-primary" id="placeOrderBtn" disabled>
+                            <i class="fas fa-check-circle"></i> Place Room Service Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% if "restaurant" in active_module_names or "food" in active_module_names %}
+            <!-- ══ TAB: ORDERS ══ -->
+            <div class="tab-panel" id="tab-orders">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-receipt"></i></div>
+                    <div>
+                        <div class="page-heading-title">Orders</div>
+                        <div class="page-heading-sub">Track your room service orders and spend</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="ordersStats">
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-receipt"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statTotalOrders">0</div>
+                            <div class="stat-label">Total Orders</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon gold"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statPendingOrders">0</div>
+                            <div class="stat-label">Pending / In Progress</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-indian-rupee-sign"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statTotalSpent">₹0.00</div>
+                            <div class="stat-label">Total Spent</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-receipt"></i></div>My Orders</div>
+                    <div class="card-body">
+                        <div id="ordersList">
+                            {% if existing_orders %}
+                                {% for o in existing_orders %}
+                                <div class="order-track-card" data-status="{{ o.status }}" data-total="{{ o.total }}" data-order-id="{{ o.id }}">
+                                    <div class="order-track-top">
+                                        <div>
+                                            <div class="order-track-id">#{{ o.order_number }}</div>
+                                            <div class="order-track-items">{% for item in o.items %}{{ item.qty }}&times; {{ item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+                                        </div>
+                                        <div class="order-track-meta">
+                                            <div class="order-track-amount">₹{{ o.total }}</div>
+                                            <div class="order-track-time">{{ o.created_at|slice:":16" }}</div>
+                                        </div>
+                                    </div>
+
+                                    {% if o.status|lower == "cancelled" %}
+                                    <div class="order-cancelled-banner"><i class="fas fa-ban"></i> This order was cancelled</div>
+                                    {% else %}
+                                    <div class="order-tracker">
+                                        <div class="tracker-step">
+                                            <div class="tracker-dot {% if o.status|lower == 'pending' or o.status|lower == 'received' %}active{% else %}done{% endif %}">
+                                                {% if o.status|lower == 'pending' or o.status|lower == 'received' %}<i class="fas fa-receipt"></i>{% else %}<i class="fas fa-check"></i>{% endif %}
+                                            </div>
+                                            <div class="tracker-label">Placed</div>
+                                        </div>
+                                        <div class="tracker-line {% if o.status|lower != 'pending' and o.status|lower != 'received' %}done{% endif %}"></div>
+                                        <div class="tracker-step">
+                                            <div class="tracker-dot {% if o.status|lower == 'in_progress' or o.status|lower == 'preparing' %}active{% elif o.status|lower == 'completed' or o.status|lower == 'served' or o.status|lower == 'delivered' %}done{% endif %}">
+                                                {% if o.status|lower == 'completed' or o.status|lower == 'served' or o.status|lower == 'delivered' %}<i class="fas fa-check"></i>{% elif o.status|lower == 'in_progress' or o.status|lower == 'preparing' %}<i class="fas fa-fire-burner"></i>{% else %}2{% endif %}
+                                            </div>
+                                            <div class="tracker-label">Preparing</div>
+                                        </div>
+                                        <div class="tracker-line {% if o.status|lower == 'completed' or o.status|lower == 'served' or o.status|lower == 'delivered' %}done{% endif %}"></div>
+                                        <div class="tracker-step">
+                                            <div class="tracker-dot {% if o.status|lower == 'completed' or o.status|lower == 'served' or o.status|lower == 'delivered' %}done{% endif %}">
+                                                {% if o.status|lower == 'completed' or o.status|lower == 'served' or o.status|lower == 'delivered' %}<i class="fas fa-check"></i>{% else %}3{% endif %}
+                                            </div>
+                                            <div class="tracker-label">Served</div>
+                                        </div>
+                                    </div>
+                                    {% if o.status|lower == 'pending' or o.status|lower == 'received' %}
+                                    <button class="btn-cancel-order" onclick="cancelOrder({{ o.id }}, this)"><i class="fas fa-xmark"></i> Cancel Order</button>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="empty"><i class="fas fa-mug-hot"></i><p>No orders yet.<br>Browse the menu and order something!</p></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+             {% endif %}
+             {% if "laundry" in active_module_names %}
+            <!-- ══ TAB: LAUNDRY ══ -->
+            <div class="tab-panel" id="tab-laundry">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-shirt"></i></div>
+                    <div>
+                        <div class="page-heading-title">Laundry</div>
+                        <div class="page-heading-sub">Request pickup and track your laundry orders</div>
+                    </div>
+                </div>
+
+                {% if laundry_orders %}
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>Laundry Orders</div>
+                    <div class="card-body">
+                        {% for lo in laundry_orders %}
+                        <div class="laundry-order-card">
+                            <div class="order-header-row">
+                                <span class="order-num">Order #{{ lo.id }}</span>
+                                <span class="badge badge-{{ lo.status }}">{{ lo.status }}</span>
+                            </div>
+                            <div class="order-footer">
+                                <span class="order-total">₹{{ lo.total }}</span>
+                                <span class="order-time">{{ lo.created_at|slice:":16" }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-shirt"></i></div>Request Laundry</div>
+                    <div class="card-body">
+                        {% for svc in laundry_services %}
+                        <div class="laundry-svc" data-id="{{ svc.id }}" data-price="{{ svc.price_per_unit }}">
+                            <div class="laundry-icon">
+                                {% if svc.service_type == "wash" %}<i class="fas fa-water"></i>
+                                {% elif svc.service_type == "dry_clean" %}<i class="fas fa-wind"></i>
+                                {% elif svc.service_type == "iron" %}<i class="fas fa-fire-flame-curved"></i>
+                                {% else %}<i class="fas fa-shirt"></i>{% endif %}
+                            </div>
+                            <div class="laundry-info">
+                                <div class="laundry-name">{{ svc.name }}</div>
+                                <div class="laundry-meta">{{ svc.service_type|title }}{% if svc.turnaround_hours %} · Ready in {{ svc.turnaround_hours }}h{% endif %}</div>
+                                <div class="laundry-qty-row" style="display:none;">
+                                    <span style="font-size:0.75rem;color:var(--muted);">Qty:</span>
+                                    <input type="number" class="laundry-qty-input" value="1" min="1" max="20">
+                                </div>
+                            </div>
+                            <div class="laundry-price">₹{{ svc.price_per_unit }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="empty"><i class="fas fa-shirt"></i><p>Laundry services not available right now.</p></div>
+                        {% endfor %}
+                        {% if laundry_services %}
+                        <textarea class="note-input" id="laundryNote" rows="2" placeholder="Special instructions (e.g. stain on shirt, delicate fabric)…" style="margin-top:14px;"></textarea>
+                        <button class="btn-primary" id="laundryOrderBtn">
+                            <i class="fas fa-paper-plane"></i> Request Laundry Pickup
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        
+{% endif %}
+{% if "restaurant" in active_module_names or "food" in active_module_names %}
+
+<!-- ══ TAB: DINING ══ -->
+<div class="tab-panel" id="tab-dining">
+    <div class="page-heading">
+        <div class="page-heading-icon"><i class="fas fa-utensils"></i></div>
+        <div>
+            <div class="page-heading-title">Dining</div>
+            <div class="page-heading-sub">Reserve a table at our restaurant</div>
         </div>
     </div>
 
+    <div class="card">
+        <div class="card-head"><div class="card-head-icon"><i class="fas fa-calendar-check"></i></div>Book a Table</div>
+        <div class="card-body">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px;">
+                <div>
+                    <label style="font-size:0.72rem; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;">Date</label>
+                    <input type="date" id="dineDate" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:0.82rem; font-family:inherit;" min="{{ booking.check_in }}" max="{{ booking.check_out }}">
+                </div>
+                <div>
+                    <label style="font-size:0.72rem; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;">Time</label>
+                    <input type="time" id="dineTime" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:0.82rem; font-family:inherit;">
+                </div>
+                <div>
+                    <label style="font-size:0.72rem; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;">Guests</label>
+                    <input type="number" id="dineGuests" value="2" min="1" max="10" style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:0.82rem; font-family:inherit;">
+                </div>
+            </div>
+            <button class="btn-primary" id="searchTablesBtn" style="margin-top:0;">
+                <i class="fas fa-search"></i> Search Available Tables
+            </button>
+            <div id="tablesList" style="margin-top:14px;"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head"><div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>My Reservations</div>
+        <div class="card-body">
+            <div id="dineReservationsList">
+                <div class="empty"><i class="fas fa-utensils"></i><p>No dining reservations yet.</p></div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endif %}
+            <!-- ══ TAB: BILL ══ -->
+            <div class="tab-panel" id="tab-bill">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div>
+                        <div class="page-heading-title">Bill</div>
+                        <div class="page-heading-sub">Your charges, payments &amp; balance for this stay</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-file-invoice-dollar"></i></div>Bill Summary</div>
+                    <div class="card-body">
+
+                        {% if folio %}
+
+                        <div class="bill-status-pill {% if folio.status == 'open' %}bill-status-open{% else %}bill-status-closed{% endif %}">
+                            <i class="fas {% if folio.status == 'open' %}fa-clock{% else %}fa-check-circle{% endif %}"></i>
+                            Folio {{ folio.status|title }}
+                        </div>
+
+                        {% regroup folio_charges by charge_type as charge_groups %}
+                        {% for group in charge_groups %}
+                        <div class="bill-section">
+                            <div class="bill-label">
+                                {% if group.grouper == "room" %}Room Charges
+                                {% elif group.grouper == "restaurant" %}Food &amp; Beverage
+                                {% elif group.grouper == "laundry" %}Laundry
+                                {% else %}Other Charges{% endif %}
+                            </div>
+                            {% for charge in group.list %}
+                            <div class="bill-charge-row">
+                                <div>
+                                    <div class="bill-charge-desc">{{ charge.description }}</div>
+                                    <div class="bill-charge-tax">Tax: ₹{{ charge.tax_amount }}</div>
+                                </div>
+                                <div class="bill-charge-amt">₹{{ charge.total }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% empty %}
+                        <div class="bill-section">
+                            <div class="bill-label">Room Charges</div>
+                            <div class="bill-charge-row">
+                                <div class="bill-charge-desc">{{ room.room.room_type }} Room</div>
+                                <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if folio_payments %}
+                        <div class="bill-section">
+                            <div class="bill-label">Payments Received</div>
+                            {% for p in folio_payments %}
+                            <div class="bill-charge-row">
+                                <div class="bill-charge-desc">{{ p.method|default:"Payment" }}</div>
+                                <div class="bill-charge-amt" style="color:var(--green-mid);">−₹{{ p.amount }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <hr class="divider">
+                        <div class="summary-row"><span>Subtotal</span><span>₹{{ folio.total_charges }}</span></div>
+                        {% if folio.total_paid %}
+                        <div class="summary-row"><span>Paid</span><span style="color:var(--green-mid);">₹{{ folio.total_paid }}</span></div>
+                        {% endif %}
+                        <div class="summary-row grand-total"><span>Balance Due</span><span></span></div>
+
+                        {% else %}
+
+                        <div class="bill-status-pill bill-status-estimated">
+                            <i class="fas fa-calculator"></i> Estimated Bill
+                        </div>
+                        <div class="bill-section">
+                            <div class="bill-label">Room Charges</div>
+                            <div class="bill-charge-row">
+                                <div>
+                                    <div class="bill-charge-desc">{{ room.room.room_type }} — {{ booking.check_in }} to {{ booking.check_out }}</div>
+                                    <div class="bill-charge-tax">18% GST included</div>
+                                </div>
+                                <div class="bill-charge-amt">₹{{ booking.base_price }}</div>
+                            </div>
+                        </div>
+                        {% if existing_orders %}
+                        <div class="bill-section">
+                            <div class="bill-label">Food &amp; Beverage</div>
+                            {% for o in existing_orders %}{% if o.status != "cancelled" %}
+                            <div class="bill-charge-row">
+                                <div class="bill-charge-desc">Room Service #{{ o.order_number }}</div>
+                                <div class="bill-charge-amt">₹{{ o.total }}</div>
+                            </div>
+                            {% endif %}{% endfor %}
+                        </div>
+                        {% endif %}
+                        <hr class="divider">
+                        <div class="summary-row grand-total"><span>Estimated Total</span><span>₹{{ booking.total_amount }}</span></div>
+
+                        {% endif %}
+
+                        <p style="font-size:0.72rem;color:var(--muted);margin-top:14px;line-height:1.6;">
+                            <i class="fas fa-info-circle"></i> Final bill presented at checkout. All applicable taxes are included.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══ TAB: SERVICE ══ -->
+            <div class="tab-panel" id="tab-service">
+                <div class="page-heading">
+                    <div class="page-heading-icon"><i class="fas fa-bell-concierge"></i></div>
+                    <div>
+                        <div class="page-heading-title">Service</div>
+                        <div class="page-heading-sub">Request housekeeping, amenities &amp; assistance</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div class="card-head-icon"><i class="fas fa-bell-concierge"></i></div>Room Requests</div>
+                    <div class="card-body">
+                        <div class="service-grid">
+                            <div class="service-btn" data-service="water" data-msg="Extra water bottles requested">
+                                <i class="fas fa-bottle-water"></i><span>Water</span>
+                            </div>
+                            <div class="service-btn" data-service="towel" data-msg="Fresh towels requested">
+                                <i class="fas fa-scroll"></i><span>Towels</span>
+                            </div>
+                            <div class="service-btn" data-service="cleaning" data-msg="Room cleaning requested">
+                                <i class="fas fa-broom"></i><span>Housekeeping</span>
+                            </div>
+                            <div class="service-btn" data-service="maintenance" data-msg="Maintenance assistance needed">
+                                <i class="fas fa-tools"></i><span>Maintenance</span>
+                            </div>
+                            <div class="service-btn" data-service="pillow" data-msg="Extra pillows requested">
+                                <i class="fas fa-bed"></i><span>Pillows</span>
+                            </div>
+                            <div class="service-btn" data-service="dnd" data-msg="Do not disturb">
+                                <i class="fas fa-moon"></i><span>DND</span>
+                            </div>
+                        </div>
+                        <div class="custom-row">
+                            <input type="text" class="custom-input" id="customReqInput" placeholder="Custom request…">
+                            <button class="btn-send" id="sendCustomBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-head-icon"><i class="fas fa-clock-rotate-left"></i></div>
+                        Recent Requests
+                        <button id="refreshRequestsBtn"
+                            onclick="refreshServiceList()"
+                            style="margin-left:auto; background:none; border:none; cursor:pointer;
+                                   color:var(--muted); font-size:0.8rem; padding:4px 8px;
+                                   border-radius:6px; transition:all 0.2s; display:flex; align-items:center; gap:5px;">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="serviceList">
+                            {% if tasks %}
+                                {% for task in tasks %}
+                                <div class="req-item" data-request-id="{{ task.id }}">
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="req-title">{{ task.title }}</div>
+                                        {% if task.description %}
+                                        <div class="req-desc">{{ task.description }}</div>
+                                        {% endif %}
+                                        {% if task.staff %}
+                                        <div class="req-assigned"><i class="fas fa-user-check" style="font-size:0.6rem;"></i> {{ task.staff.name }}</div>
+                                        {% endif %}
+                                        <div class="req-time">
+                                            <i class="fas fa-clock" style="font-size:0.6rem;"></i>
+                                            {{ task.created_at|date:"d M Y, H:i" }}
+                                        </div>
+                                    </div>
+                                    <span class="badge badge-{{ task.status }}">{{ task.status }}</span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                            <div class="empty"><i class="fas fa-bell-slash"></i><p>No requests yet.<br>Use the buttons above to request something.</p></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- /.main-content -->
+
+</div>
+<!-- /.app-shell -->
 
 <!-- ══ CART FAB ══ -->
 <button class="cart-fab" id="cartFab">
@@ -734,13 +1421,43 @@
 <!-- ══ TOAST ══ -->
 <div class="toast" id="toast"></div>
 
+<!-- ══ CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="confirmModalOverlay">
+    <div class="modal-card">
+        <div class="modal-icon"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="modal-title" id="confirmModalTitle">Are you sure?</div>
+        <div class="modal-desc" id="confirmModalDesc"></div>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary" id="confirmModalCancelBtn">No, keep it</button>
+            <button class="modal-btn modal-btn-danger" id="confirmModalConfirmBtn">Yes, cancel</button>
+        </div>
+    </div>
+</div>
+<!-- ══ NOTIFY MODAL (order/dining alerts) ══ -->
+<div class="notify-overlay" id="notifyOverlay">
+    <div class="notify-card">
+        <div class="notify-icon" id="notifyIcon"><i class="fas fa-bell"></i></div>
+        <div class="notify-title" id="notifyTitle">Update</div>
+        <div class="notify-desc" id="notifyDesc"></div>
+        <button class="notify-ok-btn" id="notifyOkBtn">Got it</button>
+    </div>
+</div>
 <script>
 // ── URL CONSTANTS ─────────────────────────────────────────────────────────────
 const ORDER_URL    = '/guest/{{ schema }}/{{ token }}/order/';
 const ORDERS_URL   = '/guest/{{ schema }}/{{ token }}/orders/';
 const LAUNDRY_URL  = '/guest/{{ schema }}/{{ token }}/laundry/';
 const SERVICE_URL  = '/guest/request/{{ schema }}/{{ token }}/';   // POST — create request
-const REQUESTS_URL = '/guest/requests/{{ schema }}/{{ token }}/';  // GET  — list requests
+const REQUESTS_URL = '/guest/requests/{{ schema }}/{{ token }}/';
+const TABLES_API   = '/guest/{{ schema }}/{{ token }}/tables/';  // GET  — list requests
+const CHECKIN_URL     = '/guest-portal/{{ schema }}/{{ token }}/self-check-in/';
+const BOOKING_STATUS  = '{{ booking.status }}';
+const PORTAL_EXPIRED = {{ portal_expired|yesno:"true,false" }};
+const PORTAL_EXPIRED_REASON = "{{ portal_expired_reason }}";
+const CHECKIN_DATE_STR = '{{ booking.check_in|date:"Y-m-d" }}';
+const CHECKOUT_SUMMARY_URL = '/guest-portal/{{ schema }}/{{ token }}/checkout-summary/';
+const CHECKOUT_URL         = '/guest-portal/{{ schema }}/{{ token }}/self-check-out/';
+
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 let cart = [];
@@ -762,15 +1479,33 @@ function showToast(msg, type = 'success') {
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function switchTab(name) {
-    document.querySelectorAll('.nav-tab').forEach(el =>
+    // Lock every tab except Dashboard until the guest has actually checked in.
+    if (name !== 'dashboard' && BOOKING_STATUS !== 'checked_in') {
+        showNotifyModal(
+            'Check-in required',
+            "Please complete self check-in from the Dashboard first — this section unlocks right after.",
+            'reminder', 'fa-lock'
+        );
+        name = 'dashboard';
+    }
+    document.querySelectorAll('.sidebar-link').forEach(el =>
         el.classList.toggle('active', el.dataset.tab === name));
     document.querySelectorAll('.tab-panel').forEach(el =>
         el.classList.toggle('active', el.id === 'tab-' + name));
-    if (name === 'orders')  refreshOrders();
-    if (name === 'service') refreshServiceList();
+    if (name === 'orders'  && document.getElementById('tab-orders'))  refreshOrders();
+if (name === 'service' && document.getElementById('tab-service')) refreshServiceList();
 }
-document.querySelectorAll('.nav-tab').forEach(tab =>
+document.querySelectorAll('.sidebar-link').forEach(tab =>
     tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+
+// Visually dim the locked nav links so it's clear they're inactive pre-check-in.
+document.addEventListener('DOMContentLoaded', () => {
+    if (BOOKING_STATUS !== 'checked_in') {
+        document.querySelectorAll('.sidebar-link').forEach(el => {
+            if (el.dataset.tab !== 'dashboard') el.classList.add('locked');
+        });
+    }
+});
 
 // ── CART ──────────────────────────────────────────────────────────────────────
 function findItem(id) { return cart.find(i => i.id === id); }
@@ -846,7 +1581,238 @@ function syncMenuBtns() {
         }
     });
 }
+function initSelfCheckin() {
+    if (BOOKING_STATUS !== 'confirmed') return;
 
+    const notYetEl    = document.getElementById('checkinNotYet');
+    const formWrapEl  = document.getElementById('checkinFormWrap');
+    const countdownEl = document.getElementById('checkinCountdown');
+    if (!notYetEl || !formWrapEl) return;
+
+    const checkinDate = new Date(CHECKIN_DATE_STR + 'T00:00:00');
+
+    function tick() {
+        const now  = new Date();
+        const diff = checkinDate - now;
+        if (diff <= 0) {
+            notYetEl.style.display   = 'none';
+            formWrapEl.style.display = 'block';
+            clearInterval(countdownTimer);
+            return;
+        }
+        notYetEl.style.display   = 'block';
+        formWrapEl.style.display = 'none';
+        const days  = Math.floor(diff / 86400000);
+        const hours = Math.floor((diff % 86400000) / 3600000);
+        const mins  = Math.floor((diff % 3600000) / 60000);
+        const secs  = Math.floor((diff % 60000) / 1000);
+        countdownEl.textContent = days > 0
+            ? `${days}d ${hours}h ${mins}m`
+            : `${hours}h ${mins}m ${secs}s`;
+    }
+    tick();
+    var countdownTimer = setInterval(tick, 1000);
+}
+initSelfCheckin();
+
+// ── ID DOCUMENT PREVIEW ──────────────────────────────────────────────────────
+// Shows the selected front/back ID image immediately, so the guest can confirm
+// that the correct document was added before pressing "Check In Now".
+function setupIdUploadPreview(inputId, slotSelector) {
+    const input = document.getElementById(inputId);
+    const slot = document.querySelector(slotSelector);
+    if (!input || !slot) return;
+
+    const preview = slot.querySelector('.id-upload-preview');
+    const removeBtn = slot.querySelector('.id-upload-remove');
+    const fileInfo = slot.querySelector('.id-upload-file-info');
+    const fileName = slot.querySelector('.id-upload-file-name');
+
+    function clearPreview() {
+        input.value = '';
+        preview.removeAttribute('src');
+        preview.style.display = 'none';
+        removeBtn.style.display = 'none';
+        fileInfo.style.display = 'none';
+        fileName.textContent = '';
+        slot.classList.remove('filled');
+    }
+
+    input.addEventListener('change', () => {
+        const file = input.files && input.files[0];
+
+        if (!file) {
+            clearPreview();
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            clearPreview();
+            showToast('Please select an image file.', 'error');
+            return;
+        }
+
+        // Create a local preview without uploading the file yet.
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            preview.src = event.target.result;
+            preview.style.display = 'block';
+            removeBtn.style.display = 'flex';
+            fileInfo.style.display = 'flex';
+            fileName.textContent = file.name;
+            slot.classList.add('filled');
+        };
+
+        reader.onerror = () => {
+            clearPreview();
+            showToast('Could not preview this image. Please try again.', 'error');
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    removeBtn.addEventListener('click', (event) => {
+        // Prevent the label click from opening the file picker again.
+        event.preventDefault();
+        event.stopPropagation();
+        clearPreview();
+    });
+}
+
+setupIdUploadPreview('idFrontInput', '.id-upload-slot[data-slot="front"]');
+setupIdUploadPreview('idBackInput', '.id-upload-slot[data-slot="back"]');
+
+const checkinForm = document.getElementById('checkinForm');
+if (checkinForm) {
+    checkinForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const frontInput = document.getElementById('idFrontInput');
+        if (!frontInput || !frontInput.files || !frontInput.files.length) {
+            showToast('Please upload the front side of your ID.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('checkinSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Checking in…';
+        try {
+            const res  = await fetch(CHECKIN_URL, { method: 'POST', body: new FormData(checkinForm) });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || "You're checked in!");
+                setTimeout(() => location.reload(), 1200);
+                        } else if (data.room_status) {
+                showNotifyModal('Room being prepared', data.error, 'reminder', 'fa-broom');
+            } else if (data.check_in_date) {
+                // Server confirms it's too early — show the modal + re-sync the countdown
+                showNotifyModal('Check-in not open yet', data.error, 'reminder', 'fa-hourglass-half');
+                initSelfCheckin();
+            }  else {
+                showToast(data.error || 'Check-in failed.', 'error');
+            }
+        } catch {
+            showToast('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-door-open"></i> Check In Now';
+        }
+    });
+}
+
+function esc2(s){ return esc(s); } // reuse existing esc()
+
+function renderCheckoutScreen(data) {
+    const body   = document.getElementById('checkoutScreenBody');
+    const banner = document.getElementById('checkoutBalanceBanner');
+    const confirmBtn = document.getElementById('checkoutScreenConfirmBtn');
+
+    let html = `<div style="font-size:0.78rem; color:var(--muted); margin-bottom:10px;">
+        Room ${esc2(data.room)} · ${esc2(data.check_in)} → ${esc2(data.check_out)}
+    </div>`;
+
+    data.charges.forEach(c => {
+        html += `<div class="bill-charge-row">
+            <div class="bill-charge-desc">${esc2(c.description)}</div>
+            <div class="bill-charge-amt">${fmt(c.total)}</div>
+        </div>`;
+    });
+
+    if (data.payments.length) {
+        html += `<hr class="divider">`;
+        data.payments.forEach(p => {
+            html += `<div class="bill-charge-row">
+                <div class="bill-charge-desc">${esc2(p.method || 'Payment')}</div>
+                <div class="bill-charge-amt" style="color:var(--green-mid);">−${fmt(p.amount)}</div>
+            </div>`;
+        });
+    }
+
+    html += `<hr class="divider">
+        <div class="summary-row"><span>Subtotal</span><span>${fmt(data.total_charges)}</span></div>
+        <div class="summary-row"><span>Paid</span><span style="color:var(--green-mid);">${fmt(data.total_paid)}</span></div>
+        <div class="summary-row grand-total"><span>Balance Due</span><span>${fmt(data.balance_due)}</span></div>`;
+
+    body.innerHTML = html;
+
+    if (data.can_checkout) {
+        banner.style.display = 'none';
+        confirmBtn.style.display = 'block';
+    } else {
+        banner.style.display = 'block';
+        banner.innerHTML = `<div style="background:var(--red-bg); color:var(--red); padding:10px 12px; border-radius:8px; font-size:0.78rem; font-weight:600;">
+            <i class="fas fa-triangle-exclamation"></i> Outstanding balance of ${fmt(data.balance_due)}. Please settle at the front desk before checking out.
+        </div>`;
+        confirmBtn.style.display = 'none';
+    }
+}
+
+const openCheckoutBtn = document.getElementById('openCheckoutScreenBtn');
+if (openCheckoutBtn) {
+    openCheckoutBtn.addEventListener('click', async () => {
+        document.getElementById('checkoutScreenOverlay').classList.add('show');
+        try {
+            const res  = await fetch(CHECKOUT_SUMMARY_URL);
+            const data = await res.json();
+            if (res.ok && data.success) {
+                renderCheckoutScreen(data);
+            } else {
+                document.getElementById('checkoutScreenBody').innerHTML =
+                    `<div class="empty"><i class="fas fa-exclamation-circle"></i><p>${esc2(data.error || 'Could not load bill.')}</p></div>`;
+            }
+        } catch {
+            document.getElementById('checkoutScreenBody').innerHTML =
+                `<div class="empty"><i class="fas fa-exclamation-circle"></i><p>Network error. Please try again.</p></div>`;
+        }
+    });
+}
+
+document.getElementById('checkoutScreenCloseBtn')?.addEventListener('click', () => {
+    document.getElementById('checkoutScreenOverlay').classList.remove('show');
+});
+
+document.getElementById('checkoutScreenConfirmBtn')?.addEventListener('click', async function () {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Checking out…';
+    try {
+        const res  = await fetch(CHECKOUT_URL, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            document.getElementById('checkoutScreenOverlay').classList.remove('show');
+            showToast(data.message || "You're checked out!");
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            showToast(data.error || 'Check-out failed.', 'error');
+        }
+    } catch {
+        showToast('Network error. Please try again.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Check Out';
+    }
+});
 // ── PLACE ORDER ───────────────────────────────────────────────────────────────
 document.getElementById('placeOrderBtn').addEventListener('click', async () => {
     if (!cart.length) return;
@@ -891,23 +1857,147 @@ async function refreshOrders() {
         const el     = document.getElementById('ordersList');
         if (!orders.length) {
             el.innerHTML = '<div class="empty"><i class="fas fa-mug-hot"></i><p>No orders yet.</p></div>';
+            computeOrderStats();
             return;
         }
-        el.innerHTML = orders.map(o => {
-            const items = o.items.map(i => i.qty + '× ' + esc(i.name)).join(', ');
-            const time  = new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return '<div class="order-card">' +
-                '<div class="order-header-row">' +
-                '<span class="order-num">#' + esc(o.order_number) + '</span>' +
-                '<span class="badge badge-' + o.status + '">' + esc(o.status) + '</span>' +
-                '</div>' +
-                '<div class="order-items-list">' + items + '</div>' +
-                '<div class="order-footer">' +
-                '<span class="order-total">' + fmt(o.total) + '</span>' +
-                '<span class="order-time">' + time + '</span>' +
-                '</div></div>';
-        }).join('');
+        el.innerHTML = orders.map(buildOrderCard).join('');
+        computeOrderStats();
     } catch {}
+}
+
+/** Maps a raw status string to a 0/1/2 tracker step index, or -1 for cancelled/unknown. */
+function trackerStepIndex(status) {
+    status = (status || '').toLowerCase();
+    if (status === 'pending' || status === 'received') return 0;
+    if (status === 'in_progress' || status === 'preparing') return 1;
+    if (status === 'completed' || status === 'served' || status === 'delivered') return 2;
+    return -1;
+}
+
+/** Builds the Flipkart-style animated step tracker (Placed → Preparing → Served). */
+function buildTrackerHTML(status) {
+    const idx = trackerStepIndex(status);
+    const isFinal = (status || '').toLowerCase();
+    const isTerminalDone = ['served', 'completed', 'delivered'].includes(isFinal);
+
+    const steps = [
+        { label: 'Placed',    icon: 'fa-receipt' },
+        { label: 'Preparing', icon: 'fa-fire-burner' },
+        { label: 'Served',    icon: 'fa-check' },
+    ];
+    let html = '<div class="order-tracker">';
+    steps.forEach((s, i) => {
+        let dotClass = '', inner = String(i + 1);
+        if (i < idx || (i === idx && isTerminalDone)) {
+            dotClass = 'done';
+            inner = '<i class="fas fa-check"></i>';
+        } else if (i === idx) {
+            dotClass = 'active';
+            inner = '<i class="fas ' + s.icon + '"></i>';
+        }
+        html += '<div class="tracker-step"><div class="tracker-dot ' + dotClass + '">' + inner + '</div><div class="tracker-label">' + s.label + '</div></div>';
+        if (i < steps.length - 1) html += '<div class="tracker-line' + (i < idx ? ' done' : '') + '"></div>';
+    });
+    html += '</div>';
+    return html;
+}
+/** Builds one full order-track-card, including the cancel button when the order is still cancellable. */
+function buildOrderCard(o) {
+    const items  = o.items.map(i => i.qty + '× ' + esc(i.name)).join(', ');
+    const time   = new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const status = (o.status || '').toLowerCase();
+
+    let body;
+    if (status === 'cancelled') {
+        body = '<div class="order-cancelled-banner"><i class="fas fa-ban"></i> This order was cancelled</div>';
+    } else {
+        const idx = trackerStepIndex(status);
+        const cancelBtn = idx === 0
+            ? '<button class="btn-cancel-order" onclick="cancelOrder(' + o.id + ', this)"><i class="fas fa-xmark"></i> Cancel Order</button>'
+            : '';
+        body = buildTrackerHTML(status) + cancelBtn;
+    }
+
+    return '<div class="order-track-card" data-status="' + esc(o.status) + '" data-total="' + o.total + '" data-order-id="' + o.id + '">' +
+        '<div class="order-track-top">' +
+        '<div><div class="order-track-id">#' + esc(o.order_number) + '</div><div class="order-track-items">' + items + '</div></div>' +
+        '<div class="order-track-meta"><div class="order-track-amount">' + fmt(o.total) + '</div><div class="order-track-time">' + time + '</div></div>' +
+        '</div>' + body + '</div>';
+}
+
+// ── CONFIRM MODAL ─────────────────────────────────────────────────────────────
+let _confirmResolve = null;
+
+function showConfirmModal(title, desc, confirmLabel = 'Yes, cancel', cancelLabel = 'No, keep it') {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalDesc').textContent = desc;
+    document.getElementById('confirmModalConfirmBtn').textContent = confirmLabel;
+    document.getElementById('confirmModalCancelBtn').textContent = cancelLabel;
+    document.getElementById('confirmModalOverlay').classList.add('show');
+    return new Promise(resolve => { _confirmResolve = resolve; });
+}
+
+function hideConfirmModal(result) {
+    document.getElementById('confirmModalOverlay').classList.remove('show');
+    if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
+}
+
+document.getElementById('confirmModalCancelBtn').addEventListener('click', () => hideConfirmModal(false));
+document.getElementById('confirmModalConfirmBtn').addEventListener('click', () => hideConfirmModal(true));
+document.getElementById('confirmModalOverlay').addEventListener('click', e => {
+    if (e.target.id === 'confirmModalOverlay') hideConfirmModal(false);
+});
+
+/** Cancels an order (only shown/allowed while the order is still Pending/Received). */
+async function cancelOrder(id, btn) {
+    const confirmed = await showConfirmModal(
+        'Cancel this order?',
+        'This action cannot be undone. The kitchen will be notified right away.'
+    );
+    if (!confirmed) return;
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling…'; }
+    try {
+        const res  = await fetch(ORDER_URL + id + '/cancel/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showToast('Order cancelled.');
+            await refreshOrders();
+        } else {
+            showToast(data.error || 'Could not cancel order.', 'error');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-xmark"></i> Cancel Order'; }
+        }
+    } catch {
+        showToast('Network error. Please try again.', 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-xmark"></i> Cancel Order'; }
+    }
+}
+window.cancelOrder = cancelOrder;
+
+/**
+ * Recompute the Orders stat cards (total orders, pending/in-progress, total spent)
+ * by reading the data-status / data-total attributes already present on each
+ * table row — works for both the server-rendered rows and JS-refreshed rows.
+ */
+function computeOrderStats() {
+    const rows = document.querySelectorAll('#ordersList .order-track-card[data-status]');
+    let total = 0, pending = 0, spent = 0;
+    rows.forEach(row => {
+        const status = (row.dataset.status || '').toLowerCase();
+        if (status === 'cancelled') return; // exclude cancelled from totals
+        total++;
+        spent += parseFloat(row.dataset.total || 0);
+        if (status === 'pending' || status === 'received' || status === 'in_progress' || status === 'preparing') pending++;
+    });
+    const elTotal   = document.getElementById('statTotalOrders');
+    const elPending = document.getElementById('statPendingOrders');
+    const elSpent   = document.getElementById('statTotalSpent');
+    if (elTotal)   elTotal.textContent   = total;
+    if (elPending) elPending.textContent = pending;
+    if (elSpent)   elSpent.textContent   = fmt(spent);
 }
 
 // ── LAUNDRY ───────────────────────────────────────────────────────────────────
@@ -1090,6 +2180,136 @@ async function refreshServiceList() {
         }
     }
 }
+async function searchAvailableTables() {
+    const date = document.getElementById('dineDate').value;
+    const time = document.getElementById('dineTime').value;
+    const guests = document.getElementById('dineGuests').value;
+    
+    if (!date || !time) {
+        showToast('Please select date and time', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('searchTablesBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Searching...';
+    
+    try {
+        const res = await fetch(`${TABLES_API}available/?date=${date}&time=${time}&guests=${guests}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            const list = document.getElementById('tablesList');
+            if (!data.tables.length) {
+                list.innerHTML = '<div class="empty" style="padding:20px;"><i class="fas fa-ban"></i><p>No tables available at this time.</p></div>';
+            } else {
+                list.innerHTML = '<div style="font-size:0.72rem; color:var(--muted); margin-bottom:10px; font-weight:600;">Available Tables</div>' +
+                    data.tables.map(t => `
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; border:1.5px solid var(--border); border-radius:10px; margin-bottom:8px; background:var(--surface2);">
+                            <div>
+                                <div style="font-weight:700; font-size:0.9rem;">Table ${t.number}</div>
+                                <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">Capacity: ${t.capacity} guests</div>
+                            </div>
+                            <button class="btn-add" onclick="bookTable(${t.id}, '${t.number}', '${date}', '${time}', ${guests})" style="padding:8px 14px;">Book Now</button>
+                        </div>
+                    `).join('');
+            }
+        } else {
+            showToast(data.error || 'Search failed', 'error');
+        }
+    } catch {
+        showToast('Network error', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i> Search Available Tables';
+    }
+}
+ 
+async function bookTable(tableId, tableNum, date, time, guests) {
+    const confirmed = await showConfirmModal(
+        'Confirm your reservation',
+        `Book Table ${tableNum} for ${guests} guests on ${date} at ${time}?`,
+        'Yes, book it',
+        'Cancel'
+    );
+    if (!confirmed) return;
+    
+    try {
+        const res = await fetch(`${TABLES_API}book/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table_id: tableId, date, time, guests })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast(`Table ${tableNum} booked! Code: ${data.confirmation_code}`);
+            document.getElementById('dineDate').value = '';
+            document.getElementById('dineTime').value = '';
+            document.getElementById('tablesList').innerHTML = '';
+            await loadDineReservations();
+        } else {
+            showToast(data.error || 'Booking failed', 'error');
+        }
+    } catch {
+        showToast('Network error', 'error');
+    }
+}
+ 
+async function loadDineReservations() {
+    try {
+        const res = await fetch(TABLES_API);
+        const data = await res.json();
+        
+        const list = document.getElementById('dineReservationsList');
+        if (!data.reservations?.length) {
+            list.innerHTML = '<div class="empty"><i class="fas fa-utensils"></i><p>No reservations yet.</p></div>';
+            return;
+        }
+        
+        list.innerHTML = data.reservations.map(r => {
+            const dt = new Date(r.reservation_time).toLocaleString();
+            return `
+                <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:8px; background:var(--surface2);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                        <div>
+                            <div style="font-weight:700;">Table ${r.table}</div>
+                            <div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">${r.guests_count} guests · ${dt}</div>
+                        </div>
+                        <span class="badge badge-${r.status}">${r.status}</span>
+                    </div>
+                    ${r.can_cancel ? `<button class="btn-cancel-order" onclick="cancelTableRes(${r.id})" style="margin-top:8px; width:auto;">Cancel</button>` : ''}
+                </div>
+            `;
+        }).join('');
+    } catch {
+        console.error('Failed to load reservations');
+    }
+}
+ 
+async function cancelTableRes(resId) {
+    const confirmed = await showConfirmModal(
+        'Cancel this reservation?',
+        'This action cannot be undone.',
+        'Yes, cancel',
+        'No, keep it'
+    );
+    if (!confirmed) return;
+    try {
+        const res = await fetch(`${TABLES_API}${resId}/cancel/`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Reservation cancelled');
+            await loadDineReservations();
+        } else {
+            showToast(data.error || 'Failed to cancel', 'error');
+        }
+    } catch {
+        showToast('Network error', 'error');
+    }
+}
+ 
+
 
 // ── EVENT WIRING ──────────────────────────────────────────────────────────────
 
@@ -1147,6 +2367,213 @@ document.getElementById('cartFab').addEventListener('click', () => switchTab('ca
 
 // Expose changeQty globally for inline onclick handlers in cart HTML
 window.changeQty = changeQty;
+
+// Populate the Orders stat cards from the server-rendered table on first load
+computeOrderStats();
+document.getElementById('searchTablesBtn').addEventListener('click', searchAvailableTables);
+ 
+if (document.getElementById('tab-dining')) loadDineReservations();
+const originalSwitchTab = window.switchTab;
+window.switchTab = function(name) {
+    originalSwitchTab(name);
+    if (name === 'dining' && document.getElementById('tab-dining')) loadDineReservations();
+};
+// ── NOTIFICATIONS (sound + modal) ──────────────────────────────────────────
+// Create ONE shared audio context, unlocked on first user interaction
+let sharedAudioCtx = null;
+function unlockAudio() {
+    if (!sharedAudioCtx) {
+        try { sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch (e) { return; }
+    }
+    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+}
+document.addEventListener('click', unlockAudio, { once: true });
+document.addEventListener('touchstart', unlockAudio, { once: true });
+
+function playAlertSound() {
+    if (!sharedAudioCtx) return; // browser hasn't allowed audio yet — skip silently
+    const ctx = sharedAudioCtx;
+    const beep = (freq, start, dur) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur + 0.05);
+    };
+    beep(880, 0, 0.18);
+    beep(1046, 0.2, 0.22);
+}
+let notifyRepeatTimer = null;
+let notifyQueue = [];       // queued notifications while one is already showing
+let notifyModalOpen = false;
+
+function showNotifyModal(title, desc, type = 'success', iconClass = 'fa-bell') {
+    // If a modal is already up, queue this one instead of overwriting it
+    if (notifyModalOpen) {
+        notifyQueue.push({ title, desc, type, iconClass });
+        return;
+    }
+    notifyModalOpen = true;
+
+    document.getElementById('notifyTitle').textContent = title;
+    document.getElementById('notifyDesc').textContent = desc;
+    const iconEl = document.getElementById('notifyIcon');
+    iconEl.className = 'notify-icon ' + type;
+    iconEl.innerHTML = '<i class="fas ' + iconClass + '"></i>';
+    document.getElementById('notifyOverlay').classList.add('show');
+
+    // Play immediately, then keep repeating every 4s until dismissed
+    playAlertSound();
+    clearInterval(notifyRepeatTimer);
+    notifyRepeatTimer = setInterval(playAlertSound, 4000);
+}
+
+function hideNotifyModal() {
+    document.getElementById('notifyOverlay').classList.remove('show');
+    clearInterval(notifyRepeatTimer);
+    notifyRepeatTimer = null;
+    notifyModalOpen = false;
+
+    // If more notifications came in while this one was open, show the next one
+    if (notifyQueue.length) {
+        const next = notifyQueue.shift();
+        showNotifyModal(next.title, next.desc, next.type, next.iconClass);
+    }
+}
+
+document.getElementById('notifyOkBtn').addEventListener('click', hideNotifyModal);
+// Note: clicking the dark overlay background no longer dismisses it —
+// only the "Got it" button does, so the guest can't miss it accidentally.
+
+// Track last-seen order statuses so we only notify on a *change* — persisted across
+// page reloads so a status change that happened while the tab was closed still notifies.
+const ORDER_STATUS_STORAGE_KEY = 'guestOrderStatusCache_{{ token }}';
+
+function loadOrderStatusCache() {
+    try { return JSON.parse(localStorage.getItem(ORDER_STATUS_STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+}
+function saveOrderStatusCache(cache) {
+    try { localStorage.setItem(ORDER_STATUS_STORAGE_KEY, JSON.stringify(cache)); } catch {}
+}
+
+const orderStatusCache = loadOrderStatusCache();
+
+// For any order id we've never recorded before, seed it from the current DOM
+// (first-ever visit to this booking's portal — nothing to notify about yet).
+document.querySelectorAll('#ordersList .order-track-card[data-order-id]').forEach(card => {
+    const id = card.dataset.orderId;
+    if (!(id in orderStatusCache)) {
+        orderStatusCache[id] = (card.dataset.status || '').toLowerCase();
+    }
+});
+saveOrderStatusCache(orderStatusCache);
+
+function checkOrderStatusChanges(orders) {
+    orders.forEach(o => {
+        const id = String(o.id);
+        const newStatus = (o.status || '').toLowerCase();
+        const oldStatus = orderStatusCache[id];
+
+        if (oldStatus !== undefined && oldStatus !== newStatus) {
+            if (newStatus === 'in_progress' || newStatus === 'preparing') {
+                showNotifyModal(
+                    'Your order is being prepared!',
+                    `Order #${o.order_number} is now in the kitchen. It'll be with you shortly.`,
+                    'success', 'fa-fire-burner'
+                );
+            } else if (newStatus === 'completed' || newStatus === 'served' || newStatus === 'delivered') {
+                showNotifyModal(
+                    'Order served!',
+                    `Order #${o.order_number} has been served. Enjoy your meal!`,
+                    'success', 'fa-champagne-glasses'
+                );
+            } else if (newStatus === 'cancelled') {
+                showNotifyModal(
+                    'Order cancelled',
+                    `Order #${o.order_number} was cancelled.`,
+                    'reminder', 'fa-ban'
+                );
+            }
+        }
+        orderStatusCache[id] = newStatus;
+    });
+    saveOrderStatusCache(orderStatusCache);
+}
+
+// Track which reservation reminders have already fired (persists across refreshes/tabs)
+function getNotifiedReservations() {
+    try { return JSON.parse(localStorage.getItem('notifiedDiningReminders') || '[]'); }
+    catch { return []; }
+}
+function markReservationNotified(id) {
+    const list = getNotifiedReservations();
+    if (!list.includes(id)) {
+        list.push(id);
+        localStorage.setItem('notifiedDiningReminders', JSON.stringify(list));
+    }
+}
+
+function checkDiningReminders(reservations) {
+    const now = new Date();
+    const notified = getNotifiedReservations();
+
+    reservations.forEach(r => {
+        if (r.status !== 'reserved' && r.status !== 'seated') return;
+        const resTime = new Date(r.reservation_time);
+        const minutesUntil = (resTime - now) / 60000;
+
+        // Fire once, any time between 30 minutes and 0 minutes before the reservation
+        if (minutesUntil <= 30 && minutesUntil > 0 && !notified.includes(r.id)) {
+            showNotifyModal(
+                'Your table is almost ready!',
+                `Table ${r.table} is reserved for ${r.guests_count} guests at ${resTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}. Please head to the restaurant soon.`,
+                'reminder', 'fa-utensils'
+            );
+            markReservationNotified(r.id);
+        }
+    });
+}
+
+// ── POLLING: check orders + dining reminders every 30 seconds, regardless of active tab ──
+const HAS_RESTAURANT = {% if "restaurant" in active_module_names or "food" in active_module_names %}true{% else %}false{% endif %};
+
+async function pollForNotifications() {
+    if (!HAS_RESTAURANT) return;
+    try {
+        const res = await fetch(ORDERS_URL);
+        const data = await res.json();
+        if (data.orders) checkOrderStatusChanges(data.orders);
+    } catch {}
+
+    try {
+        const res = await fetch(TABLES_API);
+        const data = await res.json();
+        if (data.reservations) checkDiningReminders(data.reservations);
+    } catch {}
+}
+setInterval(pollForNotifications, 30000); // every 30s
+pollForNotifications(); // run once immediately on load
+if (PORTAL_EXPIRED) {
+    document.querySelectorAll(
+        '.sidebar-link, .service-btn, .btn-add, #placeOrderBtn, #sendCustomBtn, #laundryOrderBtn, #searchTablesBtn, #checkinSubmitBtn'
+    ).forEach(el => { el.style.pointerEvents = 'none'; el.style.opacity = '0.5'; });
+
+    const reasonText = PORTAL_EXPIRED_REASON === 'cancelled'
+        ? 'This booking has been cancelled, so this link is no longer valid.'
+        : 'Your stay has ended and this guest portal link is no longer active. Thank you for staying with us!';
+
+    const okBtn = document.getElementById('notifyOkBtn');
+    if (okBtn) okBtn.style.display = 'none';
+
+    showNotifyModal('Link Expired', reasonText, 'reminder', 'fa-hourglass-end');
+}
 </script>
 </body>
 </html>

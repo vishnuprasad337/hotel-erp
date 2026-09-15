@@ -94,6 +94,10 @@ path('superadmin/hotel/<int:hotel_id>/send-mail/', send_hotel_mail, name='send_h
 path('rejected-hotels/', get_rejected_hotels, name='get_rejected_hotels'),
 path('plan/<int:plan_id>/toggle/',     toggle_plan_status, name='toggle_plan_status'),
 path('plan/<int:plan_id>/set-expiry/', set_plan_expiry,    name='set_plan_expiry'),
+path('staff/<int:staff_id>/register-face/', register_staff_face, name='register_staff_face'),
+path('register/verify-otp/', verify_hotel_otp, name='verify_hotel_otp'),
+path('register/resend-otp/', resend_hotel_otp, name='resend_hotel_otp'),
+
     # forgot password
 
     
@@ -108,11 +112,8 @@ path('plan/<int:plan_id>/set-expiry/', set_plan_expiry,    name='set_plan_expiry
 
     
     path('reset/<uidb64>/<token>/',
-         auth_views.PasswordResetConfirmView.as_view(
-             template_name='auth/password_reset_confirm.html',
-             success_url='/reset/done/'
-         ),
-         name='password_reset_confirm'),
+     CustomPasswordResetConfirmView.as_view(),
+     name='password_reset_confirm'),
 
 
     path('reset/done/',
