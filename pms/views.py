@@ -79,105 +79,105 @@ def room_page(request):
 
 
 # ---------------- ADD ROOM API ----------------
+# ---------------- ADD ROOM API ----------------
+from django.urls import reverse
 @csrf_exempt
 def add_room(request):
-    if request.method == "POST":
-        try:
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        if request.content_type == "application/json":
+            data = json.loads(request.body)
+            files = None
+        else:
+            data = request.POST
+            files = request.FILES
+
+        with transaction.atomic():
+
+            # ---------------- FEATURES ----------------
             if request.content_type == "application/json":
-                data = json.loads(request.body)
-                files = None
-            else:
-                data = request.POST
-                files = request.FILES
-
-            with transaction.atomic():
-
-                # ---------------- FEATURES ----------------
-                # Accepts either a JSON list (["WiFi","AC","TV"])
-                # or a comma-separated string ("WiFi,AC,TV")
-                # or multiple form fields (features=WiFi&features=AC)
-                if request.content_type == "application/json":
-                    features = data.get('features', [])
-                    if isinstance(features, str):
-                        features = [f.strip() for f in features.split(',') if f.strip()]
-                    elif isinstance(features, list):
-                        features = [str(f).strip() for f in features if str(f).strip()]
-                    else:
-                        features = []
-                else:
-                    features = data.getlist('features') if hasattr(data, 'getlist') else []
-                    if not features:
-                        raw = data.get('features', '')
-                        if raw:
-                            features = [f.strip() for f in raw.split(',') if f.strip()]
+                features = data.get('features', [])
+                if isinstance(features, str):
+                    features = [f.strip() for f in features.split(',') if f.strip()]
+                elif isinstance(features, list):
                     features = [str(f).strip() for f in features if str(f).strip()]
+                else:
+                    features = []
+            else:
+                features = data.getlist('features') if hasattr(data, 'getlist') else []
+                if not features:
+                    raw = data.get('features', '')
+                    if raw:
+                        features = [f.strip() for f in raw.split(',') if f.strip()]
+                features = [str(f).strip() for f in features if str(f).strip()]
 
-                room = Room.objects.create(
-                    room_type=data.get('room_type'),
-                    base_price=data.get('base_price'),
-                    max_adults=data.get('max_adults', 2),
-                    max_children=data.get('max_children', 0),
-                    description=data.get('description', ''),
-                    extra_adult_price=data.get('extra_adult_price', 0),
-                    extra_child_price=data.get('extra_child_price', 0),
-                    overstay_price=data.get('overstay_price', 0),
-                    features=features,
-                )
+            room = Room.objects.create(
+                room_type=data.get('room_type'),
+                base_price=data.get('base_price'),
+                max_adults=data.get('max_adults', 2),
+                max_children=data.get('max_children', 0),
+                description=data.get('description', ''),
+                extra_adult_price=data.get('extra_adult_price', 0),
+                extra_child_price=data.get('extra_child_price', 0),
+                overstay_price=data.get('overstay_price', 0),
+                features=features,
+            )
 
-                amenities = data.get('amenities')
-                if amenities:
-                    if isinstance(amenities, str):
-                        amenities = amenities.split(',')
-                    room.amenities.set(amenities)
+            amenities = data.get('amenities')
+            if amenities:
+                if isinstance(amenities, str):
+                    amenities = amenities.split(',')
+                room.amenities.set(amenities)
 
-                total_units = int(data.get('total_units', 1))
+            total_units = int(data.get('total_units', 1))
 
-                prefix_map = {
-                    "Single": "S",
-                    "Double": "D",
-                    "Deluxe": "DL",
-                    "Suite": "SU"
-                }
+            prefix_map = {
+                "Single": "S",
+                "Double": "D",
+                "Deluxe": "DL",
+                "Suite": "SU"
+            }
 
-                prefix = prefix_map.get(room.room_type, "R")
+            prefix = prefix_map.get(room.room_type, "R")
 
-                existing_numbers = set(
-                    RoomUnit.objects.values_list('room_number', flat=True)
-                )
+            existing_numbers = set(
+                RoomUnit.objects.values_list('room_number', flat=True)
+            )
 
-                units = []
-                counter = 1
+            units = []
+            counter = 1
 
-                while len(units) < total_units:
-                    number = f"{prefix}{counter}"
-                    if number not in existing_numbers:
-                        units.append(RoomUnit(
-                            room=room,
-                            room_number=number
-                        ))
-                    counter += 1
+            while len(units) < total_units:
+                number = f"{prefix}{counter}"
+                if number not in existing_numbers:
+                    units.append(RoomUnit(
+                        room=room,
+                        room_number=number
+                    ))
+                counter += 1
 
-                RoomUnit.objects.bulk_create(units)
+            RoomUnit.objects.bulk_create(units)
 
-                if files:
-                    images = files.getlist("images")
-                    for i, img in enumerate(images):
-                        RoomImage.objects.create(
-                            room=room,
-                            image=img,
-                            is_primary=(i == 0)
-                        )
+            if files:
+                images = files.getlist("images")
+                for i, img in enumerate(images):
+                    RoomImage.objects.create(
+                        room=room,
+                        image=img,
+                        is_primary=(i == 0)
+                    )
 
-            return JsonResponse({
-                "success": True,
-                "room_id": room.id,
-                "features": room.features,
-            })
+        return JsonResponse({
+            "success": True,
+            "room_id": room.id,
+            "features": room.features,
+            "redirect_url": reverse("view_rooms_page"),   # ← ADDED
+        })
 
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 # ---------------- GET SINGLE ROOM ----------------
 from datetime import date as today_date
 def get_room(request, room_id):
@@ -2640,132 +2640,277 @@ def send_guest_portal_email(request, booking):
         recipient_list=[guest.email],
         fail_silently=False,
     )
-from restaurant.models import MenuCategory,RestaurantOrder,MenuItem,OrderItem
 from decimal import Decimal
-from inventory.models import LaundryService, LaundryOrder,LaundryOrderItem
+
+from django.http import HttpResponse
+from django.shortcuts import render
+from django_tenants.utils import schema_context
+
+from restaurant.models import MenuCategory, RestaurantOrder, MenuItem, OrderItem
+from inventory.models import LaundryService, LaundryOrder, LaundryOrderItem
+# keep your existing imports for these two (they were above the part you pasted):
+# from <your_app>.models import Booking, Task
+
+
+# ─────────────────────────────────────────────────────────────
+# helpers for the dashboard "Your Room" card
+# ─────────────────────────────────────────────────────────────
+def _amenity_icon(name):
+    import re
+    n = (name or "").lower()
+    words = set(re.findall(r"[a-z]+", n))
+    rules = [
+        (("wifi", "wi-fi", "internet"),                  "fa-wifi"),
+        (("ac", "air con", "air conditioning", "cooling"), "fa-snowflake"),
+        (("tv", "television"),                           "fa-tv"),
+        (("room service",),                              "fa-bell-concierge"),
+        (("breakfast", "dining", "food"),                "fa-utensils"),
+        (("pool", "swim"),                               "fa-water-ladder"),
+        (("parking",),                                   "fa-square-parking"),
+        (("balcony", "view"),                            "fa-mountain-sun"),
+        (("bath", "shower", "tub"),                      "fa-bath"),
+        (("minibar", "mini bar", "fridge"),              "fa-wine-bottle"),
+        (("heater", "heating"),                          "fa-fire"),
+        (("gym", "fitness"),                             "fa-dumbbell"),
+        (("laundry",),                                   "fa-shirt"),
+        (("safe", "locker"),                             "fa-lock"),
+    ]
+    for keys, icon in rules:
+        for k in keys:
+            # short keys ("ac", "tv") must match a whole word, longer ones can match anywhere
+            if (" " in k and k in n) or (len(k) <= 3 and k in words) or (len(k) > 3 and k in n):
+                return icon
+    return "fa-circle-check"
+
+
+def _amenity_note(name):
+    n = (name or "").lower()
+    if "wifi" in n or "wi-fi" in n:
+        return "Free"
+    if "room service" in n:
+        return "Available"
+    return "Included"
+
+
+def _build_room_context(booking, active_module_names):
+    """Everything the dashboard needs about the booked room type."""
+    room_type = booking.room_unit.room if booking.room_unit else booking.room
+
+    room_type_name = ""
+    room_image = None
+    room_description = ""
+    max_adults = max_children = 0
+    amenity_items = []
+
+    if room_type:
+        room_type_name = (
+            room_type.custom_room_type
+            if room_type.room_type == "Custom" and room_type.custom_room_type
+            else room_type.room_type
+        )
+        room_description = room_type.description or ""
+        max_adults = room_type.max_adults
+        max_children = room_type.max_children
+
+        img = room_type.images.filter(is_primary=True).first() or room_type.images.first()
+        if img and img.image:
+            room_image = img.image.url
+
+        names = [a.name for a in room_type.amenities.all()]
+        names += [str(f).strip() for f in (room_type.features or []) if str(f).strip()]
+        if "restaurant" in active_module_names or "food" in active_module_names:
+            names.append("Room Service")
+
+        seen = set()
+        for nm in names:
+            key = nm.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            amenity_items.append({"name": nm, "icon": _amenity_icon(nm), "note": _amenity_note(nm)})
+
+    return {
+        "room_type_name": room_type_name,
+        "room_image": room_image,
+        "room_description": room_description,
+        "room_max_adults": max_adults,
+        "room_max_children": max_children,
+        "room_amenities": amenity_items,          # all of them (used by the details modal)
+        "room_amenities_top": amenity_items[:4],  # the 4 shown on the card
+    }
+
 
 def guest_portal(request, schema, token):
+    with schema_context(schema):
+        booking = (
+            Booking.objects
+            .select_related("guest", "room", "room_unit", "room_unit__room")
+            .filter(guest_token=token)
+            .first()
+        )
+        if not booking:
+            return HttpResponse("This guest link is invalid.", status=404)
+
+        portal_expired = booking.status in ("checked_out", "cancelled")
+        portal_expired_reason = booking.status if portal_expired else ""
+
+        from accounts.models import Hotel, HotelModule
+        with schema_context("public"):
+            hotel = Hotel.objects.filter(schema_name=schema).first()
+
+        active_module_names = [
+            m.lower()
+            for m in HotelModule.objects
+            .filter(hotel=hotel, is_enabled=True)
+            .values_list("module__name", flat=True)
+        ]
+
+        room_ctx = _build_room_context(booking, active_module_names)
+
+        # menu
+        menu_data = []
+        for cat in MenuCategory.objects.prefetch_related("items").all():
+            items = [{
+                "id": i.id, "name": i.name, "description": i.description or "",
+                "price": float(i.price), "tax_percent": float(i.tax_percent),
+                "veg": i.is_veg, "image": i.image.url if i.image else None,
+            } for i in cat.items.filter(is_available=True)]
+            if items:
+                menu_data.append({"id": cat.id, "name": cat.name, "items": items})
+
+        # room-service orders (rendered via json_script, so keep them JSON-safe)
+        orders_data = [{
+            "id": o.id, "order_number": o.order_number, "status": o.status,
+            "total": float(o.total_amount), "tax": float(o.tax_amount),
+            "created_at": o.created_at.isoformat(),
+            "items": [{"name": oi.item.name, "qty": oi.quantity,
+                       "unit_price": float(oi.unit_price), "subtotal": float(oi.subtotal)}
+                      for oi in o.items.all()],
+        } for o in RestaurantOrder.objects.prefetch_related("items__item")
+            .filter(booking=booking, order_type="room_service").order_by("-created_at")]
+
+        # laundry
+        laundry_services = list(LaundryService.objects.values(
+            "id", "name", "service_type", "price_per_unit", "turnaround_hours"))
+        laundry_orders = [{
+            "id": o.id, "status": o.status, "total": float(o.total_amount),
+            "created_at": o.created_at.isoformat(),
+        } for o in LaundryOrder.objects.filter(booking=booking).order_by("-created_at")]
+
+        # billing
+        from billing.models import GuestFolio
+        folio, folio_charges, folio_payments = None, [], []
+        folio = GuestFolio.objects.filter(booking=booking).first()
+        if folio:
+            if booking.status == "checked_in":
+                apply_overstay_charge(booking, folio)
+                folio.refresh_from_db()
+            folio_charges = list(folio.charges.all().order_by("charge_type", "date"))
+            folio_payments = list(folio.payments.all())
+
+        return render(request, "guest/guest_dashboard.html", {
+            "hotel": hotel,
+            "guest": booking.guest,
+            "room": booking.room_unit,
+            "booking": booking,
+            "schema": schema,
+            "token": token,
+            "active_module_names": active_module_names,
+            "portal_expired": portal_expired,
+            "portal_expired_reason": portal_expired_reason,
+            "delivery_charge": 0,            # set a fee here if you add one
+
+            **room_ctx,                      # room_image, room_amenities, ...
+
+            "menu": menu_data,
+            "existing_orders": orders_data,
+            "laundry_services": laundry_services,
+            "laundry_orders": laundry_orders,
+            "folio": folio,
+            "folio_charges": folio_charges,
+            "folio_payments": folio_payments,
+        })
+
+
+from django.shortcuts import redirect
+ 
+ 
+def guest_menu(request, schema, token):
+    """
+    Guest 'Menu' page (food & beverages delivered to the room).
+    Extends guest/guest_base.html. Cart + ordering happen client-side and
+    POST to the existing guest_place_order() endpoint.
+    """
     with schema_context(schema):
         booking = Booking.objects.select_related(
             "guest", "room", "room_unit"
         ).filter(guest_token=token).first()
-
+ 
         if not booking:
             return JsonResponse({"error": "Invalid link"}, status=404)
-        portal_expired = booking.status in ("checked_out", "cancelled")
-        portal_expired_reason = (
-            "checked_out" if booking.status == "checked_out"
-            else "cancelled" if booking.status == "cancelled"
-            else ""
-        )
-        from accounts.models import Hotel
-        with schema_context('public'):
+ 
+        # Ordering is only for checked-in guests. Everyone else (expired,
+        # not yet checked in) goes back to the portal, which shows the
+        # right modal.
+        if booking.status != "checked_in":
+            return redirect("guest_portal", schema=schema, token=token)
+ 
+        from accounts.models import Hotel, HotelModule
+ 
+        with schema_context("public"):
             hotel = Hotel.objects.filter(schema_name=schema).first()
-        
-        categories = MenuCategory.objects.prefetch_related("items").all()
+ 
+        active_module_names = [
+            m.lower()
+            for m in HotelModule.objects.filter(
+                hotel=hotel, is_enabled=True
+            ).values_list("module__name", flat=True)
+        ]
+ 
+        # Restaurant module switched off -> no menu page
+        if "restaurant" not in active_module_names and "food" not in active_module_names:
+            return redirect("guest_portal", schema=schema, token=token)
+ 
+        # ---- menu (same shape guest_portal() builds) ----
         menu_data = []
-        for cat in categories:
+        for cat in MenuCategory.objects.prefetch_related("items").all():
             items = [
                 {
                     "id": item.id,
                     "name": item.name,
-                    "description": item.description,
+                    "description": item.description or "",
                     "price": float(item.price),
                     "tax_percent": float(item.tax_percent),
                     "veg": item.is_veg,
-                    "available": item.is_available,
                     "image": item.image.url if item.image else None,
                 }
                 for item in cat.items.filter(is_available=True)
             ]
             if items:
-                menu_data.append({"id": cat.id, "name": cat.name, "items": items})
-
-      
-        tasks = Task.objects.filter(
-            room_unit=booking.room_unit
-        ).order_by("-created_at")
-
-       
-        existing_orders = RestaurantOrder.objects.prefetch_related(
-            "items__item"
-        ).filter(booking=booking, order_type="room_service").order_by("-created_at")
-
-        orders_data = []
-        for o in existing_orders:
-            orders_data.append({
-                "id": o.id,
-                "order_number": o.order_number,
-                "status": o.status,
-                "total": float(o.total_amount),
-                "tax": float(o.tax_amount),
-                "created_at": o.created_at.isoformat(),
-                "items": [
-                    {
-                        "name": oi.item.name,
-                        "qty": oi.quantity,
-                        "unit_price": float(oi.unit_price),
-                        "subtotal": float(oi.subtotal),
-                    }
-                    for oi in o.items.all()
-                ],
-            })
-
-        # ── Laundry ──
-        laundry_services = list(
-            LaundryService.objects.values(
-                "id", "name", "service_type", "price_per_unit", "turnaround_hours"
-            )
-        )
-        laundry_orders = []
-        for o in LaundryOrder.objects.filter(booking=booking).order_by("-created_at"):
-            laundry_orders.append({
-                "id": o.id,
-                "status": o.status,
-                "total": float(o.total_amount),
-                "created_at": o.created_at.isoformat(),
-            })
-        from accounts.models import HotelModule
-
-        active_modules = HotelModule.objects.filter(
-        hotel=hotel, is_enabled=True
-        ).values_list('module__name', flat=True)
-        active_module_names = [m.lower() for m in active_modules]
-       
-        from billing.models import GuestFolio, FolioCharge
-
-        folio = None
-        folio_charges = []
-        folio_payments = []
-
-        try:
-            folio = GuestFolio.objects.get(booking=booking)
-            folio_charges = folio.charges.all().order_by("charge_type", "date")
-            # FolioPayment if your billing app has one; adjust model name as needed
-            folio_payments = folio.payments.all() if hasattr(folio, "payments") else []
-        except GuestFolio.DoesNotExist:
-            pass  # Template will fall back to booking estimate
-
-        return render(request, "guest_portal.html", {
-            "booking": booking,
+                menu_data.append({
+                    "id": cat.id,
+                    "name": cat.name,
+                    "description": getattr(cat, "description", "") or "",
+                    "items": items,
+                })
+ 
+        return render(request, "guest/guest_menu.html", {
+            # required by guest_base.html
+            "hotel": hotel,
             "guest": booking.guest,
             "room": booking.room_unit,
-            "token": token,
-            "hotel": hotel, 
-            "portal_expired": portal_expired,
-            "portal_expired_reason": portal_expired_reason,
-            'active_module_names': active_module_names,
+            "booking": booking,
+            "active_module_names": active_module_names,
+            "portal_expired": False,
+            "portal_expired_reason": "",
+            # page specific
             "schema": schema,
+            "token": token,
             "menu": menu_data,
-            "tasks": tasks,
-            "existing_orders": orders_data,
-            "laundry_services": laundry_services,
-            "laundry_orders": laundry_orders,
-            
-            "folio": folio,
-            "folio_charges": folio_charges,
-            "folio_payments": folio_payments,
+            "delivery_charge": 0,   # change if you add a room-service fee
         })
+ 
+ 
 @csrf_exempt
 @transaction.atomic
 def guest_place_order(request, schema, token):
@@ -4088,3 +4233,128 @@ def get_housekeeping_staff(request):
     data.sort(key=lambda s: s["open_tasks"])
 
     return JsonResponse({"success": True, "staff": data})
+
+@login_required
+@never_cache
+def seasonal_rates_page(request):
+    """
+    Renders the Seasonal Rate Manager page.
+    Rates themselves load client-side via /api/seasonal-rates/;
+    rooms are passed here only to populate the Add Rate form / filter dropdown.
+    """
+    rooms = Room.objects.filter(is_active=True)
+    room_list = [
+        {
+            "id": r.id,
+            "name": r.custom_room_type if r.room_type == "Custom" and r.custom_room_type else r.room_type,
+        }
+        for r in rooms
+    ]
+    return render(request, "hotel/seasonal_rates.html", {
+        "rooms": room_list,
+    })
+
+
+from django.shortcuts import render, get_object_or_404
+ 
+ 
+def guest_dashboard(request, schema, token):
+    """
+    Renders guest/guest_portal.html (extends guest/guest_base.html).
+    Reuse the SAME lookups your current guest-portal view already does – only the
+    template name changes. Context keys the templates expect:
+ 
+      guest, room, booking, hotel, active_module_names, menu, existing_orders,
+      laundry_orders, laundry_services, folio, folio_charges, folio_payments,
+      tasks, schema, token, portal_expired, portal_expired_reason
+    """
+    # ---- keep your existing code here -----------------------------------
+    # booking = get_booking_from_token(schema, token)      # your existing helper
+    # context = build_guest_context(booking)               # your existing helper
+    # ---------------------------------------------------------------------
+    context = {
+        # "guest": ..., "room": ..., "booking": ..., "hotel": ...,
+        # "active_module_names": [...],
+        "schema": schema,
+        "token": token,
+        "portal_expired": False,
+        "portal_expired_reason": "",
+    }
+    return render(request, "guest/guest_portal.html", context)
+
+from django.http import Http404
+
+PAGE_TEMPLATES = {
+    "menu": "guest/guest_menu.html", "cart": "guest/guest_cart.html",
+    "orders": "guest/guest_orders.html", "dining": "guest/guest_dining.html",
+    "laundry": "guest/guest_laundry.html", "bill": "guest/guest_bill.html",
+    "service": "guest/guest_service.html",
+}
+
+def guest_page(request, schema, token, page):
+    if page not in PAGE_TEMPLATES:
+        raise Http404
+    with schema_context(schema):
+        booking = (Booking.objects
+                   .select_related("guest", "room", "room_unit", "room_unit__room")
+                   .filter(guest_token=token).first())
+        if not booking:
+            return HttpResponse("This guest link is invalid.", status=404)
+        if booking.status != "checked_in":
+            return redirect("guest_portal", schema=schema, token=token)
+
+        from accounts.models import Hotel, HotelModule
+        with schema_context("public"):
+            hotel = Hotel.objects.filter(schema_name=schema).first()
+        active = [m.lower() for m in HotelModule.objects
+                  .filter(hotel=hotel, is_enabled=True).values_list("module__name", flat=True)]
+
+        ctx = {"hotel": hotel, "guest": booking.guest, "room": booking.room_unit,
+               "booking": booking, "schema": schema, "token": token,
+               "active_module_names": active,
+               "portal_expired": False, "portal_expired_reason": "",
+               "delivery_charge": 0}
+
+        if page == "menu":
+            menu = []
+            for cat in MenuCategory.objects.prefetch_related("items").all():
+                items = [{"id": i.id, "name": i.name, "description": i.description or "",
+                          "price": float(i.price), "tax_percent": float(i.tax_percent),
+                          "veg": i.is_veg, "image": i.image.url if i.image else None}
+                         for i in cat.items.filter(is_available=True)]
+                if items:
+                    menu.append({"id": cat.id, "name": cat.name,
+                                 "description": getattr(cat, "description", "") or "", "items": items})
+            ctx["menu"] = menu
+
+        elif page == "orders":
+            ctx["existing_orders"] = [{
+                "id": o.id, "order_number": o.order_number, "status": o.status,
+                "total": float(o.total_amount), "tax": float(o.tax_amount),
+                "created_at": o.created_at.isoformat(),
+                "items": [{"name": oi.item.name, "qty": oi.quantity, "subtotal": float(oi.subtotal)}
+                          for oi in o.items.all()]}
+                for o in RestaurantOrder.objects.prefetch_related("items__item")
+                    .filter(booking=booking, order_type="room_service").order_by("-created_at")]
+
+        elif page == "laundry":
+            ctx["laundry_services"] = list(LaundryService.objects.values(
+                "id", "name", "service_type", "price_per_unit", "turnaround_hours"))
+            ctx["laundry_orders"] = [{"id": o.id, "status": o.status, "total": float(o.total_amount),
+                                      "created_at": o.created_at.isoformat()}
+                                     for o in LaundryOrder.objects.filter(booking=booking).order_by("-created_at")]
+
+        elif page == "bill":
+            from billing.models import GuestFolio
+            folio = GuestFolio.objects.filter(booking=booking).first()
+            if folio:
+                apply_overstay_charge(booking, folio)
+                folio.refresh_from_db()
+            ctx["folio"] = folio
+            ctx["folio_charges"] = list(folio.charges.all().order_by("charge_type", "date")) if folio else []
+            ctx["folio_payments"] = list(folio.payments.all()) if folio else []
+
+        elif page == "service":
+            ctx["tasks"] = list(Task.objects.filter(room_unit=booking.room_unit).order_by("-created_at"))
+
+        return render(request, PAGE_TEMPLATES[page], ctx)

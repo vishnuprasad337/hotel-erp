@@ -1,0 +1,454 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Leave Management{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Layout, colour and control styling only — fonts come from the base template. */
+  .lm-head { display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:28px; }
+  .lm-head-ico { width:52px; height:52px; border-radius:14px; background:#efeafd; color:#6d4bf0;
+                 display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lm-head > div:last-child { text-align:left; }
+
+  /* stat cards — same look as Shift Management */
+  .lm-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:22px; }
+  .lm-stat { display:flex; align-items:center; gap:14px; padding:16px 20px; border-radius:16px; border:1px solid;
+             cursor:pointer; transition:box-shadow .15s, border-color .15s; }
+  .lm-stat:hover { box-shadow:0 4px 14px rgba(0,0,0,.08); }
+  .lm-stat-ico { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lm-stat .stat-value { font-size:1.6rem !important; line-height:1.1 !important; }
+  .lm-stat .stat-label { font-size:.95rem !important; }
+  .lm-stat-arrow { margin-left:auto; color:#9ca3af; flex-shrink:0; }
+  .lm-stat.c-pending  { background:#eef4ff; border-color:#d6e4ff; } .c-pending  .lm-stat-ico { background:#d4e4ff; color:#1d6fdc; }
+  .lm-stat.c-approved { background:#ecfaf2; border-color:#cdeedb; } .c-approved .lm-stat-ico { background:#c9f0da; color:#16a34a; }
+  .lm-stat.c-rejected { background:#fff0f0; border-color:#ffd6d6; } .c-rejected .lm-stat-ico { background:#fdd0d0; color:#dc2626; }
+  .lm-stat.c-total    { background:#f3efff; border-color:#e0d6ff; } .c-total    .lm-stat-ico { background:#dfd5fc; color:#6d4bf0; }
+  .lm-stat.is-on { box-shadow:0 0 0 2px #1a65f5 inset; }
+  [data-theme="dark"] .lm-stat { background:var(--admio-sidebar-bg,#1e1e2d) !important; border-color:var(--admio-border-color,#2d2d3d) !important; }
+  [data-theme="dark"] .lm-head-ico { background:rgba(124,58,237,.18); }
+
+  /* ── Dark mode fixes for the leave table (text/borders were inheriting light-theme colors) ── */
+  [data-theme="dark"] .admio-card {
+    background: var(--admio-sidebar-bg, #1e1e2d) !important;
+    border-color: var(--admio-border-color, #2d2d3d) !important;
+  }
+  [data-theme="dark"] .admio-table {
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .admio-table thead th {
+    color: #9ca3af !important;
+    background: transparent !important;
+    border-color: #2d2d3d !important;
+  }
+  [data-theme="dark"] .admio-table tbody td {
+    color: #e5e7eb !important;
+    border-color: #2d2d3d !important;
+    background: transparent !important;
+  }
+  [data-theme="dark"] .admio-table .text-muted {
+    color: #9ca3af !important;
+  }
+  [data-theme="dark"] .admio-table .fw-600 {
+    color: #f3f4f6 !important;
+  }
+  [data-theme="dark"] .lm-reviewed {
+    color: #9ca3af !important;
+  }
+  [data-theme="dark"] .lm-btn-ghost {
+    background: transparent !important;
+    border-color: #3a3a4d !important;
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .lm-btn-ghost:hover {
+    border-color: #1a65f5 !important;
+    color: #1a65f5 !important;
+  }
+  [data-theme="dark"] .lm-field,
+  [data-theme="dark"] .lm-range {
+    background: #1e1e2d !important;
+    border-color: #3a3a4d !important;
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .lm-field option {
+    background: #1e1e2d;
+    color: #e5e7eb;
+  }
+  [data-theme="dark"] .lm-range input {
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .lm-range input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  [data-theme="dark"] .admio-card-footer {
+    background: transparent !important;
+    border-color: #2d2d3d !important;
+    color: #9ca3af !important;
+  }
+  [data-theme="dark"] .lm-pager .page-link {
+    background: transparent !important;
+    border-color: #3a3a4d !important;
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .lm-pager .page-item.disabled .page-link {
+    color: #6b7280 !important;
+  }
+  [data-theme="dark"] .badge-admio.bg-primary-subtle   { background:#1e2a4a !important; color:#93c5fd !important; }
+  [data-theme="dark"] .badge-admio.bg-success-subtle   { background:#14301f !important; color:#86efac !important; }
+  [data-theme="dark"] .badge-admio.bg-info-subtle      { background:#123a42 !important; color:#7dd3fc !important; }
+  [data-theme="dark"] .badge-admio.bg-danger-subtle    { background:#3a1616 !important; color:#fca5a5 !important; }
+  [data-theme="dark"] .badge-admio.bg-warning-subtle   { background:#3a2f0f !important; color:#fde68a !important; }
+  [data-theme="dark"] .badge-admio.bg-secondary-subtle { background:#26262f !important; color:#d1d5db !important; }
+  [data-theme="dark"] .toast.text-bg-dark { background:#1e1e2d !important; border:1px solid #3a3a4d !important; }
+  [data-theme="dark"] .modal-content {
+    background: var(--admio-sidebar-bg, #1e1e2d) !important;
+    border-color: var(--admio-border-color, #2d2d3d) !important;
+    color: #e5e7eb !important;
+  }
+  [data-theme="dark"] .modal-content .border-bottom {
+    border-color: #2d2d3d !important;
+  }
+
+  /* toolbar */
+  .lm-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px; }
+  .lm-toolbar-right { margin-left:auto; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .lm-field { height:46px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:10px;
+              background:var(--admio-sidebar-bg,#fff); color:inherit; min-width:0; }
+  .lm-field:focus { outline:none; border-color:#1a65f5; box-shadow:0 0 0 3px rgba(26,101,245,.12); }
+  .lm-range { display:flex; align-items:center; gap:8px; height:46px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb);
+              border-radius:10px; background:var(--admio-sidebar-bg,#fff); }
+  .lm-range input { border:0; background:transparent; color:inherit; min-width:0; width:150px; }
+  .lm-range input:focus { outline:none; }
+  .lm-range svg { color:#6b7280; flex-shrink:0; }
+
+  /* buttons + tabs */
+  .lm-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 22px; border:1px solid transparent;
+            border-radius:10px; font-size:inherit; font-weight:600; line-height:1.2; cursor:pointer;
+            transition:background .15s, border-color .15s, color .15s; }
+  .lm-btn-sm { padding:6px 14px; border-radius:8px; }
+  .lm-btn-ghost { background:transparent; border-color:var(--admio-border-color,#e5e7eb); color:inherit; }
+  .lm-btn-ghost:hover { border-color:#1a65f5; color:#1a65f5; }
+  .lm-btn-ok  { background:#16a34a; color:#fff; } .lm-btn-ok:hover  { background:#15803d; color:#fff; }
+  .lm-btn-bad { background:#dc2626; color:#fff; } .lm-btn-bad:hover { background:#b91c1c; color:#fff; }
+  .lm-btn-primary { background:var(--admio-primary, #7C3AED); color:#fff; }
+  .lm-btn-primary:hover { background:var(--admio-primary-dark, #6d28d9); color:#fff; }
+  .lm-tabs { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .lm-tab { border:0; background:rgba(107,114,128,.10); color:inherit; border-radius:10px; padding:9px 20px; font-weight:600; cursor:pointer; }
+  .lm-tab:hover { background:rgba(26,101,245,.10); }
+  .lm-tab.is-on { background:#1a65f5; color:#fff; }
+
+  /* table */
+  .lm-avatar { width:44px; height:44px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; }
+  .lm-dot { width:8px; height:8px; border-radius:50%; background:currentColor; display:inline-block; }
+  .lm-cb { width:18px; height:18px; cursor:pointer; }
+  .lm-reviewed { font-size:.75rem; color:#6b7280; margin-top:2px; }
+
+  .lm-pager .page-link { min-width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0 8px; margin:0 3px;
+                         border:1px solid var(--admio-border-color,#e5e7eb); border-radius:8px !important; color:inherit;
+                         background:transparent; font-size:inherit; }
+  .lm-pager .page-item.active .page-link { background:#1a65f5; border-color:#1a65f5; color:#fff; }
+  .lm-pager .page-item.disabled .page-link { opacity:.4; }
+
+  @media (max-width:1100px) { .lm-stats { grid-template-columns:repeat(2, 1fr); } .lm-toolbar-right { margin-left:0; } }
+  @media (max-width:560px)  { .lm-stats { grid-template-columns:1fr; } .lm-range input { width:120px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════ HEADER ══════════ -->
+<div class="lm-head">
+  <span class="lm-head-ico">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>
+  </span>
+  <div>
+    <h1 class="page-title mb-1">Leave Management</h1>
+    <p class="page-subtitle text-muted mb-0">Manage leave requests, track approvals and keep your team organized.</p>
+  </div>
+</div>
+
+<!-- ══════════ STAT CARDS ══════════ -->
+<div class="lm-stats">
+  {% with arrow='<svg class="lm-stat-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>' %}
+  <div class="lm-stat c-pending" role="button" data-status="Pending">
+    <span class="lm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <div><div class="stat-value" id="cPending">0</div><div class="stat-label text-muted">Pending</div></div>{{ arrow|safe }}
+  </div>
+  <div class="lm-stat c-approved" role="button" data-status="Approved">
+    <span class="lm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <div><div class="stat-value" id="cApproved">0</div><div class="stat-label text-muted">Approved</div></div>{{ arrow|safe }}
+  </div>
+  <div class="lm-stat c-rejected" role="button" data-status="Rejected">
+    <span class="lm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg></span>
+    <div><div class="stat-value" id="cRejected">0</div><div class="stat-label text-muted">Rejected</div></div>{{ arrow|safe }}
+  </div>
+  <div class="lm-stat c-total" role="button" data-status="All">
+    <span class="lm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+    <div><div class="stat-value" id="cTotal">0</div><div class="stat-label text-muted">Total requests</div></div>{{ arrow|safe }}
+  </div>
+  {% endwith %}
+</div>
+
+<!-- ══════════ TOOLBAR ══════════ -->
+<div class="lm-toolbar">
+  <div class="lm-range">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <input type="date" id="fFrom" aria-label="From date"><span class="text-muted">–</span><input type="date" id="fTo" aria-label="To date">
+  </div>
+
+  <div class="lm-toolbar-right">
+    <select class="lm-field" id="fDept">
+      <option value="">All Departments</option>
+      {% for d in departments %}<option value="{{ d.name }}">{{ d.name }}</option>{% endfor %}
+    </select>
+    <select class="lm-field" id="fEmp">
+      <option value="">All Employees</option>
+      {% for s in hotel_staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+    <select class="lm-field" id="fType"><option value="">All Leave Types</option></select>
+    <input type="search" class="lm-field" id="fSearch" placeholder="Search employee...">
+    <button class="lm-btn lm-btn-primary" id="btnReset" type="button">Reset</button>
+  </div>
+</div>
+
+<!-- status tabs -->
+<div class="lm-tabs" id="lmTabs"></div>
+
+<!-- ══════════ TABLE ══════════ -->
+<div class="admio-card">
+  <div class="table-responsive">
+    <table class="admio-table table align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px"><input type="checkbox" class="lm-cb" id="cbAll" aria-label="Select all"></th>
+          <th>Employee</th><th>Department</th><th>Leave type</th><th>From – To</th>
+          <th>Days</th><th>Reason</th><th>Applied on</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="lmBody">
+        <tr><td colspan="10" class="text-center text-muted">Loading leave requests…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="admio-card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-sm text-muted" id="lmShowing"></span>
+    <ul class="pagination lm-pager mb-0" id="lmPager"></ul>
+  </div>
+</div>
+
+<!-- ══════════ DETAILS MODAL ══════════ -->
+<div class="modal fade" id="mDetail" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Leave request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="mDetailBody"></div>
+      <div class="modal-footer" id="mDetailFoot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="lmToast" class="toast text-bg-dark border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="toast-body" id="lmToastBody"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const API_LIST   = "{% url 'admin_leave_requests' %}";
+  const API_UPDATE = id => "{% url 'admin_leave_update' 0 %}".replace(/0\/$/, id + "/");
+  const CSRF = "{{ csrf_token }}";
+  const PAGE_SIZE = 10;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const AVATAR_BG = ["#6d4bf0","#0ea5e9","#16a34a","#f59e0b","#ec4899","#14b8a6","#ef4444","#8b5cf6"];
+
+  let all = [], status = "All", page = 1;
+
+  function toast(msg) {
+    $("lmToastBody").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance($("lmToast"), { delay: 2600 }).show();
+  }
+  const fmtDate = s => s ? new Date(s + "T00:00:00").toLocaleDateString("en-US", { month:"short", day:"2-digit", year:"numeric" }) : "—";
+  const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5) + 1;
+  const initials = n => (n || "?").split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+
+  function typeInfo(raw) {
+    const t = (raw || "").toLowerCase();
+    if (t.includes("casual"))  return ["primary", "Casual leave"];
+    if (t.includes("sick"))    return ["success", "Sick leave"];
+    if (t.includes("earn"))    return ["info", "Earned leave"];
+    if (t.includes("bereave")) return ["danger", "Bereavement leave"];
+    return ["secondary", raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : "Other"];
+  }
+  const STATUS_COLOR = { Pending: "warning", Approved: "success", Rejected: "danger" };
+  const pill = (color, text, dot) =>
+    `<span class="badge badge-admio bg-${color}-subtle text-${color}-emphasis d-inline-flex align-items-center gap-2">${dot ? '<span class="lm-dot"></span>' : ""}${esc(text)}</span>`;
+
+  async function post(url, body) {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": CSRF, "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(body),
+    });
+    return r.json();
+  }
+
+  async function load() {
+    try {
+      const r = await fetch(API_LIST, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+      const j = await r.json();
+      if (!j.success) throw new Error(j.error || "Failed to load");
+      all = j.leaves;
+      $("cPending").textContent  = j.summary.pending;
+      $("cApproved").textContent = j.summary.approved;
+      $("cRejected").textContent = j.summary.rejected;
+      $("cTotal").textContent    = j.summary.total;
+      const types = [...new Set(all.map(l => typeInfo(l.leave_type)[1]))].sort();
+      $("fType").innerHTML = '<option value="">All Leave Types</option>' + types.map(t => `<option>${esc(t)}</option>`).join("");
+      render();
+    } catch (e) {
+      $("lmBody").innerHTML = `<tr><td colspan="10" class="text-center text-danger">Could not load leave requests. ${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  function filtered() {
+    const from = $("fFrom").value, to = $("fTo").value;
+    const dept = $("fDept").value, emp = $("fEmp").value, type = $("fType").value;
+    const q = $("fSearch").value.trim().toLowerCase();
+    return all.filter(l => {
+      if (status !== "All" && l.status !== status) return false;
+      if (dept && l.department !== dept) return false;
+      if (emp && String(l.staff_id) !== emp) return false;
+      if (type && typeInfo(l.leave_type)[1] !== type) return false;
+      if (q && !(l.staff || "").toLowerCase().includes(q)) return false;
+      if (from && l.to_date < from) return false;
+      if (to && l.from_date > to) return false;
+      return true;
+    });
+  }
+
+  function renderTabs() {
+    const count = s => s === "All" ? all.length : all.filter(l => l.status === s).length;
+    $("lmTabs").innerHTML = ["All", "Pending", "Approved", "Rejected"].map(s =>
+      `<button type="button" class="lm-tab ${s === status ? "is-on" : ""}" data-tab="${s}">${s} (${count(s)})</button>`).join("");
+    document.querySelectorAll(".lm-stat").forEach(c => c.classList.toggle("is-on", c.dataset.status === status));
+  }
+
+  function render() {
+    renderTabs();
+    $("cbAll").checked = false;
+    const rows = filtered();
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (page > pages) page = pages;
+    const slice = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    if (!slice.length) {
+      $("lmBody").innerHTML = '<tr><td colspan="10" class="text-center text-muted">No leave applications match these filters.</td></tr>';
+    } else {
+      $("lmBody").innerHTML = slice.map(l => {
+        const [tc, tl] = typeInfo(l.leave_type);
+        const d = daysBetween(l.from_date, l.to_date);
+        const bg = AVATAR_BG[(l.staff_id || 0) % AVATAR_BG.length];
+        const reviewedLine = (l.status !== "Pending" && (l.action_by || l.action_at))
+          ? `<div class="lm-reviewed">by ${esc(l.action_by || "—")}${l.action_at ? " · " + esc(l.action_at) : ""}</div>`
+          : "";
+        return `<tr>
+          <td><input type="checkbox" class="lm-cb lm-row-cb" aria-label="Select row"></td>
+          <td><div class="d-flex align-items-center gap-3">
+              <span class="lm-avatar" style="background:${bg}">${esc(initials(l.staff))}</span>
+              <div><div class="fw-600">${esc(l.staff)}</div><div class="text-xs text-muted">EMP-${String(l.staff_id || 0).padStart(3, "0")}</div></div>
+          </div></td>
+          <td>${esc(l.department) || "—"}</td>
+          <td>${pill(tc, tl, false)}</td>
+          <td class="text-muted text-nowrap">${fmtDate(l.from_date)} – ${fmtDate(l.to_date)}</td>
+          <td class="text-nowrap">${d} Day${d > 1 ? "s" : ""}</td>
+          <td>${esc(l.reason) || "—"}</td>
+          <td class="text-muted text-nowrap">${esc(l.applied_at)}</td>
+          <td>${pill(STATUS_COLOR[l.status] || "secondary", l.status, true)}${reviewedLine}</td>
+          <td><div class="d-flex gap-2">
+              <button type="button" class="lm-btn lm-btn-sm lm-btn-ghost" data-view="${l.id}">View</button>
+              ${l.status === "Pending" ? `
+                <button type="button" class="lm-btn lm-btn-sm lm-btn-ok"  data-act="approve" data-id="${l.id}">Approve</button>
+                <button type="button" class="lm-btn lm-btn-sm lm-btn-bad" data-act="reject"  data-id="${l.id}">Reject</button>` : ""}
+          </div></td>
+        </tr>`;
+      }).join("");
+    }
+
+    const start = rows.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+    const end = rows.length ? start + slice.length - 1 : 0;
+    $("lmShowing").textContent = `Showing ${start}–${end} of ${rows.length} leave applications`;
+
+    let pager = `<li class="page-item ${page === 1 ? "disabled" : ""}"><button class="page-link" data-page="${page - 1}">‹</button></li>`;
+    for (let p = 1; p <= pages; p++)
+      pager += `<li class="page-item ${p === page ? "active" : ""}"><button class="page-link" data-page="${p}">${p}</button></li>`;
+    pager += `<li class="page-item ${page === pages ? "disabled" : ""}"><button class="page-link" data-page="${page + 1}">›</button></li>`;
+    $("lmPager").innerHTML = pager;
+  }
+
+  async function act(id, action) {
+    try {
+      const j = await post(API_UPDATE(id), { action });
+      if (!j.success) throw new Error(j.error || "Update failed");
+      toast(j.message || "Leave updated");
+      bootstrap.Modal.getOrCreateInstance($("mDetail")).hide();
+      load();
+    } catch (e) { toast(e.message); }
+  }
+
+  function openDetail(id) {
+    const l = all.find(x => x.id === id); if (!l) return;
+    const [, tl] = typeInfo(l.leave_type);
+    const d = daysBetween(l.from_date, l.to_date);
+    const rows = [
+      ["Employee", l.staff], ["Department", l.department || "—"], ["Leave type", tl],
+      ["From", fmtDate(l.from_date)], ["To", fmtDate(l.to_date)], ["Duration", d + (d > 1 ? " days" : " day")],
+      ["Reason", l.reason || "—"], ["Applied on", l.applied_at], ["Status", l.status],
+    ];
+    if (l.status !== "Pending") {
+      rows.push(["Reviewed by", l.action_by || "—"]);
+      rows.push(["Reviewed at", l.action_at || "—"]);
+    }
+    $("mDetailBody").innerHTML = rows.map(([k, v]) => `<div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+        <span class="text-muted">${k}</span><span class="fw-600 text-end">${esc(v)}</span></div>`).join("");
+    $("mDetailFoot").innerHTML = l.status === "Pending"
+      ? `<button type="button" class="lm-btn lm-btn-bad" data-act="reject" data-id="${l.id}">Reject</button>
+         <button type="button" class="lm-btn lm-btn-ok"  data-act="approve" data-id="${l.id}">Approve</button>`
+      : `<button type="button" class="lm-btn lm-btn-primary" data-bs-dismiss="modal">Close</button>`;
+    bootstrap.Modal.getOrCreateInstance($("mDetail")).show();
+  }
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-tab],[data-status],[data-page],[data-view],[data-act]");
+    if (!t) return;
+    if (t.dataset.tab)    { status = t.dataset.tab;    page = 1; return render(); }
+    if (t.dataset.status) { status = t.dataset.status; page = 1; return render(); }
+    if (t.dataset.page)   { page = +t.dataset.page; return render(); }
+    if (t.dataset.view)   return openDetail(+t.dataset.view);
+    if (t.dataset.act)    return act(t.dataset.id, t.dataset.act);
+  });
+
+  // filters apply live, like Shift Management
+  ["fFrom","fTo","fDept","fEmp","fType"].forEach(i => $(i).addEventListener("change", () => { page = 1; render(); }));
+  $("fSearch").addEventListener("input", () => { page = 1; render(); });
+  $("btnReset").onclick = () => {
+    ["fFrom","fTo","fDept","fEmp","fType","fSearch"].forEach(i => $(i).value = "");
+    status = "All"; page = 1; render();
+  };
+  $("cbAll").addEventListener("change", e =>
+    document.querySelectorAll(".lm-row-cb").forEach(cb => cb.checked = e.target.checked));
+
+  load();
+})();
+</script>
+{% endblock %}

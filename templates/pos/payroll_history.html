@@ -1,0 +1,528 @@
+{% extends "pos/base.html" %}
+{% load static %}
+
+{% block title %}Payroll History{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ph { --ph-ink:#1b1f3b; --ph-mute:#6b7280; --ph-line:#e8eaf3; --ph-card:#fff; --ph-soft:#f6f7fc;
+        --ph-accent:#7C3AED; --ph-green:#16a34a; --ph-amber:#d97706; }
+  [data-theme="dark"] .ph { --ph-ink:#e8e8f2; --ph-mute:#9b9bb5; --ph-line:#2d2d3d; --ph-card:#1e1e2d; --ph-soft:#252535; }
+
+  .ph-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .ph-title { display:flex; align-items:center; gap:16px; }
+  .ph-title-ico { width:56px; height:56px; border-radius:16px; display:grid; place-items:center; color:#fff; font-size:26px;
+                  background:linear-gradient(135deg,#a78bfa,#7C3AED); box-shadow:0 8px 20px rgba(124,58,237,.28); }
+  .ph-title h1 { font-size:1.9rem; font-weight:800; margin:0; color:var(--ph-ink); }
+  .ph-title p { margin:2px 0 0; color:var(--ph-mute); font-size:1rem; }
+
+  .ph-range { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ph-field, .ph-select, .ph-search input {
+    height:44px; padding:0 14px; border:1px solid var(--ph-line); border-radius:12px;
+    background:var(--ph-card); color:var(--ph-ink); font-size:.95rem; outline:none; }
+  .ph-field:focus, .ph-select:focus, .ph-search input:focus { border-color:var(--ph-accent); box-shadow:0 0 0 3px rgba(124,58,237,.14); }
+  .ph-btn { height:44px; padding:0 18px; border-radius:12px; border:1px solid var(--ph-line); background:var(--ph-card);
+            color:var(--ph-ink); font-weight:600; font-size:.95rem; display:inline-flex; align-items:center; gap:8px;
+            text-decoration:none; cursor:pointer; }
+  .ph-btn:hover { border-color:var(--ph-accent); color:var(--ph-accent); }
+  .ph-btn.primary { background:var(--ph-accent); border-color:var(--ph-accent); color:#fff; }
+  .ph-btn.primary:hover { color:#fff; opacity:.92; }
+
+  /* summary cards */
+  .ph-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:28px; }
+  .ph-stat { border-radius:20px; padding:22px 24px; display:flex; gap:16px; align-items:flex-start; border:1px solid var(--ph-line); }
+  .ph-stat .ico { width:52px; height:52px; border-radius:50%; display:grid; place-items:center; font-size:22px; flex-shrink:0; }
+  .ph-stat .lbl { font-size:.95rem; font-weight:700; }
+  .ph-stat .val { font-size:2rem; font-weight:800; color:var(--ph-ink); line-height:1.15; margin:4px 0; }
+  .ph-stat .sub { font-size:.88rem; color:var(--ph-mute); }
+  .ph-stat.green  { background:linear-gradient(135deg,#ecfdf3,#f7fffb); } .ph-stat.green  .ico{background:#d1fae5;color:#059669;} .ph-stat.green  .lbl{color:#059669;}
+  .ph-stat.blue   { background:linear-gradient(135deg,#eef4ff,#f8fbff); } .ph-stat.blue   .ico{background:#dbeafe;color:#2563eb;} .ph-stat.blue   .lbl{color:#1d4ed8;}
+  .ph-stat.violet { background:linear-gradient(135deg,#f5f0ff,#fbf9ff); } .ph-stat.violet .ico{background:#ede9fe;color:#7C3AED;} .ph-stat.violet .lbl{color:#6d28d9;}
+  .ph-stat.orange { background:linear-gradient(135deg,#fff5ea,#fffaf4); } .ph-stat.orange .ico{background:#ffedd5;color:#ea580c;} .ph-stat.orange .lbl{color:#c2410c;}
+  [data-theme="dark"] .ph-stat { background:var(--ph-card) !important; }
+
+  /* table card */
+  .ph-card { background:var(--ph-card); border:1px solid var(--ph-line); border-radius:20px; padding:24px 26px; }
+  .ph-card-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .ph-card-head h2 { font-size:1.3rem; font-weight:700; margin:0; color:var(--ph-ink); }
+  .ph-card-head p { margin:2px 0 0; color:var(--ph-mute); font-size:.92rem; }
+  .ph-tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .ph-search { position:relative; }
+  .ph-search i { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ph-mute); }
+  .ph-search input { padding-left:40px; width:320px; max-width:100%; }
+
+  .ph-table-wrap { overflow-x:auto; border:1px solid var(--ph-line); border-radius:14px; }
+  .ph-table { width:100%; border-collapse:collapse; min-width:860px; }
+  .ph-table thead th { background:var(--ph-soft); color:var(--ph-mute); font-size:.78rem; font-weight:700; letter-spacing:.04em;
+                       text-transform:uppercase; padding:14px 18px; text-align:left; white-space:nowrap; }
+  .ph-table td { padding:14px 18px; border-top:1px solid var(--ph-line); color:var(--ph-ink); font-size:.95rem; white-space:nowrap; }
+  .ph-table tbody tr:hover { background:var(--ph-soft); }
+  .ph-table .num { font-variant-numeric:tabular-nums; }
+  .ph-table .net { font-weight:700; }
+
+  .ph-emp { display:flex; align-items:center; gap:12px; }
+  .ph-av { width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-size:.8rem; font-weight:700;
+           flex-shrink:0; object-fit:cover; }
+  .tone-0{background:#ede9fe;color:#6d28d9} .tone-1{background:#dbeafe;color:#1d4ed8} .tone-2{background:#fce7f3;color:#be185d}
+  .tone-3{background:#ccfbf1;color:#0f766e} .tone-4{background:#fef3c7;color:#b45309} .tone-5{background:#dcfce7;color:#15803d}
+  .ph-emp b { display:block; font-weight:600; line-height:1.2; }
+  .ph-emp small { color:var(--ph-mute); font-size:.8rem; }
+
+  .ph-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:.82rem; font-weight:600; }
+  .ph-badge::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .ph-badge.paid { background:#dcfce7; color:#15803d; } .ph-badge.pending { background:#fef3c7; color:#b45309; }
+
+  .ph-dots { width:36px; height:36px; border-radius:10px; border:none; background:var(--ph-soft); color:var(--ph-mute); cursor:pointer; }
+  .ph-dots:hover { background:rgba(124,58,237,.12); color:var(--ph-accent); }
+
+  .ph-empty { text-align:center; padding:56px 16px; color:var(--ph-mute); }
+  .ph-empty i { font-size:34px; display:block; margin-bottom:10px; }
+
+  .ph-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-top:18px; color:var(--ph-mute); font-size:.9rem; }
+  .ph-pager { display:flex; gap:6px; }
+  .ph-pager a, .ph-pager span { min-width:38px; height:38px; padding:0 12px; display:grid; place-items:center; border:1px solid var(--ph-line);
+                                border-radius:10px; color:var(--ph-ink); text-decoration:none; font-weight:600; }
+  .ph-pager a:hover { border-color:var(--ph-accent); color:var(--ph-accent); }
+  .ph-pager .off { opacity:.4; }
+
+  /* monthly breakdown — every month row opens the modal */
+  .bd-tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .bd-table { width:100%; border-collapse:collapse; min-width:980px; }
+  .bd-table thead th { background:var(--ph-soft); color:var(--ph-mute); font-size:.78rem; font-weight:700; letter-spacing:.04em;
+                       text-transform:uppercase; padding:14px 18px; text-align:right; white-space:nowrap; }
+  .bd-table thead th:first-child, .bd-table td:first-child { text-align:left; }
+  .bd-table td { padding:14px 18px; border-top:1px solid var(--ph-line); text-align:right; color:var(--ph-ink);
+                 font-size:.95rem; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .bd-table td.mute { color:var(--ph-mute); }
+  .bd-table td.ded.has { color:#dc2626; }
+  .bd-table td.net { font-weight:700; }
+  .bd-table td.cum, .bd-table th.cum { color:var(--ph-accent); font-weight:700; }
+  .bd-row { cursor:pointer; transition:background .15s; }
+  .bd-row:hover, .bd-row:focus-visible { background:var(--ph-soft); outline:none; }
+  .bd-per { display:flex; align-items:center; gap:10px; font-weight:600; }
+  .bd-per i { font-size:12px; color:var(--ph-mute); transition:transform .15s, color .15s; }
+  .bd-row:hover .bd-per i { color:var(--ph-accent); transform:translateX(3px); }
+  .bd-dot { width:8px; height:8px; border-radius:50%; background:#16a34a; } .bd-dot.pending { background:#f59e0b; }
+  .bd-warn { color:#d97706; }
+  .bd-total td { background:var(--ph-soft); font-weight:800; cursor:default; }
+  .bd-sums { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:18px; }
+  .bd-sums > div { border:1px solid var(--ph-line); border-radius:14px; padding:14px 18px; background:var(--ph-card); }
+  .bd-sums .k { font-size:.75rem; color:var(--ph-mute); text-transform:uppercase; letter-spacing:.04em; }
+  .bd-sums .v { font-size:1.15rem; font-weight:800; margin-top:4px; }
+  @media (max-width:991px){ .bd-sums{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:1199px){ .ph-stats{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:575px){ .ph-stats{grid-template-columns:1fr;} .ph-search input{width:100%;} .ph-search{width:100%;} }
+
+  /* ═══════════════ SALARY DETAIL MODAL (self-contained, always solid) ═══════════════ */
+  #pmOverlay { position:fixed; inset:0; z-index:2147483000; display:none; align-items:center; justify-content:center;
+               padding:20px; background:rgba(15,15,35,.62); overflow-y:auto; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+  #pmOverlay.open { display:flex; }
+  #pmOverlay, #pmOverlay * { box-sizing:border-box; }
+
+  #pmOverlay .pm-box { --k-ink:#1b1f3b; --k-mute:#6b7280; --k-line:#e8eaf3; --k-soft:#f6f7fc; --k-red:#dc2626;
+                       position:relative; width:100%; max-width:820px; max-height:calc(100vh - 40px); overflow-y:auto;
+                       background:#ffffff !important; color:var(--k-ink); border-radius:20px; border:1px solid var(--k-line);
+                       box-shadow:0 30px 80px rgba(10,10,40,.45); font-family:inherit; opacity:1 !important; }
+  [data-theme="dark"] #pmOverlay .pm-box { --k-ink:#e8e8f2; --k-mute:#9b9bb5; --k-line:#2d2d3d; --k-soft:#252535;
+                                           background:#1e1e2d !important; }
+
+  #pmOverlay .pm-head { display:flex; align-items:flex-start; gap:12px; padding:22px 26px 18px; border-bottom:1px solid var(--k-line);
+                        background:inherit; position:sticky; top:0; z-index:2; border-radius:20px 20px 0 0; }
+  #pmOverlay .pm-head h5 { margin:0; font-size:1.25rem; font-weight:800; color:var(--k-ink); }
+  #pmOverlay .pm-head small { display:block; margin-top:3px; color:var(--k-mute); font-size:.88rem; }
+  #pmOverlay .pm-head .pm-side { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  #pmOverlay .pm-x { width:36px; height:36px; border-radius:10px; border:none; background:var(--k-soft); color:var(--k-mute);
+                     font-size:22px; line-height:1; cursor:pointer; display:grid; place-items:center; }
+  #pmOverlay .pm-x:hover { background:rgba(124,58,237,.14); color:#7C3AED; }
+
+  #pmOverlay .pm-body { padding:22px 26px; }
+  #pmOverlay .pm-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  #pmOverlay .pm-kpi { border:1px solid var(--k-line); border-radius:14px; padding:12px 16px; background:var(--k-soft); }
+  #pmOverlay .pm-kpi .k { font-size:.72rem; color:var(--k-mute); text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
+  #pmOverlay .pm-kpi .v { font-size:1.25rem; font-weight:800; margin-top:2px; font-variant-numeric:tabular-nums; }
+  #pmOverlay .pm-kpi.g .v { color:#059669; } #pmOverlay .pm-kpi.r .v { color:var(--k-red); } #pmOverlay .pm-kpi.p .v { color:#7C3AED; }
+
+  #pmOverlay .pm-warn { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:12px; margin-bottom:16px;
+                        background:#fef3c7; color:#92400e; font-size:.9rem; }
+  #pmOverlay .pm-warn[hidden] { display:none; }
+
+  #pmOverlay .pm-cols { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  #pmOverlay .pm-cols h6 { font-size:.8rem; font-weight:700; color:var(--k-mute); text-transform:uppercase; letter-spacing:.04em; margin:0 0 8px; }
+  #pmOverlay .pm-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px dashed var(--k-line); font-size:.95rem; color:var(--k-ink); }
+  #pmOverlay .pm-row span { min-width:0; overflow-wrap:anywhere; }
+  #pmOverlay .pm-row b { font-variant-numeric:tabular-nums; white-space:nowrap; }
+  #pmOverlay .pm-row.total { border-bottom:none; border-top:1px solid var(--k-line); margin-top:4px; padding-top:12px; font-weight:800; }
+  #pmOverlay .pm-row.neg b { color:var(--k-red); }
+  #pmOverlay .pm-row.none span, #pmOverlay .pm-row.none b { color:var(--k-mute); }
+
+  #pmOverlay .pm-net { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:16px 18px; border-radius:14px;
+                       background:linear-gradient(135deg,#f5f0ff,#ede9fe); color:#4c1d95; font-weight:800; font-size:1.2rem; }
+  #pmOverlay .pm-net small { display:block; font-weight:500; font-size:.78rem; opacity:.8; margin-top:2px; }
+  [data-theme="dark"] #pmOverlay .pm-net { background:var(--k-soft); color:var(--k-ink); }
+
+  #pmOverlay .pm-meta { margin-top:16px; display:flex; gap:8px 18px; flex-wrap:wrap; font-size:.88rem; color:var(--k-mute); }
+  #pmOverlay .pm-meta b { color:var(--k-ink); font-weight:600; }
+  #pmOverlay .pm-notes { margin:10px 0 0; color:var(--k-mute); white-space:pre-line; font-size:.88rem; }
+
+  #pmOverlay .pm-foot { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; padding:16px 26px; border-top:1px solid var(--k-line); }
+  #pmOverlay .pm-btn { height:42px; padding:0 18px; border-radius:12px; border:1px solid var(--k-line); background:transparent; color:var(--k-ink);
+                       font-weight:600; font-size:.95rem; display:inline-flex; align-items:center; gap:8px; text-decoration:none; cursor:pointer; }
+  #pmOverlay .pm-btn:hover { border-color:#7C3AED; color:#7C3AED; }
+  #pmOverlay .pm-btn.primary { background:#7C3AED; border-color:#7C3AED; color:#fff; }
+  #pmOverlay .pm-btn.primary:hover { color:#fff; opacity:.92; }
+  #pmOverlay .ph-badge { flex-shrink:0; }
+
+  @media (max-width:640px){
+    #pmOverlay { padding:10px; align-items:flex-end; }
+    #pmOverlay .pm-cols, #pmOverlay .pm-kpis { grid-template-columns:1fr; }
+    #pmOverlay .pm-box { max-height:calc(100vh - 20px); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ph">
+
+  <!-- Header + period filter -->
+  <div class="ph-head">
+    <div class="ph-title">
+      <div class="ph-title-ico"><i class="icon-wallet"></i></div>
+      <div>
+        <h1>Payroll History</h1>
+        <p>{% if is_admin_view %}View and manage all payroll records and payment history.{% else %}Your salary records and payment history.{% endif %}</p>
+      </div>
+    </div>
+
+    <form method="get" class="ph-range" id="rangeForm">
+      <input type="hidden" name="q" value="{{ filters.q }}">
+      <input type="hidden" name="status" value="{{ filters.status }}">
+      <input type="hidden" name="year" value="{{ filters.year }}">
+      {% if bd_target and is_admin_view %}<input type="hidden" name="emp" value="{{ bd_target.pk }}">{% endif %}
+      <input type="month" name="from" class="ph-field" value="{{ filters.from }}" aria-label="From month">
+      <span style="color:var(--ph-mute)">to</span>
+      <input type="month" name="to" class="ph-field" value="{{ filters.to }}" aria-label="To month">
+      <button class="ph-btn" type="submit">Apply</button>
+      <a class="ph-btn" href="?{{ querystring }}&export=csv"><i class="icon-download"></i> Export</a>
+    </form>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="ph-stats">
+    <div class="ph-stat green">
+      <div class="ico"><i class="icon-indian-rupee"></i></div>
+      <div><div class="lbl">Total payroll</div><div class="val">{{ cards.total }}</div><div class="sub">For selected period</div></div>
+    </div>
+    <div class="ph-stat blue">
+      <div class="ico"><i class="icon-users"></i></div>
+      <div><div class="lbl">Employees paid</div><div class="val">{{ cards.paid_employees }}</div><div class="sub">Received salary</div></div>
+    </div>
+    <div class="ph-stat violet">
+      <div class="ico"><i class="icon-clock"></i></div>
+      <div><div class="lbl">Pending payments</div><div class="val">{{ cards.pending_count }}</div><div class="sub">{{ cards.pending_amount }} awaiting disbursement</div></div>
+    </div>
+    <div class="ph-stat orange">
+      <div class="ico"><i class="icon-wallet"></i></div>
+      <div><div class="lbl">This month (estimated)</div><div class="val">{{ cards.this_month }}</div><div class="sub">{{ cards.this_month_label }} payroll cost</div></div>
+    </div>
+  </div>
+
+  <!-- Payroll records -->
+  <div class="ph-card">
+    <div class="ph-card-head">
+      <div>
+        <h2>Payroll records</h2>
+        <p>{{ total_count }} record{{ total_count|pluralize }} with payment details</p>
+      </div>
+
+      <form method="get" class="ph-tools">
+        <input type="hidden" name="from" value="{{ filters.from }}">
+        <input type="hidden" name="to" value="{{ filters.to }}">
+        {% if bd_target and is_admin_view %}<input type="hidden" name="emp" value="{{ bd_target.pk }}">{% endif %}
+        <div class="ph-search">
+          <i class="icon-search"></i>
+          <input type="text" name="q" value="{{ filters.q }}" placeholder="{% if is_admin_view %}Search by employee, month or reference{% else %}Search by month or reference{% endif %}">
+        </div>
+        <select name="status" class="ph-select" onchange="this.form.submit()" aria-label="Status">
+          <option value="">All status</option>
+          <option value="paid"    {% if filters.status == 'paid' %}selected{% endif %}>Paid</option>
+          <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+        </select>
+        <select name="year" class="ph-select" onchange="this.form.submit()" aria-label="Year">
+          <option value="all" {% if filters.year == 'all' %}selected{% endif %}>All years</option>
+          {% for y in years %}<option value="{{ y }}" {% if filters.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+        <button class="ph-btn primary" type="submit"><i class="icon-filter"></i> Filter</button>
+      </form>
+    </div>
+
+    <div class="ph-table-wrap">
+      <table class="ph-table">
+        <thead>
+          <tr>
+            <th>Paid on</th><th>Month / year</th>
+            {% if is_admin_view %}<th>Employee</th><th>Department</th>{% endif %}
+            <th>Gross salary</th><th>Net pay</th><th>Status</th><th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td>{{ r.period }}</td>
+            {% if is_admin_view %}
+            <td>
+              <div class="ph-emp">
+                {% if r.photo %}<img class="ph-av" src="{{ r.photo }}" alt="">{% else %}<span class="ph-av tone-{{ r.tone }}">{{ r.initials }}</span>{% endif %}
+                <div><b>{{ r.name }}</b>{% if r.role %}<small>{{ r.role }}</small>{% endif %}</div>
+              </div>
+            </td>
+            <td>{{ r.department }}</td>
+            {% endif %}
+            <td class="num">{{ r.gross }}</td>
+            <td class="num net">{{ r.net }}</td>
+            <td>{% if r.is_paid %}<span class="ph-badge paid">Paid</span>{% else %}<span class="ph-badge pending">Pending</span>{% endif %}</td>
+            <td style="text-align:right">
+              <button type="button" class="ph-dots js-detail" data-detail="{{ r.detail_json }}" data-from="table" aria-label="View salary breakdown" title="View full breakdown"><i class="icon-eye"></i></button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="{% if is_admin_view %}8{% else %}6{% endif %}">
+            <div class="ph-empty"><i class="icon-wallet"></i>No payroll records match these filters.<br>Clear the search or pick a different year.</div>
+          </td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ph-foot">
+      <span>{% if page.paginator.count %}Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }} records{% endif %}</span>
+      {% if page.paginator.num_pages > 1 %}
+      <div class="ph-pager">
+        {% if page.has_previous %}<a href="?{{ querystring }}&page={{ page.previous_page_number }}" aria-label="Previous page">&lsaquo;</a>{% else %}<span class="off">&lsaquo;</span>{% endif %}
+        <span style="background:var(--ph-accent);color:#fff;border-color:var(--ph-accent)">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?{{ querystring }}&page={{ page.next_page_number }}" aria-label="Next page">&rsaquo;</a>{% else %}<span class="off">&rsaquo;</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Monthly breakdown: click a month → modal for that month -->
+  <div class="ph-card" id="breakdown" style="margin-top:28px">
+    <div class="ph-card-head">
+      <div>
+        <h2>Monthly breakdown{% if bd_target %} — {{ bd_target.name }}{% endif %}</h2>
+        <p>{% if bd_target %}{{ bd_dept }} · {{ bd_count }} month{{ bd_count|pluralize }}{% if bd_rows %} · Net so far {{ bd_totals.net }}{% endif %}{% else %}No employee selected{% endif %}</p>
+      </div>
+      <form method="get" action="#breakdown" class="bd-tools">
+        <input type="hidden" name="year" value="{{ filters.year }}">
+        <input type="hidden" name="from" value="{{ filters.from }}">
+        <input type="hidden" name="to" value="{{ filters.to }}">
+        <input type="hidden" name="q" value="{{ filters.q }}">
+        <input type="hidden" name="status" value="{{ filters.status }}">
+        {% if is_admin_view and bd_employees %}
+        <select name="emp" class="ph-select" onchange="this.form.submit()" aria-label="Employee">
+          {% for e in bd_employees %}<option value="{{ e.pk }}" {% if bd_target and e.pk == bd_target.pk %}selected{% endif %}>{{ e.name }}</option>{% endfor %}
+        </select>
+        {% endif %}
+        {% if bd_target %}<a class="ph-btn" href="?{{ querystring }}&export=breakdown"><i class="icon-download"></i> Export CSV</a>{% endif %}
+      </form>
+    </div>
+
+    {% if bd_rows %}
+    <div class="ph-table-wrap">
+      <table class="bd-table">
+        <thead>
+          <tr>
+            <th>Period</th><th>Earnings (₹)</th><th>PF (₹)</th><th>ESI (₹)</th><th>Bonus (₹)</th>
+            <th>Overtime (₹)</th><th>Deductions (₹)</th><th>Net (₹)</th><th class="cum">Cumulative net</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in bd_rows %}
+          <tr class="bd-row js-detail" data-detail="{{ r.detail_json }}" data-from="breakdown"
+              tabindex="0" role="button" title="View {{ r.label }} breakdown" aria-label="View {{ r.label }} breakdown">
+            <td><span class="bd-per"><span class="bd-dot {% if not r.is_paid %}pending{% endif %}" title="{% if r.is_paid %}Paid{% else %}Pending{% endif %}"></span>{{ r.label }}<i class="icon-chevron-right"></i>{% if r.mismatch %}<span class="bd-warn" title="Net pay doesn't equal earnings − deductions. Recalculate this payroll.">⚠</span>{% endif %}</span></td>
+            <td>{{ r.earnings }}</td>
+            <td class="{% if r.pf == '—' %}mute{% endif %}">{{ r.pf }}</td>
+            <td class="{% if r.esi == '—' %}mute{% endif %}">{{ r.esi }}</td>
+            <td class="{% if r.bonus == '—' %}mute{% endif %}">{{ r.bonus }}</td>
+            <td class="{% if r.overtime == '—' %}mute{% endif %}">{{ r.overtime }}</td>
+            <td class="ded {% if r.has_deductions %}has{% endif %}">{{ r.deductions }}</td>
+            <td class="net">{{ r.net }}</td>
+            <td class="cum">{{ r.cumulative }}</td>
+          </tr>
+        {% endfor %}
+          <tr class="bd-total">
+            <td>Grand total</td>
+            <td>{{ bd_totals.earn }}</td><td>{{ bd_totals.pf }}</td><td>{{ bd_totals.esi }}</td><td>{{ bd_totals.bonus }}</td>
+            <td>{{ bd_totals.ot }}</td><td>{{ bd_totals.ded }}</td><td>{{ bd_totals.net }}</td><td>{{ bd_totals.net }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bd-sums">
+      <div><div class="k">Total PF</div><div class="v">{{ bd_totals.pf }}</div></div>
+      <div><div class="k">Total ESI</div><div class="v">{{ bd_totals.esi }}</div></div>
+      <div><div class="k">Total bonus</div><div class="v">{{ bd_totals.bonus }}</div></div>
+      <div><div class="k">Total overtime</div><div class="v">{{ bd_totals.ot }}</div></div>
+      <div><div class="k">Total deductions</div><div class="v">{{ bd_totals.ded }}</div></div>
+    </div>
+    <p class="mt-3 mb-0" style="color:var(--ph-mute);font-size:.88rem">
+      Net paid {{ bd_totals.paid }} · Pending {{ bd_totals.pending }}. Cumulative net adds each month's net, oldest to newest. Click a month to open its full salary breakdown.
+    </p>
+    {% else %}
+    <div class="ph-empty"><i class="icon-wallet"></i>No payroll records for {{ bd_target.name|default:"this employee" }} in this period.<br>Choose another year or employee.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Salary breakdown modal (self-contained, no Bootstrap modal) -->
+<div id="pmOverlay" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+  <div class="pm-box">
+    <div class="pm-head">
+      <div>
+        <h5 id="pmTitle"></h5>
+        <small id="pmMeta"></small>
+      </div>
+      <div class="pm-side">
+        <span id="pmBadge" class="ph-badge pending">Pending</span>
+        <button type="button" class="pm-x" id="pmClose" aria-label="Close">&times;</button>
+      </div>
+    </div>
+
+    <div class="pm-body">
+      <div class="pm-kpis">
+        <div class="pm-kpi g"><div class="k">Gross earnings</div><div class="v" id="pmKGross"></div></div>
+        <div class="pm-kpi r"><div class="k">Total deductions</div><div class="v" id="pmKDed"></div></div>
+        <div class="pm-kpi p"><div class="k">Net pay</div><div class="v" id="pmKNet"></div></div>
+      </div>
+
+      <div class="pm-warn" id="pmWarn" hidden>
+        <span>⚠</span>
+        <span>Net pay doesn't equal earnings − deductions for this record. Ask HR to recalculate this payroll.</span>
+      </div>
+
+      <div class="pm-cols">
+        <div><h6>Earnings</h6><div id="pmEarn"></div></div>
+        <div><h6>Deductions</h6><div id="pmDed"></div></div>
+      </div>
+
+      <div class="pm-net">
+        <div>Net pay<small id="pmFormula"></small></div>
+        <span id="pmNet"></span>
+      </div>
+
+      <div class="pm-meta" id="pmPaidMeta"></div>
+      <p id="pmNotes" class="pm-notes"></p>
+    </div>
+
+    <div class="pm-foot">
+      <a id="pmFull" class="pm-btn" href="#"><i class="icon-chart-no-axes-column"></i> Monthly breakdown</a>
+      <a id="pmPayslip" class="pm-btn primary" href="#" style="display:none"><i class="icon-download"></i> Download payslip</a>
+      <button type="button" class="pm-btn" id="pmClose2">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# Optional: payslip PDF endpoint. Link is hidden automatically if the URL name doesn't exist. #}
+{% url 'download_payslip_pdf' 0 as payslip_probe %}
+<script>
+(function () {
+  const PAYSLIP_TPL = "{{ payslip_probe|default:''|escapejs }}";   // e.g. /hr/payslip/0/pdf/
+  const overlay = document.getElementById('pmOverlay');
+  document.body.appendChild(overlay);   // keep it out of any sticky/transformed parent
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const row = (l, v, cls) => `<div class="pm-row ${cls || ''}"><span>${esc(l)}</span><b>${esc(v)}</b></div>`;
+  const list = (rows, totalLabel, total, neg) =>
+    (rows.length
+      ? rows.map(r => row(r[0], (neg ? '− ' : '') + r[1], neg ? 'neg' : '')).join('')
+      : row('None', '—', 'none'))
+    + row(totalLabel, (neg && rows.length ? '− ' : '') + total, 'total' + (neg ? ' neg' : ''));
+
+  let lastFocus = null;
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  // Fill the modal from one month's data and show it
+  function showDetail(d, source) {
+    const paid = d.status === 'Paid';
+
+    $('pmTitle').textContent = d.employee + ' — ' + d.period;
+    $('pmMeta').textContent = [d.department && d.department !== '—' ? d.department : '', d.role]
+      .filter(Boolean).join(' · ');
+
+    const badge = $('pmBadge');
+    badge.textContent = d.status;
+    badge.className = 'ph-badge ' + (paid ? 'paid' : 'pending');
+
+    $('pmKGross').textContent = d.gross;
+    $('pmKDed').textContent = d.total_ded;
+    $('pmKNet').textContent = d.net;
+    $('pmWarn').hidden = !d.mismatch;
+
+    $('pmEarn').innerHTML = list(d.earnings, 'Gross salary', d.gross, false);
+    $('pmDed').innerHTML  = list(d.deductions, 'Total deductions', d.total_ded, true);
+
+    $('pmNet').textContent = d.net;
+    $('pmFormula').textContent = d.gross + ' − ' + d.total_ded;
+
+    const meta = [];
+    if (d.paid_at) meta.push('Paid on <b>' + esc(d.paid_at) + '</b>');
+    if (d.paid_by) meta.push('By <b>' + esc(d.paid_by) + '</b>');
+    if (!paid)     meta.push('Not yet disbursed');
+    $('pmPaidMeta').innerHTML = meta.map(m => '<span>' + m + '</span>').join('');
+    $('pmNotes').textContent = d.notes || '';
+
+    // "Monthly breakdown" link only makes sense when opened from the records table
+    const full = $('pmFull');
+    if (source === 'breakdown') {
+      full.style.display = 'none';
+    } else {
+      full.style.display = '';
+      full.href = '?emp=' + encodeURIComponent(d.staff_id) +
+                  '&year=' + encodeURIComponent(d.period.split(' ').pop()) + '#breakdown';
+    }
+
+    const link = $('pmPayslip');
+    if (PAYSLIP_TPL && paid) {
+      link.href = PAYSLIP_TPL.replace(/0(?!.*0)/, d.payslip_id);
+      link.style.display = '';
+    } else {
+      link.style.display = 'none';
+    }
+
+    lastFocus = document.activeElement;
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    $('pmClose').focus();
+  }
+
+  $('pmClose').addEventListener('click', closeModal);
+  $('pmClose2').addEventListener('click', closeModal);
+  overlay.addEventListener('mousedown', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+
+  // Every .js-detail (table eye button AND each monthly-breakdown row) opens the modal
+  document.querySelectorAll('.js-detail').forEach(el => {
+    const open = () => {
+      try { showDetail(JSON.parse(el.dataset.detail), el.dataset.from); }
+      catch (err) { console.error('Bad payroll detail data', err); }
+    };
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', e => {
+      if (el.tagName !== 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); }
+    });
+  });
+})();
+</script>
+{% endblock %}

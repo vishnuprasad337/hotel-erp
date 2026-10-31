@@ -1,0 +1,430 @@
+{% extends "pos/base.html" %}
+{% load static %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block extra_head %}
+<style>
+  .pf, #pfEditOv, #pfPwdOv { --pf-ink:#1b1f3b; --pf-mute:#6b7280; --pf-line:#e8eaf3; --pf-card:#fff; --pf-soft:#f6f7fc;
+        --pf-accent:#7C3AED; --pf-red:#dc2626; }
+  [data-theme="dark"] .pf, [data-theme="dark"] #pfEditOv, [data-theme="dark"] #pfPwdOv {
+        --pf-ink:#e8e8f2; --pf-mute:#9b9bb5; --pf-line:#2d2d3d; --pf-card:#1e1e2d; --pf-soft:#252535; }
+
+  .pf-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .pf-title { display:flex; align-items:center; gap:16px; }
+  .pf-title-ico { width:56px; height:56px; border-radius:16px; display:grid; place-items:center; color:#fff; font-size:26px;
+                  background:linear-gradient(135deg,#a78bfa,#7C3AED); box-shadow:0 8px 20px rgba(124,58,237,.28); }
+  .pf-title h1 { font-size:1.9rem; font-weight:800; margin:0; color:var(--pf-ink); }
+  .pf-title p { margin:2px 0 0; color:var(--pf-mute); font-size:1rem; }
+
+  .pf-btn { height:44px; padding:0 18px; border-radius:12px; border:1px solid var(--pf-line); background:var(--pf-card);
+            color:var(--pf-ink); font-weight:600; font-size:.95rem; display:inline-flex; align-items:center; gap:8px;
+            text-decoration:none; cursor:pointer; }
+  .pf-btn:hover { border-color:var(--pf-accent); color:var(--pf-accent); }
+  .pf-btn.primary { background:var(--pf-accent); border-color:var(--pf-accent); color:#fff; }
+  .pf-btn.primary:hover { color:#fff; opacity:.92; }
+  .pf-btn:disabled { opacity:.6; cursor:not-allowed; }
+  .pf-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+  .pf-grid { display:grid; grid-template-columns:360px 1fr; gap:24px; align-items:start; }
+
+  /* sticky left identity column */
+  .pf-side { position:sticky; top:90px; align-self:start; }  /* adjust top to your navbar height + gap */
+
+  .pf-card { background:var(--pf-card); border:1px solid var(--pf-line); border-radius:20px; overflow:hidden; }
+  .pf-card + .pf-card { margin-top:24px; }
+  .pf-card-pad { padding:24px 26px; }
+  .pf-card h2 { font-size:1.15rem; font-weight:700; margin:0 0 16px; color:var(--pf-ink); }
+
+  /* identity card */
+  .pf-cover { height:110px; background:linear-gradient(135deg,#a78bfa,#7C3AED 60%,#5b21b6); }
+  .pf-id { padding:0 26px 26px; text-align:center; }
+  .pf-av { width:104px; height:104px; border-radius:50%; margin:-52px auto 14px; border:4px solid var(--pf-card);
+           display:grid; place-items:center; font-size:2rem; font-weight:800; color:#fff; overflow:hidden;
+           background:linear-gradient(135deg,#8b5cf6,#6d28d9); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+  .pf-av img { width:100%; height:100%; object-fit:cover; }
+  .pf-id h3 { font-size:1.4rem; font-weight:800; margin:0; color:var(--pf-ink); }
+  .pf-id .sub { color:var(--pf-mute); margin:4px 0 14px; font-size:.98rem; }
+  .pf-badges { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .pf-badge { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:.82rem; font-weight:600; }
+  .pf-badge.role { background:#ede9fe; color:#6d28d9; }
+  .pf-badge.on { background:#dcfce7; color:#15803d; } .pf-badge.off { background:#fee2e2; color:#b91c1c; }
+  .pf-badge.on::before, .pf-badge.off::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pf-contact { margin-top:20px; padding-top:18px; border-top:1px solid var(--pf-line); text-align:left; display:flex; flex-direction:column; gap:12px; }
+  .pf-contact div { display:flex; align-items:center; gap:10px; font-size:.95rem; color:var(--pf-ink); overflow-wrap:anywhere; }
+  .pf-contact i { color:var(--pf-mute); width:18px; flex-shrink:0; }
+
+  /* stat cards */
+  .pf-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .pf-stat { border-radius:18px; padding:18px 20px; display:flex; gap:14px; align-items:flex-start; border:1px solid var(--pf-line); }
+  .pf-stat .ico { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-size:18px; flex-shrink:0; }
+  .pf-stat .lbl { font-size:.88rem; font-weight:700; }
+  .pf-stat .val { font-size:1.7rem; font-weight:800; color:var(--pf-ink); line-height:1.15; margin:2px 0; }
+  .pf-stat .sub { font-size:.8rem; color:var(--pf-mute); }
+  .pf-stat.green  { background:linear-gradient(135deg,#ecfdf3,#f7fffb); } .pf-stat.green  .ico{background:#d1fae5;color:#059669;} .pf-stat.green  .lbl{color:#059669;}
+  .pf-stat.blue   { background:linear-gradient(135deg,#eef4ff,#f8fbff); } .pf-stat.blue   .ico{background:#dbeafe;color:#2563eb;} .pf-stat.blue   .lbl{color:#1d4ed8;}
+  .pf-stat.violet { background:linear-gradient(135deg,#f5f0ff,#fbf9ff); } .pf-stat.violet .ico{background:#ede9fe;color:#7C3AED;} .pf-stat.violet .lbl{color:#6d28d9;}
+  .pf-stat.orange { background:linear-gradient(135deg,#fff5ea,#fffaf4); } .pf-stat.orange .ico{background:#ffedd5;color:#ea580c;} .pf-stat.orange .lbl{color:#c2410c;}
+  [data-theme="dark"] .pf-stat { background:var(--pf-card) !important; }
+
+  /* detail rows */
+  .pf-rows { display:grid; grid-template-columns:1fr 1fr; gap:0 32px; }
+  .pf-row { display:flex; flex-direction:column; gap:2px; padding:12px 0; border-bottom:1px dashed var(--pf-line); min-width:0; }
+  .pf-row .k { font-size:.75rem; font-weight:700; color:var(--pf-mute); text-transform:uppercase; letter-spacing:.04em; }
+  .pf-row .v { font-size:1rem; font-weight:600; color:var(--pf-ink); overflow-wrap:anywhere; }
+  .pf-row.wide { grid-column:1 / -1; }
+
+  .pf-pay { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:16px 18px;
+            border-radius:14px; background:var(--pf-soft); margin-top:4px; }
+  .pf-pay b { font-size:1.2rem; color:var(--pf-ink); }
+  .pf-pay small { color:var(--pf-mute); display:block; }
+  .pf-badge.paid { background:#dcfce7; color:#15803d; } .pf-badge.pending { background:#fef3c7; color:#b45309; }
+
+  /* modals — self-contained, always solid */
+  .pf-ov { position:fixed; inset:0; z-index:2147483000; display:none; align-items:center; justify-content:center; padding:20px;
+           background:rgba(15,15,35,.62); overflow-y:auto; -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+  .pf-ov.open { display:flex; }
+  .pf-ov, .pf-ov * { box-sizing:border-box; }
+  .pf-box { width:100%; max-width:640px; max-height:calc(100vh - 40px); overflow-y:auto; background:#fff !important; color:var(--pf-ink);
+            border-radius:20px; border:1px solid var(--pf-line); box-shadow:0 30px 80px rgba(10,10,40,.45); }
+  [data-theme="dark"] .pf-box { background:#1e1e2d !important; }
+  .pf-mh { display:flex; align-items:center; justify-content:space-between; padding:20px 26px; border-bottom:1px solid var(--pf-line); }
+  .pf-mh h5 { margin:0; font-size:1.2rem; font-weight:800; }
+  .pf-x { width:36px; height:36px; border-radius:10px; border:none; background:var(--pf-soft); color:var(--pf-mute); font-size:22px; line-height:1; cursor:pointer; }
+  .pf-x:hover { color:var(--pf-accent); }
+  .pf-mb { padding:22px 26px; }
+  .pf-mf { display:flex; gap:8px; justify-content:flex-end; padding:16px 26px; border-top:1px solid var(--pf-line); flex-wrap:wrap; }
+  .pf-fg { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .pf-fg .full { grid-column:1 / -1; }
+  .pf-fg label { display:block; font-size:.8rem; font-weight:700; color:var(--pf-mute); margin-bottom:6px; }
+  .pf-in { width:100%; height:44px; padding:0 14px; border:1px solid var(--pf-line); border-radius:12px; background:var(--pf-card);
+           color:var(--pf-ink); font-size:.95rem; outline:none; }
+  textarea.pf-in { height:auto; padding:10px 14px; resize:vertical; min-height:80px; }
+  .pf-in:focus { border-color:var(--pf-accent); box-shadow:0 0 0 3px rgba(124,58,237,.14); }
+  .pf-in[readonly] { opacity:.7; }
+  /* password show/hide */
+  .pf-pw { position:relative; }
+  .pf-pw .pf-in { padding-right:48px; }
+  .pf-eye { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none; border-radius:8px;
+            background:transparent; color:var(--pf-mute); cursor:pointer; display:grid; place-items:center; padding:0; }
+  .pf-eye:hover { color:var(--pf-accent); background:var(--pf-soft); }
+  .pf-eye svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .pf-err { display:none; margin-bottom:14px; padding:10px 14px; border-radius:10px; background:#fee2e2; color:#b91c1c; font-size:.9rem; }
+  .pf-err.show { display:block; }
+  .pf-photo-row { display:flex; align-items:center; gap:14px; }
+  .pf-photo-row .thumb { width:64px; height:64px; border-radius:50%; overflow:hidden; display:grid; place-items:center; color:#fff; font-weight:800;
+                         background:linear-gradient(135deg,#8b5cf6,#6d28d9); flex-shrink:0; }
+  .pf-photo-row .thumb img { width:100%; height:100%; object-fit:cover; }
+
+  .pf-toast { position:fixed; right:24px; bottom:24px; z-index:2147483100; padding:14px 20px; border-radius:12px; background:#15803d; color:#fff;
+              font-weight:600; box-shadow:0 10px 30px rgba(0,0,0,.25); transform:translateY(20px); opacity:0; pointer-events:none; transition:all .25s; }
+  .pf-toast.show { transform:none; opacity:1; }
+
+  @media (max-width:1199px){
+    .pf-grid{grid-template-columns:1fr;}
+    .pf-stats{grid-template-columns:repeat(2,1fr);}
+    .pf-side{ position:static; }   /* no sticky when layout stacks */
+  }
+  @media (max-width:640px){
+    .pf-stats{grid-template-columns:1fr;} .pf-rows{grid-template-columns:1fr;} .pf-fg{grid-template-columns:1fr;}
+    .pf-ov{padding:10px; align-items:flex-end;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pf">
+
+  <div class="pf-head">
+    <div class="pf-title">
+      <div class="pf-title-ico"><i class="icon-circle-user"></i></div>
+      <div>
+        <h1>My Profile</h1>
+        <p>Your personal and employment information.</p>
+      </div>
+    </div>
+    <div class="pf-actions">
+      <button type="button" class="pf-btn" data-open="pfPwdOv"><i class="icon-key"></i> Change password</button>
+      {% if not is_admin_view %}
+      <button type="button" class="pf-btn primary" data-open="pfEditOv"><i class="icon-pen"></i> Edit profile</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="pf-grid">
+
+    <!-- LEFT: identity (sticky) -->
+    <div class="pf-side">
+      <div class="pf-card">
+        <div class="pf-cover"></div>
+        <div class="pf-id">
+          <div class="pf-av">
+            {% if p_photo %}<img src="{{ p_photo }}" alt="{{ p_name }}">{% else %}{{ p_initials }}{% endif %}
+          </div>
+          <h3>{{ p_name }}</h3>
+          <p class="sub">{{ p_role }}{% if p_dept and p_dept != "—" %} · {{ p_dept }}{% endif %}</p>
+          <div class="pf-badges">
+            <span class="pf-badge role">{{ p_role }}</span>
+            {% if p_active %}<span class="pf-badge on">Active</span>{% else %}<span class="pf-badge off">Inactive</span>{% endif %}
+          </div>
+
+          <div class="pf-contact">
+            {% if email %}<div><i class="icon-mail"></i><span>{{ email }}</span></div>{% endif %}
+            {% if staff and staff.phone %}<div><i class="icon-phone"></i><span>{{ staff.phone }}</span></div>{% endif %}
+            {% if hotel.hotel_name %}<div><i class="icon-map-pin"></i><span>{{ hotel.hotel_name }}{% if hotel.city %}, {{ hotel.city }}{% endif %}</span></div>{% endif %}
+            {% if p_tenure %}<div><i class="icon-calendar"></i><span>With us for {{ p_tenure }}</span></div>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: details -->
+    <div>
+      {% if stats %}
+      <div class="pf-stats">
+        {% for s in stats %}
+        <div class="pf-stat {{ s.tone }}">
+          <div class="ico"><i class="{{ s.icon }}"></i></div>
+          <div><div class="lbl">{{ s.label }}</div><div class="val">{{ s.value }}</div><div class="sub">{{ s.sub }}</div></div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% for title, rows in sections %}
+      <div class="pf-card">
+        <div class="pf-card-pad">
+          <h2>{{ title }}</h2>
+          <div class="pf-rows">
+            {% for k, v in rows %}
+            <div class="pf-row {% if k == 'Address' %}wide{% endif %}"><span class="k">{{ k }}</span><span class="v">{{ v }}</span></div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      {% if last_pay %}
+      <div class="pf-card">
+        <div class="pf-card-pad">
+          <h2>Latest payroll</h2>
+          <div class="pf-pay">
+            <div><small>{{ last_pay.period }}</small><b>{{ last_pay.net }}</b></div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <span class="pf-badge {% if last_pay.paid %}paid{% else %}pending{% endif %}">{% if last_pay.paid %}Paid{% else %}Pending{% endif %}</span>
+              <a class="pf-btn" href="{% url 'my_payroll' %}"><i class="icon-banknote"></i> Payroll history</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if not is_admin_view %}
+<!-- EDIT PROFILE -->
+<div class="pf-ov" id="pfEditOv" role="dialog" aria-modal="true" aria-labelledby="pfEditTitle">
+  <form class="pf-box" id="pfEditForm" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="profile">
+    <div class="pf-mh"><h5 id="pfEditTitle">Edit profile</h5><button type="button" class="pf-x" data-close>&times;</button></div>
+    <div class="pf-mb">
+      <div class="pf-err" id="pfEditErr"></div>
+      <div class="pf-fg">
+        <div class="full pf-photo-row">
+          <div class="thumb" id="pfThumb">{% if p_photo %}<img src="{{ p_photo }}" alt="">{% else %}{{ p_initials }}{% endif %}</div>
+          <div><label for="pfPhoto">Profile photo</label><input type="file" id="pfPhoto" name="photo" accept="image/*" class="pf-in" style="padding-top:9px"></div>
+        </div>
+        <div><label>Full name *</label><input class="pf-in" name="name" value="{{ f.name }}" required maxlength="120"></div>
+        <div><label>Nickname</label><input class="pf-in" name="nickname" value="{{ f.nickname }}" maxlength="60"></div>
+        <div><label>Phone</label><input class="pf-in" name="phone" value="{{ f.phone }}" maxlength="20" inputmode="tel"></div>
+        <div><label>Email (login)</label><input class="pf-in" value="{{ email }}" readonly></div>
+        <div class="full"><label>Address</label><textarea class="pf-in" name="address" maxlength="300">{{ f.address }}</textarea></div>
+        <div><label>Emergency contact name</label><input class="pf-in" name="emergency_contact_name" value="{{ f.ec_name }}" maxlength="120"></div>
+        <div><label>Emergency contact phone</label><input class="pf-in" name="emergency_contact_phone" value="{{ f.ec_phone }}" maxlength="20" inputmode="tel"></div>
+      </div>
+    </div>
+    <div class="pf-mf">
+      <button type="button" class="pf-btn" data-close>Cancel</button>
+      <button type="submit" class="pf-btn primary" id="pfEditSave">Save changes</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<!-- CHANGE PASSWORD -->
+<div class="pf-ov" id="pfPwdOv" role="dialog" aria-modal="true" aria-labelledby="pfPwdTitle">
+  <form class="pf-box" id="pfPwdForm" style="max-width:480px" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="password">
+    <!-- lets the browser match the saved login and autofill "Current password" -->
+    <input type="text" name="username" value="{{ email }}" autocomplete="username" tabindex="-1" aria-hidden="true"
+           style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <div class="pf-mh"><h5 id="pfPwdTitle">Change password</h5><button type="button" class="pf-x" data-close>&times;</button></div>
+    <div class="pf-mb">
+      <div class="pf-err" id="pfPwdErr"></div>
+      <div class="pf-fg">
+        <div class="full"><label>Current password</label>
+          <div class="pf-pw"><input class="pf-in" type="password" name="current_password" autocomplete="current-password" required></div></div>
+        <div class="full"><label>New password (min 8 characters)</label>
+          <div class="pf-pw"><input class="pf-in" type="password" name="new_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" minlength="8" required></div></div>
+        <div class="full"><label>Confirm new password</label>
+          <div class="pf-pw"><input class="pf-in" type="password" name="confirm_password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" required></div></div>
+      </div>
+    </div>
+    <div class="pf-mf">
+      <button type="button" class="pf-btn" data-close>Cancel</button>
+      <button type="submit" class="pf-btn primary" id="pfPwdSave">Update password</button>
+    </div>
+  </form>
+</div>
+
+<div class="pf-toast" id="pfToast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const UPDATE_URL = "{% url 'profile_update' %}";
+  const $ = id => document.getElementById(id);
+
+  // ---- make the left profile card sticky ----
+  // position:sticky breaks if any ancestor clips overflow, so release those
+  // (except the element that is the real scroller).
+  (function fixSticky() {
+    const side = document.querySelector('.pf-side');
+    if (!side) return;
+    let el = side.parentElement;
+    while (el && el !== document.documentElement) {
+      const s = getComputedStyle(el);
+      const clips = ['hidden', 'clip'].includes(s.overflowX) || ['hidden', 'clip'].includes(s.overflowY);
+      const isScroller = /(auto|scroll)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
+      if (clips && !isScroller) el.style.setProperty('overflow', 'visible', 'important');
+      el = el.parentElement;
+    }
+
+    // set `top` just below a fixed/sticky navbar, if there is one
+    function setTop() {
+      let offset = 0;
+      document.querySelectorAll('header, nav, .navbar, .topbar, .top-bar').forEach(n => {
+        const s = getComputedStyle(n);
+        if ((s.position === 'fixed' || s.position === 'sticky') && n.getBoundingClientRect().top <= 5) {
+          offset = Math.max(offset, n.getBoundingClientRect().bottom);
+        }
+      });
+      side.style.top = (offset + 20) + 'px';
+    }
+    setTop();
+    window.addEventListener('resize', setTop);
+  })();
+
+  // move overlays to <body> so the sticky navbar can never cover them
+  document.querySelectorAll('.pf-ov').forEach(o => document.body.appendChild(o));
+
+  function open(id)  {
+    const o = $(id); if (!o) return;
+    o.classList.add('open'); document.body.style.overflow = 'hidden';
+    if (id === 'pfPwdOv') clearPwdFields();
+  }
+  function closeAll() {
+    document.querySelectorAll('.pf-ov.open').forEach(o => o.classList.remove('open'));
+    document.body.style.overflow = '';
+    resetEyes();
+    clearPwdFields();
+  }
+
+  // ---- keep NEW / CONFIRM password fields empty (Current password may be autofilled) ----
+  function clearPwdFields() {
+    const wipe = () => document.querySelectorAll(
+      '#pfPwdForm input[name="new_password"], #pfPwdForm input[name="confirm_password"]'
+    ).forEach(i => {
+      if (document.activeElement !== i) {            // never erase what the user is typing
+        i.value = '';
+        if (i.type === 'password') i.setAttribute('readonly', '');   // re-lock until focused
+      }
+    });
+    wipe(); setTimeout(wipe, 100); setTimeout(wipe, 400);
+  }
+
+  // ---- password show/hide (eye) ----
+  const EYE_ON  = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
+
+  function setEye(btn, input, show) {
+    input.type = show ? 'text' : 'password';
+    btn.innerHTML = show ? EYE_OFF : EYE_ON;
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+  }
+  function resetEyes() {
+    document.querySelectorAll('.pf-pw').forEach(w => {
+      const input = w.querySelector('input'), btn = w.querySelector('.pf-eye');
+      if (input && btn) setEye(btn, input, false);
+    });
+  }
+  document.querySelectorAll('.pf-pw').forEach(w => {
+    const input = w.querySelector('input');
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'pf-eye'; btn.tabIndex = -1;
+    w.appendChild(btn);
+    setEye(btn, input, false);
+    btn.addEventListener('click', () => setEye(btn, input, input.type === 'password'));
+  });
+  clearPwdFields();
+
+  document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => open(b.dataset.open)));
+  document.querySelectorAll('.pf-ov').forEach(o => {
+    o.addEventListener('mousedown', e => { if (e.target === o) closeAll(); });
+    o.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeAll));
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+
+  function toast(msg) {
+    const t = $('pfToast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  async function submit(form, errEl, btn, okMsg, reload) {
+    errEl.classList.remove('show');
+    btn.disabled = true; const label = btn.textContent; btn.textContent = 'Saving…';
+    try {
+      const res = await fetch(UPDATE_URL, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong. Please try again.');
+      toast(okMsg);
+      if (reload) setTimeout(() => location.reload(), 700);
+      else { form.reset(); closeAll(); }
+    } catch (err) {
+      errEl.textContent = err.message; errEl.classList.add('show');
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+
+  const editForm = $('pfEditForm');
+  if (editForm) {
+    editForm.addEventListener('submit', e => {
+      e.preventDefault();
+      submit(editForm, $('pfEditErr'), $('pfEditSave'), 'Profile updated', true);
+    });
+    // live photo preview
+    $('pfPhoto').addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      $('pfThumb').innerHTML = '<img alt="">'; $('pfThumb').firstChild.src = URL.createObjectURL(f);
+    });
+  }
+
+  $('pfPwdForm').addEventListener('submit', e => {
+    e.preventDefault();
+    submit($('pfPwdForm'), $('pfPwdErr'), $('pfPwdSave'), 'Password changed', false);
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends "hotel/base.html" %}
+{% block title %}Laundry orders{% endblock %}
+{% block extra_head %}
+{{ block.super }}
+<style>
+/* Button styling matched to the reference (pill-style, purple accent) */
+#laundryPage, #laundryModal {
+  --lp-purple: #6933f5;
+  --lp-border: #e5e7f2;
+}
+#laundryPage .btn-admio,
+#laundryModal .btn-admio {
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--lp-border);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+#laundryPage .btn-outline-secondary,
+#laundryModal .btn-outline-secondary {
+  background-color: #fff;
+  color: var(--lp-purple);
+  border-color: var(--lp-border);
+}
+#laundryPage .btn-outline-secondary:hover,
+#laundryModal .btn-outline-secondary:hover {
+  background-color: #f6f4ff;
+  color: var(--lp-purple);
+  border-color: var(--lp-purple);
+}
+#laundryPage .btn-primary,
+#laundryModal .btn-primary {
+  background-color: var(--lp-purple);
+  border-color: var(--lp-purple);
+  color: #fff;
+}
+#laundryPage .btn-primary:hover,
+#laundryModal .btn-primary:hover {
+  background-color: #5a25e0;
+  border-color: #5a25e0;
+}
+#laundryPage .btn-admio:disabled {
+  opacity: .55;
+}
+/* Status filter chips reuse the same pill look but stay slightly smaller */
+#laundryPage #statusTabs .btn-admio {
+  padding: 8px 14px;
+  font-size: .92rem;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div id="laundryPage">
+  {% csrf_token %}
+  <header class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="mb-2 text-muted">Operations / Laundry</div>
+      <h1 class="page-title">Laundry orders</h1>
+      <p class="page-subtitle mb-0">Manage guest laundry from collection to delivery.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-admio btn-outline-secondary" id="laundryRefresh">↻ Refresh</button>
+      <button type="button" class="btn btn-admio btn-primary" data-new-order>+ New order</button>
+    </div>
+  </header>
+  <div id="laundryError" class="alert alert-danger d-none" role="alert"></div>
+  <div id="laundryNotice" class="alert alert-success d-none" role="status"></div>
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-sm-6 col-xl-3"><div class="admio-card h-100"><div class="admio-card-body p-3"><div class="stat-label">Total orders</div><div class="stat-value" id="totalOrders">—</div><small class="text-muted">Matches search and date filters</small></div></div></div>
+    <div class="col-12 col-sm-6 col-xl-3"><div class="admio-card h-100"><div class="admio-card-body p-3"><div class="stat-label">In progress</div><div class="stat-value" id="progressOrders">—</div><small class="text-muted">Received and processing</small></div></div></div>
+    <div class="col-12 col-sm-6 col-xl-3"><div class="admio-card h-100"><div class="admio-card-body p-3"><div class="stat-label">Ready for delivery</div><div class="stat-value" id="readyOrders">—</div><small class="text-muted">Awaiting delivery</small></div></div></div>
+    <div class="col-12 col-sm-6 col-xl-3"><div class="admio-card h-100"><div class="admio-card-body p-3"><div class="stat-label">Order value</div><div class="stat-value" id="orderValue">—</div><small class="text-muted">Charges, not payments collected</small></div></div></div>
+  </div>
+  <section class="admio-card" aria-labelledby="ordersHeading">
+    <div class="admio-card-body p-3">
+      <div class="d-flex align-items-center justify-content-between gap-2 mb-3"><h2 class="card-title mb-0" id="ordersHeading">Orders</h2><span class="text-muted" id="orderCount" aria-live="polite">Loading orders…</span></div>
+      <div class="d-flex flex-wrap gap-2" role="group" id="statusTabs" aria-label="Filter by order status">
+        <button type="button" class="btn btn-admio btn-primary text-nowrap" data-status="all" aria-pressed="true">All orders <span class="ms-2" data-count="all">0</span></button>
+        <button type="button" class="btn btn-admio btn-outline-secondary text-nowrap" data-status="received" aria-pressed="false">Received <span class="ms-2" data-count="received">0</span></button>
+        <button type="button" class="btn btn-admio btn-outline-secondary text-nowrap" data-status="processing" aria-pressed="false">Processing <span class="ms-2" data-count="processing">0</span></button>
+        <button type="button" class="btn btn-admio btn-outline-secondary text-nowrap" data-status="ready" aria-pressed="false">Ready <span class="ms-2" data-count="ready">0</span></button>
+        <button type="button" class="btn btn-admio btn-outline-secondary text-nowrap" data-status="delivered" aria-pressed="false">Delivered <span class="ms-2" data-count="delivered">0</span></button>
+      </div>
+    </div>
+    <div class="admio-card-body p-3 border-top">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label class="form-label" for="orderSearch">Search orders</label><input type="search" id="orderSearch" class="form-control form-control-admio" placeholder="Order number, guest or room"></div>
+        <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="orderType">Order type</label><select id="orderType" class="form-select form-select-admio"><option value="">All types</option></select></div>
+        <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="dateRange">Date range</label><select id="dateRange" class="form-select form-select-admio"><option value="all">All time</option><option value="today">Today</option><option value="week">Last 7 days</option><option value="month">This month</option><option value="custom">Custom dates</option></select></div>
+        <div class="col-12 col-lg-2"><button type="button" class="btn btn-admio btn-outline-secondary w-100" id="resetFilters">Reset filters</button></div>
+      </div>
+      <div class="row g-3 mt-1 d-none" id="customDates">
+        <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="dateFrom">From</label><input type="date" id="dateFrom" class="form-control form-control-admio"></div>
+        <div class="col-12 col-sm-6 col-lg-3"><label class="form-label" for="dateTo">To</label><input type="date" id="dateTo" class="form-control form-control-admio"></div>
+      </div>
+      <div class="text-danger mt-2 d-none" id="dateError" role="alert">The end date must be on or after the start date.</div>
+    </div>
+    <div class="table-responsive">
+      <table class="admio-table table align-middle mb-0 w-100">
+        <thead id="orderTableHead"><tr><th scope="col">Order / Guest</th><th scope="col">Room</th><th scope="col">Service</th><th scope="col">Received</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+        <tbody id="orderRows"><tr><td colspan="7" class="text-center py-5">Loading orders…</td></tr></tbody>
+      </table>
+    </div>
+    <div id="ordersFooter" class="admio-card-footer p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <span class="text-muted" id="pageSummary" aria-live="polite">Loading…</span>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <select id="pageSize" class="form-select form-select-admio w-auto" aria-label="Orders per page"><option value="20">20 per page</option><option value="50">50 per page</option><option value="100">100 per page</option></select>
+        <button type="button" class="btn btn-admio btn-outline-secondary d-none" id="previousPage">Previous</button>
+        <button type="button" class="btn btn-admio btn-outline-secondary d-none" id="nextPage">Next</button>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="modal fade" id="laundryModal" tabindex="-1" aria-labelledby="laundryModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content admio-card">
+    <div class="modal-header"><h2 class="card-title mb-0" id="laundryModalTitle">New order</h2><button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close dialog">Close</button></div>
+    <div class="modal-body"><div class="alert alert-danger d-none" id="modalError" role="alert"></div><div id="modalBody"></div></div>
+  </div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+(() => {
+  'use strict';
+  const URLS = {
+    orders: "{% url 'list_laundry_orders' %}",
+    services: "{% url 'list_laundry_services' %}",
+    create: "{% url 'create_laundry_order' %}",
+    status: "{% url 'update_laundry_status' order_id=987654321 %}"
+  };
+  const $ = id => document.getElementById(id);
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = value => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(value)||0);
+  const title = value => String(value || 'Unknown').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  const dateLabel = value => { const d = new Date(value); return isNaN(d) ? '—' : d.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
+  const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const statuses = ['received','processing','ready','delivered'];
+  let orders = [], services = [], status = 'all', page = 1, loading = false, saving = false, loaded = false, generation = 0;
+  const modal = new bootstrap.Modal($('laundryModal'));
+  $('laundryModal').addEventListener('hide.bs.modal', e => { if(saving) e.preventDefault(); else generation++; });
+  function message(id, text='') { $(id).textContent=text; $(id).classList.toggle('d-none',!text); }
+  async function api(url, payload) {
+    const response = await fetch(url, {method:payload===undefined?'GET':'POST',credentials:'same-origin',headers:{Accept:'application/json',...(payload===undefined?{}:{'Content-Type':'application/json','X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value})},...(payload===undefined?{}:{body:JSON.stringify(payload)})});
+    const data = await response.json().catch(()=>null);
+    if(!response.ok || !data || data.error) throw new Error(data?.error || `Request failed (${response.status}). Please try again.`);
+    return data;
+  }
+  function filtered() {
+    const query=$('orderSearch').value.trim().toLowerCase(), type=$('orderType').value, range=$('dateRange').value;
+    const now=new Date(), today=dateKey(now); let from='', to='';
+    if(range==='today') from=to=today;
+    if(range==='week') { const start=new Date(now); start.setDate(start.getDate()-6); from=dateKey(start); to=today; }
+    if(range==='month') { from=dateKey(new Date(now.getFullYear(),now.getMonth(),1)); to=dateKey(new Date(now.getFullYear(),now.getMonth()+1,0)); }
+    if(range==='custom') { from=$('dateFrom').value; to=$('dateTo').value; }
+    const invalid=!!(from && to && from>to); $('dateError').classList.toggle('d-none',!invalid);
+    if(invalid) return [];
+    return orders.filter(o=>{
+      const parsed=new Date(o.created_at), key=isNaN(parsed)?'':dateKey(parsed);
+      return (!query || `${o.id} #${o.id} ${o.guest_name} ${o.room_number}`.toLowerCase().includes(query)) && (!type || o.order_type===type) && (!(from||to) || !!key) && (!from || key>=from) && (!to || key<=to);
+    });
+  }
+  function nextAction(order) {
+    const next={received:['processing','Start processing'],processing:['ready','Mark ready'],ready:['delivered','Mark delivered']}[order.status];
+    return next ? `<button type="button" class="btn btn-admio btn-primary text-nowrap" data-next-order="${escape(order.id)}" data-next-status="${next[0]}">${next[1]}</button>` : '';
+  }
+  function render() {
+    if(!loaded) return;
+    const base=filtered(), rows=base.filter(o=>status==='all'||o.status===status);
+    $('totalOrders').textContent=base.length;
+    $('progressOrders').textContent=base.filter(o=>['received','processing'].includes(o.status)).length;
+    $('readyOrders').textContent=base.filter(o=>o.status==='ready').length;
+    $('orderValue').textContent=money(base.reduce((sum,o)=>sum+(Number(o.total)||0),0));
+    document.querySelectorAll('[data-count]').forEach(el=>el.textContent=el.dataset.count==='all'?base.length:base.filter(o=>o.status===el.dataset.count).length);
+    document.querySelectorAll('[data-status]').forEach(el=>{ const active=el.dataset.status===status; el.classList.toggle('btn-primary',active); el.classList.toggle('btn-outline-secondary',!active); el.setAttribute('aria-pressed',String(active)); });
+    $('orderCount').textContent=`${rows.length} ${rows.length===1?'order':'orders'}`;
+    const size=Number($('pageSize').value), pages=Math.max(1,Math.ceil(rows.length/size)); page=Math.min(page,pages);
+    const slice=rows.slice((page-1)*size,page*size);
+    $('orderTableHead').classList.toggle('d-none',rows.length===0);
+    $('ordersFooter').classList.toggle('d-none',rows.length===0);
+    $('resetFilters').disabled=!(status!=='all'||$('orderSearch').value||$('orderType').value||$('dateRange').value!=='all');
+    $('orderRows').innerHTML=slice.length?slice.map(o=>`<tr>
+      <td><div class="fw-semibold">#${escape(o.id)}</div><div class="text-muted">${escape(o.guest_name||'Guest not specified')}</div></td>
+      <td>${escape(o.room_number||'—')}</td><td>${(o.services||[]).slice(0,2).map(s=>`${escape(s.service_name)} × ${escape(s.qty)}`).join('<br>')||'—'}${(o.services||[]).length>2?`<div class="text-muted">+${o.services.length-2} more in details</div>`:''}</td>
+      <td>${escape(dateLabel(o.created_at))}</td><td class="text-nowrap">${money(o.total)}</td><td><span class="badge ${o.status==='delivered'?'bg-success':o.status==='ready'?'bg-primary':o.status==='processing'?'bg-warning text-dark':'bg-secondary'}">${escape(title(o.status))}</span></td>
+      <td><div class="d-flex flex-wrap gap-2">${nextAction(o)}<button type="button" class="btn btn-admio btn-outline-secondary text-nowrap" data-details="${escape(o.id)}" aria-label="View order ${escape(o.id)}">Details</button></div></td></tr>`).join(''):
+      `<tr><td colspan="7" class="text-center p-4"><div class="py-2"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-primary mb-3" aria-hidden="true"><path d="M3 9h18l-2 12H5L3 9ZM7 9V5a5 5 0 0 1 10 0v4M8 13v4m4-4v4m4-4v4"/></svg><h3 class="card-title">${orders.length?(status==='all'?'No matching orders':`No ${escape(title(status).toLowerCase())} orders`):'Create your first laundry order'}</h3><p class="text-muted">${orders.length?'Try a different status, search or date range.':'Add a room, choose services and track the order through delivery.'}</p><button type="button" class="btn btn-admio btn-primary" ${orders.length?'data-reset':'data-new-order'}>${orders.length?'Reset filters':'Create order'}</button></div></td></tr>`;
+    $('pageSummary').textContent=rows.length?`Showing ${(page-1)*size+1}–${Math.min(page*size,rows.length)} of ${rows.length} orders`:'0 orders';
+    $('previousPage').disabled=page===1; $('nextPage').disabled=page===pages;
+    ['previousPage','nextPage'].forEach(id=>$(id).classList.toggle('d-none',pages===1));
+  }
+  async function load() {
+    if(loading) return; loading=true; $('laundryRefresh').disabled=true; $('laundryRefresh').textContent='Refreshing…'; $('orderRows').setAttribute('aria-busy','true'); message('laundryError');
+    try {
+      const data=await api(URLS.orders); if(!Array.isArray(data.orders)) throw new Error('The server returned an unexpected orders response.');
+      orders=data.orders; loaded=true;
+      const selected=$('orderType').value;
+      $('orderType').innerHTML='<option value="">All types</option>'+[...new Set(orders.map(o=>o.order_type).filter(Boolean))].sort().map(type=>`<option value="${escape(type)}">${escape(title(type))}</option>`).join('');
+      if([...$('orderType').options].some(o=>o.value===selected)) $('orderType').value=selected;
+      render();
+    } catch(error) {
+      message('laundryError',error.message);
+      if(!loaded) { $('orderRows').innerHTML='<tr><td colspan="7" class="text-center py-5">Orders could not be loaded. Use Refresh to try again.</td></tr>'; $('orderCount').textContent='Unable to load orders'; $('pageSummary').textContent=''; }
+    } finally { loading=false; $('laundryRefresh').disabled=false; $('laundryRefresh').textContent='↻ Refresh'; $('orderRows').setAttribute('aria-busy','false'); }
+  }
+  function reset() { status='all'; page=1; ['orderSearch','orderType','dateFrom','dateTo'].forEach(id=>$(id).value=''); $('dateRange').value='all'; $('customDates').classList.add('d-none'); render(); }
+  function openDialog(heading,html) { generation++; message('modalError'); $('laundryModalTitle').textContent=heading; $('modalBody').innerHTML=html; modal.show(); return generation; }
+  function options() { return services.map(s=>`<option value="${escape(s.id)}">${escape(s.name)} — ${money(s.price_per_unit)}</option>`).join(''); }
+  function addItem() {
+    const row=document.createElement('div'); row.className='row g-2 align-items-end border-bottom pb-3 mb-3'; row.dataset.item='';
+    row.innerHTML=`<div class="col-12 col-md-5"><label class="form-label d-block">Service<select class="form-select form-select-admio" data-service required>${options()}</select></label></div><div class="col-7 col-md-3"><label class="form-label d-block">Item name<input class="form-control form-control-admio" data-item-name placeholder="Optional"></label></div><div class="col-5 col-md-2"><label class="form-label d-block">Quantity<input type="number" min="1" step="1" value="1" class="form-control form-control-admio" data-quantity required></label></div><div class="col-12 col-md-2 mb-2"><button type="button" class="btn btn-admio btn-outline-danger" data-remove-item>Remove</button></div>`;
+    $('orderItems').appendChild(row); estimate();
+  }
+  function estimate() {
+    let total=0; document.querySelectorAll('[data-item]').forEach(row=>{const service=services.find(s=>String(s.id)===row.querySelector('[data-service]').value);total+=(Number(service?.price_per_unit)||0)*(Number(row.querySelector('[data-quantity]').value)||0);});
+    if($('estimatedTotal')) $('estimatedTotal').textContent=money(total);
+  }
+  async function newOrder() {
+    if(saving) return;
+    const token=openDialog('New laundry order','<p role="status">Loading services…</p>');
+    try {
+      const data=await api(URLS.services); if(token!==generation) return;
+      if(!Array.isArray(data.services)) throw new Error('The server returned an unexpected services response.');
+      services=data.services;
+      if(!services.length) { $('modalBody').innerHTML='<p>No laundry services are available. Add a service in your laundry service setup, then create an order.</p>'; return; }
+      $('modalBody').innerHTML=`<form id="createOrderForm"><fieldset id="orderFields"><div class="row g-3 mb-3">
+        <div class="col-sm-6"><label class="form-label" for="newRoom">Room number</label><input id="newRoom" class="form-control form-control-admio" required></div>
+        <div class="col-sm-6"><label class="form-label" for="newGuest">Guest name</label><input id="newGuest" class="form-control form-control-admio"></div>
+        <div class="col-sm-6"><label class="form-label" for="newBooking">Booking ID (optional)</label><input id="newBooking" type="number" min="1" step="1" class="form-control form-control-admio"><small class="text-muted">Use the booking ID to charge its open guest folio.</small></div>
+        <div class="col-sm-6"><label class="form-label" for="newType">Order type</label><select id="newType" class="form-select form-select-admio"><option value="guest_laundry">Guest laundry</option>{% for value, label in laundry_order_types %}{% if value != 'guest_laundry' %}<option value="{{ value|escapejs }}">{{ label|escapejs }}</option>{% endif %}{% endfor %}</select></div>
+        </div><h3 class="card-title">Laundry items</h3><div id="orderItems"></div><button type="button" class="btn btn-admio btn-outline-secondary" id="addOrderItem">Add item</button>
+        <div class="d-flex justify-content-between border-top mt-4 pt-3"><span>Estimated total</span><strong id="estimatedTotal">₹0</strong></div><p class="text-muted mt-2">Final charges use the current service prices.</p>
+        <div class="d-flex justify-content-end gap-2"><button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-admio btn-primary">Create order</button></div></fieldset></form>`;
+      addItem();
+      $('newRoom').focus();
+      $('addOrderItem').addEventListener('click',addItem);
+      $('orderItems').addEventListener('input',estimate);
+      $('orderItems').addEventListener('change',estimate);
+      $('orderItems').addEventListener('click',e=>{const button=e.target.closest('[data-remove-item]'); if(button){button.closest('[data-item]').remove();estimate();}});
+      $('createOrderForm').addEventListener('submit',createOrder);
+    } catch(error) { if(token===generation){$('modalBody').textContent='Please close this dialog and try again.';message('modalError',error.message);} }
+  }
+  async function createOrder(event) {
+    event.preventDefault(); if(saving) return; message('modalError');
+    const items=[...document.querySelectorAll('[data-item]')].map(row=>({service_id:Number(row.querySelector('[data-service]').value),quantity:Number(row.querySelector('[data-quantity]').value),item_name:row.querySelector('[data-item-name]').value.trim()||services.find(s=>String(s.id)===row.querySelector('[data-service]').value)?.name||''}));
+    if(!items.length || items.some(i=>!i.service_id || !Number.isInteger(i.quantity) || i.quantity<1)) {message('modalError','Add at least one service with a valid quantity.');return;}
+    const room=$('newRoom').value.trim(); if(!room){message('modalError','Enter a room number.');return;}
+    const payload={room_number:room,guest_name:$('newGuest').value.trim(),order_type:$('newType').value,booking_id:$('newBooking').value?Number($('newBooking').value):null,items};
+    saving=true; $('orderFields').disabled=true; $('createOrderForm').querySelector('[type=submit]').textContent='Creating order…';
+    try {const result=await api(URLS.create,payload); saving=false; modal.hide(); message('laundryNotice',`Order #${result.order_id} created successfully.`); await load();}
+    catch(error){message('modalError',error.message);}
+    finally {saving=false;if($('orderFields')){$('orderFields').disabled=false;$('createOrderForm').querySelector('[type=submit]').textContent='Create order';}}
+  }
+  function details(id) {
+    const o=orders.find(row=>String(row.id)===String(id)); if(!o) return;
+    openDialog(`Laundry order #${o.id}`,`<dl class="row"><dt class="col-sm-4">Guest</dt><dd class="col-sm-8">${escape(o.guest_name||'Not specified')}</dd><dt class="col-sm-4">Room</dt><dd class="col-sm-8">${escape(o.room_number)}</dd><dt class="col-sm-4">Received</dt><dd class="col-sm-8">${escape(dateLabel(o.created_at))}</dd><dt class="col-sm-4">Order type</dt><dd class="col-sm-8">${escape(title(o.order_type))}</dd><dt class="col-sm-4">Total charges</dt><dd class="col-sm-8">${money(o.total)}</dd><dt class="col-sm-4">Updated by</dt><dd class="col-sm-8">${escape(o.status_updated_by||'Not recorded')}</dd><dt class="col-sm-4">Delivered by</dt><dd class="col-sm-8">${escape(o.delivered_by||'Not recorded')}</dd></dl><h3 class="card-title">Services</h3><ul>${(o.services||[]).map(s=>`<li>${escape(s.service_name)} × ${escape(s.qty)}</li>`).join('')||'<li>No items recorded</li>'}</ul><form id="statusForm" class="border-top pt-3"><fieldset id="statusFields"><label class="form-label" for="newStatus">Order status</label><select id="newStatus" class="form-select form-select-admio mb-3">${[...new Set([...statuses,o.status])].filter(Boolean).map(s=>`<option value="${escape(s)}" ${s===o.status?'selected':''}>${escape(title(s))}</option>`).join('')}</select><label class="form-label" for="statusNote">Note (optional)</label><textarea id="statusNote" class="form-control form-control-admio mb-3" rows="2"></textarea><div class="d-flex justify-content-end"><button type="submit" class="btn btn-admio btn-primary">Update status</button></div></fieldset></form>`);
+    $('newStatus').addEventListener('change',()=>message('modalError'));
+    $('statusForm').addEventListener('submit',async e=>{
+      e.preventDefault();if(saving)return;message('modalError');
+      if($('newStatus').value===o.status){message('modalError','Choose a different status to update this order.');return;}
+      saving=true;$('statusFields').disabled=true;
+      try {await api(URLS.status.replace('987654321',encodeURIComponent(String(o.id))),{status:$('newStatus').value,note:$('statusNote').value.trim()});saving=false;modal.hide();message('laundryNotice',`Order #${o.id} updated.`);await load();}
+      catch(error){message('modalError',error.message);}
+      finally{saving=false;if($('statusFields'))$('statusFields').disabled=false;}
+    });
+  }
+  $('laundryPage').addEventListener('click',e=>{
+    if(e.target.closest('[data-new-order]'))newOrder();
+    if(e.target.closest('[data-reset]'))reset();
+    const next=e.target.closest('[data-next-order]');
+    if(next){details(next.dataset.nextOrder);$('newStatus').value=next.dataset.nextStatus;}
+    const detail=e.target.closest('[data-details]');if(detail)details(detail.dataset.details);
+    const tab=e.target.closest('[data-status]');if(tab){status=tab.dataset.status;page=1;render();}
+  });
+  $('laundryRefresh').addEventListener('click',load);$('resetFilters').addEventListener('click',reset);
+  ['orderSearch','orderType','dateFrom','dateTo','pageSize'].forEach(id=>$(id).addEventListener(id==='orderSearch'?'input':'change',()=>{page=1;render();}));
+  $('dateRange').addEventListener('change',()=>{$('customDates').classList.toggle('d-none',$('dateRange').value!=='custom');page=1;render();});
+  $('previousPage').addEventListener('click',()=>{page--;render();});$('nextPage').addEventListener('click',()=>{page++;render();});
+  load();
+})();
+</script>
+{% endblock %}

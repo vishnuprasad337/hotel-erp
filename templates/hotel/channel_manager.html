@@ -1,0 +1,873 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Channel Manager · {{ hotel.hotel_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Small, scoped set of helpers for the tinted cards, coloured icons and pills.
+     Layout, cards, tables, forms and modals all come from Admio + Bootstrap. */
+
+  /* Modals must sit above the sidebar (10001) and topbar (9999) */
+  .modal { z-index: 10100; }
+  .modal-backdrop { z-index: 10090; }
+
+  /* Colour tokens: set --cm-c (r,g,b) and every helper below follows it */
+  .cm-tint-blue   { --cm-c: 47, 107, 255; }
+  .cm-tint-purple { --cm-c: 124, 58, 237; }
+  .cm-tint-green  { --cm-c: 22, 168, 112; }
+  .cm-tint-red    { --cm-c: 229, 72, 77; }
+  .cm-tint-amber  { --cm-c: 217, 138, 0; }
+  .cm-tint-grey   { --cm-c: 107, 113, 148; }
+
+  .cm-tint { background: rgba(var(--cm-c), .09) !important; border-color: rgba(var(--cm-c), .2) !important; }
+  .cm-c    { color: rgb(var(--cm-c)); }
+
+  /* SVG icons */
+  .cm-svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* Round icon badge (stat cards, channel types) and square badge (quick actions) */
+  .cm-ico { width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: #fff; color: rgb(var(--cm-c)); }
+  [data-theme="dark"] .cm-ico { background: rgba(255, 255, 255, .1); }
+  .cm-ico .cm-svg { width: 22px; height: 22px; }
+  .cm-ico.cm-soft { background: rgba(var(--cm-c), .12); }
+  .cm-ico.cm-sq { width: 40px; height: 40px; border-radius: 10px; }
+  .cm-ico.cm-sq .cm-svg { width: 19px; height: 19px; }
+
+  /* Pills */
+  .cm-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; white-space: nowrap; background: rgba(var(--cm-c), .12); color: rgb(var(--cm-c)); }
+  .cm-pill .cm-svg { width: 13px; height: 13px; }
+  .cm-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
+
+  /* Initial avatar used instead of brand logos */
+  .cm-avatar { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .95rem; flex: none; }
+
+  /* Add-channel modal: pill tabs */
+  .cm-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--bs-border-color, #e5e7eb); border-radius: 12px; }
+  .cm-tabs .nav-link { display: flex; align-items: center; gap: 8px; padding: 8px 22px; border: 0; border-radius: 9px; font-weight: 600; color: inherit; opacity: .65; background: none; }
+  .cm-tabs .nav-link.active { background: rgba(124, 58, 237, .1); color: #7C3AED; opacity: 1; }
+  .cm-tabs .cm-svg { width: 18px; height: 18px; }
+  .cm-input-icon { color: rgba(var(--cm-c), 1); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cm-i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></symbol>
+  <symbol id="cm-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="cm-i-wifi" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></symbol>
+  <symbol id="cm-i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="cm-i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="cm-i-arrow-r" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+  <symbol id="cm-i-arrow-l" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+  <symbol id="cm-i-chev" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="cm-i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="cm-i-plus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></symbol>
+  <symbol id="cm-i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="cm-i-bars" viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></symbol>
+  <symbol id="cm-i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="cm-i-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="cm-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="cm-i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></symbol>
+  <symbol id="cm-i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="cm-i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M17 6l3 3"/><path d="M14 9l2 2"/></symbol>
+  <symbol id="cm-i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="cm-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="cm-i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="cm-i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+  <symbol id="cm-i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+</svg>
+
+<!-- ══════════ PAGE HEADER ══════════ -->
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+    <div>
+      <h1 class="page-title mb-1">Channel Manager</h1>
+      <p class="page-subtitle text-muted mb-0">Manage your distribution channels, sync inventory and keep your room rates updated across all platforms.</p>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <span class="cm-pill cm-tint-green" id="cmStatusBadge"><span class="cm-dot"></span><span id="cmStatusBadgeText">All systems operational</span></span>
+    <div class="admio-card">
+      <div class="d-flex align-items-center gap-3 px-3 py-2">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple"><svg class="cm-svg"><use href="#cm-i-cal"/></svg></span>
+        <div>
+          <div class="fw-700">{{ today|date:"M d, Y" }}</div>
+          <div class="text-muted text-sm">Last sync: <span id="cmLastSync">Never</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ STAT CARDS ══════════ -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="admio-card cm-tint cm-tint-blue h-100 position-relative" role="button" tabindex="0" data-cm-open="website">
+      <div class="admio-card-body d-flex align-items-center gap-3">
+        <span class="cm-ico cm-tint-blue"><svg class="cm-svg"><use href="#cm-i-globe"/></svg></span>
+        <div>
+          <div class="stat-label">Website channels</div>
+          <div class="stat-value" id="cmStWebsite">0</div>
+          <div class="text-muted text-sm" id="cmStWebsiteSub">No active website channels</div>
+        </div>
+      </div>
+      <svg class="cm-svg text-muted position-absolute top-0 end-0 m-3"><use href="#cm-i-chev"/></svg>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="admio-card cm-tint cm-tint-purple h-100 position-relative" role="button" tabindex="0" data-cm-open="ota">
+      <div class="admio-card-body d-flex align-items-center gap-3">
+        <span class="cm-ico cm-tint-purple"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+        <div>
+          <div class="stat-label">OTA channels</div>
+          <div class="stat-value" id="cmStOta">0</div>
+          <div class="text-muted text-sm" id="cmStOtaSub">No active OTA channels</div>
+        </div>
+      </div>
+      <svg class="cm-svg text-muted position-absolute top-0 end-0 m-3"><use href="#cm-i-chev"/></svg>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="admio-card cm-tint cm-tint-green h-100">
+      <div class="admio-card-body d-flex align-items-center gap-3">
+        <span class="cm-ico cm-tint-green"><svg class="cm-svg"><use href="#cm-i-wifi"/></svg></span>
+        <div>
+          <div class="stat-label">Active channels</div>
+          <div class="stat-value" id="cmStActive">0</div>
+          <div class="text-muted text-sm" id="cmStActiveSub">Out of 0 total channels</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="admio-card cm-tint cm-tint-red h-100">
+      <div class="admio-card-body d-flex align-items-center gap-3">
+        <span class="cm-ico cm-tint-red"><svg class="cm-svg"><use href="#cm-i-alert"/></svg></span>
+        <div>
+          <div class="stat-label">Sync errors</div>
+          <div class="stat-value" id="cmStErr">0</div>
+          <div class="text-muted text-sm" id="cmStErrSub">No sync errors</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ══════════ LEFT COLUMN ══════════ -->
+  <div class="col-12 col-xl-8">
+
+    <!-- Channel management -->
+    <div class="admio-card mb-4" id="cmChannelMgmt">
+      <div class="admio-card-header d-flex justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:32px;height:32px;border-radius:8px"><svg class="cm-svg" style="width:16px;height:16px"><use href="#cm-i-share"/></svg></span>
+          <h2 class="card-title mb-0">Channel management</h2>
+        </div>
+        <button type="button" class="btn btn-admio btn-primary" data-cm-add><svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel</button>
+      </div>
+      <div class="admio-card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="border rounded-3 p-3 h-100 d-flex gap-3 position-relative" role="button" tabindex="0" data-cm-open="website">
+              <span class="cm-ico cm-soft cm-tint-blue align-self-start"><svg class="cm-svg"><use href="#cm-i-globe"/></svg></span>
+              <div class="pe-4">
+                <div class="fw-700">Website channels</div>
+                <div class="text-muted text-sm mb-3">Manage your hotel website and direct booking channels.</div>
+                <span class="cm-pill cm-tint-blue" id="cmTagWebsite">0 channels</span>
+              </div>
+              <span class="cm-ico cm-soft cm-sq cm-tint-grey position-absolute top-0 end-0 m-3" style="width:30px;height:30px;border-radius:50%"><svg class="cm-svg" style="width:15px;height:15px"><use href="#cm-i-arrow-r"/></svg></span>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="border rounded-3 p-3 h-100 d-flex gap-3 position-relative" role="button" tabindex="0" data-cm-open="ota">
+              <span class="cm-ico cm-soft cm-tint-purple align-self-start"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+              <div class="pe-4">
+                <div class="fw-700">OTA channels</div>
+                <div class="text-muted text-sm mb-3">Connect and manage OTAs like Booking.com, Expedia, Agoda and more.</div>
+                <span class="cm-pill cm-tint-purple" id="cmTagOta">0 channels</span>
+              </div>
+              <span class="cm-ico cm-soft cm-sq cm-tint-grey position-absolute top-0 end-0 m-3" style="width:30px;height:30px;border-radius:50%"><svg class="cm-svg" style="width:15px;height:15px"><use href="#cm-i-arrow-r"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent sync activity -->
+    <div class="admio-card">
+      <div class="admio-card-header d-flex justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="cm-ico cm-soft cm-sq cm-tint-blue" style="width:32px;height:32px;border-radius:8px"><svg class="cm-svg" style="width:16px;height:16px"><use href="#cm-i-refresh"/></svg></span>
+          <h2 class="card-title mb-0">Recent sync activity</h2>
+        </div>
+        <button type="button" class="btn btn-admio btn-outline-secondary" id="cmRefresh">Refresh</button>
+      </div>
+      <div class="table-responsive">
+        <table class="table admio-table align-middle mb-0">
+          <thead>
+            <tr><th>Channel</th><th>Direction</th><th>Status</th><th>Records</th><th>Duration</th><th>Time</th></tr>
+          </thead>
+          <tbody id="cmLogBody">
+            <tr><td colspan="6" class="text-center text-muted">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="admio-card-footer text-muted text-sm">Last updated: <span id="cmLastUpdated">—</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════ RIGHT COLUMN ══════════ -->
+  <div class="col-12 col-xl-4">
+
+    <!-- Quick actions -->
+    <div class="admio-card mb-4">
+      <div class="admio-card-header d-flex align-items-center gap-2">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:32px;height:32px;border-radius:8px"><svg class="cm-svg" style="width:16px;height:16px"><use href="#cm-i-refresh"/></svg></span>
+        <h2 class="card-title mb-0">Quick actions</h2>
+      </div>
+      <div class="admio-card-body-sm">
+        <a role="button" class="d-flex align-items-center gap-3 py-3 border-bottom text-reset text-decoration-none" data-cm-add>
+          <span class="cm-ico cm-soft cm-sq cm-tint-purple"><svg class="cm-svg"><use href="#cm-i-plus-circle"/></svg></span>
+          <span class="flex-grow-1"><span class="d-block fw-700">Add channel</span><span class="text-muted text-sm">Connect a new distribution channel</span></span>
+          <svg class="cm-svg text-muted"><use href="#cm-i-chev"/></svg>
+        </a>
+        <a role="button" class="d-flex align-items-center gap-3 py-3 border-bottom text-reset text-decoration-none" id="cmQaSyncAll">
+          <span class="cm-ico cm-soft cm-sq cm-tint-purple"><svg class="cm-svg"><use href="#cm-i-refresh"/></svg></span>
+          <span class="flex-grow-1"><span class="d-block fw-700">Sync all channels</span><span class="text-muted text-sm">Manually trigger sync across all active channels</span></span>
+          <svg class="cm-svg text-muted"><use href="#cm-i-chev"/></svg>
+        </a>
+        {% if rates_url %}
+        <a class="d-flex align-items-center gap-3 py-3 border-bottom text-reset text-decoration-none" href="{{ rates_url }}">
+          <span class="cm-ico cm-soft cm-sq cm-tint-blue"><svg class="cm-svg"><use href="#cm-i-bars"/></svg></span>
+          <span class="flex-grow-1"><span class="d-block fw-700">View rate &amp; inventory</span><span class="text-muted text-sm">Check live rates and availability</span></span>
+          <svg class="cm-svg text-muted"><use href="#cm-i-chev"/></svg>
+        </a>
+        {% endif %}
+        <a role="button" class="d-flex align-items-center gap-3 py-3 text-reset text-decoration-none" id="cmQaSettings">
+          <span class="cm-ico cm-soft cm-sq cm-tint-blue"><svg class="cm-svg"><use href="#cm-i-gear"/></svg></span>
+          <span class="flex-grow-1"><span class="d-block fw-700">Channel settings</span><span class="text-muted text-sm">Manage channel configurations</span></span>
+          <svg class="cm-svg text-muted"><use href="#cm-i-chev"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Channel status -->
+    <div class="admio-card mb-4">
+      <div class="admio-card-header d-flex align-items-center gap-2">
+        <span class="cm-ico cm-soft cm-sq cm-tint-blue" style="width:32px;height:32px;border-radius:8px"><svg class="cm-svg" style="width:16px;height:16px"><use href="#cm-i-bars"/></svg></span>
+        <h2 class="card-title mb-0">Channel status</h2>
+      </div>
+      <div class="admio-card-body">
+        <div class="d-flex align-items-center gap-2 p-3 rounded-3 mb-3 cm-tint cm-c cm-tint-green" id="cmStatusBox">
+          <svg class="cm-svg fs-5"><use href="#cm-i-check"/></svg>
+          <div>
+            <div class="fw-700" id="cmStatusTitle">All channels are running smoothly</div>
+            <div class="text-sm" id="cmStatusSub">Add a channel to get started.</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-4"><div class="text-sm d-flex align-items-center gap-1"><span class="cm-dot cm-c cm-tint-green"></span>Active</div><div class="fw-700 fs-4" id="cmCActive">0</div></div>
+          <div class="col-4"><div class="text-sm d-flex align-items-center gap-1"><span class="cm-dot cm-c cm-tint-red"></span>Errors</div><div class="fw-700 fs-4" id="cmCErr">0</div></div>
+          <div class="col-4"><div class="text-sm d-flex align-items-center gap-1"><span class="cm-dot cm-c cm-tint-grey"></span>Inactive</div><div class="fw-700 fs-4" id="cmCInactive">0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div class="admio-card cm-tint cm-tint-blue">
+      <div class="admio-card-body d-flex gap-3">
+        <span class="cm-c cm-tint-blue fs-5 mt-1"><svg class="cm-svg"><use href="#cm-i-info"/></svg></span>
+        <div>
+          <div class="fw-700 mb-1">Need help with channel setup?</div>
+          <div class="text-muted text-sm mb-3">Visit our help center or contact support for assistance with channel configuration and sync issues.</div>
+          <a href="#" class="btn btn-admio btn-sm btn-outline-primary">Go to help center <svg class="cm-svg ms-1"><use href="#cm-i-arrow-r"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MANAGE MODAL ══════════ -->
+<div class="modal fade" id="cmManageModal" tabindex="-1" aria-labelledby="cmManageTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 overflow-hidden">
+      <div class="modal-header align-items-center gap-3 px-4 py-3">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+        <div class="flex-grow-1">
+          <h3 class="modal-title fs-4 fw-700 mb-0" id="cmManageTitle">Channels</h3>
+          <div class="text-muted text-sm">Enable, sync or remove your connected channels.</div>
+        </div>
+        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="cmManageList"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-admio btn-primary" id="cmManageAdd"><svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADD MODAL ══════════ -->
+<div class="modal fade" id="cmAddModal" tabindex="-1" aria-labelledby="cmAddTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 overflow-hidden">
+
+      <div class="modal-header align-items-center gap-3 px-4 py-3">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+        <div class="flex-grow-1">
+          <h3 class="modal-title fs-4 fw-700 mb-0" id="cmAddTitle">Add channel</h3>
+          <div class="text-muted text-sm" id="cmAddSub">Connect your hotel with more booking platforms and reach more guests.</div>
+        </div>
+        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body px-4">
+        <ul class="nav cm-tabs mb-4" role="tablist">
+          <li class="nav-item" role="presentation"><button class="nav-link active" id="cmTabWebsite" type="button" data-bs-toggle="tab" data-bs-target="#cmPaneWebsite" role="tab"><svg class="cm-svg"><use href="#cm-i-globe"/></svg>Website</button></li>
+          <li class="nav-item" role="presentation"><button class="nav-link" id="cmTabOta" type="button" data-bs-toggle="tab" data-bs-target="#cmPaneOta" role="tab"><svg class="cm-svg"><use href="#cm-i-building"/></svg>OTA</button></li>
+        </ul>
+
+        <div class="alert alert-danger d-none" id="cmAddError" role="alert"></div>
+
+        <div class="tab-content">
+
+          <!-- Website -->
+          <div class="tab-pane fade show active" id="cmPaneWebsite" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-lg-7">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWName"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-globe"/></svg>Site name <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-building"/></svg></span>
+                <input class="form-control form-control-admio" id="cmWName" type="text" placeholder="e.g. My Hotel Website" >
+              </div>
+              <div class="form-text text-xs">Enter a name to identify this website channel.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWUrl"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-link"/></svg>Website URL <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-globe"/></svg></span>
+                <input class="form-control form-control-admio" id="cmWUrl" type="text" placeholder="https://www.example.com" >
+              </div>
+              <div class="form-text text-xs">Enter the full website URL (including https://).</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWKey"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-key"/></svg>Website API key <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-key"/></svg></span>
+                <input class="form-control form-control-admio" id="cmWKey" type="text" placeholder="Enter your website API key" >
+              </div>
+              <div class="form-text text-xs">This key is provided by your website platform or booking system.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWCallback"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-refresh"/></svg>Callback URL <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span>
+                <input class="form-control form-control-admio" id="cmWCallback" type="text" placeholder="https://www.example.com/api/booking-callback/" >
+              </div>
+              <div class="form-text text-xs">We'll send booking notifications to this URL (if supported).</div>
+            </div>
+            <div class="mb-1">
+              <label class="form-label fw-600" for="cmWInterval"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-clock"/></svg>Sync interval (minutes) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-clock"/></svg></span>
+                <input class="form-control form-control-admio" id="cmWInterval" type="number" placeholder="15" min="1" value="15">
+              </div>
+              <div class="form-text text-xs">How often to sync data with this channel.</div>
+            </div>
+              </div>
+              <div class="col-lg-5">
+            <div class="cm-tint cm-tint-purple rounded-4 p-4 h-100">
+              <span class="cm-ico cm-soft cm-tint-purple mb-3"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span>
+              <h4 class="fs-5 fw-700">Website channel</h4>
+              <p class="text-muted text-sm">Add your hotel's website details to sync inventory, rates and booking information automatically.</p>
+              <hr>
+              <ul class="list-unstyled mb-3">
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Real-time availability sync</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Instant booking updates</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Better rate management</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>More direct bookings</li>
+            </ul>
+              <svg viewBox="0 0 220 120" class="w-100" style="max-height:130px" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="30" y="12" width="140" height="94" rx="10" fill="#fff" fill-opacity=".85" stroke="#7C3AED" stroke-opacity=".35"/>
+              <path d="M30 22a10 10 0 0 1 10-10h120a10 10 0 0 1 10 10v8H30z" fill="#7C3AED" fill-opacity=".14"/>
+              <circle cx="42" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".55"/><circle cx="51" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".35"/><circle cx="60" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".2"/>
+              <use href="#cm-i-globe" x="74" y="42" width="48" height="48" stroke="#7C3AED" stroke-width="1.5"/>
+              <circle cx="160" cy="92" r="18" fill="#7C3AED"/>
+              <use href="#cm-i-link" x="149" y="81" width="22" height="22" stroke="#fff" stroke-width="2"/>
+            </svg>
+            </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OTA -->
+          <div class="tab-pane fade" id="cmPaneOta" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-lg-7">
+          <div class="row g-3">
+            <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOName"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-tag"/></svg>Channel name <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-building"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOName" type="text" placeholder="Booking.com" >
+              </div>
+              <div class="form-text text-xs">Enter the name of the channel (e.g. Booking.com).</div>
+            </div>
+            </div>
+            <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOType"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-grid"/></svg>Channel type <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-building"/></svg></span>
+                <select class="form-select form-select-admio" id="cmOType">
+                  {% for value, label in ota_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="form-text text-xs">Select the type of channel.</div>
+            </div>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOKey"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-key"/></svg>API key <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-key"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOKey" type="text" placeholder="Enter your API key" >
+              </div>
+              <div class="form-text text-xs">This key is provided by the channel.</div>
+            </div>
+            </div>
+            <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOSecret"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-shield"/></svg>API secret <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-shield"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOSecret" type="password" placeholder="Enter your API secret" autocomplete="new-password">
+              </div>
+              <div class="form-text text-xs">Keep this information secure.</div>
+            </div>
+            </div>
+          </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOHotel"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-building"/></svg>Hotel ID on OTA</label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-building"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOHotel" type="text" placeholder="Enter your hotel ID" >
+              </div>
+              <div class="form-text text-xs">Your hotel ID as provided by the OTA.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmOIcal"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-link"/></svg>iCal URL <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOIcal" type="text" placeholder="https://…/calendar.ics" >
+              </div>
+              <div class="form-text text-xs">Used to sync availability (if supported by the channel).</div>
+            </div>
+            <div class="mb-1">
+              <label class="form-label fw-600" for="cmOInterval"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-clock"/></svg>Sync interval (minutes) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-clock"/></svg></span>
+                <input class="form-control form-control-admio" id="cmOInterval" type="number" placeholder="15" min="1" value="15">
+              </div>
+              <div class="form-text text-xs">How often to sync data with this channel.</div>
+            </div>
+              </div>
+              <div class="col-lg-5">
+            <div class="cm-tint cm-tint-purple rounded-4 p-4 h-100">
+              <svg viewBox="0 0 220 120" class="w-100" style="max-height:130px" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="30" y="12" width="140" height="94" rx="10" fill="#fff" fill-opacity=".85" stroke="#7C3AED" stroke-opacity=".35"/>
+              <path d="M30 22a10 10 0 0 1 10-10h120a10 10 0 0 1 10 10v8H30z" fill="#7C3AED" fill-opacity=".14"/>
+              <circle cx="42" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".55"/><circle cx="51" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".35"/><circle cx="60" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".2"/>
+              <use href="#cm-i-building" x="74" y="42" width="48" height="48" stroke="#7C3AED" stroke-width="1.5"/>
+              <circle cx="160" cy="92" r="18" fill="#7C3AED"/>
+              <use href="#cm-i-link" x="149" y="81" width="22" height="22" stroke="#fff" stroke-width="2"/>
+            </svg>
+              <h4 class="fs-5 fw-700 mt-3">OTA channel</h4>
+              <p class="text-muted text-sm">Connect with popular online travel agencies and expand your reach to millions of travelers.</p>
+              <hr>
+              <ul class="list-unstyled mb-3">
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Increase your visibility</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Manage rates &amp; inventory</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Receive more bookings</li>
+              <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Sync in real-time</li>
+            </ul>
+              <div class="cm-tint cm-tint-blue rounded-3 p-3 d-flex gap-2 text-sm">
+                <svg class="cm-svg cm-c cm-tint-blue mt-1"><use href="#cm-i-info"/></svg>
+                <span>Make sure to get your API credentials from your OTA provider and keep them secure.</span>
+              </div>
+            </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer px-4">
+        <button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-admio btn-primary" id="cmAddSubmit"><svg class="cm-svg me-1"><use href="#cm-i-save"/></svg> Save channel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOAST ══════════ -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="cmToast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="cmToastBody"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // ── Endpoints (resolved by Django) ───────────────────────────────
+  var URLS = {
+    websiteList:   "{% url 'website-channel-list' %}",
+    websiteDetail: "{% url 'website-channel-detail' 0 %}",
+    websiteToggle: "{% url 'website-channel-toggle' 0 %}",
+    websiteSync:   "{% url 'website-channel-sync' 0 %}",
+    otaList:       "{% url 'ota-channel-list' %}",
+    otaDetail:     "{% url 'ota-channel-detail' 0 %}",
+    otaToggle:     "{% url 'ota-channel-toggle' 0 %}",
+    syncLogs:      "{% url 'sync-log-list' %}"
+  };
+  function withPk(tpl, pk) { return tpl.replace("/0/", "/" + pk + "/"); }
+
+  var state = { website: [], ota: [], logs: [] };
+  var manageType = "website";
+
+  var manageEl = document.getElementById("cmManageModal");
+  var addEl    = document.getElementById("cmAddModal");
+  var manageModal = bootstrap.Modal.getOrCreateInstance(manageEl);
+  var addModal    = bootstrap.Modal.getOrCreateInstance(addEl);
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function plural(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
+  function toast(msg) {
+    $("cmToastBody").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance($("cmToast"), { delay: 3200 }).show();
+  }
+  function fmtDate(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString([], { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  function fmtTimeOnly(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  function fmtDuration(ms) {
+    if (ms == null) return "—";
+    if (ms < 1000) return ms + " ms";
+    var s = Math.round(ms / 1000);
+    if (s < 60) return s + "s";
+    return Math.floor(s / 60) + "m " + (s % 60) + "s";
+  }
+  // Pills: dot pill for status, icon pill for direction
+  function dotPill(text, color) { return '<span class="cm-pill cm-tint-' + color + '"><span class="cm-dot"></span>' + esc(text) + '</span>'; }
+  function iconPill(text, color, icon) { return '<span class="cm-pill cm-tint-' + color + '"><svg class="cm-svg"><use href="#cm-i-' + icon + '"/></svg>' + esc(text) + '</span>'; }
+  var COLORS = ["#2f6bff", "#6c3df4", "#16a870", "#e5484d", "#d98a00", "#0ea5b7"];
+  function avatar(name) {
+    var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return '<span class="cm-avatar" style="background:' + COLORS[h % COLORS.length] + '">' + esc(name.charAt(0).toUpperCase()) + '</span>';
+  }
+  function api(url, opts) {
+    opts = opts || {};
+    opts.credentials = "same-origin";
+    if (opts.body && !opts.headers) opts.headers = { "Content-Type": "application/json" };
+    return fetch(url, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) { var e = new Error(data.error || data.detail || ("Request failed (" + r.status + ")")); e.data = data; throw e; }
+        return data;
+      });
+    });
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────
+  function load() {
+    return Promise.all([
+      api(URLS.websiteList), api(URLS.otaList), api(URLS.syncLogs)
+    ]).then(function (res) {
+      state.website = res[0].results || [];
+      state.ota     = res[1].results || [];
+      state.logs    = res[2].results || [];
+      render();
+    }).catch(function (e) {
+      $("cmLogBody").innerHTML = '<tr><td colspan="6" class="text-center text-danger">Could not load data: ' + esc(e.message) + '</td></tr>';
+    });
+  }
+
+  // ── Render ───────────────────────────────────────────────────────
+  function render() {
+    var all = state.website.concat(state.ota);
+    var wActive = state.website.filter(function (c) { return c.is_active; }).length;
+    var oActive = state.ota.filter(function (c) { return c.is_active; }).length;
+    var active = wActive + oActive;
+    var errors = all.filter(function (c) { return c.sync_error; }).length;
+
+    $("cmStWebsite").textContent = state.website.length;
+    $("cmStWebsiteSub").textContent = wActive ? plural(wActive, "active website channel") : "No active website channels";
+    $("cmStOta").textContent = state.ota.length;
+    $("cmStOtaSub").textContent = oActive ? plural(oActive, "active OTA channel") : "No active OTA channels";
+    $("cmStActive").textContent = active;
+    $("cmStActiveSub").textContent = "Out of " + plural(all.length, "total channel");
+    $("cmStErr").textContent = errors;
+    $("cmStErrSub").textContent = errors ? "Needs attention" : "No sync errors";
+
+    $("cmTagWebsite").textContent = plural(state.website.length, "channel");
+    $("cmTagOta").textContent = plural(state.ota.length, "channel");
+
+    $("cmCActive").textContent = active;
+    $("cmCErr").textContent = errors;
+    $("cmCInactive").textContent = all.length - active;
+
+    var tone = errors ? "red" : "green";
+    $("cmStatusBadge").className = "cm-pill cm-tint-" + tone;
+    $("cmStatusBadgeText").textContent = errors ? "Attention needed" : "All systems operational";
+    $("cmStatusBox").className = "d-flex align-items-center gap-2 p-3 rounded-3 mb-3 cm-tint cm-c cm-tint-" + tone;
+    $("cmStatusTitle").textContent = errors ? plural(errors, "channel") + " reporting errors" : "All channels are running smoothly";
+    $("cmStatusSub").textContent = errors ? "Open a channel to see the error message." : (all.length ? "No issues detected." : "Add a channel to get started.");
+
+    var last = all.map(function (c) { return c.last_sync; }).filter(Boolean).sort().pop();
+    $("cmLastSync").textContent = last ? fmtTimeOnly(last) : "Never";
+    $("cmLastUpdated").textContent = fmtDate(new Date().toISOString());
+
+    renderLogs();
+    if (manageEl.classList.contains("show")) renderManage();
+  }
+
+  function channelName(log) {
+    if (log.website_channel_id) {
+      var w = state.website.find(function (c) { return c.id === log.website_channel_id; });
+      return w ? w.site_name : "Website";
+    }
+    if (log.ota_channel_id) {
+      var o = state.ota.find(function (c) { return c.id === log.ota_channel_id; });
+      return o ? o.name : "OTA";
+    }
+    return "Unknown";
+  }
+
+  function renderLogs() {
+    var body = $("cmLogBody");
+    if (!state.logs.length) {
+      body.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No sync activity yet. Activity appears here after the first sync.</td></tr>';
+      return;
+    }
+    body.innerHTML = state.logs.slice(0, 8).map(function (l) {
+      var name = channelName(l);
+      var status = l.outcome === "success" ? dotPill("Success", "green") : dotPill(l.outcome === "failed" ? "Failed" : l.outcome, "red");
+      var dir = l.direction === "push" ? iconPill("Push", "purple", "arrow-r") : iconPill("Pull", "blue", "arrow-l");
+      return '<tr>' +
+        '<td><div class="d-flex align-items-center gap-2 fw-600">' + avatar(name) + esc(name) + '</div></td>' +
+        '<td>' + dir + '</td>' +
+        '<td title="' + esc(l.detail) + '">' + status + '</td>' +
+        '<td><span class="cm-c cm-tint-blue fw-700">' + esc(l.records_sent) + '</span>' + (l.records_failed ? ' <span class="text-danger">(' + esc(l.records_failed) + ' failed)</span>' : '') + '</td>' +
+        '<td>' + fmtDuration(l.duration_ms) + '</td>' +
+        '<td>' + fmtDate(l.created_at) + '</td>' +
+        '</tr>';
+    }).join("");
+  }
+
+  // ── Manage modal ─────────────────────────────────────────────────
+  function statusPill(c, isWebsite) {
+    if (isWebsite) {
+      if (c.status === "approved") return dotPill("Approved", "green");
+      if (c.status === "rejected") return dotPill("Rejected", "red");
+      return dotPill("Pending approval", "amber");
+    }
+    return c.is_active ? dotPill("Active", "green") : dotPill("Inactive", "grey");
+  }
+
+  function renderManage() {
+    var isWebsite = manageType === "website";
+    var list = isWebsite ? state.website : state.ota;
+    $("cmManageTitle").textContent = isWebsite ? "Website channels" : "OTA channels";
+    if (!list.length) {
+      $("cmManageList").innerHTML = '<div class="text-center text-muted py-4">No ' + (isWebsite ? "website" : "OTA") + ' channels yet. Add one to start syncing.</div>';
+      return;
+    }
+    $("cmManageList").innerHTML = list.map(function (c) {
+      var title = isWebsite ? c.site_name : c.name;
+      var sub = isWebsite ? c.base_url : (c.channel_type_display || c.channel_type);
+      return '<div class="d-flex flex-wrap align-items-center gap-3 py-3 border-bottom" data-id="' + c.id + '">' +
+        avatar(title) +
+        '<div class="flex-grow-1" style="min-width:180px">' +
+          '<div class="fw-700">' + esc(title) + '</div>' +
+          '<div class="text-muted text-sm">' + esc(sub) + '</div>' +
+          (c.sync_error ? '<div class="text-danger text-sm">' + esc(c.sync_error) + '</div>' : '<div class="text-muted text-sm">Last sync: ' + fmtDate(c.last_sync) + '</div>') +
+        '</div>' +
+        statusPill(c, isWebsite) +
+        '<div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" data-act="toggle" aria-label="Enable or disable channel"' + (c.is_active ? " checked" : "") + '></div>' +
+        (isWebsite ? '<button type="button" class="btn btn-admio btn-sm btn-outline-secondary" data-act="sync">Sync</button>' : '') +
+        '<button type="button" class="btn btn-admio btn-sm btn-outline-danger" data-act="delete">Delete</button>' +
+        '</div>';
+    }).join("");
+  }
+
+  function openManage(type) { manageType = type; renderManage(); manageModal.show(); }
+
+  $("cmManageList").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-act]"); if (!btn) return;
+    var id = btn.closest("[data-id]").getAttribute("data-id");
+    var isWebsite = manageType === "website";
+    var act = btn.getAttribute("data-act");
+
+    if (act === "toggle") {
+      api(withPk(isWebsite ? URLS.websiteToggle : URLS.otaToggle, id), { method: "PATCH" })
+        .then(function (r) { toast(r.is_active ? "Channel enabled" : "Channel disabled"); return load(); })
+        .catch(function (err) { toast(err.message); return load(); });
+    }
+    if (act === "sync") {
+      btn.disabled = true; btn.textContent = "Syncing…";
+      api(withPk(URLS.websiteSync, id), { method: "POST" })
+        .then(function () { toast("Sync complete"); })
+        .catch(function (err) { toast("Sync failed: " + err.message); })
+        .then(function () { return load(); });
+    }
+    if (act === "delete") {
+      if (!confirm("Delete this channel? This cannot be undone.")) return;
+      api(withPk(isWebsite ? URLS.websiteDetail : URLS.otaDetail, id), { method: "DELETE" })
+        .then(function () { toast("Channel deleted"); return load(); })
+        .catch(function (err) { toast(err.message); });
+    }
+  });
+
+  // ── Add modal ────────────────────────────────────────────────────
+  function showAddError(msg) { var el = $("cmAddError"); el.textContent = msg; el.classList.remove("d-none"); }
+
+  function openAdd(tab) {
+    bootstrap.Tab.getOrCreateInstance($(tab === "ota" ? "cmTabOta" : "cmTabWebsite")).show();
+    $("cmAddError").classList.add("d-none");
+    if (manageEl.classList.contains("show")) {
+      manageEl.addEventListener("hidden.bs.modal", function once() {
+        manageEl.removeEventListener("hidden.bs.modal", once);
+        addModal.show();
+      });
+      manageModal.hide();
+    } else {
+      addModal.show();
+    }
+  }
+
+  $("cmAddSubmit").addEventListener("click", function () {
+    $("cmAddError").classList.add("d-none");
+    var isWebsite = !$("cmPaneOta").classList.contains("active");
+    var url, body;
+
+    if (isWebsite) {
+      url = URLS.websiteList;
+      body = {
+        site_name: $("cmWName").value.trim(),
+        base_url: $("cmWUrl").value.trim(),
+        outbound_api_key: $("cmWKey").value.trim(),
+        callback_url: $("cmWCallback").value.trim(),
+        sync_interval_minutes: parseInt($("cmWInterval").value, 10) || 0
+      };
+      if (!body.site_name || !body.base_url || !body.outbound_api_key) {
+        showAddError("Site name, website URL and API key are required."); return;
+      }
+      if (!/^https?:\/\//i.test(body.base_url)) {
+        showAddError("Enter the full website URL, including https://"); return;
+      }
+      if (body.sync_interval_minutes < 1) {
+        showAddError("Sync interval must be at least 1 minute."); return;
+      }
+    } else {
+      url = URLS.otaList;
+      body = {
+        name: $("cmOName").value.trim(),
+        channel_type: $("cmOType").value,
+        api_key: $("cmOKey").value.trim(),
+        api_secret: $("cmOSecret").value,
+        hotel_id_on_ota: $("cmOHotel").value.trim(),
+        ical_url: $("cmOIcal").value.trim(),
+        sync_interval_minutes: parseInt($("cmOInterval").value, 10) || 0
+      };
+      if (!body.name || !body.channel_type || !body.api_key || !body.api_secret) {
+        showAddError("Channel name, channel type, API key and API secret are required."); return;
+      }
+      if (body.sync_interval_minutes < 1) {
+        showAddError("Sync interval must be at least 1 minute."); return;
+      }
+    }
+
+    var btn = $("cmAddSubmit"); var btnHtml = btn.innerHTML; btn.disabled = true; btn.textContent = "Saving…";
+    api(url, { method: "POST", body: JSON.stringify(body) })
+      .then(function () {
+        addModal.hide();
+        toast(isWebsite ? "Website channel added. Waiting for the website to approve." : "OTA channel added");
+        addEl.querySelectorAll("input").forEach(function (i) { if (i.type !== "number") i.value = ""; });
+        return load();
+      })
+      .catch(function (e) { showAddError(e.message); })
+      .then(function () { btn.disabled = false; btn.innerHTML = btnHtml; });
+  });
+
+  // Subtitle follows the active tab
+  var ADD_SUBS = {
+    website: "Connect your hotel with more booking platforms and reach more guests.",
+    ota: "Connect a new distribution channel to manage your bookings and reach more guests."
+  };
+  addEl.addEventListener("shown.bs.tab", function (e) {
+    $("cmAddSub").textContent = e.target.id === "cmTabOta" ? ADD_SUBS.ota : ADD_SUBS.website;
+  });
+
+  // ── Sync all ─────────────────────────────────────────────────────
+  $("cmQaSyncAll").addEventListener("click", function () {
+    var targets = state.website.filter(function (c) { return c.is_active; });
+    if (!targets.length) { toast("No active website channels to sync."); return; }
+    toast("Syncing " + plural(targets.length, "channel") + "…");
+    Promise.all(targets.map(function (c) {
+      return api(withPk(URLS.websiteSync, c.id), { method: "POST" }).then(function () { return true; }, function () { return false; });
+    })).then(function (r) {
+      var ok = r.filter(Boolean).length;
+      toast(ok === r.length ? "Synced " + plural(ok, "channel") : ok + " of " + r.length + " synced. Check errors below.");
+      return load();
+    });
+  });
+
+  // ── Wiring ───────────────────────────────────────────────────────
+  document.querySelectorAll("[data-cm-open]").forEach(function (el) {
+    el.addEventListener("click", function () { openManage(el.getAttribute("data-cm-open")); });
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openManage(el.getAttribute("data-cm-open")); }
+    });
+  });
+  document.querySelectorAll("[data-cm-add]").forEach(function (el) {
+    el.addEventListener("click", function () { openAdd("website"); });
+  });
+  $("cmManageAdd").addEventListener("click", function () { openAdd(manageType); });
+  $("cmRefresh").addEventListener("click", function () { load().then(function () { toast("Refreshed"); }); });
+  $("cmQaSettings").addEventListener("click", function () {
+    $("cmChannelMgmt").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // Sidebar links can open a list directly: ?open=website or ?open=ota
+  load().then(function () {
+    var q = new URLSearchParams(window.location.search).get("open");
+    if (q === "website" || q === "ota") openManage(q);
+  });
+})();
+</script>
+{% endblock %}

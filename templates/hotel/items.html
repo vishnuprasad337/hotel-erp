@@ -1,0 +1,829 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Inventory Items - Admio{% endblock %}
+{% block nav_dashboard_active %}{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+/* Layout and colours only; all typography inherits from hotel/base.html. */
+.iv-page{--iv-purple:#7138ef;--iv-border:#e5e7f2;--iv-surface:#fff;--iv-soft:#f7f8fd;--iv-text:#19243a;--iv-muted:#69758d;color:var(--iv-text)}
+.iv-page *{box-sizing:border-box}.iv-page button,.iv-page input,.iv-page select{font:inherit}.iv-page button{cursor:pointer}.iv-page button:disabled{opacity:.45;cursor:not-allowed}.iv-page :focus-visible{outline:3px solid #b5a0fb;outline-offset:3px}
+.iv-page .iv-svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.iv-page .iv-breadcrumb{color:var(--iv-muted);margin-bottom:8px}.iv-page .sep{margin:0 6px}.iv-page .current{color:var(--iv-text)}
+.iv-page .iv-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:24px;background:transparent;padding:0;border:0}.iv-page .page-title{margin:0 0 6px}.iv-page .page-subtitle{color:var(--iv-muted)}
+.iv-page .iv-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;min-height:40px;border:1px solid #dcd2f9;border-radius:8px;background:var(--iv-surface);color:var(--iv-purple);text-decoration:none}.iv-page .iv-button:hover{background:var(--iv-soft)}.iv-page .iv-primary{background:var(--iv-purple);border-color:var(--iv-purple);color:#fff}.iv-page .iv-primary:hover{background:#6029d9}
+.iv-page .iv-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.iv-page .iv-stat-card{display:flex;align-items:center;gap:16px;background:var(--iv-surface);border:1px solid var(--iv-border);border-radius:12px;padding:20px}.iv-page .iv-stat-icon{width:46px;height:46px;display:grid;place-items:center;flex-shrink:0;border-radius:11px}.iv-page .iv-stat-icon .iv-svg{width:24px;height:24px}.iv-page .purple{background:#f0e9ff;color:#7138ef}.iv-page .orange{background:#fff3de;color:#dd8700}.iv-page .red{background:#ffedf0;color:#ec4964}.iv-page .green{background:#e8fbf1;color:#09a66c}.iv-page .iv-stat-label{color:var(--iv-muted);margin-bottom:5px}.iv-page .iv-stat-value{margin:0;font-variant-numeric:tabular-nums}
+.iv-page .iv-alert{display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#fff8e9;border:1px solid #ffdfa0;border-radius:10px;padding:16px 20px;margin-bottom:20px}.iv-page .iv-alert.show{display:flex}.iv-page .iv-alert-left{display:flex;align-items:center;gap:14px}.iv-page .iv-alert-icon{display:grid;place-items:center;color:#df8800}.iv-page .iv-alert-icon .iv-svg{width:26px;height:26px}.iv-page .iv-alert-title,.iv-page .iv-alert-sub{color:#865014}.iv-page .iv-alert-link,.iv-page .iv-clear{color:var(--iv-purple);background:none;border:0;text-decoration:none;white-space:nowrap}.iv-page .iv-alert-link:hover,.iv-page .iv-clear:hover{text-decoration:underline}
+.iv-page .iv-panel{background:var(--iv-surface);border:1px solid var(--iv-border);border-radius:12px;padding:20px;min-width:0}.iv-page .iv-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px}.iv-page .iv-panel-head h2{margin:0}.iv-page .iv-muted{color:var(--iv-muted)}
+.iv-page .iv-tabs{display:flex;gap:26px;overflow-x:auto;border-bottom:1px solid var(--iv-border);margin-bottom:16px}.iv-page .iv-tab{display:flex;align-items:center;gap:7px;white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;padding:12px 2px;color:var(--iv-muted)}.iv-page .iv-tab.active{border-bottom-color:var(--iv-purple);color:var(--iv-purple)}.iv-page .iv-tab .n{background:var(--iv-soft);border-radius:12px;padding:2px 7px}.iv-page .iv-tab.active .n{background:#eee7ff}
+.iv-page .iv-filters{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}.iv-page .iv-search{position:relative;flex:2 1 250px}.iv-page .iv-search>.iv-svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--iv-muted)}.iv-page .iv-search input{width:100%;height:42px;padding:0 12px 0 39px}.iv-page .iv-select{flex:1 1 160px;min-width:0;height:42px;padding:0 12px}.iv-page input,.iv-page select{background:var(--iv-surface);color:var(--iv-text);border:1px solid var(--iv-border);border-radius:7px}.iv-page input[type=checkbox],.iv-page input[type=radio]{accent-color:var(--iv-purple)}
+.iv-page .iv-table{width:100%;border-collapse:collapse;text-align:left}.iv-page .iv-table th{background:var(--iv-soft);color:var(--iv-muted);padding:12px 10px;white-space:nowrap}.iv-page .iv-table td{padding:14px 10px;border-bottom:1px solid var(--iv-border);vertical-align:middle}.iv-page .iv-table tbody tr:hover{background:var(--iv-soft)}.iv-page .iv-item-cell{display:flex;gap:12px;align-items:center;min-width:180px}.iv-page .iv-item-icon{width:42px;height:42px;border-radius:9px;flex-shrink:0;background:#f2edff;color:var(--iv-purple);display:grid;place-items:center;overflow:hidden}.iv-page .iv-item-icon img{width:100%;height:100%;object-fit:cover}.iv-page .iv-item-name{color:var(--iv-text)}.iv-page .iv-item-sku,.iv-page .iv-sub{color:var(--iv-muted);margin-top:3px}.iv-page .iv-table td:nth-child(6),.iv-page .iv-table td:nth-child(7){white-space:nowrap;font-variant-numeric:tabular-nums}
+.iv-page .iv-status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:5px 10px;border-radius:20px}.iv-page .dot{width:7px;height:7px;border-radius:50%;background:currentColor}.iv-page .in-stock{background:#e7faf0;color:#087a4c}.iv-page .low{background:#fff4df;color:#965a00}.iv-page .out{background:#ffeaf0;color:#c92a4b}
+.iv-page .iv-action-btn,.iv-page .iv-icon-btn,.iv-page .iv-page-btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--iv-border);border-radius:7px;background:var(--iv-surface);color:var(--iv-text);min-height:36px;padding:7px 12px}.iv-page .iv-icon-btn{width:36px;padding:7px}.iv-page .iv-action-btn:hover,.iv-page .iv-icon-btn:hover{border-color:var(--iv-purple);color:var(--iv-purple)}.iv-page .iv-icon-btn.danger:hover{color:#c92a4b;border-color:#c92a4b}.iv-page .iv-empty{text-align:center;padding:50px 20px;color:var(--iv-muted)}.iv-page .iv-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:18px}.iv-page .iv-footer-text{color:var(--iv-muted)}.iv-page .iv-pagination{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.iv-page .iv-page-select{height:38px;padding:0 10px}
+.iv-page .iv-message{padding:12px 16px;border-radius:8px;margin-bottom:16px;border:1px solid #ffdfa0;background:#fff8e9;color:#865014}.iv-page .iv-message[hidden]{display:none}.iv-page .iv-selection{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0}.iv-page .iv-selection[hidden]{display:none}
+.iv-page .modal-content{background:var(--iv-surface);color:var(--iv-text);border:1px solid var(--iv-border);border-radius:14px}.iv-page .modal-header,.iv-page .modal-footer{border-color:var(--iv-border)}.iv-page .iv-form-row{margin-bottom:16px}.iv-page .iv-form-row>label{display:block;margin-bottom:6px}.iv-page .iv-form-row input,.iv-page .iv-form-row select{width:100%;height:42px;padding:0 12px}.iv-page .iv-radio-group{display:flex;gap:8px;flex-wrap:wrap}.iv-page .iv-radio-group label{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;padding:10px;border:1px solid var(--iv-border);border-radius:8px}.iv-page .iv-radio-group input{width:auto;height:auto}
+/* NEW: image upload row in the item modal */
+.iv-page .iv-image-row{display:flex;align-items:center;gap:14px}
+.iv-page .iv-image-preview{width:64px;height:64px;border-radius:10px;flex-shrink:0;background:#f2edff;color:var(--iv-purple);display:grid;place-items:center;overflow:hidden;font-weight:700;border:1px solid var(--iv-border)}
+.iv-page .iv-image-preview img{width:100%;height:100%;object-fit:cover}
+.iv-page .iv-image-controls{flex:1;min-width:0}
+.iv-page .iv-image-controls input[type=file]{width:100%;height:auto;padding:8px 12px}
+.iv-page .iv-image-remove{margin-top:6px;background:none;border:0;color:var(--iv-purple);padding:0;text-decoration:underline}
+.iv-page .iv-image-remove[hidden]{display:none}
+/* NEW: delete confirmation modal */
+.iv-page .iv-danger-icon{width:48px;height:48px;border-radius:12px;background:#ffedf0;color:#ec4964;display:grid;place-items:center;flex-shrink:0}
+.iv-page .iv-danger-icon .iv-svg{width:24px;height:24px}
+.iv-page .iv-confirm-body{display:flex;align-items:flex-start;gap:14px}
+.iv-page .iv-confirm-title{margin:0 0 4px;font-weight:700}
+.iv-page .iv-confirm-sub{color:var(--iv-muted);margin:0}
+.iv-page .iv-danger{background:#ec4964;border-color:#ec4964;color:#fff}
+.iv-page .iv-danger:hover{background:#d63955}
+[data-theme=dark] .iv-page{--iv-surface:#1e1e2d;--iv-soft:#28283b;--iv-border:#38384c;--iv-text:#f1f1f9;--iv-muted:#b4b4ca;--iv-purple:#ac8cff}
+@media(max-width:1050px){.iv-page .iv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.iv-page .iv-stats{grid-template-columns:1fr}.iv-page .iv-search{flex-basis:100%}.iv-page .iv-panel{padding:14px}.iv-page .iv-tabs{gap:16px}}
+/* The base topbar/sidebar reach z-index 10001. */
+body.iv-modal-open .modal-backdrop{z-index:11000!important}
+.iv-inventory-modal.modal{z-index:11010!important}
+.iv-inventory-modal .modal-dialog{margin:1.5rem auto}
+@media(max-width:575px){.iv-inventory-modal .modal-dialog{margin:.75rem}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iv-page" id="ivPage">
+<div hidden>{% csrf_token %}</div>
+<div class="iv-breadcrumb">
+  <span>Inventory</span>
+  <span class="sep">/</span>
+  <span class="current">Items</span>
+</div>
+
+<div class="iv-heading d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div>
+    <h1 class="page-title mb-1">Inventory Items</h1>
+    <p class="page-subtitle text-muted mb-0">Manage items, monitor stock and keep supplies ready.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="iv-button d-flex align-items-center gap-2" id="btnRefresh">
+      <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5 7a8 8 0 0 1 14-2l1 2M4 17l1 2a8 8 0 0 0 14-2"/></svg> Refresh
+    </button>
+    <button class="iv-button d-flex align-items-center gap-2" id="btnAdjustStock">
+      <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg> Adjust stock
+    </button>
+    <button class="iv-button d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#ivCategoryModal">
+      <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11H3Z"/></svg> Add category
+    </button>
+    <button class="iv-button iv-primary d-flex align-items-center gap-2" id="btnAddItem">
+      <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Add item
+    </button>
+  </div>
+</div>
+
+<div id="ivMessage" class="iv-message" role="status" hidden></div>
+<!-- ── STAT CARDS ── -->
+<div class="iv-stats">
+  <div class="iv-stat-card">
+    <div class="iv-stat-icon purple"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8Zm0 10 9-5M12 13 3 8m9 5v9M7 5l9 5"/></svg></div>
+    <div><div class="iv-stat-label">Total items</div><h2 class="iv-stat-value" id="statTotal">0</h2></div>
+  </div>
+  <div class="iv-stat-card">
+    <div class="iv-stat-icon orange"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2Z M12 9v5m0 3v.1"/></svg></div>
+    <div><div class="iv-stat-label">Low stock</div><h2 class="iv-stat-value" id="statLow">0</h2></div>
+  </div>
+  <div class="iv-stat-card">
+    <div class="iv-stat-icon red"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg></div>
+    <div><div class="iv-stat-label">Out of stock</div><h2 class="iv-stat-value" id="statOut">0</h2></div>
+  </div>
+  <div class="iv-stat-card">
+    <div class="iv-stat-icon green"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0M4 17c0 4 16 4 16 0"/></svg></div>
+    <div><div class="iv-stat-label">Stock value</div><h2 class="iv-stat-value" id="statValue">₹0</h2></div>
+  </div>
+</div>
+
+<!-- ── ALERT BANNER ── -->
+<div class="iv-alert" id="ivAlert">
+  <div class="iv-alert-left">
+    <div class="iv-alert-icon"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2Z M12 9v5m0 3v.1"/></svg></div>
+    <div>
+      <div class="iv-alert-title" id="ivAlertTitle">0 items need attention</div>
+      <div class="iv-alert-sub" id="ivAlertSub">0 low stock · 0 out of stock</div>
+    </div>
+  </div>
+  <a href="#" class="iv-alert-link" id="ivAlertLink">Review stock →</a>
+</div>
+
+<!-- ── ITEMS CARD ── -->
+<div class="iv-panel">
+  <div class="iv-panel-head d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h2 class="card-title mb-0">Items &amp; stock</h2><span class="iv-muted text-sm" id="itemsCount">0 items</span>
+  </div>
+
+  <div class="iv-panel-body">
+    <div class="iv-tabs" id="ivTabs">
+      <button class="iv-tab active" aria-pressed="true" data-filter="all">All items <span class="n" id="tabAll">0</span></button>
+      <button class="iv-tab" aria-pressed="false" data-filter="low">Low stock <span class="n" id="tabLow">0</span></button>
+      <button class="iv-tab" aria-pressed="false" data-filter="out">Out of stock <span class="n" id="tabOut">0</span></button>
+    </div>
+
+    <div class="iv-filters">
+      <div class="iv-search">
+        <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>
+        <input type="text" id="ivSearch" aria-label="Search inventory" placeholder="Search by item name or SKU…">
+      </div>
+      <select class="iv-select" id="ivDeptFilter" aria-label="Filter by department"><option value="all">All departments</option></select>
+      <select class="iv-select" id="ivCatFilter" aria-label="Filter by category"><option value="all">All categories</option></select>
+      <button class="iv-clear" id="ivClearFilters">Clear filters</button>
+    </div>
+
+    <div class="iv-selection" id="ivSelection" hidden><span id="ivSelectionCount"></span><button class="iv-clear" id="ivClearSelection" type="button">Clear selection</button></div>
+    <div class="table-responsive">
+      <table class="iv-table">
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="ivSelectAll" aria-label="Select all items on this page"></th>
+            <th>Item</th>
+            <th>Category / Department</th>
+            <th>Stock / Minimum</th>
+            <th>Status</th>
+            <th>Cost / unit</th>
+            <th>Stock value</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="ivTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="ivEmpty" class="iv-empty" style="display:none;">No items match your filters.</div>
+  </div>
+
+  <div class="iv-footer">
+    <span class="iv-footer-text" id="ivFooterText">Showing 0 of 0 items</span>
+    <div class="iv-pagination">
+      <select class="iv-page-select" id="ivPageSize" aria-label="Items per page">
+        <option value="10">10 per page</option>
+        <option value="25" selected>25 per page</option>
+        <option value="50">50 per page</option>
+      </select>
+      <button class="iv-page-btn" id="ivPrev">Previous</button>
+      <span class="iv-footer-text" id="ivPageLabel">Page 1</span>
+      <button class="iv-page-btn" id="ivNext">Next</button>
+    </div>
+  </div>
+</div>
+<p class="text-muted text-xs mt-2" id="ivLastUpdated"></p>
+
+<!-- ══════════ ADD CATEGORY MODAL ══════════ -->
+<div class="modal fade iv-page iv-inventory-modal" id="ivCategoryModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add category</h5>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="iv-form-row">
+          <label for="ivCatNameInput">Category name</label>
+          <input type="text" id="ivCatNameInput" placeholder="e.g. Groceries">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="iv-button" data-bs-dismiss="modal">Cancel</button>
+        <button class="iv-button iv-primary" id="btnSaveCategory">Save category</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADD / EDIT ITEM MODAL ══════════ -->
+<div class="modal fade iv-page iv-inventory-modal" id="ivItemModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ivItemModalTitle">Add item</h5>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ivItemIdInput">
+
+        <!-- NEW: image upload -->
+        <div class="iv-form-row">
+          <label for="ivImageInput">Item image</label>
+          <div class="iv-image-row">
+            <div class="iv-image-preview" id="ivImagePreview">—</div>
+            <div class="iv-image-controls">
+              <input type="file" id="ivImageInput" accept="image/*">
+              <button type="button" class="iv-image-remove" id="ivImageRemoveBtn" hidden>Remove image</button>
+            </div>
+          </div>
+          <input type="hidden" id="ivRemoveImageFlag" value="0">
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="iv-form-row"><label for="ivNameInput">Item name *</label><input type="text" id="ivNameInput" required></div>
+          </div>
+          <div class="col-md-6">
+            <div class="iv-form-row"><label for="ivCategoryInput">Category</label><select id="ivCategoryInput"><option value="">—</option></select></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="iv-form-row"><label for="ivDeptInput">Department *</label><select id="ivDeptInput" required></select></div>
+          </div>
+          <div class="col-md-6">
+            <div class="iv-form-row"><label for="ivVendorInput">Vendor</label><select id="ivVendorInput"><option value="">—</option></select></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-3">
+            <div class="iv-form-row"><label for="ivUnitInput">Unit</label><input type="text" id="ivUnitInput" placeholder="kg, L, pcs…" value="piece"></div>
+          </div>
+          <div class="col-md-3">
+            <div class="iv-form-row"><label for="ivStockInput">Current stock</label><input type="number" min="0" step="0.01" id="ivStockInput" value="0"></div>
+          </div>
+          <div class="col-md-3">
+            <div class="iv-form-row"><label for="ivMinStockInput">Minimum stock</label><input type="number" min="0" step="0.01" id="ivMinStockInput" value="10"></div>
+          </div>
+          <div class="col-md-3">
+            <div class="iv-form-row"><label for="ivCostInput">Cost / unit (₹)</label><input type="number" min="0" step="0.01" id="ivCostInput" value="0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="iv-button" data-bs-dismiss="modal">Cancel</button>
+        <button class="iv-button iv-primary" id="btnSaveItem">Save item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ADJUST STOCK MODAL ══════════ -->
+<div class="modal fade iv-page iv-inventory-modal" id="ivAdjustModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adjust stock</h5>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="iv-form-row">
+          <label for="ivAdjustItemInput">Item *</label>
+          <select id="ivAdjustItemInput" required></select>
+        </div>
+        <div class="iv-form-row">
+          <label>Adjustment type</label>
+          <div class="iv-radio-group">
+            <label><input type="radio" name="ivAdjustType" value="in" checked><span>Stock in</span></label>
+            <label><input type="radio" name="ivAdjustType" value="out"><span>Stock out</span></label>
+            <label><input type="radio" name="ivAdjustType" value="adjust"><span>Set exact</span></label>
+          </div>
+        </div>
+        <div class="iv-form-row">
+          <label for="ivAdjustQtyInput">Quantity *</label>
+          <input type="number" min="0" step="0.01" id="ivAdjustQtyInput" required>
+        </div>
+        <div class="iv-form-row">
+          <label for="ivAdjustNoteInput">Note</label>
+          <input type="text" id="ivAdjustNoteInput" placeholder="Optional note">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="iv-button" data-bs-dismiss="modal">Cancel</button>
+        <button class="iv-button iv-primary" id="btnSaveAdjust">Save adjustment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DELETE ITEM CONFIRMATION MODAL (NEW — replaces window.confirm) ══════════ -->
+<div class="modal fade iv-page iv-inventory-modal" id="ivDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete item</h5>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="iv-confirm-body">
+          <div class="iv-danger-icon">
+            <svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>
+          </div>
+          <div>
+            <p class="iv-confirm-title">Delete <span id="ivDeleteItemName">this item</span>?</p>
+            <p class="iv-confirm-sub mb-0">This action can’t be undone. The item and its stock history will be permanently removed.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="iv-button" data-bs-dismiss="modal">Cancel</button>
+        <button class="iv-button iv-danger" id="btnConfirmDelete">Delete item</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% url 'update_inventory_item' 999999 as iv_update_url %}
+{% url 'delete_inventory_item' 999999 as iv_delete_url %}
+<script>
+(function () {
+  const LIST_ITEMS_URL   = "{% url 'list_inventory' %}";
+  const ADD_ITEM_URL     = "{% url 'add_inventory_item' %}";
+  const UPDATE_ITEM_URL  = (pk) => "{{ iv_update_url|escapejs }}".replace('999999', pk);
+  const DELETE_ITEM_URL  = (pk) => "{{ iv_delete_url|escapejs }}".replace('999999', pk);
+  const LIST_CATS_URL    = "{% url 'list_categories' %}";
+  const ADD_CAT_URL      = "{% url 'add_category' %}";
+  const LIST_DEPTS_URL   = "{% url 'departments' %}";
+  const LIST_VENDORS_URL = "{% url 'list_vendors' %}";
+  const STOCK_ADJUST_URL = "{% url 'stock_adjust' %}";
+
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function message(value) {
+    const box = document.getElementById('ivMessage'); box.textContent = value; box.hidden = !value;
+    const modalBody = document.querySelector('.iv-inventory-modal.show .modal-body');
+    if (modalBody) {
+      let notice = modalBody.querySelector('.iv-modal-error');
+      if (!notice) { notice = document.createElement('div'); notice.className = 'iv-message iv-modal-error'; notice.setAttribute('role', 'alert'); modalBody.prepend(notice); }
+      notice.textContent = value; notice.hidden = !value;
+    }
+  }
+  const canEdit = Boolean("{{ iv_update_url|escapejs }}");
+  const canDelete = Boolean("{{ iv_delete_url|escapejs }}");
+  const setupMessage = !canEdit || !canDelete ? 'Some item actions are unavailable. Please contact your administrator to complete setup.' : '';
+
+  // apiFetch now passes options straight through, so FormData bodies work
+  // (we must NOT set a Content-Type header ourselves for multipart requests —
+  // the browser sets the correct boundary automatically).
+  async function apiFetch(url, options = {}) {
+    if (!url) throw new Error('This action has no configured URL.');
+    const token = document.querySelector('#ivPage [name=csrfmiddlewaretoken]').value;
+    const headers = { ...options.headers, 'X-CSRFToken': token };
+    const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
+    const body = await response.clone().json().catch(() => null);
+    if (!response.ok || body === null || body.error) throw new Error(body?.error || 'Request failed. Refresh or sign in again.');
+    return response;
+  }
+  const el = (id) => document.getElementById(id);
+
+  let items = [];
+  let categories = [];
+  let departments = [];
+  let vendors = [];
+  let filtered = [];
+  let activeStatus = 'all';
+  let deptFilter = 'all';
+  let catFilter = 'all';
+  let searchTerm = '';
+  let currentPage = 1;
+  let pageSize = 25;
+  let selectedImageFile = null; // file picked in the item modal
+  let pendingDeleteId = null;   // NEW: item id awaiting confirmation in the delete modal
+
+  function bsModal(id) { return bootstrap.Modal.getOrCreateInstance(el(id)); }
+  // Body placement avoids page-container stacking and clipping.
+  document.querySelectorAll('.iv-inventory-modal').forEach(modal => {
+    document.body.appendChild(modal);
+    modal.addEventListener('show.bs.modal', () => {
+      document.body.classList.add('iv-modal-open');
+    });
+    modal.addEventListener('hidden.bs.modal', () => {
+      modal.querySelector('.iv-modal-error')?.remove();
+      if (!document.querySelector('.iv-inventory-modal.show')) {
+        document.body.classList.remove('iv-modal-open');
+      }
+    });
+  });
+
+  function statusOf(item) {
+    if (item.stock <= 0) return 'out';
+    if (item.low_stock === true || Number(item.stock) < Number(item.min_stock)) return 'low';
+    return 'in';
+  }
+
+  function renderStats() {
+    const total = items.length;
+    const low = items.filter((i) => statusOf(i) === 'low').length;
+    const out = items.filter((i) => statusOf(i) === 'out').length;
+    const value = items.reduce((sum, i) => sum + Number(i.stock_value || 0), 0);
+
+    el('statTotal').textContent = total;
+    el('statLow').textContent = low;
+    el('statOut').textContent = out;
+    el('statValue').textContent = '₹' + Math.round(value).toLocaleString('en-IN');
+
+    el('tabAll').textContent = total;
+    el('tabLow').textContent = low;
+    el('tabOut').textContent = out;
+    el('itemsCount').textContent = `${total} item${total === 1 ? '' : 's'}`;
+
+    const needAttention = low + out;
+    const alertBox = el('ivAlert');
+    if (needAttention > 0) {
+      alertBox.classList.add('show');
+      el('ivAlertTitle').textContent = `${needAttention} item${needAttention === 1 ? '' : 's'} need attention`;
+      el('ivAlertSub').textContent = `${low} low stock · ${out} out of stock`;
+    } else {
+      alertBox.classList.remove('show');
+    }
+  }
+
+  function populateFilterSelects() {
+    const deptSel = el('ivDeptFilter');
+    deptSel.innerHTML = '<option value="all">All departments</option>' +
+      departments.map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join('');
+
+    deptSel.value = deptFilter;
+    const catSel = el('ivCatFilter');
+    catSel.innerHTML = '<option value="all">All categories</option>' +
+      categories.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+    catSel.value = catFilter;
+  }
+
+  function populateFormSelects() {
+    el('ivDeptInput').innerHTML = departments.map((d) => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`).join('');
+    el('ivCategoryInput').innerHTML = '<option value="">—</option>' +
+      categories.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+    el('ivVendorInput').innerHTML = '<option value="">—</option>' +
+      vendors.map((v) => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.name)}</option>`).join('');
+    el('ivAdjustItemInput').innerHTML = items.map((i) => `<option value="${escapeHtml(i.id)}">${escapeHtml(i.name)} (${escapeHtml(i.stock)} ${escapeHtml(i.unit)})</option>`).join('');
+  }
+
+  function applyFilters() {
+    filtered = items.filter((i) => {
+      const st = statusOf(i);
+      if (activeStatus === 'low' && st !== 'low') return false;
+      if (activeStatus === 'out' && st !== 'out') return false;
+      if (deptFilter !== 'all' && String(i.department_id) !== String(deptFilter)) return false;
+      if (catFilter !== 'all' && String(i.category_id) !== String(catFilter)) return false;
+      if (activeStatus === 'attention' && st === 'in') return false;
+      if (searchTerm && !`${escapeHtml(i.name)} ${i.sku || ''} INV-${String(i.id).padStart(3, '0')}`.toLowerCase().includes(searchTerm)) return false;
+      return true;
+    });
+    currentPage = 1;
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = el('ivTableBody');
+    const total = filtered.length;
+    const pageCount = Math.max(1, Math.ceil(total / pageSize));
+    currentPage = Math.min(currentPage, pageCount);
+    const start = (currentPage - 1) * pageSize;
+    const pageItems = filtered.slice(start, start + pageSize);
+
+    tbody.innerHTML = '';
+    el('ivSelectAll').checked = false; el('ivSelectAll').indeterminate = false;
+    el('ivSelection').hidden = true;
+    el('ivEmpty').style.display = total === 0 ? 'block' : 'none';
+    el('ivEmpty').textContent = items.length ? 'No items match your filters.' : 'No inventory items yet. Use Add item to get started.';
+
+    pageItems.forEach((i) => {
+      const st = statusOf(i);
+      const statusLabel = { in: 'In stock', low: 'Low stock', out: 'Out of stock' }[st];
+      const statusCls = { in: 'in-stock', low: 'low', out: 'out' }[st];
+      const initials = i.name.slice(0, 2).toUpperCase();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="checkbox" aria-label="Select item" data-row-check="${escapeHtml(i.id)}"></td>
+        <td>
+          <div class="iv-item-cell">
+            <div class="iv-item-icon">${escapeHtml(initials)}</div>
+            <div>
+              <div class="iv-item-name fw-700">${escapeHtml(i.name)}</div>
+              <div class="iv-item-sku text-xs">${i.sku ? "SKU: " + escapeHtml(i.sku) : "ID: INV-" + escapeHtml(String(i.id).padStart(3, "0"))}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div>${escapeHtml(i.category || '—')}</div>
+          <div class="iv-sub text-xs">${escapeHtml(i.department || '—')}</div>
+        </td>
+        <td>
+          <div>${escapeHtml(i.stock)} ${escapeHtml(i.unit)}</div>
+          <div class="iv-sub text-xs">Min: ${escapeHtml(i.min_stock)} ${escapeHtml(i.unit)}</div>
+        </td>
+        <td><span class="iv-status ${statusCls}"><span class="dot"></span>${statusLabel}</span></td>
+        <td>₹${Number(i.cost_per_unit).toLocaleString('en-IN')}</td>
+        <td class="fw-700">₹${Math.round(i.stock_value).toLocaleString('en-IN')}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <button class="iv-action-btn" data-adjust-id="${escapeHtml(i.id)}">Adjust</button>
+            <button class="iv-icon-btn" title="Edit item" aria-label="Edit item" ${canEdit ? "" : "disabled"} data-edit-id="${escapeHtml(i.id)}"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5L9 20H4v-5ZM13 6l5 5"/></svg></button>
+            <button class="iv-icon-btn danger" title="Delete item" aria-label="Delete item" ${canDelete ? "" : "disabled"} data-delete-id="${escapeHtml(i.id)}" data-delete-name="${escapeHtml(i.name)}"><svg class="iv-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></button>
+          </div>
+        </td>
+      `;
+      // Use real item images when supplied by the API; otherwise keep initials.
+      const imageValue = i.image_url || i.image;
+      if (typeof imageValue === 'string' && imageValue) {
+        try {
+          const imageUrl = new URL(imageValue, location.origin);
+          if (['http:', 'https:'].includes(imageUrl.protocol)) {
+            const container = tr.querySelector('.iv-item-icon');
+            const img = document.createElement('img'); img.src = imageUrl.href; img.alt = ''; img.loading = 'lazy';
+            img.addEventListener('error', () => { container.textContent = initials; });
+            container.replaceChildren(img);
+          }
+        } catch (_) { /* Keep initials if an image URL is invalid. */ }
+      }
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('[data-adjust-id]').forEach((btn) => {
+      btn.addEventListener('click', () => openAdjustModal(btn.getAttribute('data-adjust-id')));
+    });
+    tbody.querySelectorAll('[data-edit-id]').forEach((btn) => {
+      btn.addEventListener('click', () => openEditModal(btn.getAttribute('data-edit-id')));
+    });
+    tbody.querySelectorAll('[data-delete-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        openDeleteModal(btn.getAttribute('data-delete-id'), btn.getAttribute('data-delete-name'));
+      });
+    });
+
+    tbody.querySelectorAll('[data-row-check]').forEach(cb => cb.addEventListener('change', updateSelection));
+    const shownFrom = total === 0 ? 0 : start + 1;
+    const shownTo = Math.min(start + pageSize, total);
+    el('ivFooterText').textContent = `Showing ${shownFrom}-${shownTo} of ${total} items`;
+    el('ivPageLabel').textContent = `Page ${currentPage} of ${pageCount}`;
+    el('ivPrev').disabled = currentPage <= 1;
+    el('ivNext').disabled = currentPage >= pageCount;
+  }
+
+  // ── tabs ──
+  document.querySelectorAll('.iv-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.iv-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.iv-tab').forEach(t => t.setAttribute('aria-pressed', String(t === tab)));
+      activeStatus = tab.getAttribute('data-filter');
+      applyFilters();
+    });
+  });
+  el('ivAlertLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    activeStatus = 'attention';
+    deptFilter = catFilter = 'all'; searchTerm = '';
+    el('ivDeptFilter').value = el('ivCatFilter').value = 'all'; el('ivSearch').value = '';
+    document.querySelectorAll('.iv-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed', 'false'); });
+    applyFilters();
+  });
+
+  el('ivSearch').addEventListener('input', (e) => { searchTerm = e.target.value.trim().toLowerCase(); applyFilters(); });
+  el('ivDeptFilter').addEventListener('change', (e) => { deptFilter = e.target.value; applyFilters(); });
+  el('ivCatFilter').addEventListener('change', (e) => { catFilter = e.target.value; applyFilters(); });
+  el('ivClearFilters').addEventListener('click', () => {
+    searchTerm = ''; deptFilter = 'all'; catFilter = 'all';
+    el('ivSearch').value = ''; el('ivDeptFilter').value = 'all'; el('ivCatFilter').value = 'all';
+    document.querySelector('.iv-tab[data-filter="all"]').click();
+  });
+  el('ivPageSize').addEventListener('change', (e) => { pageSize = Number(e.target.value); currentPage = 1; renderTable(); });
+  el('ivPrev').addEventListener('click', () => { currentPage--; renderTable(); });
+  el('ivNext').addEventListener('click', () => { currentPage++; renderTable(); });
+  function updateSelection() {
+    const checks = [...document.querySelectorAll('[data-row-check]')];
+    const count = checks.filter(cb => cb.checked).length;
+    el('ivSelection').hidden = !count; el('ivSelectionCount').textContent = `${count} selected on this page`;
+    el('ivSelectAll').checked = checks.length > 0 && count === checks.length;
+    el('ivSelectAll').indeterminate = count > 0 && count < checks.length;
+  }
+  el('ivClearSelection').addEventListener('click', () => { document.querySelectorAll('[data-row-check]').forEach(cb => cb.checked = false); updateSelection(); });
+  el('ivSelectAll').addEventListener('change', (e) => {
+    document.querySelectorAll('[data-row-check]').forEach((cb) => { cb.checked = e.target.checked; });
+    updateSelection();
+  });
+  el('btnRefresh').addEventListener('click', loadAll);
+
+  // ── add category ──
+  el('btnSaveCategory').addEventListener('click', () => {
+    const name = el('ivCatNameInput').value.trim();
+    if (!name) return;
+    el('btnSaveCategory').disabled = true;
+    apiFetch(ADD_CAT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    }).then((r) => r.json()).then((data) => {
+      if (data.error) { alert(data.error); return; }
+      el('ivCatNameInput').value = '';
+      bsModal('ivCategoryModal').hide();
+      return loadAll();
+    }).catch(error => message(error.message)).finally(() => { el('btnSaveCategory').disabled = false; });
+  });
+
+  // ── image preview helpers ──
+  function setImagePreview(src, initials) {
+    const preview = el('ivImagePreview');
+    if (src) {
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = src; img.alt = '';
+      img.addEventListener('error', () => { preview.textContent = initials || '—'; });
+      preview.appendChild(img);
+      el('ivImageRemoveBtn').hidden = false;
+    } else {
+      preview.textContent = initials || '—';
+      el('ivImageRemoveBtn').hidden = true;
+    }
+  }
+
+  el('ivImageInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    selectedImageFile = file || null;
+    el('ivRemoveImageFlag').value = '0';
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target.result, null);
+      reader.readAsDataURL(file);
+    }
+  });
+
+  el('ivImageRemoveBtn').addEventListener('click', () => {
+    selectedImageFile = null;
+    el('ivImageInput').value = '';
+    el('ivRemoveImageFlag').value = '1';
+    const name = el('ivNameInput').value || '';
+    setImagePreview(null, name.slice(0, 2).toUpperCase());
+  });
+
+  // ── add / edit item ──
+  el('btnAddItem').addEventListener('click', () => {
+    el('ivItemModalTitle').textContent = 'Add item';
+    el('ivItemIdInput').value = '';
+    el('ivNameInput').value = '';
+    el('ivCategoryInput').value = '';
+    el('ivDeptInput').value = departments[0] ? departments[0].id : '';
+    el('ivVendorInput').value = '';
+    el('ivUnitInput').value = 'piece';
+    el('ivStockInput').value = 0;
+    el('ivMinStockInput').value = 10;
+    el('ivCostInput').value = 0;
+    el('ivImageInput').value = '';
+    selectedImageFile = null;
+    el('ivRemoveImageFlag').value = '0';
+    setImagePreview(null, null);
+    bsModal('ivItemModal').show();
+  });
+
+  function openEditModal(itemId) {
+    const item = items.find((i) => String(i.id) === String(itemId));
+    if (!item) return;
+    el('ivItemModalTitle').textContent = 'Edit item';
+    el('ivItemIdInput').value = item.id;
+    el('ivNameInput').value = item.name;
+    el('ivCategoryInput').value = item.category_id || '';
+    el('ivDeptInput').value = item.department_id || '';
+    el('ivVendorInput').value = item.vendor_id || '';
+    el('ivUnitInput').value = item.unit;
+    el('ivStockInput').value = item.stock;
+    el('ivMinStockInput').value = item.min_stock;
+    el('ivCostInput').value = item.cost_per_unit;
+    el('ivImageInput').value = '';
+    selectedImageFile = null;
+    el('ivRemoveImageFlag').value = '0';
+    const existingImage = item.image_url || item.image || null;
+    setImagePreview(existingImage, item.name.slice(0, 2).toUpperCase());
+    bsModal('ivItemModal').show();
+  }
+
+  el('btnSaveItem').addEventListener('click', () => {
+    const id = el('ivItemIdInput').value;
+    const name = el('ivNameInput').value.trim();
+    const deptId = el('ivDeptInput').value;
+    if (!name || !deptId) { alert('Item name and department are required.'); return; }
+
+    if (['ivStockInput', 'ivMinStockInput', 'ivCostInput'].some(id => !Number.isFinite(Number(el(id).value)) || Number(el(id).value) < 0)) { alert('Enter valid non-negative stock and cost values.'); return; }
+
+    const fields = {
+      name,
+      category_id: el('ivCategoryInput').value || '',
+      department_id: deptId,
+      vendor_id: el('ivVendorInput').value || '',
+      unit: el('ivUnitInput').value || 'piece',
+      current_stock: el('ivStockInput').value || 0,
+      minimum_stock: el('ivMinStockInput').value || 0,
+      cost_per_unit: el('ivCostInput').value || 0,
+    };
+
+    const url = id ? UPDATE_ITEM_URL(id) : ADD_ITEM_URL;
+    el('btnSaveItem').disabled = true;
+
+    let requestOptions;
+    if (selectedImageFile || el('ivRemoveImageFlag').value === '1') {
+      // multipart/form-data — required to upload a file. Do NOT set Content-Type;
+      // the browser adds the correct multipart boundary automatically.
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
+      if (selectedImageFile) formData.append('image', selectedImageFile);
+      if (el('ivRemoveImageFlag').value === '1') formData.append('remove_image', '1');
+      requestOptions = { method: 'POST', body: formData };
+    } else {
+      // No image involved — keep the original lightweight JSON request.
+      requestOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...fields,
+          category_id: fields.category_id || null,
+          vendor_id: fields.vendor_id || null,
+        }),
+      };
+    }
+
+    apiFetch(url, requestOptions).then((r) => r.json()).then((data) => {
+      if (data.error) { alert(data.error); return; }
+      bsModal('ivItemModal').hide();
+      return loadAll();
+    }).catch(error => message(error.message)).finally(() => { el('btnSaveItem').disabled = false; });
+  });
+
+  // ── adjust stock ──
+  function openAdjustModal(itemId) {
+    el('ivAdjustItemInput').value = itemId || (items[0] ? items[0].id : '');
+    el('ivAdjustQtyInput').value = '';
+    el('ivAdjustNoteInput').value = '';
+    document.querySelector('input[name="ivAdjustType"][value="in"]').checked = true;
+    bsModal('ivAdjustModal').show();
+  }
+  el('btnAdjustStock').addEventListener('click', () => openAdjustModal(null));
+
+  el('btnSaveAdjust').addEventListener('click', () => {
+    const itemId = el('ivAdjustItemInput').value;
+    const qty = el('ivAdjustQtyInput').value;
+    const type = document.querySelector('input[name="ivAdjustType"]:checked').value;
+    if (!itemId || qty === '' || !Number.isFinite(Number(qty)) || Number(qty) < 0 || (type !== 'adjust' && Number(qty) === 0)) { alert('Item and quantity are required.'); return; }
+
+    el('btnSaveAdjust').disabled = true;
+    apiFetch(STOCK_ADJUST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        item_id: itemId,
+        quantity: qty,
+        adjustment_type: type,
+        note: el('ivAdjustNoteInput').value,
+      }),
+    }).then((r) => r.json()).then((data) => {
+      if (data.error) { alert(data.error); return; }
+      bsModal('ivAdjustModal').hide();
+      return loadAll();
+    }).catch(error => message(error.message)).finally(() => { el('btnSaveAdjust').disabled = false; });
+  });
+
+  // ── delete item (NEW: styled modal instead of window.confirm) ──
+  function openDeleteModal(itemId, itemName) {
+    pendingDeleteId = itemId;
+    el('ivDeleteItemName').textContent = itemName ? `"${itemName}"` : 'this item';
+    el('btnConfirmDelete').disabled = false;
+    bsModal('ivDeleteModal').show();
+  }
+
+  el('btnConfirmDelete').addEventListener('click', () => {
+    if (!pendingDeleteId) return;
+    el('btnConfirmDelete').disabled = true;
+    apiFetch(DELETE_ITEM_URL(pendingDeleteId), { method: 'POST' })
+      .then((r) => r.json())
+      .then(() => {
+        bsModal('ivDeleteModal').hide();
+        pendingDeleteId = null;
+        return loadAll();
+      })
+      .catch(error => message(error.message))
+      .finally(() => { el('btnConfirmDelete').disabled = false; });
+  });
+
+  el('ivDeleteModal').addEventListener('hidden.bs.modal', () => { pendingDeleteId = null; });
+
+  async function loadAll() {
+    el('btnRefresh').disabled = true;
+    message(setupMessage);
+    return Promise.all([
+      apiFetch(LIST_ITEMS_URL).then((r) => r.json()),
+      apiFetch(LIST_CATS_URL).then((r) => r.json()),
+      apiFetch(LIST_DEPTS_URL).then((r) => r.json()),
+      apiFetch(LIST_VENDORS_URL).then((r) => r.json()),
+    ]).then(([itemsData, catsData, deptsData, vendorsData]) => {
+      items = itemsData.items || [];
+      categories = catsData.categories || [];
+      departments = deptsData.departments || [];
+      vendors = vendorsData.vendors || [];
+
+      populateFilterSelects();
+      populateFormSelects();
+      renderStats();
+      applyFilters();
+
+      el('ivLastUpdated').textContent = 'Last updated at ' + new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    }).catch(error => { message(error.message + ' Inventory could not be refreshed; any visible data is the previous snapshot.'); }).finally(() => { el('btnRefresh').disabled = false; });
+  }
+
+  loadAll();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "hotel/base.html" %}
+{% block title %}Asset Tracking{% endblock %}
+{% block extra_head %}
+{{ block.super }}
+<style>
+.at{--purple:#6933f5;--border:#e5e7f2;--muted:#71809b;color:inherit}.at *{box-sizing:border-box}.at button,.at input,.at select,.at textarea{font:inherit}.at button,.at a.at-btn{cursor:pointer}.at button:disabled{opacity:.5;cursor:default}.at .at-btn,.at input,.at select,.at textarea{border:1px solid var(--border);border-radius:8px;padding:10px 13px;background:white;color:inherit}.at .at-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}.at .at-primary{background:var(--purple);color:white;border-color:var(--purple)}.at .at-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.at .at-between{justify-content:space-between}.at .at-muted{color:var(--muted)}.at .at-header{margin-bottom:20px}.at h1,.at h2,.at h3,.at p{margin:0}.at .at-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.at .at-stat{display:flex;align-items:center;gap:15px;padding:20px;background:white;border:1px solid var(--border);border-radius:12px}.at .at-icon{display:inline-flex;align-items:center;justify-content:center;background:#f0eaff;color:var(--purple);border-radius:12px;width:46px;height:46px;flex-shrink:0}.at svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}.at .at-alert{padding:13px 17px;background:#fff7e8;border:1px solid #ffdf9d;border-radius:9px;margin-bottom:17px}.at .at-panel{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden}.at .at-pad{padding:18px 20px}.at .at-tabs{display:flex;gap:10px;overflow:auto;border-bottom:1px solid var(--border);padding:0 20px}.at .at-tab{padding:12px 8px;white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted)}.at .at-tab[aria-pressed=true]{color:var(--purple);border-bottom-color:var(--purple)}.at .at-search{flex:1;min-width:210px}.at .at-scroll{overflow-x:auto}.at table{width:100%;border-collapse:collapse;white-space:nowrap}.at th{background:#f7f8fc;text-align:left;color:var(--muted)}.at th,.at td{padding:13px 18px;border-bottom:1px solid #eef0f7}.at td small{display:block;color:var(--muted);margin-top:3px}.at .at-thumb{height:76px;width:76px;flex-shrink:0;object-fit:contain;border-radius:10px;background:#f6f5fb;border:1px solid var(--border)}.at .at-badge{display:inline-flex;align-items:center;gap:6px;border-radius:30px;padding:5px 10px;background:#f0f1f6;color:#65718a}.at .at-badge:before{content:'';width:6px;height:6px;background:currentColor;border-radius:50%}.at .active{background:#e4faf0;color:#008853}.at .maintenance{background:#fff3d9;color:#b76b00}.at .disposed{background:#fff0f2;color:#cf3455}.at .at-due{color:#c76a00}.at .at-empty{text-align:center;padding:55px 20px}.at .at-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px}.at .at-group{border:1px solid var(--border);border-radius:10px;padding:16px}.at .at-group button{width:100%;margin-top:10px;justify-content:space-between;text-align:left}.at .at-assignment{margin:0 20px 8px;padding:16px;background:#f8f6ff;border:1px solid var(--border);border-radius:10px}.at .at-assignment .at-detail{padding:16px 0;margin:0}.at .at-location-list{margin:6px 0;padding-left:18px;white-space:normal;min-width:180px}.at .at-location-list li{margin:5px 0}.at .at-error{color:#b32635;background:#fff2f3;padding:12px;border-radius:8px;margin:10px 0;white-space:pre-wrap}.at [hidden]{display:none!important}dialog.at{border:1px solid #e4e5f0;border-radius:16px;padding:0;width:min(680px,calc(100vw - 30px));max-height:88dvh;overflow:auto;color:#18223c;background:white}dialog.at::backdrop{background:rgba(18,24,44,.48)}.at .at-form{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:20px}.at label{display:flex;flex-direction:column;gap:6px}.at .at-full{grid-column:1/-1}.at .at-footer{border-top:1px solid var(--border);padding:15px 20px;display:flex;justify-content:flex-end;gap:10px}.at .at-detail{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:20px}.at .at-detail dt{color:var(--muted);margin-bottom:5px}.at .at-detail dd{margin:0;overflow-wrap:anywhere}.at :focus-visible{outline:3px solid #bda7ff;outline-offset:2px}@media(max-width:800px){.at .at-stats{grid-template-columns:1fr 1fr}.at .at-form,.at .at-detail{grid-template-columns:1fr}.at .at-header{align-items:flex-start}.at .at-stat{padding:13px}}@media(max-width:440px){.at .at-stats{grid-template-columns:1fr}}
+
+/* Asset detail popup */
+dialog.at{width:min(760px,calc(100vw - 28px));box-shadow:0 24px 90px #18223c33}
+#assetDialog>header{position:sticky;top:0;z-index:2;background:white;border-bottom:1px solid var(--border)}
+.at .asset-summary{display:flex;align-items:center;gap:18px;margin:22px 24px;padding:20px;background:#f8f9fd;border:1px solid var(--border);border-radius:14px}
+.at .asset-summary .at-thumb{width:88px;height:88px;background:white}
+.at .asset-summary-copy{flex:1;min-width:0}.at .asset-summary-copy h3{font-size:23px;line-height:1.3;overflow-wrap:anywhere}.at .asset-summary-copy p{font-size:13px;margin-top:7px;color:#71809b}
+.at .asset-locations{margin:0 24px 24px;padding:20px;border:1px solid #ddd5fa;border-radius:14px;background:linear-gradient(135deg,#faf8ff,white)}
+.at .asset-location-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.at .asset-location-heading h3{font-size:17px}.at .asset-location-heading p{color:#71809b;font-size:13px;margin-top:5px}
+.at .asset-location-count{padding:6px 10px;border-radius:20px;background:#eee7ff;color:#6230d6;font-size:12px;font-weight:600;white-space:nowrap}
+.at .asset-location-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0 0;padding:0;list-style:none}
+.at .asset-location-card{display:flex;align-items:center;gap:12px;background:white;border:1px solid #e5e0f3;border-radius:10px;padding:15px;min-width:0}
+.at .asset-location-card .at-icon{width:38px;height:38px;border-radius:10px}.at .asset-location-card strong{display:block;font-size:15px;overflow-wrap:anywhere}.at .asset-location-card small{display:block;font-size:12px;color:#71809b;margin-top:4px}
+.at .asset-info-title{font-size:15px;margin:0 24px}.at dl.at-detail{margin:12px 24px 24px;padding:0;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}.at dl.at-detail>div{padding:15px 18px;border-bottom:1px solid #eef0f7}.at dl.at-detail dt{font-size:12px}.at dl.at-detail dd{font-size:14px;font-weight:500}
+.at #statusForm{border-top:1px solid var(--border);background:#fafbfe}.at #statusForm>.at-row{gap:10px;padding:18px 24px;align-items:flex-end}.at #statusForm label{font-size:12px}.at #statusForm button{font-size:13px}
+@media(max-width:520px){.at .asset-summary{margin:16px;padding:14px;gap:12px;flex-wrap:wrap}.at .asset-summary .at-thumb{height:66px;width:66px}.at .asset-summary-copy h3{font-size:20px}.at .asset-locations{margin:0 16px 18px;padding:15px}.at .asset-location-cards{grid-template-columns:1fr}.at .asset-location-heading{align-items:flex-start}.at dl.at-detail{margin:12px 16px 18px}.at .asset-info-title{margin:0 16px}}
+
+
+/* Light is the default; dark overrides are enabled by the site theme. */
+.at{--purple:#6933f5;--border:#e5e7f2;--muted:#66748c;--text:#18223c;color:var(--text);color-scheme:light}
+#assetPage{background:transparent;border-radius:16px;padding:24px}
+.at h1,.at h2,.at h3,.at strong,.at dd,.at td,.at label,.at .page-title,.at .card-title{color:var(--text)}
+.at .page-subtitle,.at .at-muted,.at td small,.at .at-detail dt{color:var(--muted)}
+.at .at-btn,.at input,.at select,.at textarea{color:var(--text)}
+.at .at-primary{color:white}
+.at input::placeholder,.at textarea::placeholder{color:#66748c;opacity:1}
+.at option{background:white;color:#18223c}
+.at input[type=checkbox]{accent-color:var(--purple)}
+.at .at-stat h2{font-size:28px;margin-top:4px}
+@media(max-width:600px){#assetPage{padding:14px}}
+/* Dark asset workspace: explicit foregrounds prevent base-theme conflicts. */
+.at[data-asset-theme="dark"]{--purple:#8755ff;--border:#35374d;--muted:#b0b6cc;--text:#f1f3fb;--surface:#191b2b;--raised:#222538;--input:#131624;--accent-soft:#30264d;color:var(--text);color-scheme:dark}
+#assetPage[data-asset-theme="dark"]{background:#10111e;border-radius:16px;padding:24px}
+.at[data-asset-theme="dark"] h1,.at[data-asset-theme="dark"] h2,.at[data-asset-theme="dark"] h3,.at[data-asset-theme="dark"] strong,.at[data-asset-theme="dark"] dd,.at[data-asset-theme="dark"] td,.at[data-asset-theme="dark"] label,.at[data-asset-theme="dark"] .page-title,.at[data-asset-theme="dark"] .card-title{color:var(--text)}
+.at[data-asset-theme="dark"] .page-subtitle,.at[data-asset-theme="dark"] .at-muted,.at[data-asset-theme="dark"] td small,.at[data-asset-theme="dark"] .at-detail dt{color:var(--muted)}
+.at[data-asset-theme="dark"] .at-panel,.at[data-asset-theme="dark"] .at-stat,.at[data-asset-theme="dark"] .at-group{background:var(--surface);border-color:var(--border)}
+.at[data-asset-theme="dark"] .at-stat h2{font-size:28px;margin-top:4px;color:#fff}
+.at[data-asset-theme="dark"] .at-btn,.at[data-asset-theme="dark"] input,.at[data-asset-theme="dark"] select,.at[data-asset-theme="dark"] textarea{background:var(--input);color:var(--text);border-color:var(--border)}
+.at[data-asset-theme="dark"] input::placeholder,.at[data-asset-theme="dark"] textarea::placeholder{color:#a3abc4;opacity:1}
+.at[data-asset-theme="dark"] option{background:var(--input);color:var(--text)}
+.at[data-asset-theme="dark"] input[type=checkbox]{accent-color:var(--purple)}
+.at[data-asset-theme="dark"] .at-btn:hover:not(:disabled){background:#2b2e45;border-color:#796599}
+.at[data-asset-theme="dark"] .at-primary{background:#7540ef;border-color:#8b5bff;color:#fff}
+.at[data-asset-theme="dark"] .at-primary:hover:not(:disabled){background:#8655fa;border-color:#aa89ff}
+.at[data-asset-theme="dark"] button:disabled{opacity:.48;cursor:not-allowed}
+.at[data-asset-theme="dark"] .at-icon{background:var(--accent-soft);color:#c3a8ff}
+.at[data-asset-theme="dark"] .at-tab{color:var(--muted)}.at[data-asset-theme="dark"] .at-tab[aria-pressed=true]{color:#c5abff;border-bottom-color:#a77cff}
+.at[data-asset-theme="dark"] th{background:var(--raised);color:#c6cce0;font-size:13px;font-weight:600}
+.at[data-asset-theme="dark"] th,.at[data-asset-theme="dark"] td{border-bottom-color:#2b2e42}.at[data-asset-theme="dark"] tbody tr:hover{background:#202337}
+.at[data-asset-theme="dark"] .at-thumb{background:#292c40;border-color:var(--border)}
+.at[data-asset-theme="dark"] .at-badge{background:#30354a;color:#d0d6eb}
+.at[data-asset-theme="dark"] .at-badge.active{background:#123d32;color:#77e3b4}
+.at[data-asset-theme="dark"] .at-badge.maintenance{background:#48371d;color:#f9ce78}
+.at[data-asset-theme="dark"] .at-badge.inactive{background:#30354a;color:#c5cce1}
+.at[data-asset-theme="dark"] .at-badge.disposed{background:#482733;color:#ffa5bc}
+.at[data-asset-theme="dark"] .at-due{color:#f6cb7b}
+.at[data-asset-theme="dark"] .at-alert{background:#382f20;color:#ffe0a0;border-color:#6b5432}
+.at[data-asset-theme="dark"] .at-error{background:#402532;color:#ffc0cd;border:1px solid #744050;margin:12px 20px}
+.at[data-asset-theme="dark"] .at-assignment{background:#242139;border-color:#47405e}
+.at[data-asset-theme="dark"] .at-location-list{list-style:none;padding:0;display:flex;gap:6px;flex-wrap:wrap;margin:4px 0;max-width:360px}
+.at[data-asset-theme="dark"] .at-location-list li{margin:0;padding:5px 10px;background:#30284a;color:#ddceff;border:1px solid #4a3c67;border-radius:7px;font-size:13px}
+dialog.at[data-asset-theme="dark"]{background:var(--surface);color:var(--text);border-color:var(--border);box-shadow:0 28px 100px #0009}
+dialog.at[data-asset-theme="dark"]::backdrop{background:#050612ba;backdrop-filter:blur(3px)}
+#assetDialog[data-asset-theme="dark"]>header{background:var(--surface);border-color:var(--border)}
+.at[data-asset-theme="dark"] .asset-summary{background:var(--raised);border-color:var(--border)}
+.at[data-asset-theme="dark"] .asset-summary .at-thumb{background:#2d3044}
+.at[data-asset-theme="dark"] .asset-summary-copy p,.at[data-asset-theme="dark"] .asset-location-heading p,.at[data-asset-theme="dark"] .asset-location-card small{color:var(--muted)}
+.at[data-asset-theme="dark"] .asset-locations{background:linear-gradient(135deg,#28213e,#1d1d30);border-color:#4b3b68}
+.at[data-asset-theme="dark"] .asset-location-count{background:#3d2a60;color:#ddcaff}
+.at[data-asset-theme="dark"] .asset-location-card{background:#1b1d2f;border-color:#443957}
+.at[data-asset-theme="dark"] .asset-location-card .at-icon{background:#362653;color:#c4a5ff}
+.at[data-asset-theme="dark"] dl.at-detail{background:#171a29;border-color:var(--border);grid-template-columns:1fr 1fr}
+.at[data-asset-theme="dark"] dl.at-detail>div{border-bottom-color:#2d3044}
+.at[data-asset-theme="dark"] dl.at-detail>div:nth-child(odd){border-right:1px solid #2d3044}
+.at[data-asset-theme="dark"] #statusForm{background:#161826;border-color:var(--border)}
+.at[data-asset-theme="dark"] .at-footer{background:#161826;border-color:var(--border);flex-wrap:wrap}
+.at[data-asset-theme="dark"] .at-room-choice:hover{background:#2b2740;border-radius:6px}
+.at[data-asset-theme="dark"] :focus-visible{outline:3px solid #b998ff;outline-offset:3px}
+@media(max-width:600px){#assetPage[data-asset-theme="dark"]{padding:14px}.at[data-asset-theme="dark"] .at-search{min-width:0;width:100%}.at[data-asset-theme="dark"] dl.at-detail{grid-template-columns:1fr}.at[data-asset-theme="dark"] dl.at-detail>div:nth-child(odd){border-right:0}.at[data-asset-theme="dark"] #statusForm>.at-row{align-items:stretch}.at[data-asset-theme="dark"] #statusForm button{flex:1}.at[data-asset-theme="dark"] .asset-summary-copy{min-width:120px}}
+
+</style>
+{% endblock %}
+{% block content %}
+<div class="at" id="assetPage">
+{% csrf_token %}
+<div class="at-muted text-sm">Inventory / Assets</div>
+<header class="at-row at-between at-header"><div><h1 class="page-title">Asset Tracking</h1><p class="page-subtitle">Track hotel equipment, assigned locations, and maintenance.</p></div><div class="at-row"><button class="at-btn" id="refresh">↻ Refresh</button><button class="at-btn" id="addCategory">Add category</button><button class="at-btn at-primary" id="addAsset">+ Add asset</button></div></header>
+<div id="pageError" class="at-error" role="alert" hidden></div>
+<div class="at-stats" id="stats"></div>
+<div class="at-alert at-row at-between" id="attention" hidden><span id="attentionText"></span><button class="at-btn" id="review">Review assets →</button></div>
+<section class="at-panel"><div class="at-pad at-row at-between"><div><h2 class="card-title">Asset inventory</h2><span class="at-muted text-sm" id="totalLabel">Loading assets…</span></div><div class="at-row"><button class="at-btn at-primary" id="allView" aria-pressed="true">All assets</button><button class="at-btn" id="locationView" aria-pressed="false">By location</button></div></div>
+<div class="at-tabs" id="tabs" aria-label="Filter by status"></div>
+<div class="at-pad at-row"><input class="at-search" type="search" id="search" placeholder="Search by asset name, ID, or serial number…" aria-label="Search assets"><select id="department" aria-label="Department"><option value="">All departments</option></select><select id="location" aria-label="Location"><option value="">All locations</option></select><button class="at-btn" id="clear">Clear filters</button></div>
+<div id="results" aria-live="polite"><div class="at-empty">Loading assets…</div></div>
+<footer class="at-pad at-row at-between"><span id="range" class="text-sm at-muted"></span><div class="at-row"><select id="pageSize" aria-label="Assets per page"><option value="6">6 per page</option><option value="12">12 per page</option><option value="24">24 per page</option></select><button class="at-btn" id="prev">← Previous</button><span id="pageNumber"></span><button class="at-btn" id="next">Next →</button></div></footer></section><p class="at-muted text-xs" id="updated" style="margin-top:12px"></p>
+</div>
+<dialog class="at" id="assetDialog" aria-labelledby="dialogTitle"><header class="at-pad at-row at-between"><h2 id="dialogTitle" class="card-title"></h2><button type="button" class="at-btn" data-close aria-label="Close dialog">✕</button></header><div id="dialogError" class="at-error" role="alert" hidden></div><div id="dialogBody"></div></dialog>
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+(()=>{'use strict';
+const urls={rooms:"{% url 'asset_room_options' %}",locations:"{% url 'save_asset_locations' 987654321 %}",list:"{% url 'list_assets' %}",add:"{% url 'add_asset' %}",edit:"{% url 'update_asset' 987654321 %}",status:"{% url 'update_asset_status' 987654321 %}",categories:"{% url 'list_asset_categories' %}",categoryAdd:"{% url 'add_asset_category' %}",departments:"{% url 'departments' %}",vendors:"{% url 'list_vendors' %}"};
+const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8M7.5 5.5l9 5"/></svg>';
+const names={active:'Active',maintenance:'Maintenance',inactive:'Inactive',disposed:'Disposed'};
+let assets=[],cats=[],depts=[],vendors=[],status='',dueOnly=false,mode='all',page=1,busy=false,loaded=false;
+const dialog=$('assetDialog');document.body.appendChild(dialog);
+// The dialog is mounted under body, so keep its theme in sync with the page.
+function assetThemeIsDark(){
+ const page=$('assetPage');
+ // Use the nearest explicit theme selected by the base template.
+ for(let node=page.parentElement;node;node=node.parentElement){
+  for(const key of ['data-bs-theme','data-theme','data-color-scheme']){
+   const value=(node.getAttribute(key)||'').toLowerCase();
+   if(value==='dark')return true;
+   if(value==='light')return false;
+  }
+  if(['dark','dark-mode','dark-theme','theme-dark'].some(c=>node.classList.contains(c)))return true;
+  if(['light','light-mode','light-theme','theme-light'].some(c=>node.classList.contains(c)))return false;
+ }
+ // Support base templates with custom theme names by reading their background.
+ for(let node=page.parentElement;node;node=node.parentElement){
+  const color=getComputedStyle(node).backgroundColor;
+  const values=color.match(/[\d.]+/g);
+  if(!values||values.length<3||(values.length>3&&Number(values[3])<0.5))continue;
+  const [r,g,b]=values.map(Number);
+  return (0.2126*r+0.7152*g+0.0722*b)<128;
+ }
+ return getComputedStyle(document.body).colorScheme==='dark';
+}
+function syncAssetTheme(){
+ const theme=assetThemeIsDark()?'dark':'light';
+ $('assetPage').dataset.assetTheme=theme;
+ dialog.dataset.assetTheme=theme;
+}
+syncAssetTheme();
+const assetThemeObserver=new MutationObserver(syncAssetTheme);
+for(let node=$('assetPage').parentElement;node;node=node.parentElement){
+ assetThemeObserver.observe(node,{attributes:true,attributeFilter:['class','style','data-theme','data-bs-theme','data-color-scheme']});
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',syncAssetTheme);
+
+function error(id,message){$(id).textContent=message;$(id).hidden=!message;}
+async function api(url,data){const opts={credentials:'same-origin',headers:{Accept:'application/json'}};if(data){opts.method='POST';opts.headers['X-CSRFToken']=$('assetPage').querySelector('[name=csrfmiddlewaretoken]').value;if(data instanceof FormData)opts.body=data;else{opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(data);}}const r=await fetch(url,opts);let b;try{b=await r.json();}catch{throw Error('The server returned an invalid response. Check your login and try again.');}if(!r.ok||b.success===false||b.error)throw Error(b.error||'Unable to complete this request.');return b;}
+const dated=v=>v?new Date(v+'T00:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'—';
+const money=v=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR'}).format(Number(v)||0);
+const badge=a=>`<span class="at-badge ${Object.hasOwn(names,a.status)?a.status:''}">${esc(names[a.status]||a.status||'Unknown')}</span>`;
+function locations(a){const vals=(a.locations||[]).map(l=>l.location).filter(v=>v&&v!=='—');return [...new Set(vals.length?vals:[a.location&&a.location!=='—'?a.location:'Unassigned'])];}
+function options(rows,current,empty){return `<option value="">${esc(empty)}</option>`+rows.map(r=>`<option value="${esc(r.id)}" ${String(r.id)===String(current)?'selected':''}>${esc(r.name)}</option>`).join('');}
+function locationList(a){return '<ul class="at-location-list">'+locations(a).map(l=>'<li>'+esc(l)+'</li>').join('')+'</ul>';}
+function refreshFilters(){const d=$('department').value,l=$('location').value;const dr=[...new Map(assets.filter(a=>a.department_id).map(a=>[String(a.department_id),{id:a.department_id,name:a.department}])).values()];$('department').innerHTML=options(dr,d,'All departments');const loc=[...new Set(assets.flatMap(locations))].sort().map(x=>({id:x,name:x}));$('location').innerHTML=options(loc,l,'All locations');}
+function render(){if(!loaded)return;const counts=Object.fromEntries(Object.keys(names).map(s=>[s,assets.filter(a=>a.status===s).length]));const due=assets.filter(a=>a.maintenance_due&&a.status!=='disposed').length;
+$('stats').innerHTML=[['Total assets',assets.length],['Active',counts.active],['Under maintenance',counts.maintenance],['Maintenance due',due]].map(([n,v])=>`<div class="at-stat"><span class="at-icon">${icon}</span><div><div class="at-muted text-sm">${n}</div><h2>${v}</h2></div></div>`).join('');$('totalLabel').textContent=`${assets.length} assets in total`;$('attention').hidden=!due;$('attentionText').textContent=`${due} asset${due===1?'':'s'} need maintenance`;
+$('tabs').innerHTML=[['','All assets',assets.length],...Object.entries(names).map(([s,n])=>[s,n,counts[s]])].map(([s,n,c])=>`<button class="at-tab" data-status="${s}" aria-pressed="${status===s&&!dueOnly}">${n} <span class="at-muted">${c}</span></button>`).join('');
+const q=$('search').value.trim().toLowerCase(),dep=$('department').value,loc=$('location').value;
+const filtered=assets.filter(a=>(!status||a.status===status)&&(!dueOnly||(a.maintenance_due&&a.status!=='disposed'))&&(!dep||String(a.department_id)===dep)&&(!loc||locations(a).includes(loc))&&(!q||`${a.name} ${a.id} ${a.serial_number||''} ${a.type||''}`.toLowerCase().includes(q)));
+const size=Number($('pageSize').value),pages=Math.max(1,Math.ceil(filtered.length/size));page=Math.min(page,pages);const rows=filtered.slice((page-1)*size,page*size);
+const detailBtn=a=>`<button class="at-btn" data-detail="${a.id}">View details →</button>`;
+if(!rows.length)$('results').innerHTML=`<div class="at-empty">${assets.length?'No assets match these filters.':'No assets yet. Add your first asset to get started.'}</div>`;
+else if(mode==='all')$('results').innerHTML=`<div class="at-scroll"><table><thead><tr><th>Asset</th><th>Category / department</th><th>Assigned locations</th><th>Status</th><th>Next maintenance</th><th>Actions</th></tr></thead><tbody>${rows.map(a=>`<tr><td><div class="at-row">${thumb(a)}<div><strong>${esc(a.name)}</strong><small>ID: ${a.id}${a.serial_number?' · '+esc(a.serial_number):''}</small></div></div></td><td>${esc(a.type||'—')}<small>${esc(a.department||'Unassigned')}</small></td><td>${locationList(a)}</td><td>${badge(a)}</td><td>${dated(a.next_maintenance)}${a.maintenance_due&&a.status!=='disposed'?'<small class="at-due">Maintenance due</small>':''}</td><td>${detailBtn(a)} <button class="at-btn" data-edit="${a.id}" aria-label="Edit ${esc(a.name)}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+else {const groups=new Map();for(const a of rows)for(const l of locations(a)){if(!groups.has(l))groups.set(l,[]);groups.get(l).push(a);}$('results').innerHTML='<div class="at-groups">'+[...groups].map(([l,aa])=>`<section class="at-group"><h3 class="card-title">${esc(l)}</h3><p class="at-muted text-sm">${aa.length} on this page</p>${aa.map(a=>`<button class="at-btn" data-detail="${a.id}"><span>${esc(a.name)}</span>${badge(a)}</button>`).join('')}</section>`).join('')+'</div>';}
+$('range').textContent=filtered.length?`Showing ${(page-1)*size+1}–${Math.min(page*size,filtered.length)} of ${filtered.length} assets${dueOnly?' · Maintenance due':''}`:'0 assets';$('pageNumber').textContent=`${page} / ${pages}`;$('prev').disabled=page===1;$('next').disabled=page===pages;
+}
+function thumb(a){let u;try{u=new URL(a.image,location.origin);}catch{}return a.image&&u&&['https:','http:'].includes(u.protocol)?`<img class="at-thumb" src="${esc(u.href)}" alt="" loading="lazy">`:`<span class="at-icon">${icon}</span>`;}
+async function load(){error('pageError','');$('refresh').disabled=true;try{const d=await api(urls.list);if(!Array.isArray(d.assets))throw Error('Invalid asset list response.');assets=d.assets;loaded=true;refreshFilters();render();$('updated').textContent='Last refreshed at '+new Date().toLocaleTimeString();}catch(e){error('pageError',e.message);if(!loaded)$('results').innerHTML='<div class="at-empty">Unable to load assets. Use Refresh to try again.</div>';}finally{$('refresh').disabled=false;}}
+function open(title,html){$('dialogTitle').textContent=title;error('dialogError','');$('dialogBody').innerHTML=html;if(!dialog.open)dialog.showModal();}
+function assetLocationCards(a){
+ const rows=Array.isArray(a.locations)?a.locations.filter(l=>l.is_current!==false):[];
+ const labels=locations(a).filter(l=>l!=='Unassigned');
+ const pin='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+ return `<section class="asset-locations" aria-label="Asset locations"><div class="asset-location-heading"><div><h3>Asset locations</h3><p>Current room and area assignments</p></div><span class="asset-location-count">${labels.length} ${labels.length===1?'location':'locations'}</span></div>${labels.length?`<ul class="asset-location-cards">${labels.map(label=>{
+ const row=rows.find(l=>l.location===label);
+ const numbered=row&&row.room_number!==null&&row.room_number!==undefined&&String(row.room_number)!=='';
+ const title=numbered?'Room '+row.room_number:row?.room_type||label.replace(/\s*[—–-]\s*room number not assigned$/i,'');
+ const subtitle=numbered?(row.room_type||'Room'):row?.room_id?'Room type · specific room not set':row?.area?'Area':'Assigned location';
+ return `<li class="asset-location-card"><span class="at-icon">${pin}</span><div><strong>${esc(title)}</strong><small>${esc(subtitle)}</small></div></li>`;
+ }).join('')}</ul>`:'<p class="at-muted" style="margin-top:16px">No location assigned yet.</p>'}</section>`;
+}
+
+function details(a){open(a.name,`<div class="asset-summary">${thumb(a)}<div class="asset-summary-copy"><h3>${esc(a.name)}</h3><p>Asset #${esc(a.id)}${a.type?" · "+esc(a.type):""}</p></div>${badge(a)}</div>${assetLocationCards(a)}<h3 class="asset-info-title">Asset information</h3><dl class="at-detail">${[['Asset ID',a.id],['Serial number',a.serial_number],['Category',a.type],['Department',a.department],['Assigned to',a.assigned_to],['Vendor',a.vendor],['Purchase date',dated(a.purchase_date)],['Purchase cost',money(a.purchase_cost)],['Warranty ends',dated(a.warranty_end)],['Next maintenance',dated(a.next_maintenance)]].map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v??'—')||'—'}</dd></div>`).join('')}</dl><form id="statusForm"><div class="at-pad at-row"><label>Status<select name="status">${Object.entries(names).map(([k,v])=>`<option value="${k}" ${a.status===k?'selected':''}>${v}</option>`).join('')}</select></label><button class="at-btn at-primary">Update status</button><button type="button" class="at-btn" data-edit="${a.id}">Edit asset</button><button type="button" class="at-btn" data-assign="${a.id}">Manage locations</button></div></form>`);$('statusForm').onsubmit=e=>{e.preventDefault();save(async()=>api(urls.status.replace('987654321',a.id),{status:e.target.elements.status.value}));};}
+
+async function assignLocations(a){
+ open('Assign rooms / areas — '+a.name,'<div class="at-pad">Loading rooms…</div>');
+ let rooms;
+ try{rooms=(await api(urls.rooms)).rooms;if(!Array.isArray(rooms))throw Error('Invalid room list.');}
+ catch(e){error('dialogError',e.message);return;}
+ if(!dialog.open)return;
+ const locs=(a.locations||[]).filter(l=>l.is_current!==false);
+ const selected=new Set(locs.map(l=>Number(l.room_unit_id)).filter(Boolean));
+ if(!selected.size&&a.room_unit_id)selected.add(Number(a.room_unit_id));
+ const areas=[...new Set(locs.map(l=>l.area).filter(Boolean))];
+ if(!areas.length&&a.area)areas.push(a.area);
+ const typeOnly=locs.some(l=>l.room_id&&!l.room_unit_id)||(!locs.length&&a.room_id&&!a.room_unit_id);
+ $('dialogBody').innerHTML=`<form id="locationForm"><div class="at-pad">
+ <p>Select every room where this asset is present. Saving replaces its current location list.</p>
+ ${typeOnly?'<p class="at-alert" style="margin-top:12px">This asset has a room-type assignment. Select the actual rooms below to replace it.</p>':''}
+ <label style="margin:14px 0">Find a room<input type="search" id="roomSearch" placeholder="Room number or type"></label>
+ <div style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:12px" id="roomChecks">
+ ${rooms.map(r=>`<label class="at-room-choice" style="display:flex;flex-direction:row;align-items:center;padding:8px" data-label="${esc(r.label.toLowerCase())}"><input type="checkbox" name="room_unit_ids" value="${r.id}" ${selected.has(Number(r.id))?'checked':''}> ${esc(r.label)}</label>`).join('')||'<p>No rooms have been created yet.</p>'}
+ </div><p id="roomCount" class="at-muted text-sm" style="margin:10px 0"></p>
+ <label>Other areas — one per line<textarea name="areas" rows="3" placeholder="Lobby&#10;Laundry room">${esc(areas.join('\n'))}</textarea></label>
+ <label style="margin-top:14px;display:flex;flex-direction:row"><input type="checkbox" id="clearLocations"> Confirm leaving this asset unassigned if no rooms or areas are selected</label>
+ </div><footer class="at-footer"><button type="button" class="at-btn" data-close>Cancel</button><button class="at-btn at-primary">Save locations</button></footer></form>`;
+ const form=$('locationForm');
+ const count=()=>{$('roomCount').textContent=form.querySelectorAll('[name=room_unit_ids]:checked').length+' rooms selected';};count();
+ form.onchange=count;
+ $('roomSearch').oninput=e=>{const q=e.target.value.trim().toLowerCase();form.querySelectorAll('.at-room-choice').forEach(l=>l.hidden=!l.dataset.label.includes(q));};
+ form.onsubmit=e=>{e.preventDefault();const ids=[...form.querySelectorAll('[name=room_unit_ids]:checked')].map(x=>Number(x.value));const areas=[...new Set(form.elements.areas.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
+ if(areas.some(x=>x.length>200)){error('dialogError','Each area must be 200 characters or fewer.');return;}
+ if(!ids.length&&!areas.length&&!$('clearLocations').checked){error('dialogError','Select a location or confirm leaving the asset unassigned.');return;}
+ save(()=>api(urls.locations.replace('987654321',a.id),{room_unit_ids:ids,areas}));};
+}
+
+async function metadata(){const res=await Promise.all([api(urls.categories),api(urls.departments),api(urls.vendors)]);cats=res[0].asset_categories||[];depts=res[1].departments||[];vendors=res[2].vendors||[];}
+const field=(label,name,value='',type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;
+async function editor(a=null){open(a?'Edit asset':'Add asset','<div class="at-pad">Loading form…</div>');try{await metadata();}catch(e){error('dialogError',e.message);return;}const v=a||{};
+// Keep old department/category selectable even if metadata has been deduplicated.
+const ds=[...depts],cs=[...cats];if(v.department_id&&!ds.some(d=>d.id===v.department_id))ds.push({id:v.department_id,name:v.department});if(v.category_id&&!cs.some(c=>c.id===v.category_id))cs.push({id:v.category_id,name:v.type});
+$('dialogBody').innerHTML=`<form id="assetForm">${a?`<section class="at-assignment" aria-label="Current asset assignment"><h3 class="card-title">Current assignment</h3><dl class="at-detail"><div><dt>Assigned rooms and areas</dt><dd>${locationList(a)}</dd></div><div><dt>Assigned to</dt><dd>${esc(a.assigned_to||'No staff member assigned')}</dd></div><div><dt>Department</dt><dd>${esc(a.department||'No department assigned')}</dd></div><div><dt>Vendor</dt><dd>${esc(a.vendor||'No vendor recorded')}</dd></div></dl><p class="at-muted text-sm">Saved location and staff assignments</p><button type="button" class="at-btn" data-assign="${a.id}">Manage locations</button></section>`:''}<div class="at-form">${field('Asset name *','name',v.name,'text','required maxlength="200"')}${field('Serial number','serial_number',v.serial_number)}<label>Category *<select name="asset_category_id" required>${options(cs,v.category_id,'Select category')}</select></label><label>Department<select name="department_id">${options(ds,v.department_id,'Unassigned')}</select></label>${field('Purchase cost (₹)','purchase_cost',v.purchase_cost||0,'number','min="0" step="0.01" required')}${field('Purchase date','purchase_date',v.purchase_date,'date')}${field('Warranty ends','warranty_end',v.warranty_end,'date')}${field('Next maintenance','next_maintenance',v.next_maintenance,'date')}${!a?`<label>Vendor<select name="vendor_id">${options(vendors,'','No vendor')}</select></label>${field('Area / location','area','','text','placeholder="e.g. Main kitchen"')}<label class="at-full">Notes<textarea name="notes" rows="3"></textarea></label>`:''}<label class="at-full">Asset image<input name="image" type="file" accept="image/png,image/jpeg,image/webp"><span class="at-muted text-sm">PNG, JPEG or WebP, up to 5 MB.</span></label>${a&&a.image?'<label class="at-full"><span><input type="checkbox" name="remove_image"> Remove existing image</span></label>':''}${a?'<p class="at-full at-muted text-sm">Leave an existing date unchanged unless replacing it.</p>':''}</div><footer class="at-footer"><button type="button" class="at-btn" data-close>Cancel</button><button class="at-btn at-primary">Save asset</button></footer></form>`;
+$('assetForm').onsubmit=e=>{e.preventDefault();const form=e.target,fd=new FormData(form),file=fd.get('image');if(file?.size>5*1024*1024){error('dialogError','Choose an image smaller than 5 MB.');return;}if(file?.size&&!['image/png','image/jpeg','image/webp'].includes(file.type)){error('dialogError','Choose a PNG, JPEG or WebP image.');return;}fd.set('name',String(fd.get('name')).trim());if(!fd.get('name')){error('dialogError','Asset name is required.');return;}if(!file?.size)fd.delete('image');if(fd.has('remove_image'))fd.set('remove_image','1');for(const key of ['purchase_date','warranty_end','next_maintenance'])if(!fd.get(key)){if(a&&a[key]){error('dialogError','Your current API cannot clear dates with this form. Keep the existing date or select a replacement.');return;}fd.delete(key);}if(!a)for(const key of ['department_id','vendor_id'])if(!fd.get(key))fd.delete(key);save(()=>api(a?urls.edit.replace('987654321',a.id):urls.add,fd));};}
+async function save(fn){if(busy)return;busy=true;error('dialogError','');dialog.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();dialog.close();await load();}catch(e){error('dialogError',e.message);}finally{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);}}
+dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;if(b.hasAttribute('data-close'))dialog.close();if(b.dataset.assign){const a=assets.find(x=>String(x.id)===b.dataset.assign);if(a)assignLocations(a);}if(b.dataset.detail){const a=assets.find(x=>String(x.id)===b.dataset.detail);if(a)details(a);}if(b.dataset.edit){const a=assets.find(x=>String(x.id)===b.dataset.edit);if(a)editor(a);}if(b.hasAttribute('data-status')){status=b.dataset.status;dueOnly=false;page=1;render();}});
+$('addCategory').onclick=()=>{open('Add category','<form id="categoryForm"><div class="at-form"><label class="at-full">Category name *<input name="name" required maxlength="100" placeholder="e.g. Kitchen equipment"></label></div><footer class="at-footer"><button type="button" class="at-btn" data-close>Cancel</button><button class="at-btn at-primary">Save category</button></footer></form>');$('categoryForm').onsubmit=e=>{e.preventDefault();const name=e.target.elements.name.value.trim();if(name)save(()=>api(urls.categoryAdd,{name}));};};
+$('addAsset').onclick=()=>editor();$('refresh').onclick=load;$('search').oninput=()=>{page=1;render();};for(const id of ['department','location','pageSize'])$(id).onchange=()=>{page=1;render();};$('clear').onclick=()=>{status='';dueOnly=false;page=1;$('search').value='';$('department').value='';$('location').value='';render();};$('review').onclick=()=>{status='';dueOnly=true;page=1;$('search').value='';$('department').value='';$('location').value='';render();$('results').scrollIntoView({behavior:'smooth',block:'nearest'});};$('prev').onclick=()=>{page--;render();};$('next').onclick=()=>{page++;render();};for(const [id,val] of [['allView','all'],['locationView','location']])$(id).onclick=()=>{mode=val;for(const [k,v]of [['allView','all'],['locationView','location']]){$(k).classList.toggle('at-primary',mode===v);$(k).setAttribute('aria-pressed',String(mode===v));}render();};
+load();
+})();
+</script>
+{% endblock %}

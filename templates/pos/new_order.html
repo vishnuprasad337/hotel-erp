@@ -1,0 +1,1071 @@
+{% extends "pos/base.html" %}
+{% load static %}
+
+{% block title %}New Order — POS | {{ hotel.hotel_name|default:"Admio" }}{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+  /* Page layout only; typography comes from pos/base.html. */
+
+  .pos-shell { display: grid; grid-template-columns: 1fr 400px; gap: 24px; align-items: start; }
+  @media (max-width: 1199px) { .pos-shell { grid-template-columns: 1fr 360px; gap: 18px; } }
+  @media (max-width: 991px)  { .pos-shell { grid-template-columns: 1fr; } }
+
+  .pos-search { position: relative; width: 260px; max-width: 100%; }
+  .pos-search .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+  .pos-search input { width: 100%; padding-left: 38px !important; }
+
+  .pos-category-tabs { display: flex; flex-wrap: wrap; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .pos-cat-chip {
+    border: 1px solid var(--admio-border-color, #e5e7eb);
+    background: transparent; color: var(--admio-nav-color, #6b7280);
+    padding: 8px 16px; border-radius: 100px; cursor: pointer; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s; 
+  }
+  .pos-cat-chip:hover { border-color: #7C3AED; color: #7C3AED; }
+  .pos-cat-chip.active { background: #7C3AED; border-color: #7C3AED; color: #fff; }
+
+  .pos-menu-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 16px; max-height: 64vh; overflow-y: auto; padding: 4px 4px 4px 0; margin-top: 18px;
+  }
+  .pos-menu-grid::-webkit-scrollbar { width: 6px; }
+  .pos-menu-grid::-webkit-scrollbar-thumb { background: rgba(124,58,237,.25); border-radius: 10px; }
+
+  .pos-item-card {
+    background: #fff; border: 1px solid var(--admio-border-color, #e5e7eb); border-radius: 16px;
+    overflow: hidden; cursor: default; transition: box-shadow .18s, transform .18s, border-color .18s;
+    position: relative; display: flex; flex-direction: column;
+  }
+  .pos-item-card:hover { box-shadow: 0 10px 24px rgba(0,0,0,.08); transform: translateY(-2px); }
+  .pos-item-card.in-cart { border-color: #7C3AED; }
+  .pos-item-card.unavailable { opacity: .5; }
+
+  .pos-item-img-wrap { width: 100%; aspect-ratio: 1.3/1; background: var(--admio-sidebar-bg, #f6f8fa); position: relative; overflow: hidden; }
+  .pos-item-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pos-item-img-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: #c7cbd6; }
+
+  .pos-veg-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; top: 10px; left: 10px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+  .pos-veg-dot.veg { background: #22c55e; }
+  .pos-veg-dot.nonveg { background: #ef4444; }
+  .pos-unavailable-badge {
+    position: absolute; top: 10px; right: 10px; text-transform: uppercase;
+    background: #fef2f2; color: #ef4444; padding: 3px 8px; border-radius: 8px; 
+  }
+
+  .pos-item-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .pos-item-name { color: var(--admio-heading-color, #111); line-height: 1.3; }
+  .pos-item-desc { color: var(--admio-nav-color, #6b7280); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: 2.6em; }
+  .pos-item-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+  .pos-item-price { color: #7C3AED; }
+  .pos-item-tax { display: block; color: var(--admio-nav-color, #9ca3af); margin-top: 1px; }
+
+  .pos-add-btn {
+    width: 34px; height: 34px; border-radius: 50%; border: none; background: #7C3AED; color: #fff;
+    display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: transform .12s, background .15s;
+  }
+  .pos-add-btn:hover { background: #6d28d9; transform: scale(1.06); }
+  .pos-add-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+
+  .pos-qty-stepper { display: flex; align-items: center; gap: 8px; background: rgba(124,58,237,.08); border-radius: 100px; padding: 3px; flex-shrink: 0; }
+  .pos-qty-stepper button {
+    width: 26px; height: 26px; border-radius: 50%; border: none; background: #7C3AED; color: #fff;
+    display: grid; place-items: center; cursor: pointer; line-height: 1;
+  }
+  .pos-qty-stepper button:hover { filter: brightness(.93); }
+  .pos-qty-stepper .qty-val { min-width: 16px; text-align: center; }
+
+  .pos-empty { text-align: center; padding: 60px 20px; color: var(--admio-nav-color, #9ca3af); }
+  .pos-empty i { display: block; margin-bottom: 10px; }
+
+  .pos-order-type { display: flex; gap: 8px; background: rgba(124,58,237,.06); padding: 6px; border-radius: 12px; }
+  .pos-order-type button {
+    flex: 1; border: none; background: transparent; padding: 10px 8px; border-radius: 9px;
+    color: var(--admio-nav-color, #6b7280); cursor: pointer; 
+    display: flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s, color .15s;
+  }
+  .pos-order-type button.active { background: #7C3AED; color: #fff; box-shadow: 0 3px 10px rgba(124,58,237,.3); }
+
+  .pos-field { margin-top: 16px; }
+  .pos-field label { display: block; color: var(--admio-heading-color, #111); margin-bottom: 6px; }
+  .pos-field .req { color: #ef4444; }
+  .pos-check-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--admio-heading-color, #111); }
+  .pos-check-row input { width: 17px; height: 17px; accent-color: #7C3AED; cursor: pointer; }
+
+  .pos-picker-btn {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 16px; border: 1px solid var(--admio-border-color, #e5e7eb); border-radius: 12px;
+    background: #fff; cursor: pointer; text-align: left; transition: border-color .15s, background .15s;
+  }
+  .pos-picker-btn:hover { border-color: #7C3AED; background: rgba(124,58,237,.03); }
+  .pos-picker-btn .val { color: var(--admio-heading-color, #111); }
+  .pos-picker-btn .placeholder { color: var(--admio-nav-color, #9ca3af); }
+  .pos-picker-btn i.icn { color: #7C3AED; }
+
+  .pos-cart-header { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 10px; }
+  .pos-cart-header h3 { text-transform: uppercase; letter-spacing: .04em; color: var(--admio-nav-color, #9ca3af); margin: 0; }
+  .pos-cart-list { display: flex; flex-direction: column; gap: 10px; max-height: 260px; overflow-y: auto; }
+  .pos-cart-empty { text-align: center; padding: 30px 10px; color: var(--admio-nav-color, #9ca3af); }
+  .pos-cart-empty i { display: block; margin-bottom: 8px; }
+
+  .pos-cart-row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--admio-border-color, #e5e7eb); border-radius: 12px; padding: 10px 12px; }
+  .pos-cart-row .info { flex: 1; min-width: 0; }
+  .pos-cart-row .name { color: var(--admio-heading-color, #111); }
+  .pos-cart-row .unit { color: var(--admio-nav-color, #9ca3af); }
+  .pos-cart-row .line-total { color: #7C3AED; min-width: 56px; text-align: right; }
+  .pos-cart-row .remove-btn { border: none; background: transparent; color: #ef4444; cursor: pointer; padding: 4px; }
+
+  .pos-totals { border-top: 1px dashed var(--admio-border-color, #e5e7eb); margin-top: 16px; padding-top: 14px; }
+  .pos-totals .row { display: flex; justify-content: space-between; color: var(--admio-nav-color, #6b7280); margin-bottom: 6px; }
+  .pos-totals .grand { display: flex; justify-content: space-between; color: var(--admio-heading-color, #111); margin-top: 8px; }
+
+  .pos-place-btn {
+    width: 100%; margin-top: 18px; border: none; background: #7C3AED; color: #fff; 
+    padding: 14px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background .15s, transform .1s;
+  }
+  .pos-place-btn:hover:not(:disabled) { background: #6d28d9; }
+  .pos-place-btn:active:not(:disabled) { transform: scale(.99); }
+  .pos-place-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+
+  .pos-clear-btn { width: 100%; margin-top: 10px; border: 1px solid var(--admio-border-color, #e5e7eb); background: transparent; color: var(--admio-nav-color, #6b7280); padding: 10px; border-radius: 12px; cursor: pointer; }
+  .pos-clear-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+  .pos-order-panel { position: sticky; top: calc(var(--h-topbar-h) + 24px); }
+
+  .pos-modal-backdrop { position: fixed; inset: 0; background: rgba(15,15,25,.45); z-index: 20000; display: none; place-items: center; padding: 20px; overflow-y: auto; }
+  .pos-modal-backdrop.open { display: grid; }
+  .pos-modal { background: #fff; border-radius: 20px; width: 100%; max-width: 640px; border: 1px solid var(--admio-border-color, #e5e7eb); box-shadow: 0 24px 60px rgba(0,0,0,.18); }
+  .pos-modal-header { padding: 18px 22px; border-bottom: 1px solid var(--admio-border-color, #e5e7eb); display: flex; align-items: center; justify-content: space-between; }
+  .pos-modal-header .title { color: var(--admio-heading-color, #111); display: flex; align-items: center; gap: 8px; }
+  .pos-modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--admio-border-color, #e5e7eb); background: #f9fafb; cursor: pointer; display: grid; place-items: center; color: var(--admio-nav-color, #6b7280); }
+  .pos-modal-close:hover { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+  .pos-modal-body { padding: 20px 22px; max-height: 60vh; overflow-y: auto; }
+  .pos-modal-footer { padding: 14px 22px; border-top: 1px solid var(--admio-border-color, #e5e7eb); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  .pos-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pos-legend span { display: flex; align-items: center; gap: 6px; color: var(--admio-nav-color, #6b7280); }
+  .pos-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+  .tp-card { border: 1.5px solid #bbf7d0; border-radius: 14px; background: #f0fdf4; padding: 14px 8px; text-align: center; cursor: pointer; transition: all .15s; }
+  .tp-card:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+  .tp-card .num { letter-spacing: -1px; color: #16a34a; line-height: 1; }
+  .tp-card .cap { color: var(--admio-nav-color, #6b7280); margin-top: 4px; }
+  .tp-card .status { margin-top: 6px; text-transform: uppercase; letter-spacing: .04em; color: #16a34a; }
+  .tp-card.occ { background: #fef2f2; border-color: #fca5a5; cursor: not-allowed; opacity: .55; }
+  .tp-card.occ .num, .tp-card.occ .status { color: #ef4444; }
+  .tp-card.selected { border-color: #7C3AED !important; box-shadow: 0 0 0 3px rgba(124,58,237,.18); background: rgba(124,58,237,.06) !important; }
+  .tp-card.selected .num, .tp-card.selected .status { color: #7C3AED !important; }
+
+  .rp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .rp-card { border: 1.5px solid var(--admio-border-color, #e5e7eb); border-radius: 14px; background: #fff; padding: 14px 10px; text-align: left; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 10px; }
+  .rp-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+  .rp-card .icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(124,58,237,.1); color: #7C3AED; display: grid; place-items: center; flex-shrink: 0; }
+  .rp-card .num { color: var(--admio-heading-color, #111); }
+  .rp-card .guest { color: var(--admio-nav-color, #6b7280); margin-top: 2px; }
+  .rp-card.selected { border-color: #7C3AED !important; box-shadow: 0 0 0 3px rgba(124,58,237,.18); background: rgba(124,58,237,.05) !important; }
+
+  .pos-toast {
+    position: fixed; top: 24px; right: 24px; z-index: 20001; min-width: 280px; max-width: 380px;
+    background: #fff; border: 1px solid var(--admio-border-color, #e5e7eb); border-left: 4px solid #22c55e;
+    border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    display: flex; gap: 10px; align-items: flex-start; transform: translateX(120%); transition: transform .25s ease;
+  }
+  .pos-toast.show { transform: translateX(0); }
+  .pos-toast.error { border-left-color: #ef4444; }
+  .pos-toast:not(.error) i { color: #22c55e; }
+  .pos-toast.error i { color: #ef4444; }
+  .pos-toast strong { display: block; color: var(--admio-heading-color, #111); }
+  .pos-toast span { color: var(--admio-nav-color, #6b7280); }
+
+  [data-theme="dark"] .pos-item-card,
+  [data-theme="dark"] .pos-cart-row,
+  [data-theme="dark"] .pos-cat-chip,
+  [data-theme="dark"] .pos-clear-btn,
+  [data-theme="dark"] .pos-picker-btn,
+  [data-theme="dark"] .pos-modal,
+  [data-theme="dark"] .rp-card { border-color: #3a3a4c; background: #1e1e2d; }
+  [data-theme="dark"] .pos-item-img-wrap { background: #252536; }
+  [data-theme="dark"] .pos-toast { background: #1e1e2d; border-color: #3a3a4c; }
+  [data-theme="dark"] .pos-picker-btn:hover { background: rgba(124,58,237,.08); }
+
+  /* Reference layout. No custom typeface or font imports. */
+  .pos-shell { grid-template-columns: minmax(0, 1.72fr) minmax(360px, 1fr); gap: 20px; align-items: stretch; }
+  .pos-shell > .admio-card { min-width: 0; background: var(--admio-card-bg, #fff); border: 1px solid var(--admio-border-color, #e7e7ef); border-radius: 18px; overflow: hidden; box-shadow: 0 3px 14px rgba(25,20,45,.025); }
+  .pos-shell .admio-card-header { padding: 22px 24px; border-bottom: 1px solid var(--admio-border-color, #ececf2); }
+  .pos-shell .admio-card-body { padding: 20px 24px 24px; }
+  .pos-shell .admio-card-body-sm { padding: 18px 24px 0; }
+  .pos-search { width: min(50%, 390px); }
+  .pos-search input { min-height: 42px; border-radius: 9px; }
+  .pos-cat-chip { border-radius: 9px; padding: 9px 13px; display: inline-flex; align-items: center; gap: 9px; }
+  .pos-cat-count { border-radius: 50%; min-width: 23px; min-height: 23px; display: inline-grid; place-items: center; background: #f0eff5; color: #68677e; }
+  .pos-cat-chip.active .pos-cat-count { background: white; color: #7c3aed; }
+  .pos-menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 0; max-height: 65vh; padding: 2px; }
+  .pos-item-card { border-radius: 12px; padding: 5px; }
+  .pos-item-card:hover { transform: none; box-shadow: 0 4px 14px rgba(44,31,70,.06); border-color: #c4b5fd; }
+  .pos-item-img-wrap { aspect-ratio: 1.15; border-radius: 8px; }
+  .pos-item-body { padding: 10px 6px 6px; gap: 9px; }
+  .pos-item-name { display: flex; align-items: center; gap: 7px; }
+  .pos-veg-dot { position: static; display: inline-block; width: 9px; height: 9px; border: 0; box-shadow: none; flex-shrink: 0; }
+  .pos-item-desc { min-height: 0; }
+  .pos-item-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  .pos-add-btn { width: 100%; height: 38px; border-radius: 8px; background: #f1e8ff; color: #7c3aed; }
+  .pos-add-btn:hover { background: #e8daff; transform: none; }
+  .pos-add-btn:disabled { color: #757575; background: #eee; }
+  .pos-qty-stepper { border: 1px solid var(--admio-border-color, #e7e7ef); border-radius: 7px; padding: 0; gap: 0; overflow: hidden; background: #fff; }
+  .pos-qty-stepper button { width: 32px; height: 34px; border-radius: 0; color: #7c3aed; background: #f8f5ff; }
+  .pos-qty-stepper .qty-val { min-width: 30px; flex: 1; }
+  .pos-menu-help { display: flex; gap: 10px; margin-top: 24px; border-top: 1px solid var(--admio-border-color,#e7e7ef); padding-top: 18px; color: var(--admio-nav-color,#798095); }
+  .pos-order-panel { align-self: start; top: calc(var(--h-topbar-h, 64px) + 16px); }
+  .pos-order-type { background: none; padding: 0; gap: 7px; }
+  .pos-order-type button { background: #faf7ff; border: 1px solid #efe8fc; padding: 12px 6px; border-radius: 9px; min-height: 46px; }
+  .pos-order-type button.active { box-shadow: none; border-color: #7c3aed; }
+  .pos-picker-btn { min-height: 43px; border-radius: 8px; padding: 10px 12px; }
+  .pos-picker-btn .placeholder { background: transparent; cursor: inherit; opacity: 1; }
+  .pos-shell input, .pos-shell select, .pos-shell textarea { border-radius: 8px; }
+  .pos-shell textarea { resize: vertical; min-height: 72px; }
+  .pos-cart-header { padding-top: 18px; border-top: 1px solid var(--admio-border-color,#e7e7ef); margin-top: 20px; }
+  .pos-cart-header h3 { text-transform: none; letter-spacing: normal; color: var(--admio-heading-color,#111); }
+  .pos-cart-row { border: 0; padding: 6px 0; gap: 9px; border-radius: 0; }
+  .pos-cart-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 7px; flex-shrink: 0; background: #f4f1f8; display: grid; place-items: center; }
+  .pos-cart-row .name { overflow-wrap: anywhere; }
+  .pos-cart-row .line-total { color: var(--admio-heading-color,#111); min-width: 62px; }
+  .pos-cart-row .remove-btn { padding: 0; }
+  .pos-totals { border-top-style: solid; }
+  .pos-totals .row { margin-left: 0; margin-right: 0; flex-wrap: nowrap; }
+  .pos-totals .row > * { width: auto; padding: 0; }
+  .pos-totals .grand { padding-top: 12px; border-top: 1px solid var(--admio-border-color,#e7e7ef); }
+  .pos-place-btn { border-radius: 9px; min-height: 46px; }
+  .pos-shell :is(button,input,select,textarea,a):focus-visible { outline: 3px solid #c4b5fd; outline-offset: 3px; }
+  [data-theme="dark"] .pos-shell > .admio-card, [data-theme="dark"] .pos-qty-stepper { background: #1e1e2d; }
+  [data-theme="dark"] .pos-cat-chip.active { background: #7c3aed; }
+  @media (max-width: 1199px) { .pos-shell { grid-template-columns: minmax(0,1fr) 370px; } .pos-menu-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+  @media (max-width: 991px) { .pos-shell { grid-template-columns: 1fr; } .pos-order-panel { position: static; } .pos-menu-grid { grid-template-columns: repeat(3,minmax(0,1fr)); max-height: none; } }
+  @media (max-width: 575px) { .pos-shell .admio-card-header, .pos-shell .admio-card-body { padding: 16px; } .pos-shell .admio-card-body-sm { padding: 16px 16px 0; } .pos-search { width: 100%; } .pos-menu-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; } .pos-cart-thumb { display: none; } .pos-cart-row { gap: 6px; } }
+  @media (prefers-reduced-motion: reduce) { .pos-shell *, .pos-modal-backdrop *, .pos-toast { transition: none !important; } }
+
+  /* ───────────────────────────────────────────────
+     DARK THEME — TEXT / CONTRAST FIXES
+     (keep this block LAST so it wins over the rules above)
+     ─────────────────────────────────────────────── */
+  [data-theme="dark"],
+  [data-theme="dark"] body {
+    --admio-heading-color: #f3f4f6;
+    --admio-nav-color: #a8adbd;
+  }
+
+  /* headings, labels, item names, totals */
+  [data-theme="dark"] .pos-label-strong,
+  [data-theme="dark"] .pos-shell label,
+  [data-theme="dark"] .pos-shell .card-title,
+  [data-theme="dark"] .pos-item-name,
+  [data-theme="dark"] .pos-field label,
+  [data-theme="dark"] .pos-check-row,
+  [data-theme="dark"] .pos-check-row label,
+  [data-theme="dark"] .pos-cart-header h3,
+  [data-theme="dark"] .pos-cart-row .name,
+  [data-theme="dark"] .pos-cart-row .line-total,
+  [data-theme="dark"] .pos-totals .grand,
+  [data-theme="dark"] .pos-totals .grand span,
+  [data-theme="dark"] .pos-picker-btn .val,
+  [data-theme="dark"] .pos-modal-header .title,
+  [data-theme="dark"] .rp-card .num,
+  [data-theme="dark"] .pos-toast strong { color: #f3f4f6 !important; }
+
+  /* secondary text */
+  [data-theme="dark"] .pos-totals .row,
+  [data-theme="dark"] .pos-totals .row span,
+  [data-theme="dark"] .pos-item-desc,
+  [data-theme="dark"] .pos-item-tax,
+  [data-theme="dark"] .pos-cart-row .unit,
+  [data-theme="dark"] .pos-menu-help,
+  [data-theme="dark"] .pos-legend span,
+  [data-theme="dark"] .rp-card .guest,
+  [data-theme="dark"] .pos-toast span,
+  [data-theme="dark"] .pos-cart-empty,
+  [data-theme="dark"] .pos-empty { color: #a8adbd !important; }
+
+  /* keep required star + clear link red, price purple */
+  [data-theme="dark"] .pos-shell label .req { color: #ef4444 !important; }
+  [data-theme="dark"] .pos-item-price { color: #a78bfa !important; }
+
+  /* order type buttons (were bright white) */
+  [data-theme="dark"] .pos-order-type button {
+    background: #252536; border-color: #3a3a4c; color: #c4c4d4;
+  }
+  [data-theme="dark"] .pos-order-type button:hover { border-color: #7C3AED; color: #fff; }
+  [data-theme="dark"] .pos-order-type button.active {
+    background: #7C3AED; border-color: #7C3AED; color: #fff;
+  }
+
+  /* disabled Place Order button (was light grey with white text) */
+  [data-theme="dark"] .pos-place-btn:disabled { background: #33334a; color: #8b8fa3; }
+
+  /* category chips, count bubbles, add button, qty stepper */
+  [data-theme="dark"] .pos-cat-chip { color: #c4c4d4; }
+  [data-theme="dark"] .pos-cat-chip.active { color: #fff; }
+  [data-theme="dark"] .pos-cat-count { background: #2d2d42; color: #c4c4d4; }
+  [data-theme="dark"] .pos-cat-chip.active .pos-cat-count { background: #fff; color: #7c3aed; }
+  [data-theme="dark"] .pos-add-btn { background: rgba(124,58,237,.18); color: #c4b5fd; }
+  [data-theme="dark"] .pos-add-btn:hover { background: rgba(124,58,237,.3); }
+  [data-theme="dark"] .pos-add-btn:disabled { background: #2d2d42; color: #777; }
+  [data-theme="dark"] .pos-qty-stepper { border-color: #3a3a4c; }
+  [data-theme="dark"] .pos-qty-stepper button { background: rgba(124,58,237,.2); color: #c4b5fd; }
+  [data-theme="dark"] .pos-qty-stepper .qty-val { color: #f3f4f6; }
+  [data-theme="dark"] .pos-cart-thumb { background: #252536; color: #a8adbd; }
+
+  /* cards, dividers, modal chrome */
+  [data-theme="dark"] .pos-shell .admio-card-header,
+  [data-theme="dark"] .pos-cart-header,
+  [data-theme="dark"] .pos-totals,
+  [data-theme="dark"] .pos-totals .grand,
+  [data-theme="dark"] .pos-menu-help,
+  [data-theme="dark"] .pos-modal-header,
+  [data-theme="dark"] .pos-modal-footer { border-color: #3a3a4c; }
+  [data-theme="dark"] .pos-modal-close { background: #252536; border-color: #3a3a4c; color: #c4c4d4; }
+  [data-theme="dark"] .pos-modal-close:hover { color: #ef4444; border-color: #7f1d1d; background: #2a1d24; }
+
+  /* table picker cards */
+  [data-theme="dark"] .tp-card { background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.45); }
+  [data-theme="dark"] .tp-card .cap { color: #a8adbd; }
+  [data-theme="dark"] .tp-card.occ { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.45); }
+  [data-theme="dark"] .rp-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+
+  /* inputs / select / textarea inside the shell */
+  [data-theme="dark"] .pos-shell input,
+  [data-theme="dark"] .pos-shell select,
+  [data-theme="dark"] .pos-shell textarea { color: #f3f4f6; }
+  [data-theme="dark"] .pos-shell ::placeholder { color: #8b8fa3; opacity: 1; }
+
+  /* bill: keep it a white paper receipt so its dark inline text stays readable */
+  [data-theme="dark"] #billPrintArea { background: #fff; color: #111; border-radius: 12px; padding: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{# `as` form: never raises if the URL name differs in your project #}
+{% url 'restaurant_dashboard' as u_dashboard %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div>
+    <h1 class="page-title mb-1">New Order</h1>
+    <p class="page-subtitle text-sm mb-0">Point of sale — build and place a new order</p>
+  </div>
+  <a href="{{ u_dashboard|default:'#' }}" class="btn-admio btn-sm" style="background:transparent;border:1px solid var(--admio-border-color,#e5e7eb);color:var(--admio-nav-color,#6b7280);">
+    Back to Dashboard
+  </a>
+</div>
+
+<div hidden id="posCsrf">{% csrf_token %}</div>
+<div class="pos-shell" id="posShell">
+
+  <div class="admio-card">
+    <div class="admio-card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <h2 class="card-title mb-0"><i class="icon-book-open" aria-hidden="true"></i> Menu</h2>
+      <div class="pos-search">
+        <i class="icon-search search-icon"></i>
+        <input type="text" id="menuSearch" class="form-control-admio" placeholder="Search items…" aria-label="Search menu items" autocomplete="off">
+      </div>
+    </div>
+    <div class="admio-card-body-sm pb-0">
+      <div class="pos-category-tabs" id="categoryTabs"></div>
+    </div>
+    <div class="admio-card-body pt-0">
+      <div class="pos-menu-grid" id="menuGrid"></div>
+      <div class="pos-menu-help text-xs"><i class="icon-info" aria-hidden="true"></i><span>Search for items or browse categories to add items to the order.</span></div>
+      <div class="pos-empty d-none" id="menuEmpty">
+        <i class="icon-search"></i>
+        <p class="mb-0 fw-600">No items match your search</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="admio-card pos-order-panel">
+    <div class="admio-card-header d-flex justify-content-between align-items-center">
+      <h2 class="card-title mb-0">Order Details</h2>
+      <span class="badge-admio" id="cartCountBadge" style="background:rgba(124,58,237,.1);color:#7C3AED;">0 items</span>
+    </div>
+    <div class="admio-card-body">
+
+      <label class="text-sm fw-700 pos-label-strong" style="display:block;color:var(--admio-heading-color,#111);">Order Type</label>
+      <div class="pos-order-type" id="orderTypeSwitch" style="margin-top:6px;">
+        <button type="button" data-type="dine_in" class="active">Dine In</button>
+        <button type="button" data-type="room_service">Room Service</button>
+        <button type="button" data-type="takeaway">Takeaway</button>
+      </div>
+
+      <div id="dineInFields">
+        <div class="pos-field">
+          <label>Table <span class="req">*</span></label>
+          <button type="button" class="pos-picker-btn" id="tablePickerBtn">
+            <span class="placeholder" id="tablePickerLabel">— Select Table —</span>
+            <i class="icon-chair icn"></i>
+          </button>
+        </div>
+        <div class="pos-check-row">
+          <input type="checkbox" id="linkReservation">
+          <label for="linkReservation" class="mb-0">Link to a table reservation</label>
+        </div>
+        <div class="pos-field d-none" id="reservationField">
+          <label for="reservationSelect">Reservation</label>
+          <select id="reservationSelect" class="form-select-admio w-100"></select>
+        </div>
+      </div>
+
+      <div id="roomServiceFields" class="d-none">
+        <div class="pos-field">
+          <label>Room <span class="req">*</span></label>
+          <button type="button" class="pos-picker-btn" id="roomPickerBtn">
+            <span class="placeholder" id="roomPickerLabel">— Select Room —</span>
+            <i class="icon-door-open icn"></i>
+          </button>
+          <p class="text-xs mb-0 mt-1" style="color:var(--admio-nav-color,#9ca3af);">Only rooms with a checked-in guest are shown.</p>
+        </div>
+        <div class="pos-check-row">
+          <input type="checkbox" id="chargeToRoom">
+          <label for="chargeToRoom" class="mb-0">Charge to guest folio</label>
+        </div>
+      </div>
+
+      <div id="takeawayFields" class="d-none">
+        <div class="pos-field">
+          <label>Payment Method <span class="req">*</span></label>
+          <select id="paymentMethodSelect" class="form-select-admio w-100">
+            <option value="">— Select —</option>
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="upi">UPI</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pos-field">
+        <label for="orderNote">Order Note</label>
+        <textarea id="orderNote" class="form-control-admio w-100" rows="2" placeholder="Allergies, special requests…"></textarea>
+      </div>
+
+      <div class="pos-cart-header">
+        <h3 class="card-title">Your order</h3>
+        <button type="button" class="text-xs" id="clearCartLink" style="color:#ef4444;background:none;border:none;">Clear</button>
+      </div>
+
+      <div class="pos-cart-list" id="cartList">
+        <div class="pos-cart-empty" id="cartEmpty">
+          <i class="icon-cart-shopping"></i>
+          <p class="mb-0">No items added</p>
+        </div>
+      </div>
+
+      <div class="pos-totals">
+        <div class="row"><span>Subtotal</span><span id="cartSubtotal">₹0.00</span></div>
+        <div class="row"><span>Tax</span><span id="cartTax">₹0.00</span></div>
+        <div class="grand"><span>Total</span><span id="cartGrandTotal">₹0.00</span></div>
+      </div>
+
+      <button type="button" class="pos-place-btn" id="placeOrderBtn" disabled>Place Order</button>
+
+
+    </div>
+  </div>
+
+</div>
+
+<div class="pos-modal-backdrop" id="tablePickerModal">
+  <div class="pos-modal">
+    <div class="pos-modal-header">
+      <span class="title">Select Table</span>
+      <button type="button" class="pos-modal-close" id="tablePickerCloseBtn">✕</button>
+    </div>
+    <div class="pos-modal-body">
+      <div class="pos-legend text-xs">
+        <span><span class="dot" style="background:#22c55e;"></span> Free</span>
+        <span><span class="dot" style="background:#ef4444;"></span> Occupied</span>
+        <span><span class="dot" style="background:#7C3AED;"></span> Selected</span>
+      </div>
+      <div class="tp-grid" id="tablePickerGrid"></div>
+    </div>
+    <div class="pos-modal-footer">
+      <span class="text-xs" id="tablePickerSelLabel" style="color:var(--admio-nav-color,#9ca3af);">No table selected</span>
+      <button type="button" class="pos-place-btn" id="tablePickerConfirmBtn" style="width:auto;margin:0;padding:10px 22px;" disabled>Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="pos-modal-backdrop" id="roomPickerModal">
+  <div class="pos-modal">
+    <div class="pos-modal-header">
+      <span class="title">Select Room</span>
+      <button type="button" class="pos-modal-close" id="roomPickerCloseBtn">✕</button>
+    </div>
+    <div class="pos-modal-body">
+      <div class="rp-grid" id="roomPickerGrid"></div>
+    </div>
+    <div class="pos-modal-footer">
+      <span class="text-xs" id="roomPickerSelLabel" style="color:var(--admio-nav-color,#9ca3af);">No room selected</span>
+      <button type="button" class="pos-place-btn" id="roomPickerConfirmBtn" style="width:auto;margin:0;padding:10px 22px;" disabled>Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Takeaway bill / payment confirmation modal -->
+<div class="pos-modal-backdrop" id="billModal">
+  <div class="pos-modal" style="max-width:440px;">
+    <div class="pos-modal-header">
+      <span class="title" id="billTitle">Confirm Payment</span>
+      <button type="button" class="pos-modal-close" id="billCloseBtn">✕</button>
+    </div>
+    <div class="pos-modal-body">
+      <div id="billPrintArea"></div>
+    </div>
+    <div class="pos-modal-footer">
+      <button type="button" class="pos-clear-btn" id="billPrintBtn" style="width:auto;margin:0;padding:10px 18px;">Print</button>
+      <button type="button" class="pos-place-btn" id="billConfirmBtn" style="width:auto;margin:0;padding:10px 22px;">Collect</button>
+    </div>
+  </div>
+</div>
+
+<div class="pos-toast" id="posToast">
+  <i class="icon-circle-check" id="posToastIcon"></i>
+  <div>
+    <strong id="posToastTitle">Order placed</strong>
+    <span id="posToastMsg"></span>
+  </div>
+</div>
+
+<script id="posInitialData" type="application/json">
+{
+  "menu": {{ menu_categories_json|safe }},
+  "tables": {{ tables_json|safe }},
+  "rooms": {{ rooms_json|safe }},
+  "reservations": {{ reservations_json|safe }}
+}
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function () {
+  const DATA = JSON.parse(document.getElementById('posInitialData').textContent);
+
+  const state = {
+    categories: DATA.menu || [],
+    tables: DATA.tables || [],
+    rooms: DATA.rooms || [],
+    reservations: DATA.reservations || [],
+    activeCategoryId: 'all',
+    search: '',
+    orderType: 'dine_in',
+    cart: {},
+    submitting: false,
+    linkReservation: false,
+    selectedTableId: null,
+    selectedRoomId: null,
+  };
+
+  const allItems = () => state.categories.flatMap(c => c.items.map(i => ({ ...i, categoryId: c.id })));
+
+  function renderCategoryTabs() {
+    const wrap = document.getElementById('categoryTabs');
+    const chips = [{ id: 'all', name: 'All Items', count: allItems().length }, ...state.categories.map(c => ({ id: c.id, name: c.name, count: c.items.length }))];
+    wrap.innerHTML = chips.map(c => `
+      <button type="button" class="pos-cat-chip ${state.activeCategoryId === c.id ? 'active' : ''}" data-cat="${c.id}">
+        ${escapeHtml(c.name)} <span class="pos-cat-count text-xs">${c.count}</span>
+      </button>`).join('');
+    wrap.querySelectorAll('.pos-cat-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.activeCategoryId = btn.dataset.cat === 'all' ? 'all' : Number(btn.dataset.cat);
+        renderCategoryTabs();
+        renderMenuGrid();
+      });
+    });
+  }
+
+  function renderMenuGrid() {
+    const grid = document.getElementById('menuGrid');
+    const empty = document.getElementById('menuEmpty');
+    const q = state.search.trim().toLowerCase();
+
+    let items = allItems();
+    if (state.activeCategoryId !== 'all') items = items.filter(i => i.categoryId === state.activeCategoryId);
+    if (q) items = items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+
+    if (!items.length) { grid.innerHTML = ''; empty.classList.remove('d-none'); return; }
+    empty.classList.add('d-none');
+
+    grid.innerHTML = items.map(item => {
+      const qty = state.cart[item.id] ? state.cart[item.id].qty : 0;
+      return `
+      <div class="pos-item-card ${item.is_available ? '' : 'unavailable'} ${qty ? 'in-cart' : ''}" data-item-id="${item.id}">
+        <div class="pos-item-img-wrap">
+          ${item.image
+            ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}">`
+            : `<div class="pos-item-img-placeholder"><i class="icon-utensils"></i></div>`}
+          ${!item.is_available ? '<span class="pos-unavailable-badge text-xs">Unavailable</span>' : ''}
+        </div>
+        <div class="pos-item-body">
+          <div class="pos-item-name fw-700"><span class="pos-veg-dot ${item.is_veg ? 'veg' : 'nonveg'}" role="img" aria-label="${item.is_veg ? 'Vegetarian' : 'Non-vegetarian'}"></span>${escapeHtml(item.name)}</div>
+          ${item.description ? `<div class="pos-item-desc text-xs">${escapeHtml(item.description)}</div>` : ''}
+          <div class="pos-item-bottom">
+            <div>
+              <div class="pos-item-price fw-700">₹${item.price.toFixed(2)}</div>
+              <span class="pos-item-tax text-xs">+${item.tax_percent}% tax</span>
+            </div>
+            <div class="qty-slot" data-qty-slot="${item.id}">
+              ${qty > 0 ? qtyStepperHtml(item.id, qty) : `<button type="button" class="pos-add-btn" data-add="${item.id}" ${item.is_available ? '' : 'disabled'}>+ Add</button>`}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-add]').forEach(btn => btn.addEventListener('click', () => addToCart(Number(btn.dataset.add))));
+    bindQtyButtons(grid);
+  }
+
+  function qtyStepperHtml(itemId, qty) {
+    return `
+      <div class="pos-qty-stepper">
+        <button type="button" aria-label="Decrease quantity" data-dec="${itemId}">−</button>
+        <span class="qty-val">${qty}</span>
+        <button type="button" aria-label="Increase quantity" data-inc="${itemId}">+</button>
+      </div>`;
+  }
+
+  function bindQtyButtons(root) {
+    root.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(Number(b.dataset.inc), 1)));
+    root.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(Number(b.dataset.dec), -1)));
+    root.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => removeFromCart(Number(b.dataset.remove))));
+  }
+
+  function addToCart(itemId) {
+    const item = allItems().find(i => i.id === itemId);
+    if (!item || !item.is_available) return;
+    if (!state.cart[itemId]) state.cart[itemId] = { item, qty: 0 };
+    state.cart[itemId].qty += 1;
+    refreshCartUI();
+  }
+  function changeQty(itemId, delta) {
+    if (!state.cart[itemId]) return;
+    state.cart[itemId].qty += delta;
+    if (state.cart[itemId].qty <= 0) delete state.cart[itemId];
+    refreshCartUI();
+  }
+  function removeFromCart(itemId) { delete state.cart[itemId]; refreshCartUI(); }
+
+  function refreshCartUI() {
+    renderMenuGrid();
+    renderCart();
+  }
+
+  function renderCart() {
+    const list = document.getElementById('cartList');
+    const entries = Object.values(state.cart);
+    const totalQty = entries.reduce((s, e) => s + e.qty, 0);
+    document.getElementById('cartCountBadge').textContent = `${totalQty} item${totalQty === 1 ? '' : 's'}`;
+
+    if (!entries.length) {
+      list.innerHTML = `<div class="pos-cart-empty" id="cartEmpty"><i class="icon-cart-shopping"></i><p class="mb-0">No items added</p></div>`;
+    } else {
+      list.innerHTML = entries.map(e => `
+        <div class="pos-cart-row">
+          ${e.item.image ? `<img class="pos-cart-thumb" src="${escapeHtml(e.item.image)}" alt="">` : `<span class="pos-cart-thumb" aria-hidden="true"><i class="icon-utensils"></i></span>`}
+          <div class="info">
+            <div class="name">${escapeHtml(e.item.name)}</div>
+            <div class="unit text-xs">+${e.item.tax_percent}% tax</div>
+          </div>
+          <div class="pos-qty-stepper">
+            <button type="button" aria-label="Decrease quantity" data-dec="${e.item.id}">−</button>
+            <span class="qty-val">${e.qty}</span>
+            <button type="button" aria-label="Increase quantity" data-inc="${e.item.id}">+</button>
+          </div>
+          <div class="line-total">₹${(e.item.price * e.qty).toFixed(2)}</div>
+          <button type="button" class="remove-btn" data-remove="${e.item.id}" title="Remove"><i class="icon-x"></i></button>
+        </div>`).join('');
+      bindQtyButtons(list);
+    }
+    updateTotals();
+    updatePlaceOrderState();
+  }
+
+  function updateTotals() {
+    const entries = Object.values(state.cart);
+    const subtotal = entries.reduce((s, e) => s + e.item.price * e.qty, 0);
+    const tax = entries.reduce((s, e) => s + (e.item.price * e.qty * e.item.tax_percent / 100), 0);
+    document.getElementById('cartSubtotal').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('cartTax').textContent = `₹${tax.toFixed(2)}`;
+    document.getElementById('cartGrandTotal').textContent = `₹${(subtotal + tax).toFixed(2)}`;
+  }
+
+  document.getElementById('orderTypeSwitch').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-type]');
+    if (!btn) return;
+    state.orderType = btn.dataset.type;
+    document.querySelectorAll('#orderTypeSwitch button').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('dineInFields').classList.toggle('d-none', state.orderType !== 'dine_in');
+    document.getElementById('roomServiceFields').classList.toggle('d-none', state.orderType !== 'room_service');
+    document.getElementById('takeawayFields').classList.toggle('d-none', state.orderType !== 'takeaway');
+    updatePlaceBtnLabel();
+    updatePlaceOrderState();
+  });
+
+  document.getElementById('linkReservation').addEventListener('change', (e) => {
+    state.linkReservation = e.target.checked;
+    document.getElementById('reservationField').classList.toggle('d-none', !state.linkReservation);
+    const btn = document.getElementById('tablePickerBtn');
+    btn.disabled = state.linkReservation;
+    btn.style.opacity = state.linkReservation ? '.5' : '1';
+    btn.style.pointerEvents = state.linkReservation ? 'none' : 'auto';
+    updatePlaceOrderState();
+  });
+
+  function renderReservationOptions() {
+    const sel = document.getElementById('reservationSelect');
+    if (!state.reservations.length) { sel.innerHTML = '<option value="">No active reservations</option>'; return; }
+    sel.innerHTML = '<option value="">— Select Reservation —</option>' + state.reservations.map(r => `
+      <option value="${r.id}" data-table="${r.table_id}">
+        ${escapeHtml(r.guest_name)} · Table ${r.table__number} · ${formatDateTime(r.reservation_time)}
+      </option>`).join('');
+  }
+  document.getElementById('reservationSelect').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    if (opt && opt.dataset.table) {
+      state.selectedTableId = Number(opt.dataset.table);
+      const t = state.tables.find(t => t.id === state.selectedTableId);
+      setTablePickerLabel(t);
+    }
+    updatePlaceOrderState();
+  });
+
+  document.getElementById('paymentMethodSelect').addEventListener('change', updatePlaceOrderState);
+
+  function renderTablePickerGrid() {
+    const grid = document.getElementById('tablePickerGrid');
+    if (!state.tables.length) { grid.innerHTML = `<div class="pos-empty" style="grid-column:1/-1;"><i class="icon-chair"></i><p class="mb-0">No tables available</p></div>`; return; }
+    grid.innerHTML = state.tables.map(t => `
+      <button type="button" class="tp-card ${t.is_occupied ? 'occ' : ''} ${state.selectedTableId === t.id ? 'selected' : ''}"
+        data-table-id="${t.id}" ${t.is_occupied ? 'disabled' : ''}>
+        <div class="num">${escapeHtml(String(t.number))}</div>
+        <div class="cap text-xs">${t.capacity}p</div>
+        <div class="status text-xs">${t.is_occupied ? 'Occupied' : 'Free'}</div>
+      </button>`).join('');
+    grid.querySelectorAll('.tp-card:not(.occ)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedTableId = Number(btn.dataset.tableId);
+        renderTablePickerGrid();
+        updateTablePickerFooter();
+      });
+    });
+  }
+  function updateTablePickerFooter() {
+    const lbl = document.getElementById('tablePickerSelLabel');
+    const btn = document.getElementById('tablePickerConfirmBtn');
+    if (state.selectedTableId) {
+      const t = state.tables.find(t => t.id === state.selectedTableId);
+      lbl.textContent = t ? `Table ${t.number} selected` : 'Table selected';
+      btn.disabled = false;
+    } else { lbl.textContent = 'No table selected'; btn.disabled = true; }
+  }
+  function setTablePickerLabel(t) {
+    const lbl = document.getElementById('tablePickerLabel');
+    if (t) { lbl.textContent = `Table ${t.number} (seats ${t.capacity})`; lbl.classList.remove('placeholder'); lbl.classList.add('val'); }
+    else { lbl.textContent = '— Select Table —'; lbl.classList.add('placeholder'); lbl.classList.remove('val'); }
+  }
+  document.getElementById('tablePickerBtn').addEventListener('click', () => {
+    renderTablePickerGrid();
+    updateTablePickerFooter();
+    document.getElementById('tablePickerModal').classList.add('open');
+  });
+  document.getElementById('tablePickerCloseBtn').addEventListener('click', () => document.getElementById('tablePickerModal').classList.remove('open'));
+  document.getElementById('tablePickerModal').addEventListener('click', (e) => { if (e.target.id === 'tablePickerModal') e.currentTarget.classList.remove('open'); });
+  document.getElementById('tablePickerConfirmBtn').addEventListener('click', () => {
+    const t = state.tables.find(t => t.id === state.selectedTableId);
+    setTablePickerLabel(t);
+    document.getElementById('tablePickerModal').classList.remove('open');
+    updatePlaceOrderState();
+  });
+
+  function renderRoomPickerGrid() {
+    const grid = document.getElementById('roomPickerGrid');
+    if (!state.rooms.length) { grid.innerHTML = `<div class="pos-empty" style="grid-column:1/-1;"><i class="icon-door-open"></i><p class="mb-0">No checked-in rooms</p></div>`; return; }
+    grid.innerHTML = state.rooms.map(r => `
+      <button type="button" class="rp-card ${state.selectedRoomId === r.id ? 'selected' : ''}" data-room-id="${r.id}">
+        <span class="icon"><i class="icon-bed"></i></span>
+        <span>
+          <div class="num">${escapeHtml(r.room_number)} · ${escapeHtml(r.room_type)}</div>
+          <div class="guest text-xs">${r.guest ? escapeHtml(r.guest) : 'No guest name'}</div>
+        </span>
+      </button>`).join('');
+    grid.querySelectorAll('.rp-card').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedRoomId = Number(btn.dataset.roomId);
+        renderRoomPickerGrid();
+        updateRoomPickerFooter();
+      });
+    });
+  }
+  function updateRoomPickerFooter() {
+    const lbl = document.getElementById('roomPickerSelLabel');
+    const btn = document.getElementById('roomPickerConfirmBtn');
+    if (state.selectedRoomId) {
+      const r = state.rooms.find(r => r.id === state.selectedRoomId);
+      lbl.textContent = r ? `${r.room_number} selected` : 'Room selected';
+      btn.disabled = false;
+    } else { lbl.textContent = 'No room selected'; btn.disabled = true; }
+  }
+  function setRoomPickerLabel(r) {
+    const lbl = document.getElementById('roomPickerLabel');
+    if (r) { lbl.textContent = `${r.room_number} · ${r.room_type}`; lbl.classList.remove('placeholder'); lbl.classList.add('val'); }
+    else { lbl.textContent = '— Select Room —'; lbl.classList.add('placeholder'); lbl.classList.remove('val'); }
+  }
+  document.getElementById('roomPickerBtn').addEventListener('click', () => {
+    renderRoomPickerGrid();
+    updateRoomPickerFooter();
+    document.getElementById('roomPickerModal').classList.add('open');
+  });
+  document.getElementById('roomPickerCloseBtn').addEventListener('click', () => document.getElementById('roomPickerModal').classList.remove('open'));
+  document.getElementById('roomPickerModal').addEventListener('click', (e) => { if (e.target.id === 'roomPickerModal') e.currentTarget.classList.remove('open'); });
+  document.getElementById('roomPickerConfirmBtn').addEventListener('click', () => {
+    const r = state.rooms.find(r => r.id === state.selectedRoomId);
+    setRoomPickerLabel(r);
+    document.getElementById('roomPickerModal').classList.remove('open');
+    updatePlaceOrderState();
+  });
+
+  function updatePlaceOrderState() {
+    const hasItems = Object.keys(state.cart).length > 0;
+    let ok = hasItems;
+    if (state.orderType === 'dine_in') {
+      ok = ok && (state.linkReservation ? !!document.getElementById('reservationSelect').value : !!state.selectedTableId);
+    } else if (state.orderType === 'room_service') {
+      ok = ok && !!state.selectedRoomId;
+    } else if (state.orderType === 'takeaway') {
+      ok = ok && !!document.getElementById('paymentMethodSelect').value;
+    }
+    document.getElementById('placeOrderBtn').disabled = !ok || state.submitting;
+  }
+
+  document.getElementById('menuSearch').addEventListener('input', (e) => { state.search = e.target.value; renderMenuGrid(); });
+
+  function clearCart() { state.cart = {}; renderMenuGrid(); renderCart(); }
+  document.getElementById('clearCartLink').addEventListener('click', clearCart);
+
+
+  document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('placeOrderBtn');
+    const items = Object.values(state.cart).map(e => ({ id: e.item.id, qty: e.qty }));
+    if (!items.length || state.submitting || btn.disabled) return;
+
+    // Takeaway: "Pay Now" → show bill for confirmation instead of placing directly
+    if (state.orderType === 'takeaway') { openBillModal(); return; }
+
+    const payload = { order_type: state.orderType, items };
+    if (state.orderType === 'dine_in') {
+      if (state.linkReservation) payload.reservation_id = Number(document.getElementById('reservationSelect').value) || null;
+      else payload.table_id = state.selectedTableId;
+    } else if (state.orderType === 'room_service') {
+      payload.room_id = state.selectedRoomId;
+      payload.charge_to_room = document.getElementById('chargeToRoom').checked;
+    }
+
+    const note = document.getElementById('orderNote').value.trim();
+    if (note) payload.note = note;
+
+    state.submitting = true;
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = 'Placing order…';
+
+    try {
+      const res = await fetch("{% url 'create_order' %}", {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#posCsrf input').value }, body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Could not place order');
+      showToast(false, 'Order placed', `Order #${data.order_number} — ₹${Number(data.grand_total).toFixed(2)}`);
+      clearCart();
+      document.getElementById('orderNote').value = '';
+      state.selectedTableId = null; state.selectedRoomId = null;
+      setTablePickerLabel(null); setRoomPickerLabel(null);
+    } catch (err) {
+      showToast(true, 'Order failed', err.message);
+    } finally {
+      state.submitting = false;
+      btn.textContent = origText;
+      updatePlaceOrderState();
+    }
+  });
+
+  // ── Takeaway: Pay Now → bill modal → collect ──
+  const MARK_PAID_URL = "{% url 'mark_order_paid' 987654321 %}";
+  const PAY_LABELS = { cash: 'Cash', card: 'Card', upi: 'UPI' };
+  let billSnap = null;
+  let billDone = false;
+
+  function updatePlaceBtnLabel() {
+    if (state.submitting) return;
+    document.getElementById('placeOrderBtn').textContent =
+      state.orderType === 'takeaway' ? 'Pay Now' : 'Place Order';
+  }
+
+  function makeBillSnap() {
+    const entries = Object.values(state.cart);
+    const lines = entries.map(e => ({
+      name: e.item.name, qty: e.qty, price: e.item.price, total: e.item.price * e.qty,
+    }));
+    const subtotal = entries.reduce((s, e) => s + e.item.price * e.qty, 0);
+    const tax = entries.reduce((s, e) => s + (e.item.price * e.qty * e.item.tax_percent / 100), 0);
+    return {
+      lines, subtotal, tax, grand: subtotal + tax,
+      method: document.getElementById('paymentMethodSelect').value,
+      note: document.getElementById('orderNote').value.trim(),
+      orderNumber: null, paid: false, time: new Date(),
+    };
+  }
+
+  function billHtml(s) {
+    const rows = s.lines.map(l => `
+      <tr>
+        <td style="padding:4px 0;">${escapeHtml(l.name)}</td>
+        <td style="padding:4px 6px;text-align:center;">${l.qty}</td>
+        <td style="padding:4px 0;text-align:right;">₹${l.total.toFixed(2)}</td>
+      </tr>`).join('');
+    return `
+      <div style="font-size:13px;color:#111;">
+        <div style="text-align:center;margin-bottom:10px;">
+          <div style="font-size:16px;font-weight:700;">Takeaway Bill</div>
+          <div style="color:#6b7280;">${s.time.toLocaleString()}</div>
+          ${s.orderNumber ? `<div style="font-weight:600;margin-top:2px;">Order #${escapeHtml(String(s.orderNumber))}</div>` : ''}
+        </div>
+        <table style="width:100%;border-collapse:collapse;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1;">
+          <thead><tr style="color:#6b7280;text-align:left;">
+            <th style="padding:6px 0;">Item</th><th style="padding:6px;text-align:center;">Qty</th><th style="padding:6px 0;text-align:right;">Amount</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;"><span>Subtotal</span><span>₹${s.subtotal.toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Tax</span><span>₹${s.tax.toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #111;font-size:15px;font-weight:700;"><span>Total</span><span>₹${s.grand.toFixed(2)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:10px;"><span>Payment</span><span>${PAY_LABELS[s.method] || escapeHtml(s.method)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Status</span><span style="font-weight:700;color:${s.paid ? '#16a34a' : '#d97706'};">${s.paid ? 'PAID' : 'PENDING'}</span></div>
+        ${s.note ? `<div style="margin-top:10px;color:#6b7280;">Note: ${escapeHtml(s.note)}</div>` : ''}
+        <div style="text-align:center;margin-top:14px;color:#6b7280;">Thank you!</div>
+      </div>`;
+  }
+
+  function renderBill() {
+    document.getElementById('billPrintArea').innerHTML = billHtml(billSnap);
+    const c = document.getElementById('billConfirmBtn');
+    c.disabled = false;
+    c.textContent = billDone ? 'Done' : `Collect ₹${billSnap.grand.toFixed(2)}`;
+    document.getElementById('billTitle').textContent = billDone ? 'Payment Received' : 'Confirm Payment';
+  }
+  function openBillModal() {
+    billSnap = makeBillSnap();
+    billDone = false;
+    renderBill();
+    document.getElementById('billModal').classList.add('open');
+  }
+  function closeBill() { document.getElementById('billModal').classList.remove('open'); }
+
+  document.getElementById('billCloseBtn').addEventListener('click', closeBill);
+  document.getElementById('billModal').addEventListener('click', (e) => { if (e.target.id === 'billModal') closeBill(); });
+
+  document.getElementById('billPrintBtn').addEventListener('click', () => {
+    const w = window.open('', '_blank', 'width=380,height=640');
+    if (!w) { showToast(true, 'Print blocked', 'Allow pop-ups to print the bill'); return; }
+    w.document.write(`<html><head><title>Bill</title><style>body{font-family:Arial,sans-serif;margin:16px}@media print{body{margin:0}}</style></head><body>${document.getElementById('billPrintArea').innerHTML}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 250);
+  });
+
+  document.getElementById('billConfirmBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('billConfirmBtn');
+    if (billDone) { closeBill(); return; }
+    if (state.submitting) return;
+
+    state.submitting = true;
+    btn.disabled = true;
+    btn.textContent = 'Processing…';
+    const csrf = document.querySelector('#posCsrf input').value;
+    const headers = { 'Content-Type': 'application/json', 'X-CSRFToken': csrf };
+    let orderId = null;
+
+    try {
+      const payload = {
+        order_type: 'takeaway',
+        payment_method: billSnap.method,
+        items: Object.values(state.cart).map(e => ({ id: e.item.id, qty: e.qty })),
+      };
+      if (billSnap.note) payload.note = billSnap.note;
+
+      const res = await fetch("{% url 'create_order' %}", { method: 'POST', headers, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Could not place order');
+      orderId = data.order_id;
+      billSnap.orderNumber = data.order_number;
+
+      // Order created; now record the payment (money collected)
+      const payRes = await fetch(MARK_PAID_URL.replace('987654321', orderId), {
+        method: 'POST', headers, body: JSON.stringify({ method: billSnap.method }),
+      });
+      const payData = await payRes.json();
+      if (!payRes.ok || payData.error) {
+        throw new Error('Order #' + data.order_number + ' created, but payment not recorded: ' + (payData.error || 'unknown error'));
+      }
+
+      billSnap.paid = true;
+      billDone = true;
+      renderBill();
+      showToast(false, 'Payment received', `Order #${data.order_number} — ₹${billSnap.grand.toFixed(2)}`);
+
+      clearCart();
+      document.getElementById('orderNote').value = '';
+      document.getElementById('paymentMethodSelect').value = '';
+    } catch (err) {
+      if (orderId) {           // order exists already, avoid creating a duplicate
+        clearCart();
+        closeBill();
+      } else {
+        btn.disabled = false;
+        btn.textContent = `Collect ₹${billSnap.grand.toFixed(2)}`;
+      }
+      showToast(true, 'Failed', err.message);
+    } finally {
+      state.submitting = false;
+      updatePlaceOrderState();
+    }
+  });
+
+  let toastTimer = null;
+  function showToast(isError, title, msg) {
+    const toast = document.getElementById('posToast');
+    document.getElementById('posToastIcon').className = isError ? 'icon-triangle-alert' : 'icon-circle-check';
+    document.getElementById('posToastTitle').textContent = title;
+    document.getElementById('posToastMsg').textContent = msg || '';
+    toast.classList.toggle('error', isError);
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 4500);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+  }
+  function formatDateTime(v) {
+    try { const d = new Date(v); return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+    catch { return v; }
+  }
+
+  renderCategoryTabs();
+  renderMenuGrid();
+  renderReservationOptions();
+  renderCart();
+  updatePlaceBtnLabel();
+})();
+</script>
+{% endblock %}

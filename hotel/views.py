@@ -357,60 +357,311 @@ def delete_shift(request):
     return JsonResponse({"success": True, "message": f"Shift #{shift_id} deleted"})
 
 
+MAX_RANGE_DAYS = 366
+ 
+ 
+def _local(dt):
+    if dt and timezone.is_aware(dt):
+        return timezone.localtime(dt)
+    return dt
+ 
+ 
+def _fmt_clock(dt):
+    dt = _local(dt)
+    return dt.strftime("%I:%M %p").lstrip("0") if dt else None
+ 
+ 
+def _fmt_worked(check_in, check_out):
+    if not (check_in and check_out):
+        return None
+    secs = max((check_out - check_in).total_seconds(), 0)
+    return f"{int(secs // 3600)}h {int((secs % 3600) // 60):02d}m"
+ 
+ 
 def get_shifts(request):
+    """
+    GET /get_shifts/?date=YYYY-MM-DD
+    GET /get_shifts/?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+ 
+    Returns shifts joined with that day's attendance so the Shift
+    Management list can show check-in/out, hours, face status and
+    attendance status.
+    """
     hotel_id = request.session.get("hotel_id")
-    date_str = request.GET.get("date")
-
     if not hotel_id:
         return JsonResponse({"error": "Login required"}, status=401)
-
-    shifts = Shift.objects.filter(hotel_id=hotel_id)
-
-    if date_str:
-        try:
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-            shifts   = shifts.filter(date=date_obj)
-        except ValueError:
-            return JsonResponse({"error": "Invalid date format"}, status=400)
-
-    shifts = shifts.select_related("staff", "department")
-
+ 
+    date_str = request.GET.get("date")
+    from_str = request.GET.get("date_from")
+    to_str = request.GET.get("date_to")
+ 
+    try:
+        if from_str and to_str:
+            date_from = datetime.strptime(from_str, "%Y-%m-%d").date()
+            date_to = datetime.strptime(to_str, "%Y-%m-%d").date()
+        elif date_str:
+            date_from = date_to = datetime.strptime(date_str, "%Y-%m-%d").date()
+        else:
+            date_from = date_to = timezone.now().date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format"}, status=400)
+ 
+    if date_from > date_to:
+        return JsonResponse({"error": "date_from cannot be after date_to"}, status=400)
+    if (date_to - date_from).days > MAX_RANGE_DAYS:
+        return JsonResponse(
+            {"error": f"Range too large (max {MAX_RANGE_DAYS} days)"}, status=400
+        )
+ 
+    shifts = (
+        Shift.objects
+        .filter(hotel_id=hotel_id, date__range=(date_from, date_to))
+        .select_related("staff", "department")
+        .order_by("date", "staff__name")
+    )
+ 
+    # Attendance for the same range, keyed by (staff_id, date)
+    att_map = {
+        (a.staff_id, a.date): a
+        for a in Attendance.objects.filter(
+            hotel_id=hotel_id, date__range=(date_from, date_to)
+        )
+    }
+ 
     templates = {
         t.shift_name: t
         for t in ShiftTemplate.objects.filter(hotel_id=hotel_id, is_active=True)
     }
     DEFAULTS = {
-        "Morning": ("06:00", "14:00"),
-        "Evening": ("14:00", "22:00"),
-        "Night":   ("22:00", "06:00"),
+        "Morning": ("06:00", "14:00", "#d97706"),
+        "Evening": ("14:00", "22:00", "#1a65f5"),
+        "Night":   ("22:00", "06:00", "#7c3aed"),
     }
-
-    def resolve(s, which):
-        val = s.custom_start if which == "start" else s.custom_end
-        if val:
-            return val.strftime("%H:%M")
+ 
+    def resolve(s):
+        """Returns (start, end, color) as 'HH:MM' strings + hex color."""
+        if s.custom_start and s.custom_end:
+            return (
+                s.custom_start.strftime("%H:%M"),
+                s.custom_end.strftime("%H:%M"),
+                s.custom_color or "#0d9488",
+            )
         tpl = templates.get(s.shift)
         if tpl:
-            return (tpl.start_time if which == "start" else tpl.end_time).strftime("%H:%M")
-        d = DEFAULTS.get(s.shift, ("00:00", "00:00"))
-        return d[0] if which == "start" else d[1]
-
-    data = [{
-        "id":           s.id,
-        "staff":        s.staff.name,
-        "staff_id":     s.staff.id,
-        "department":   s.department.name,
-        "shift":        s.shift,
-        "custom_name":  s.custom_name  or "",
-        "custom_start": s.custom_start.strftime("%H:%M") if s.custom_start else "",
-        "custom_end":   s.custom_end.strftime("%H:%M")   if s.custom_end   else "",
-        "custom_color": s.custom_color or "",
-        "start_time":   resolve(s, "start"),
-        "end_time":     resolve(s, "end"),
-        "date":         s.date.strftime("%Y-%m-%d"),
-    } for s in shifts]
-
+            return (
+                tpl.start_time.strftime("%H:%M"),
+                tpl.end_time.strftime("%H:%M"),
+                tpl.color,
+            )
+        d = DEFAULTS.get(s.shift, ("00:00", "00:00", s.custom_color or "#6b7280"))
+        return d
+ 
+    def file_url(f):
+        try:
+            return f.url if f else None
+        except ValueError:
+            return None
+ 
+    today = timezone.now().date()
+    data = []
+ 
+    for s in shifts:
+        staff = s.staff
+        att = att_map.get((s.staff_id, s.date))
+ 
+        start, end, color = resolve(s)
+ 
+        check_in = att.check_in if att else None
+        check_out = att.check_out if att else None
+ 
+        # Attendance status
+        if att and att.status:
+            status = att.status
+        elif s.date > today or (s.date == today and not att):
+            status = "Scheduled"
+        else:
+            status = "Absent"
+ 
+        # Face verification (uses optional fields if your model has them)
+        enrolled = bool(getattr(staff, "face_descriptor", None))
+        flag = getattr(att, "face_verified", None) if att else None
+        verified = bool(flag) if flag is not None else enrolled
+ 
+        photo = file_url(getattr(staff, "photo", None)) or file_url(
+            getattr(staff, "face_photo", None)
+        )
+ 
+        data.append({
+            "id":            s.id,
+            "staff":         staff.name,
+            "staff_id":      staff.id,
+            "employee_id":   getattr(staff, "employee_id", None) or f"EMP{staff.id:03d}",
+            "photo":         photo,
+            "department":    s.department.name if s.department else "N/A",
+            "shift":         s.shift,
+            "custom_name":   s.custom_name or "",
+            "custom_start":  s.custom_start.strftime("%H:%M") if s.custom_start else "",
+            "custom_end":    s.custom_end.strftime("%H:%M") if s.custom_end else "",
+            "custom_color":  s.custom_color or "",
+            "start_time":    start,
+            "end_time":      end,
+            "color":         color,
+            "date":          s.date.strftime("%Y-%m-%d"),
+ 
+            # attendance
+            "attendance_status": status,
+            "check_in":       _fmt_clock(check_in),
+            "check_out":      _fmt_clock(check_out),
+            "working_hours":  _fmt_worked(check_in, check_out),
+            "overtime_hours": float(att.overtime_hours or 0) if att else 0,
+            "in_verified":    bool(check_in) and verified,
+            "out_verified":   bool(check_out) and verified,
+        })
+ 
     return JsonResponse(data, safe=False)
+ 
+ 
+@require_POST
+def assign_shift(request):
+    try:
+        hotel_id = request.session.get("hotel_id")
+        staff_id = request.session.get("staff_id")
+ 
+        if not hotel_id and not staff_id:
+            return JsonResponse({"error": "Login required"}, status=401)
+ 
+        if not hotel_id:
+            try:
+                staff_obj = Staff.objects.select_related("hotel").get(id=staff_id)
+                hotel_id = staff_obj.hotel_id
+                request.session["hotel_id"] = hotel_id
+            except Staff.DoesNotExist:
+                return JsonResponse({"error": "Staff not found"}, status=404)
+ 
+        req_staff_id = request.POST.get("staff") or request.POST.get("staff_id")
+        if not req_staff_id:
+            if staff_id:
+                req_staff_id = staff_id
+            else:
+                return JsonResponse({"error": "staff is required"}, status=400)
+ 
+        department_id = request.POST.get("department") or request.POST.get("department_id")
+        shift_value = request.POST.get("shift")
+        from_date = request.POST.get("from_date")
+        to_date = request.POST.get("to_date")
+        custom_name = request.POST.get("custom_name", "").strip()
+        custom_start = request.POST.get("custom_start", "").strip()
+        custom_end = request.POST.get("custom_end", "").strip()
+        custom_color = request.POST.get("custom_color", "").strip()
+ 
+        if not all([shift_value, from_date, to_date]):
+            return JsonResponse(
+                {"error": "shift, from_date and to_date are required"}, status=400
+            )
+ 
+        try:
+            start_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+            end_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+        except ValueError:
+            return JsonResponse({"error": "Dates must be YYYY-MM-DD"}, status=400)
+ 
+        if start_date > end_date:
+            return JsonResponse({"error": "Invalid date range"}, status=400)
+        if (end_date - start_date).days > MAX_RANGE_DAYS:
+            return JsonResponse({"error": "Date range too large"}, status=400)
+ 
+        # Make sure the staff member belongs to this hotel
+        target_staff = Staff.objects.filter(id=req_staff_id, hotel_id=hotel_id).first()
+        if not target_staff:
+            return JsonResponse({"error": "Staff not found in this hotel"}, status=404)
+ 
+        if not department_id:
+            department_id = target_staff.department_id
+        if not department_id:
+            return JsonResponse({"error": "Department could not be resolved"}, status=400)
+ 
+        # ── FIX ────────────────────────────────────────────────────
+        # Only Custom shifts store their own times. Standard shifts
+        # (Morning/Evening/Night) leave custom_* empty so they keep
+        # following the Shift Timings templates when those are edited.
+        parsed_start = parsed_end = None
+        if shift_value == "Custom":
+            if not (custom_start and custom_end):
+                return JsonResponse(
+                    {"error": "Custom shifts need a start and end time"}, status=400
+                )
+            try:
+                parsed_start = datetime.strptime(custom_start, "%H:%M").time()
+                parsed_end = datetime.strptime(custom_end, "%H:%M").time()
+            except ValueError:
+                return JsonResponse({"error": "Times must be HH:MM"}, status=400)
+        else:
+            custom_name = ""
+            custom_color = ""
+ 
+        created_count = updated_count = 0
+        current = start_date
+        while current <= end_date:
+            _, created = Shift.objects.update_or_create(
+                hotel_id=hotel_id,
+                staff_id=target_staff.id,
+                date=current,
+                defaults={
+                    "department_id": department_id,
+                    "shift": shift_value,
+                    "custom_name": custom_name or None,
+                    "custom_start": parsed_start,
+                    "custom_end": parsed_end,
+                    "custom_color": custom_color or None,
+                },
+            )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+            current += timedelta(days=1)
+ 
+        return JsonResponse({
+            "success": True,
+            "message": f"{created_count} shifts created, {updated_count} updated",
+        })
+ 
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+ 
+ 
+@require_POST
+def update_shift(request):
+    """Change a shift's type. Switching to a standard shift clears custom times."""
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Login required"}, status=401)
+ 
+    shift_id = request.POST.get("shift_id")
+    new_shift = request.POST.get("shift")
+    if new_shift not in ("Morning", "Evening", "Night", "Custom"):
+        return JsonResponse({"error": "Invalid shift type"}, status=400)
+ 
+    try:
+        shift = Shift.objects.get(id=shift_id, hotel_id=hotel_id)
+    except (Shift.DoesNotExist, ValueError):
+        return JsonResponse({"error": "Shift not found"}, status=404)
+ 
+    if new_shift == "Custom" and not (shift.custom_start and shift.custom_end):
+        return JsonResponse(
+            {"error": "This shift has no custom times. Use Assign Shift to create a Custom shift."},
+            status=400,
+        )
+ 
+    if new_shift != "Custom":
+        shift.custom_name = None
+        shift.custom_start = None
+        shift.custom_end = None
+        shift.custom_color = None
+ 
+    shift.shift = new_shift
+    shift.save()
+    return JsonResponse({"success": True})
 
 
 @require_POST
@@ -605,24 +856,7 @@ def weekly_schedule(request):
         "schedule": data,
         "debug": {"hotel_id": hotel_id, "total_shifts": shifts.count()},
     })
-def update_shift(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    hotel_id = request.session.get("hotel_id")
-    shift_id = request.POST.get("shift_id")
-    new_shift = request.POST.get("shift")
-
-    if not hotel_id:
-        return JsonResponse({"error": "Login required"}, status=401)
-
-    try:
-        shift = Shift.objects.get(id=shift_id, hotel_id=hotel_id)
-        shift.shift = new_shift
-        shift.save()
-        return JsonResponse({"success": True})
-    except Shift.DoesNotExist:
-        return JsonResponse({"error": "Shift not found"}, status=404)
 
 
 def staff_by_shift(request):
@@ -2137,8 +2371,12 @@ def apply_leave(request):
 
     from_date = request.POST.get("from_date")
     to_date = request.POST.get("to_date")
-    reason = request.POST.get("reason", "")
-    leave_type = request.POST.get("leave_type", "casual")
+    reason = (request.POST.get("reason") or "").strip()
+
+    VALID_LEAVE_TYPES = {"casual", "sick", "earned", "bereavement", "other"}
+    leave_type = (request.POST.get("leave_type") or "casual").strip().lower()
+    if leave_type not in VALID_LEAVE_TYPES:
+        leave_type = "other"
 
     try:
         from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
@@ -2146,13 +2384,17 @@ def apply_leave(request):
     except (ValueError, TypeError):
         return JsonResponse({"error": "Invalid date format"}, status=400)
 
+    if to_date < from_date:
+        return JsonResponse({"error": "End date cannot be before start date"}, status=400)
+
     LeaveRequest.objects.create(
         staff=staff,
         tenant=tenant,
         from_date=from_date,
         to_date=to_date,
         reason=reason,
-        status="Pending"
+        leave_type=leave_type,          # ← was missing
+        status="Pending",
     )
 
     return JsonResponse({"success": True})
@@ -2340,10 +2582,9 @@ def admin_leave_requests(request):
 
 @require_POST
 def admin_leave_update(request, leave_id):
-
     try:
-
         hotel_id = request.session.get("hotel_id")
+        staff_id = request.session.get("staff_id")
 
         if not hotel_id:
             return JsonResponse({
@@ -2352,72 +2593,49 @@ def admin_leave_update(request, leave_id):
             }, status=400)
 
         action = request.POST.get("action", "").lower()
-
         if action not in ["approve", "reject"]:
-
             return JsonResponse({
                 "success": False,
                 "error": "Invalid action"
             }, status=400)
 
         try:
-
             leave = (
                 LeaveRequest.objects
                 .select_related("staff")
-                .get(
-                    id=leave_id,
-                    staff__hotel_id=hotel_id
-                )
+                .get(id=leave_id, staff__hotel_id=hotel_id)
             )
-
         except LeaveRequest.DoesNotExist:
-
             return JsonResponse({
                 "success": False,
                 "error": "Leave request not found"
             }, status=404)
 
         if leave.status != "Pending":
-
             return JsonResponse({
                 "success": False,
                 "error": f"Leave already {leave.status}"
             }, status=400)
 
-        leave.status = (
-            "Approved"
-            if action == "approve"
-            else "Rejected"
-        )
+        leave.status = "Approved" if action == "approve" else "Rejected"
+
+        # ← added: record who acted and when
+        if staff_id:
+            leave.action_by_id = staff_id
+        leave.action_at = timezone.now()
 
         leave.save()
 
         return JsonResponse({
-
             "success": True,
-
             "id": leave.id,
-
             "status": leave.status,
-
-            "staff": (
-                leave.staff.name
-                if leave.staff else ""
-            ),
-
-            "message": (
-                f"Leave {leave.status.lower()} successfully"
-            )
-
+            "staff": leave.staff.name if leave.staff else "",
+            "message": f"Leave {leave.status.lower()} successfully",
         })
 
     except Exception as e:
-
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        }, status=500)
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 @require_POST
 def update_leave_status(request, leave_id):
     tenant = request.tenant
@@ -2490,6 +2708,24 @@ def _eligible_days(staff, month, year):
     return total
 
 
+def _approved_leave_days(staff, month, year):
+    from hotel.models import LeaveRequest
+
+    first = date(year, month, 1)
+    last = date(year, month, calendar.monthrange(year, month)[1])
+
+    total = 0
+    qs = LeaveRequest.objects.filter(
+        staff=staff, status="Approved",
+        from_date__lte=last, to_date__gte=first,
+    )
+    for leave in qs:
+        start = max(leave.from_date, first)
+        end = min(leave.to_date, last)
+        total += (end - start).days + 1
+    return total
+
+
 def _calculate_payroll(staff, month, year):
     from hotel.models import Attendance, LeaveRequest
 
@@ -2500,10 +2736,9 @@ def _calculate_payroll(staff, month, year):
     present_days   = attendances.filter(status__in=["Present", "Late"]).count()
     late_days      = attendances.filter(status="Late").count()
     overtime_hours = max(sum(_sf(a.overtime_hours) for a in attendances), 0)
-    approved_leaves = LeaveRequest.objects.filter(
-        staff=staff, status="Approved",
-        from_date__month=month, from_date__year=year,
-    ).count()
+
+    # ← FIX: count actual approved leave DAYS in this month, not leave REQUESTS
+    approved_leaves = _approved_leave_days(staff, month, year)
 
     total_days   = _total_days_in_month(month, year)
     eligible     = _eligible_days(staff, month, year)
@@ -2986,17 +3221,18 @@ def payroll_line_item_detail(request, item_id):
         if "source" in data: item.source = data["source"].strip()
 
         if "pct" in data and data["pct"]:
+            # Percentage mode: amount is calculated from the chosen base
             item.pct      = _dec(data["pct"])
-            item.pct_base = data.get("pct_base", item.pct_base)
-            if item.pct_base == "basic":
-                base_val = p.basic_salary
-            elif item.pct_base == "gross":
+            item.pct_base = data.get("pct_base") or item.pct_base or "basic"
+            if item.pct_base == "gross":
                 base_val = p.line_items.filter(line_type="earning").aggregate(t=Sum("amount"))["t"] or Decimal("0")
             else:
                 base_val = p.basic_salary
             item.amount = (base_val * item.pct / Decimal("100")).quantize(Decimal("0.01"))
         elif "amount" in data:
+            # FIX: a fixed amount overrides any percentage, so the edit sticks
             item.amount = _dec(data["amount"])
+            item.pct    = None
 
         item.save()
         result = _recalculate_net(p)
@@ -3097,12 +3333,12 @@ def update_payroll(request, payroll_id=None, pk=None):
         except Exception:
             return fallback
 
-    p.bonus          = dec("bonus")
-    p.incentive      = dec("incentive")
-    p.pf_amount      = dec("pf_amount")
-    p.esi_amount     = dec("esi_amount")
-    p.loan_deduction = dec("loan_deduction")
-    p.tax_deduction  = dec("tax_deduction")
+    # FIX: only touch a field if the request actually sent it.
+    # Before, every Save (which only sends "notes") reset all of these to 0.
+    for key in ("bonus", "incentive", "pf_amount", "esi_amount",
+                "loan_deduction", "tax_deduction"):
+        if key in data:
+            setattr(p, key, dec(key))
 
     if "leave_deduction" in data:
         p.deductions = max(Decimal("0"), Decimal(str(_sf(data["leave_deduction"]))))
@@ -3114,11 +3350,12 @@ def update_payroll(request, payroll_id=None, pk=None):
 
     calc = _calculate_payroll(p.staff, p.month, p.year)
 
-    # ── FIX: always refresh basic_salary from the staff's current salary
+    # Always refresh basic_salary / overtime from the staff's current data
     p.basic_salary    = calc["pro_rated_basic"]
     p.overtime_amount = calc["overtime_amount"]
     p.save(update_fields=["basic_salary", "overtime_amount"])
 
+    # Rebuilds auto items only; custom line items added in the modal are kept
     _sync_line_items(p, calc)
     result = _recalculate_net(p)
 
@@ -3129,7 +3366,6 @@ def update_payroll(request, payroll_id=None, pk=None):
         "gross_salary":     result["gross"],
         "total_deductions": result["total_deductions"],
     })
-
 def staff_payroll_history(request, staff_id):
     hotel_id = request.session.get("hotel_id")
     if not hotel_id:
@@ -7790,3 +8026,566 @@ def face_attendance_lookup(request):
         return JsonResponse({"success": False, "error": "No match found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@never_cache
+def attendance_management_page(request):
+    """Render the HR/admin attendance management page."""
+
+    hotel = getattr(request.user, "hotel", None)
+    if hotel is None:
+        return render(request, "hotel/attendance_management.html", {
+            "error": "No hotel associated with this user.",
+        })
+
+    today = timezone.now().date() if settings.USE_TZ else datetime.now().date()
+    date_value = request.GET.get("date", today.isoformat())
+    status_value = request.GET.get("status", "")
+    department_value = request.GET.get("department", "")
+    view_value = request.GET.get("view", "daily")
+    search_value = request.GET.get("search", "").strip()
+
+    try:
+        selected_date = datetime.strptime(date_value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        selected_date = today
+
+    staff_qs = Staff.objects.select_related("department").filter(hotel=hotel).order_by("name")
+
+    if department_value:
+        staff_qs = staff_qs.filter(department_id=department_value)
+
+    if search_value:
+        staff_qs = staff_qs.filter(
+            Q(name__icontains=search_value)
+            | Q(phone__icontains=search_value)
+            | Q(employee_id__icontains=search_value)
+        )
+
+    attendance_qs = Attendance.objects.filter(
+        date=selected_date,
+        staff__in=staff_qs,
+    ).select_related("staff", "staff__department")
+
+    attendance_by_staff = {row.staff_id: row for row in attendance_qs}
+    records = []
+
+    for staff in staff_qs:
+        attendance = attendance_by_staff.get(staff.id)
+        status = attendance.status if attendance else "Absent"
+
+        if status_value and status.lower() != status_value.lower():
+            continue
+
+        check_in = attendance.check_in if attendance else None
+        check_out = attendance.check_out if attendance else None
+        hours = 0
+
+        if check_in and check_out:
+            hours = round(
+                (check_out - check_in).total_seconds() / 3600,
+                2,
+            )
+
+        records.append(
+            {
+                "staff": staff,
+                "staff_name": staff.name,
+                "department": staff.department.name if staff.department else "Unassigned",
+                "date": selected_date,
+                "check_in": check_in,
+                "check_out": check_out,
+                "hours": hours,
+                "overtime": float(attendance.overtime_hours or 0) if attendance else 0,
+                "status": status,
+            }
+        )
+
+    # Stat cards should reflect this hotel's full staff roster for the date,
+    # independent of the search/department/status filters above.
+    hotel_staff_qs = Staff.objects.filter(hotel=hotel)
+    all_records = []
+    for staff in hotel_staff_qs:
+        attendance = Attendance.objects.filter(
+            staff=staff,
+            date=selected_date,
+        ).first()
+        all_records.append(attendance.status if attendance else "Absent")
+
+    present_count = sum(status in {"Present", "Late", "Half Day"} for status in all_records)
+    absent_count = sum(status == "Absent" for status in all_records)
+    late_count = sum(status == "Late" for status in all_records)
+    half_day_count = sum(status == "Half Day" for status in all_records)
+
+    overtime_total = sum(record["overtime"] for record in records)
+
+    return render(
+        request,
+        "hotel/attendance_management.html",
+        {
+            "departments": Department.objects.filter(hotel=hotel).order_by("name"),
+            "attendance_records": records,
+            "report_date": selected_date,
+            "selected_date": selected_date.isoformat(),
+            "selected_status": status_value,
+            "selected_department": department_value,
+            "selected_view": view_value,
+            "search_value": search_value,
+            "total_staff": hotel_staff_qs.count(),
+            "present_count": present_count,
+            "absent_count": absent_count,
+            "late_count": late_count,
+            "half_day_count": half_day_count,
+            "extra_days_count": 0,
+            "overtime_hours": round(overtime_total, 1),
+        },
+    )
+
+@login_required
+@require_GET
+def staff_attendance_history_api(request, staff_id):
+    """Admin-facing: attendance history for one staff member, scoped to the logged-in user's hotel."""
+    hotel = getattr(request.user, "hotel", None)
+    if hotel is None:
+        return JsonResponse({"error": "No hotel associated with this user."}, status=400)
+
+    try:
+        staff = Staff.objects.select_related("department").get(id=staff_id, hotel=hotel)
+    except Staff.DoesNotExist:
+        return JsonResponse({"error": "Staff not found"}, status=404)
+
+    month_str = request.GET.get("month")  # "YYYY-MM"
+    today = timezone.now().date()
+
+    if month_str:
+        try:
+            year, month = map(int, month_str.split("-"))
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Invalid month format. Use YYYY-MM"}, status=400)
+    else:
+        year, month = today.year, today.month
+
+    records = Attendance.objects.filter(
+        staff=staff, hotel=hotel, date__year=year, date__month=month
+    ).order_by("-date")
+
+    data = []
+    for att in records:
+        hours = 0
+        if att.check_in and att.check_out:
+            hours = round((att.check_out - att.check_in).total_seconds() / 3600, 2)
+        data.append({
+            "date": att.date.strftime("%d %b %Y"),
+            "check_in": att.check_in.strftime("%H:%M") if att.check_in else "—",
+            "check_out": att.check_out.strftime("%H:%M") if att.check_out else "—",
+            "hours": hours,
+            "overtime": float(att.overtime_hours or 0),
+            "status": att.status or "Absent",
+        })
+
+    summary = {
+        "present": records.filter(status="Present").count(),
+        "late": records.filter(status="Late").count(),
+        "half_day": records.filter(status="Half Day").count(),
+        "absent": records.filter(status="Absent").count(),
+        "overtime_hours": round(
+            float(records.aggregate(t=Sum("overtime_hours"))["t"] or 0), 2
+        ),
+    }
+
+    return JsonResponse({
+        "success": True,
+        "staff": {
+            "id": staff.id,
+            "name": staff.name,
+            "employee_id": getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            "department": staff.department.name if staff.department else "—",
+        },
+        "month": f"{year}-{str(month).zfill(2)}",
+        "summary": summary,
+        "records": data,
+    })
+
+
+@login_required
+@require_GET
+def attendance_export_csv(request):
+    """Exports the same filtered attendance list shown on the Attendance Management page."""
+    hotel = getattr(request.user, "hotel", None)
+    if hotel is None:
+        return HttpResponse("No hotel associated with this user.", status=400)
+
+    date_value = request.GET.get("date", timezone.now().date().isoformat())
+    status_value = request.GET.get("status", "")
+    department_value = request.GET.get("department", "")
+    search_value = request.GET.get("search", request.GET.get("q", "")).strip()
+
+    try:
+        selected_date = datetime.strptime(date_value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        selected_date = timezone.now().date()
+
+    staff_qs = Staff.objects.select_related("department").filter(hotel=hotel).order_by("name")
+
+    if department_value:
+        staff_qs = staff_qs.filter(department_id=department_value)
+    if search_value:
+        staff_qs = staff_qs.filter(
+            Q(name__icontains=search_value)
+            | Q(phone__icontains=search_value)
+            | Q(employee_id__icontains=search_value)
+        )
+
+    attendance_qs = Attendance.objects.filter(
+        date=selected_date, staff__in=staff_qs
+    ).select_related("staff", "staff__department")
+    attendance_by_staff = {row.staff_id: row for row in attendance_qs}
+
+    filename = f"Attendance_{selected_date.isoformat()}.csv"
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    writer.writerow(["Staff Name", "Employee ID", "Department", "Date", "Check In", "Check Out", "Hours", "Overtime", "Status"])
+
+    for staff in staff_qs:
+        attendance = attendance_by_staff.get(staff.id)
+        status = attendance.status if attendance else "Absent"
+
+        if status_value and status.lower() != status_value.lower():
+            continue
+
+        check_in = attendance.check_in if attendance else None
+        check_out = attendance.check_out if attendance else None
+        hours = 0
+        if check_in and check_out:
+            hours = round((check_out - check_in).total_seconds() / 3600, 2)
+
+        writer.writerow([
+            staff.name,
+            getattr(staff, "employee_id", f"EMP{staff.id:03d}"),
+            staff.department.name if staff.department else "Unassigned",
+            selected_date.strftime("%d %b %Y"),
+            check_in.strftime("%H:%M") if check_in else "—",
+            check_out.strftime("%H:%M") if check_out else "—",
+            hours,
+            float(attendance.overtime_hours or 0) if attendance else 0,
+            status,
+        ])
+
+    return response
+@login_required
+@require_GET
+def attendance_daily_modal_api(request):
+    """One staff member's attendance detail for one day (Attendance Management modal)."""
+    from datetime import time as _time
+ 
+    hotel = getattr(request.user, "hotel", None)
+    if hotel is None:
+        return JsonResponse({"success": False, "error": "No hotel associated with this user."}, status=400)
+ 
+    staff_id = request.GET.get("staff_id")
+    if not staff_id:
+        return JsonResponse({"success": False, "error": "staff_id is required."}, status=400)
+ 
+    date_value = request.GET.get("date")
+    try:
+        selected_date = (
+            datetime.strptime(date_value, "%Y-%m-%d").date()
+            if date_value else timezone.now().date()
+        )
+    except (TypeError, ValueError):
+        return JsonResponse({"success": False, "error": "Invalid date. Use YYYY-MM-DD."}, status=400)
+ 
+    try:
+        staff = Staff.objects.select_related("department").get(id=staff_id, hotel=hotel)
+    except (Staff.DoesNotExist, ValueError):
+        return JsonResponse({"success": False, "error": "Staff not found."}, status=404)
+ 
+    att = Attendance.objects.filter(staff=staff, hotel=hotel, date=selected_date).first()
+ 
+    # ---------- helpers ----------
+    def _local(dt):
+        if dt and timezone.is_aware(dt):
+            return timezone.localtime(dt)
+        return dt
+ 
+    def _fmt(dt):
+        dt = _local(dt)
+        return dt.strftime("%I:%M %p") if dt else None
+ 
+    def _url(f):
+        try:
+            return f.url if f else None
+        except ValueError:
+            return None
+ 
+    def _pct(v):
+        if v is None:
+            return None
+        v = float(v)
+        return round(v * 100 if v <= 1 else v, 1)
+ 
+    def _hm(t):
+        return t.strftime("%I:%M %p").lstrip("0")
+ 
+    # ---------- shift label ----------
+    shift_label = "—"
+    shift_obj = Shift.objects.filter(staff=staff, date=selected_date).first()
+    if shift_obj:
+        tpl = ShiftTemplate.objects.filter(
+            hotel=hotel, shift_name=shift_obj.shift, is_active=True
+        ).first()
+        DEFAULTS = {
+            "Morning": (_time(6, 0), _time(14, 0)),
+            "Evening": (_time(14, 0), _time(22, 0)),
+            "Night":   (_time(22, 0), _time(6, 0)),
+        }
+        d_start, d_end = DEFAULTS.get(shift_obj.shift, (None, None))
+        start = shift_obj.custom_start or (tpl.start_time if tpl else d_start)
+        end   = shift_obj.custom_end   or (tpl.end_time   if tpl else d_end)
+        name  = shift_obj.custom_name or shift_obj.shift
+        shift_label = f"{name} ({_hm(start)} - {_hm(end)})" if start and end else name
+ 
+    # ---------- attendance ----------
+    check_in = att.check_in if att else None
+    check_out = att.check_out if att else None
+    status = (att.status if att and att.status else "Absent")
+ 
+    total_hours = None
+    if check_in and check_out:
+        secs = max((check_out - check_in).total_seconds(), 0)
+        total_hours = f"{int(secs // 3600)}h {int((secs % 3600) // 60):02d}m"
+ 
+    # Optional fields: used if they exist on your Attendance model, otherwise fallbacks.
+    default_location = getattr(hotel, "hotel_name", None) or "Main Office"
+    in_location = (
+        getattr(att, "check_in_location", None) or getattr(att, "location", None) or default_location
+    ) if att else None
+    out_location = (
+        getattr(att, "check_out_location", None) or getattr(att, "location", None) or default_location
+    ) if att else None
+ 
+    flag = getattr(att, "face_verified", None) if att else None
+    enrolled = bool(getattr(staff, "face_descriptor", None))
+    in_verified = bool(check_in) and (bool(flag) if flag is not None else enrolled)
+    out_verified = bool(check_out) and (bool(flag) if flag is not None else enrolled)
+ 
+    # Profile photo, and the face image captured at face registration (Staff.face_photo)
+    staff_photo = _url(getattr(staff, "photo", None))
+    face_photo = _url(getattr(staff, "face_photo", None))
+ 
+    return JsonResponse({
+        "success": True,
+        "date": selected_date.isoformat(),
+        "date_label": selected_date.strftime("%b %d, %Y"),
+        "shift": shift_label,
+        "staff": {
+            "id": staff.id,
+            "name": staff.name,
+            "employee_id": getattr(staff, "employee_id", None) or f"EMP{staff.id:03d}",
+            "role": getattr(staff, "role", None) or "Staff",
+            "designation": getattr(staff, "designation", None) or "",
+            "department": staff.department.name if staff.department else "",
+            "photo": staff_photo or face_photo,   # header falls back to the face image
+            "face_photo": face_photo,
+        },
+        "attendance": {
+            "status": status,
+            "check_in": _fmt(check_in),
+            "check_out": _fmt(check_out),
+            "total_hours": total_hours,
+            "overtime_hours": round(float(att.overtime_hours or 0), 2) if att else 0,
+            "in_location": in_location,
+            "out_location": out_location,
+            "in_verified": in_verified,
+            "out_verified": out_verified,
+            "in_confidence": _pct(getattr(att, "check_in_confidence", None)) if att else None,
+            "out_confidence": _pct(getattr(att, "check_out_confidence", None)) if att else None,
+            "in_photo": _url(getattr(att, "check_in_photo", None)) if att else None,
+            "out_photo": _url(getattr(att, "check_out_photo", None)) if att else None,
+        },
+    })
+
+
+@never_cache
+def shift_management_page(request):
+    """
+    Dedicated Shift Management page.
+
+    The actual shift data is loaded by the existing APIs:
+    - weekly_schedule
+    - get_shifts
+    - assign_shift
+    - update_shift
+    - delete_shift
+    - get_shift_templates
+    - save_shift_template
+    """
+
+    staff_id = request.session.get("staff_id")
+    hotel_id = request.session.get("hotel_id")
+
+    # ---------------------------------------------------------
+    # GET CURRENT LOGGED-IN STAFF
+    # ---------------------------------------------------------
+
+    current_staff = None
+
+    if staff_id:
+        try:
+            current_staff = (
+                Staff.objects
+                .select_related("hotel", "department")
+                .get(id=staff_id)
+            )
+        except Staff.DoesNotExist:
+            return redirect("staff_login")
+
+        # Make sure hotel_id exists in session
+        if not hotel_id:
+            hotel_id = current_staff.hotel_id
+            request.session["hotel_id"] = hotel_id
+
+    # ---------------------------------------------------------
+    # HOTEL MUST EXIST
+    # ---------------------------------------------------------
+
+    if not hotel_id:
+        return redirect("staff_login")
+
+    # ---------------------------------------------------------
+    # STAFF LIST
+    # Used by:
+    #   Assign Shift
+    #   Employee filter
+    # ---------------------------------------------------------
+
+    hotel_staff = (
+        Staff.objects
+        .filter(hotel_id=hotel_id)
+        .select_related("department")
+        .order_by("name")
+    )
+
+    # ---------------------------------------------------------
+    # DEPARTMENT LIST
+    # Used by:
+    #   Department filter
+    #   Assign Shift modal
+    # ---------------------------------------------------------
+
+    departments = (
+        Department.objects
+        .filter(hotel_id=hotel_id)
+        .order_by("name")
+    )
+
+    context = {
+        "current_staff": current_staff,
+        "hotel_staff": hotel_staff,
+        "departments": departments,
+    }
+
+    return render(
+        request,
+        "hotel/shift_management.html",
+        context,
+    )
+
+
+@never_cache
+def leave_management_page(request):
+    """
+    HR / Admin Leave Management page.
+ 
+    Data is loaded by the existing APIs:
+      - admin_leave_requests  (list + summary)
+      - admin_leave_update    (approve / reject)
+      - apply_leave           (new request)
+    This view only supplies the dropdown data (departments, employees).
+    """
+    staff_id = request.session.get("staff_id")
+    hotel_id = request.session.get("hotel_id")
+ 
+    current_staff = None
+    if staff_id:
+        try:
+            current_staff = (
+                Staff.objects.select_related("hotel", "department").get(id=staff_id)
+            )
+        except Staff.DoesNotExist:
+            return redirect("staff_login")
+ 
+        if not hotel_id:
+            hotel_id = current_staff.hotel_id
+            request.session["hotel_id"] = hotel_id
+ 
+    if not hotel_id:
+        return redirect("staff_login")
+ 
+    hotel_staff = (
+        Staff.objects.filter(hotel_id=hotel_id)
+        .select_related("department")
+        .order_by("name")
+    )
+    departments = Department.objects.filter(hotel_id=hotel_id).order_by("name")
+ 
+    return render(request, "hotel/leave_management.html", {
+        "current_staff": current_staff,
+        "hotel_staff": hotel_staff,
+
+        "departments": departments,
+    })
+ 
+@never_cache
+def payroll_management_page(request):
+    """
+    HR/Admin Payroll Management page.
+
+    Data is loaded by the existing payroll APIs:
+      - payroll_dashboard      (list for a month/year)
+      - generate_payroll       (create missing records for a month)
+      - update_payroll         (edit bonus/deductions/etc.)
+      - mark_payroll_paid      (mark paid + email payslip)
+      - payslip / download_payslip_pdf
+      - recalculate_payroll
+    This view only supplies dropdown data (departments, employees) and the shell.
+    """
+    staff_id = request.session.get("staff_id")
+    hotel_id = request.session.get("hotel_id")
+
+    current_staff = None
+    if staff_id:
+        try:
+            current_staff = (
+                Staff.objects.select_related("hotel", "department").get(id=staff_id)
+            )
+        except Staff.DoesNotExist:
+            return redirect("staff_login")
+
+        if not hotel_id:
+            hotel_id = current_staff.hotel_id
+            request.session["hotel_id"] = hotel_id
+
+    if not hotel_id:
+        return redirect("staff_login")
+
+    hotel_staff = (
+        Staff.objects.filter(hotel_id=hotel_id)
+        .select_related("department")
+        .order_by("name")
+    )
+    departments = Department.objects.filter(hotel_id=hotel_id).order_by("name")
+
+    return render(request, "hotel/payroll_management.html", {
+        "current_staff": current_staff,
+        "hotel_staff": hotel_staff,
+        "departments": departments,
+        "today": timezone.now().date(),
+    })
+
+
+
+
+

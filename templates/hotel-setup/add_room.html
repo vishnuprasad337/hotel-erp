@@ -1,0 +1,1084 @@
+{% extends "hotel-setup/base.html" %}
+{% load static %}
+
+{% block title %}Add Room - Admio{% endblock %}
+
+{% block nav_rooms_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ─── Add Room Wizard — scoped to .arw- so it never collides with admio.css ───
+     Colour tokens below mirror the site accent (#7C3AED, same purple used in the
+     sidebar and the "Let's set up your hotel" banner). Typography for the page
+     heading itself uses base.html's own .page-title / .page-subtitle classes,
+     so font family, size and weight come straight from the base template rather
+     than being redefined here. */
+  .arw{
+    --arw-blue:#7C3AED;
+    --arw-blue-dark:#6D28D9;
+    --arw-blue-light:#F5F3FF;
+    --arw-ink:#101828;
+    --arw-sub:#667085;
+    --arw-line:#e6e9f0;
+    --arw-green:#12b76a;
+    --arw-green-bg:#e9fbf1;
+    --arw-radius:14px;
+    color:var(--arw-ink);
+  }
+  .arw *{box-sizing:border-box;}
+  .arw svg{display:block;}
+
+  .arw-page-header{margin-bottom:18px;}
+  .arw-page-header .page-title{margin:0 0 4px;}
+  .arw-page-header .page-subtitle{margin:0;color:var(--arw-sub);max-width:640px;}
+
+  .arw-stepper{background:#fff;border:1px solid var(--arw-line);border-radius:var(--arw-radius);
+    padding:20px 26px;margin-bottom:16px;display:flex;align-items:flex-start;}
+    .arw-step{display:flex;align-items:flex-start;gap:10px;flex:0 1 auto;min-width:0;}
+  .arw-step-circle{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;border:2px solid var(--arw-line);color:var(--arw-sub);background:#fff;transition:all .2s ease;}
+  .arw-step-circle svg{width:14px;height:14px;}
+  .arw-step.active .arw-step-circle{background:var(--arw-blue);border-color:var(--arw-blue);color:#fff;}
+  .arw-step.done .arw-step-circle{background:var(--arw-green);border-color:var(--arw-green);color:#fff;}
+  .arw-step-title{font-size:13.5px;font-weight:600;color:var(--arw-sub);line-height:1.3;}
+  .arw-step.active .arw-step-title{color:var(--arw-blue);}
+  .arw-step.done .arw-step-title{color:var(--arw-ink);}
+  .arw-step-sub{font-size:11.5px;color:#98a2b3;margin-top:1px;}
+    .arw-step-connector{flex:1 1 auto;min-width:20px;height:2px;background:var(--arw-line);margin:14px 8px 0;}
+  .arw-step-connector.done{background:var(--arw-green);}
+
+  .arw-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+  .arw-card{background:#fff;border:1px solid var(--arw-line);border-radius:var(--arw-radius);padding:24px;}
+  .arw-card-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;}
+  .arw-card-icon{width:34px;height:34px;border-radius:9px;background:var(--arw-blue-light);color:var(--arw-blue);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .arw-card-icon svg{width:17px;height:17px;}
+  .arw-card-head h2{margin:0;font-size:15.5px;font-weight:700;}
+  .arw-card-head p{margin:2px 0 0;font-size:12.5px;color:var(--arw-sub);}
+
+  label.arw-label{display:block;font-size:12.5px;font-weight:600;color:#344054;margin-bottom:6px;}
+  .arw-req{color:#e0523d;}
+  .arw-field{position:relative;}
+  .arw-field input, .arw-field textarea{width:100%;border:1px solid var(--arw-line);border-radius:9px;
+    padding:10px 12px 10px 34px;font-size:13.5px;color:var(--arw-ink);background:#fff;outline:none;
+    transition:border-color .15s;font-family:inherit;}
+  .arw-field.noicon input{padding-left:12px;}
+  .arw-field input:focus, .arw-field textarea:focus{border-color:var(--arw-blue);box-shadow:0 0 0 3px var(--arw-blue-light);}
+  .arw-field .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#98a2b3;display:flex;}
+  .arw-field .ic svg{width:14px;height:14px;}
+  .arw-field textarea{padding-left:12px;resize:vertical;min-height:90px;}
+  .arw-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .arw-charcount{text-align:right;font-size:11px;color:#98a2b3;margin-top:4px;}
+
+  .arw-roomtypes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+  .arw-rt{position:relative;border:1.5px solid var(--arw-line);border-radius:12px;padding:14px 10px;text-align:center;
+    cursor:pointer;background:#fff;transition:all .15s;}
+  .arw-rt:hover{border-color:#c8b6f5;}
+  .arw-rt.sel{border-color:var(--arw-blue);background:var(--arw-blue-light);}
+  .arw-rt .rt-ico{color:var(--arw-blue);margin-bottom:8px;display:flex;align-items:center;justify-content:center;}
+  .arw-rt .rt-ico svg{width:22px;height:22px;}
+  .arw-rt .rt-name{font-size:12.5px;font-weight:600;}
+  .arw-rt-check{position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;background:var(--arw-blue);
+    color:#fff;display:none;align-items:center;justify-content:center;}
+  .arw-rt-check svg{width:10px;height:10px;}
+  .arw-rt.sel .arw-rt-check{display:flex;}
+
+  .arw-tips{background:#fff;border:1px solid var(--arw-line);border-radius:var(--arw-radius);padding:20px;}
+  .arw-tips-head{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+  .arw-tips-head h3{margin:0;font-size:13.5px;font-weight:700;}
+  .arw-tips-list{list-style:none;margin:0;padding:0;font-size:12.5px;color:#344054;}
+  .arw-tips-list li{display:flex;gap:8px;padding:6px 0;line-height:1.4;}
+  .arw-tips-list li svg{flex-shrink:0;margin-top:2px;color:var(--arw-green);width:14px;height:14px;}
+  .arw-tips-art{margin-top:14px;border-radius:10px;overflow:hidden;background:var(--arw-blue-light);
+    display:flex;align-items:center;justify-content:center;padding:20px 0;color:var(--arw-blue);}
+
+  .arw-tabs{display:flex;gap:22px;border-bottom:1px solid var(--arw-line);margin-bottom:18px;}
+  .arw-tab{padding:8px 2px 12px;font-size:13px;font-weight:600;color:var(--arw-sub);cursor:pointer;border-bottom:2px solid transparent;}
+  .arw-tab.active{color:var(--arw-blue);border-color:var(--arw-blue);}
+  .arw-searchbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .arw-searchbar .arw-field{flex:1;}
+  .arw-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--arw-line);background:#fff;
+    padding:9px 14px;border-radius:9px;font-size:12.5px;font-weight:600;color:#344054;cursor:pointer;
+    white-space:nowrap;transition:all .15s;}
+  .arw-btn svg{width:14px;height:14px;}
+  .arw-btn:hover{border-color:#c8b6f5;}
+  .arw-btn-primary{background:var(--arw-blue);border-color:var(--arw-blue);color:#fff;}
+  .arw-btn-primary:hover{background:var(--arw-blue-dark);}
+  .arw-btn-icon{padding:9px;}
+  .arw-btn:disabled{opacity:.6;cursor:not-allowed;}
+
+  /* ── Common Amenities / Specialty tag chips (NEW) ──────────────────
+     These are quick-add chips for common room extras (hairdryer, balcony,
+     bathtub, etc). They toggle plain string tags stored in state.features
+     (Room.features JSONField) — NOT real Property/amenity rows — so no
+     extra network round-trip is needed and the tenant-wide amenity list
+     never gets cluttered with one-off specialty labels. */
+    .arw-chip-section{margin-bottom:20px;}
+  .arw-chip-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+  .arw-chip-head-left{display:flex;gap:12px;align-items:flex-start;}
+  .arw-chip-head-icon{width:36px;height:36px;border-radius:10px;background:var(--arw-blue-light);color:var(--arw-blue);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .arw-chip-head-icon svg{width:19px;height:19px;}
+  .arw-chip-head-text h4{margin:0;font-size:14.5px;font-weight:700;color:var(--arw-ink);}
+  .arw-chip-head-text p{margin:2px 0 0;font-size:12px;color:var(--arw-sub);}
+  .arw-chip-head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .arw-chip-head-actions .arw-field{min-width:220px;}
+
+  .arw-chip-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px;}
+  .arw-chip{display:flex;align-items:center;gap:10px;border:1.5px solid var(--arw-line);border-radius:12px;
+    padding:8px 14px 8px 8px;font-size:13px;font-weight:600;color:#344054;cursor:pointer;background:#fff;
+    transition:all .15s;user-select:none;}
+  .arw-chip .c-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;color:#fff;}
+  .arw-chip .c-ico svg{width:18px;height:18px;}
+  .arw-chip .c-plus{margin-left:2px;color:#98a2b3;display:flex;transition:transform .15s;}
+  .arw-chip .c-plus svg{width:15px;height:15px;}
+  .arw-chip:hover{border-color:#c8b6f5;}
+  .arw-chip.sel{border-color:var(--arw-blue);background:var(--arw-blue-light);}
+  .arw-chip.sel .c-plus svg{transform:rotate(45deg);color:var(--arw-blue-dark);}
+  .arw-chip-divider{border:none;border-top:1px solid var(--arw-line);margin:18px 0;}
+
+  .arw-amenity-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .arw-amenity{border:1.5px solid var(--arw-line);border-radius:12px;padding:12px 14px;display:flex;gap:10px;
+    align-items:flex-start;cursor:pointer;background:#fff;transition:all .15s;}
+  .arw-amenity:hover{border-color:#c8b6f5;}
+  .arw-amenity.sel{border-color:var(--arw-blue);background:var(--arw-blue-light);}
+  .arw-amenity .a-ico{color:var(--arw-blue);flex-shrink:0;}
+  .arw-amenity .a-ico svg{width:17px;height:17px;}
+  .arw-amenity .a-name{font-size:12.5px;font-weight:600;}
+  .arw-amenity .a-sub{font-size:11px;color:var(--arw-sub);margin-top:1px;}
+  .arw-amenity .a-check{margin-left:auto;width:16px;height:16px;border-radius:5px;border:1.5px solid #d0d5dd;flex-shrink:0;position:relative;}
+  .arw-amenity.sel .a-check{background:var(--arw-blue);border-color:var(--arw-blue);}
+  .arw-amenity.sel .a-check svg{position:absolute;inset:0;margin:auto;width:10px;height:10px;color:#fff;}
+
+  .arw-asset-row{display:flex;align-items:center;gap:12px;border:1px solid var(--arw-line);border-radius:10px;
+    padding:10px 12px;margin-bottom:8px;cursor:pointer;background:#fff;}
+  .arw-asset-row.sel{border-color:var(--arw-blue);background:var(--arw-blue-light);}
+  .arw-asset-row .a-check{width:16px;height:16px;border-radius:5px;border:1.5px solid #d0d5dd;flex-shrink:0;position:relative;}
+  .arw-asset-row.sel .a-check{background:var(--arw-blue);border-color:var(--arw-blue);}
+  .arw-asset-row.sel .a-check svg{position:absolute;inset:0;margin:auto;width:10px;height:10px;color:#fff;}
+  .arw-asset-row .a-ico{width:32px;height:32px;border-radius:8px;background:var(--arw-blue-light);color:var(--arw-blue);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .arw-asset-row .a-ico svg{width:16px;height:16px;}
+  .arw-asset-row .a-name{font-size:13px;font-weight:600;}
+  .arw-asset-row .a-sub{font-size:11px;color:var(--arw-sub);}
+  .arw-asset-row .a-status{margin-left:auto;font-size:11px;font-weight:600;color:var(--arw-green);
+    background:var(--arw-green-bg);padding:3px 10px;border-radius:20px;flex-shrink:0;display:flex;align-items:center;gap:5px;}
+  .arw-dot{width:6px;height:6px;border-radius:50%;background:var(--arw-green);display:inline-block;}
+
+  .arw-selected h3{margin:0 0 2px;font-size:13.5px;font-weight:700;}
+  .arw-selected .sp-sub{font-size:11.5px;color:var(--arw-sub);margin-bottom:14px;}
+  .arw-sel-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;background:var(--arw-blue-light);margin-bottom:8px;}
+  .arw-sel-item .a-ico{color:var(--arw-blue);}
+  .arw-sel-item .a-ico svg{width:15px;height:15px;}
+  .arw-sel-item .a-name{font-size:12.5px;font-weight:600;flex:1;}
+  .arw-sel-item .a-x{cursor:pointer;color:#98a2b3;padding:2px 4px;display:flex;}
+  .arw-sel-item .a-x svg{width:13px;height:13px;}
+  .arw-sel-item .a-x:hover{color:#e0523d;}
+  .arw-sel-empty{font-size:12px;color:#98a2b3;text-align:center;padding:24px 8px;border:1px dashed var(--arw-line);border-radius:10px;}
+  .arw-sel-count{margin-top:12px;background:var(--arw-blue-light);color:var(--arw-blue-dark);border-radius:9px;
+    padding:10px 12px;font-size:12px;text-align:center;font-weight:600;}
+  .arw-sel-count span{display:block;font-weight:400;color:#4a67a8;font-size:11px;margin-top:2px;}
+
+  .arw-note{display:flex;gap:8px;background:var(--arw-blue-light);border-radius:9px;padding:11px 13px;
+    font-size:12px;color:#344054;margin-top:16px;}
+  .arw-note svg{width:15px;height:15px;color:var(--arw-blue);flex-shrink:0;margin-top:1px;}
+
+  .arw-dropzone{border:2px dashed #d4c6f7;border-radius:14px;padding:40px 20px;text-align:center;background:#fbf9ff;
+    cursor:pointer;transition:all .15s;margin-bottom:18px;}
+  .arw-dropzone.drag{border-color:var(--arw-blue);background:var(--arw-blue-light);}
+  .arw-dropzone .dz-ico{width:44px;height:44px;border-radius:50%;background:var(--arw-blue-light);color:var(--arw-blue);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+  .arw-dropzone .dz-ico svg{width:19px;height:19px;}
+  .arw-dropzone .dz-title{font-size:13.5px;font-weight:700;color:var(--arw-blue-dark);margin-bottom:4px;}
+  .arw-dropzone .dz-sub{font-size:11.5px;color:var(--arw-sub);margin-bottom:2px;}
+  .arw-dropzone .dz-meta{font-size:11px;color:#98a2b3;margin-top:6px;}
+  .arw-thumb-head{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#344054;margin-bottom:10px;}
+  .arw-thumbs{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;}
+  .arw-thumb{aspect-ratio:1;border-radius:10px;border:1px solid var(--arw-line);background:#f8f9fc;
+    display:flex;align-items:center;justify-content:center;color:#c3cad9;position:relative;overflow:hidden;}
+  .arw-thumb svg{width:20px;height:20px;}
+  .arw-thumb img{width:100%;height:100%;object-fit:cover;}
+  .arw-thumb .primary-tag{position:absolute;bottom:3px;left:3px;right:3px;background:var(--arw-blue);color:#fff;
+    font-size:8.5px;text-align:center;border-radius:4px;padding:1px 0;font-weight:700;letter-spacing:.03em;}
+  .arw-thumb .rm{position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(0,0,0,.55);color:#fff;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .arw-thumb .rm svg{width:9px;height:9px;}
+
+  .arw-review-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;}
+  .arw-review-panel h3{margin:0 0 12px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--arw-ink);}
+  .arw-review-panel h3 svg{width:16px;height:16px;color:var(--arw-blue);}
+  .arw-kv{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f2f6;font-size:13px;}
+  .arw-kv:last-child{border-bottom:none;}
+  .arw-kv .k{color:var(--arw-sub);}
+  .arw-kv .v{font-weight:600;text-align:right;max-width:60%;}
+  .arw-review-img-box{border:1px solid var(--arw-line);border-radius:10px;background:#f8f9fc;min-height:180px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#98a2b3;gap:8px;padding:20px;}
+  .arw-review-img-box svg{width:24px;height:24px;}
+  .arw-review-img-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;}
+  .arw-review-ok{display:flex;gap:10px;align-items:center;background:var(--arw-green-bg);border-radius:10px;
+    padding:13px 16px;margin-top:16px;font-size:13px;color:#075e3e;}
+  .arw-review-ok svg{width:19px;height:19px;color:var(--arw-green);flex-shrink:0;}
+  .arw-review-ok b{display:block;font-size:13.5px;}
+  .arw-review-ok .n2{font-weight:400;font-size:12px;color:#0d7a51;}
+
+  .arw-footer-nav{display:flex;justify-content:space-between;align-items:center;margin-top:18px;}
+  .arw-footer-nav .arw-btn{padding:11px 18px;font-size:13px;}
+  .arw-footer-nav .spacer{flex:1;}
+  .arw-pane{display:none;}
+  .arw-pane.show{display:block;}
+  .arw-modal-overlay{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;
+    align-items:center;justify-content:center;z-index:3000;padding:20px;}
+  .arw-modal-overlay.show{display:flex;}
+  .arw-modal{background:#fff;border-radius:16px;padding:26px;width:100%;max-width:400px;
+    box-shadow:0 20px 40px rgba(16,24,40,.25);animation:arwModalIn .15s ease;}
+  @keyframes arwModalIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .arw-modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:18px;}
+  .arw-modal-icon{width:36px;height:36px;border-radius:10px;background:var(--arw-blue-light);color:var(--arw-blue);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .arw-modal-icon svg{width:18px;height:18px;}
+  .arw-modal-head h4{margin:0;font-size:15px;font-weight:700;color:var(--arw-ink);}
+  .arw-modal-head p{margin:2px 0 0;font-size:12px;color:var(--arw-sub);}
+  .arw-modal .arw-field{margin-bottom:6px;}
+  .arw-modal-err{font-size:11.5px;color:#e0523d;min-height:16px;margin:2px 0 14px;}
+  .arw-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+  .arw-modal-actions .arw-btn{padding:10px 18px;}
+  [data-theme="dark"] .arw-modal{background:#1e1e2d;}
+  .arw-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--arw-ink);
+    color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;
+    transition:all .25s ease;z-index:2000;display:flex;align-items:center;gap:8px;}
+  .arw-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .arw-toast svg{width:14px;height:14px;}
+
+  @media (max-width:860px){
+    .arw-grid{grid-template-columns:1fr;}
+    .arw-roomtypes{grid-template-columns:repeat(3,1fr);}
+    .arw-amenity-grid{grid-template-columns:1fr 1fr;}
+    .arw-row2{grid-template-columns:1fr;}
+    .arw-stepper{overflow-x:auto;}
+    .arw-review-grid{grid-template-columns:1fr;}
+    .arw-thumbs{grid-template-columns:repeat(4,1fr);}
+  }
+  [data-theme="dark"] .arw-card, [data-theme="dark"] .arw-tips, [data-theme="dark"] .arw-stepper{
+    background:var(--admio-card-bg, #1e1e2d); border-color:var(--admio-border-color, #2d2d3d);
+  }
+  [data-theme="dark"] .arw{ color:#e5e7eb; }
+  [data-theme="dark"] .arw-field input, [data-theme="dark"] .arw-field textarea,
+  [data-theme="dark"] .arw-rt, [data-theme="dark"] .arw-amenity, [data-theme="dark"] .arw-asset-row,
+  [data-theme="dark"] .arw-btn, [data-theme="dark"] .arw-chip{
+    background:#252536; border-color:#3a3a4c; color:#e5e7eb;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="arw">
+
+  <div class="arw-page-header">
+    <h1 class="page-title">Add Room</h1>
+    <p class="page-subtitle">Create and manage your hotel rooms with ease. Fill in the details below to add a new room to your property.</p>
+  </div>
+
+  <div class="arw-stepper" id="arwStepper"></div>
+
+  <form id="arwForm">
+    {% csrf_token %}
+
+    <!-- STEP 1 -->
+    <div class="arw-pane show" data-pane="1">
+      <div class="arw-grid">
+        <div class="arw-card">
+          <div class="arw-card-head">
+            <div class="arw-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/></svg>
+            </div>
+            <div>
+              <h2>Basic Information</h2>
+              <p>Enter the basic details about the room, including type, pricing and capacity.</p>
+            </div>
+          </div>
+
+          <label class="arw-label">Room Type</label>
+          <div class="arw-roomtypes" id="arwRoomTypes">
+            <div class="arw-rt sel" data-type="Single">
+              <div class="arw-rt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M5 10V7a2 2 0 0 1 2-2h3v5"/></svg></div>
+              <div class="rt-name">Single</div>
+            </div>
+            <div class="arw-rt" data-type="Double">
+              <div class="arw-rt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 18v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5"/><path d="M2 18h20"/><path d="M4 11V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><path d="M14 11V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg></div>
+              <div class="rt-name">Double</div>
+            </div>
+            <div class="arw-rt" data-type="Deluxe">
+              <div class="arw-rt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7"/><path d="M5 20h14"/></svg></div>
+              <div class="rt-name">Deluxe</div>
+            </div>
+            <div class="arw-rt" data-type="Suite">
+              <div class="arw-rt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M4 9a2 2 0 0 0-2 2v4h20v-4a2 2 0 0 0-2-2H4Z"/><path d="M4 15v3"/><path d="M20 15v3"/></svg></div>
+              <div class="rt-name">Suite</div>
+            </div>
+            <div class="arw-rt" data-type="Custom">
+              <div class="arw-rt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></div>
+              <div class="rt-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg></div>
+              <div class="rt-name">Custom</div>
+            </div>
+          </div>
+          <div id="arwCustomTypeWrap" style="display:none;margin:-8px 0 18px;">
+            <label class="arw-label">Custom Room Type Name <span class="arw-req">*</span></label>
+            <div class="arw-field noicon"><input type="text" id="arwCustomRoomType" name="custom_room_type" placeholder="e.g. Presidential Suite"></div>
+          </div>
+
+          <div class="arw-row2">
+            <div>
+              <label class="arw-label">Total Units <span class="arw-req">*</span></label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><input type="number" id="arwTotalUnits" name="total_units" min="1" value="1"></div>
+            </div>
+            <div>
+              <label class="arw-label">Base Price (₹/night) <span class="arw-req">*</span></label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3c3 0 5-2 5-5s-2-5-5-5"/></svg></span><input type="number" id="arwBasePrice" name="base_price" min="0" value="0"></div>
+            </div>
+          </div>
+          <div class="arw-row2">
+            <div>
+              <label class="arw-label">Max Adults</label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><input type="number" id="arwMaxAdults" name="max_adults" min="1" value="2"></div>
+            </div>
+            <div>
+              <label class="arw-label">Max Children</label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M9 21v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span><input type="number" id="arwMaxChildren" name="max_children" min="0" value="0"></div>
+            </div>
+          </div>
+          <div class="arw-row2">
+            <div>
+              <label class="arw-label">Extra Adult (₹)</label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3c3 0 5-2 5-5s-2-5-5-5"/></svg></span><input type="number" id="arwExtraAdult" name="extra_adult_price" min="0" value="0"></div>
+            </div>
+            <div>
+              <label class="arw-label">Overstay Charge (₹/day)</label>
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3c3 0 5-2 5-5s-2-5-5-5"/></svg></span><input type="number" id="arwOverstay" name="overstay_price" min="0" value="0"></div>
+            </div>
+          </div>
+
+          <label class="arw-label">Description <span class="arw-req">*</span></label>
+          <div class="arw-field noicon">
+            <textarea id="arwDescription" name="description" maxlength="500" placeholder="E.g. A comfortable room with modern amenities..."></textarea>
+          </div>
+          <div class="arw-charcount"><span id="arwDescCount">0</span>/500</div>
+        </div>
+
+        <div class="arw-tips">
+          <div class="arw-tips-head">
+            <div class="arw-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z"/><path d="M9 21h6"/></svg>
+            </div>
+            <h3>Quick Tips</h3>
+          </div>
+          <p style="font-size:12px;color:var(--arw-sub);margin:0 0 10px;">Add accurate details to help your guests choose the right room.</p>
+          <ul class="arw-tips-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Set the correct capacity for each room type</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Add extra charges for additional guests</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Keep the description clear and attractive</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>You can add images and amenities in the next steps</li>
+          </ul>
+          <div class="arw-tips-art">
+            <svg width="72" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M5 10V7a2 2 0 0 1 2-2h3v5"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="arw-pane" data-pane="2">
+      <div class="arw-grid">
+        <div class="arw-card">
+          <div class="arw-card-head">
+            <div class="arw-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            </div>
+            <div>
+              <h2>Assets &amp; Amenities</h2>
+              <p>Select and add assets and amenities available in this room.</p>
+            </div>
+          </div>
+
+          <div class="arw-tabs">
+            <div class="arw-tab active" data-tab="amenities">Amenities</div>
+            <div class="arw-tab" data-tab="assets">Assets</div>
+          </div>
+
+          <!-- Amenities tab -->
+          <div id="arwTabAmenities">
+
+            <!-- ── Common Specialties (NEW) ─────────────────────────
+                 Quick-tap chips for common room extras (hairdryer,
+                 balcony, bathtub, etc). These store plain text tags in
+                 Room.features — separate from the tenant-wide Property
+                 amenity list below. Tap to toggle instantly, no server
+                 round-trip. -->
+                      <div class="arw-chip-section">
+              <div class="arw-chip-head">
+                <div class="arw-chip-head-left">
+                  <div class="arw-chip-head-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                  </div>
+                  <div class="arw-chip-head-text">
+                    <h4>Common Specialties</h4>
+                    <p>Tap to add amenities to your property</p>
+                  </div>
+                </div>
+                <div class="arw-chip-head-actions">
+                  <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" id="arwAmenitySearch" placeholder="Search amenities..."></div>
+                  <button type="button" class="arw-btn arw-btn-primary" id="arwAddAmenityBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Custom Amenity</button>
+                </div>
+              </div>
+              <div class="arw-chip-row" id="arwCommonFeatures"></div>
+            </div>
+            <hr class="arw-chip-divider">
+
+            <div class="arw-amenity-grid" id="arwAmenityGrid"></div>
+            <div class="arw-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>You can always add more amenities or assets later from the room details section.</div>
+          </div>
+
+          <!-- Assets tab -->
+          <div id="arwTabAssets" style="display:none;">
+            <div class="arw-searchbar">
+              <button type="button" class="arw-btn arw-btn-primary" style="pointer-events:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>Select Assets</button>
+              <button type="button" class="arw-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Asset</button>
+              <button type="button" class="arw-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Categories</button>
+              <button type="button" class="arw-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>Bulk Add</button>
+            </div>
+            <div class="arw-searchbar">
+              <div class="arw-field"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><input type="text" id="arwAssetSearch" placeholder="Search assets by name..."></div>
+              <button type="button" class="arw-btn arw-btn-icon" title="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><polyline points="21 3 21 8 16 8"/></svg></button>
+            </div>
+            <div id="arwAssetList"></div>
+          </div>
+        </div>
+
+        <div class="arw-tips arw-selected">
+          <h3 id="arwSelPanelTitle">Selected Amenities &amp; Assets</h3>
+          <div class="sp-sub">These will be added to this room.</div>
+          <div id="arwSelectedList"></div>
+          <div class="arw-sel-count"><span id="arwSelCountNum">0</span> item(s) selected<span>You can modify this list anytime before saving</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="arw-pane" data-pane="3">
+      <div class="arw-card">
+        <div class="arw-card-head">
+          <div class="arw-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          </div>
+          <div>
+            <h2>Room Images</h2>
+            <p>Upload high-quality images of your room. You can add multiple images.</p>
+          </div>
+        </div>
+
+        <div class="arw-dropzone" id="arwDropzone">
+          <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
+          <div class="dz-title">Drag &amp; drop images here</div>
+          <div class="dz-sub">or</div>
+          <button type="button" class="arw-btn" style="margin-top:8px;" id="arwChooseFilesBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Choose Files</button>
+          <div class="dz-meta">Supports: JPG, PNG, JPEG (Max 5MB each)</div>
+          <input type="file" id="arwFileInput" name="images" accept="image/*" multiple hidden>
+        </div>
+
+        <div class="arw-thumb-head"><span>Uploaded Images (<span id="arwImgCount">0</span>/10)</span><span id="arwImgCountRight">0/10</span></div>
+        <div class="arw-thumbs" id="arwThumbGrid"></div>
+
+        <div class="arw-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>You can upload up to 10 images. The first image will be set as the main cover image.</div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="arw-pane" data-pane="4">
+      <div class="arw-card">
+        <div class="arw-card-head">
+          <div class="arw-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+          </div>
+          <div>
+            <h2>Review Room Details</h2>
+            <p>Please review all the information before saving this room.</p>
+          </div>
+        </div>
+
+        <div class="arw-review-grid">
+          <div class="arw-review-panel">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M5 10V7a2 2 0 0 1 2-2h3v5"/></svg>Room Information</h3>
+            <div id="arwReviewInfo"></div>
+          </div>
+          <div class="arw-review-panel">
+            <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>Room Images</h3>
+            <div class="arw-review-img-box" id="arwReviewImgBox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+              <div>No images uploaded</div>
+            </div>
+            <div class="arw-note" id="arwReviewImgNote" style="margin-top:10px;">Only 0 image(s) selected — add images to showcase your room better.</div>
+          </div>
+        </div>
+
+        <div class="arw-review-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div><b>Everything looks good!</b><span class="n2">You can go back to make changes or save this room.</span></div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="arw-footer-nav">
+    <button type="button" class="arw-btn" id="arwBackBtn">← Back</button>
+    <div class="spacer"></div>
+    <button type="button" class="arw-btn arw-btn-primary" id="arwNextBtn">Next: Assets &amp; Amenities →</button>
+  </div>
+</div>
+<div class="arw-modal-overlay" id="arwAmenityModal">
+  <div class="arw-modal">
+    <div class="arw-modal-head">
+      <div class="arw-modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+      </div>
+      <div>
+        <h4>Add Custom Amenity</h4>
+        <p>Give this amenity a name to add it to your property.</p>
+      </div>
+    </div>
+    <label class="arw-label">Amenity Name <span class="arw-req">*</span></label>
+    <div class="arw-field noicon"><input type="text" id="arwAmenityModalInput" placeholder="e.g. Rooftop Access" maxlength="60"></div>
+    <div class="arw-modal-err" id="arwAmenityModalErr"></div>
+    <div class="arw-modal-actions">
+      <button type="button" class="arw-btn" id="arwAmenityModalCancel">Cancel</button>
+      <button type="button" class="arw-btn arw-btn-primary" id="arwAmenityModalOk">Add Amenity</button>
+    </div>
+  </div>
+</div>
+<div class="arw-toast" id="arwToast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  // Small inline-SVG icon set, reused everywhere an emoji used to sit.
+  const ICONS = {
+    wifi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+    snow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>`,
+    tv: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>`,
+    fridge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="10" x2="19" y2="10"/></svg>`,
+    flame: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`,
+    phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+    coffee: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>`,
+    wind: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 11.59A2 2 0 1 1 14 15H2"/><path d="M17.59 6.59A2 2 0 1 1 19 10H2"/></svg>`,
+    lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    door: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M6 21V4a1 1 0 0 1 1-1h8l4 4v14"/><line x1="14" y1="12" x2="14" y2="12.01"/></svg>`,
+    desk: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="20" x2="22" y2="20"/><line x1="4" y1="20" x2="4" y2="10"/><line x1="20" y1="20" x2="20" y2="10"/><rect x="2" y="6" width="20" height="4" rx="1"/></svg>`,
+    wardrobe: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="12" y1="2" x2="12" y2="22"/></svg>`,
+    box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>`,
+    desktop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="12" rx="2"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/></svg>`,
+    sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>`,
+    check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>`,
+    x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    // ── NEW icons for the Common Specialties chip row ──
+    hairdryer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8a6 6 0 0 1 12 0c0 2-1 3-1 5v3a2 2 0 0 1-2 2H9"/><circle cx="17" cy="8" r="1"/><path d="M9 18v2"/><path d="M13 18v2"/></svg>`,
+    balcony: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V9h14v12"/><path d="M9 9V3h6v6"/><path d="M5 15h14"/></svg>`,
+    bathtub: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M4 12V6a2 2 0 0 1 3-1.7"/><path d="M2 19h20"/></svg>`,
+    iron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17c0-4 3-7 9-7h6a2 2 0 0 1 2 2c0 3-2 5-5 5H6a3 3 0 0 1-3-3z"/><path d="M14 10V6"/></svg>`,
+    view: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>`,
+  };
+  const icon = (key) => ICONS[key] || ICONS.box;
+
+  const STEP_META = [
+    {title:"Basic Information", sub:"Room details & pricing"},
+    {title:"Assets & Amenities", sub:"Add room assets"},
+    {title:"Images", sub:"Upload room photos"},
+    {title:"Review & Save", sub:"Confirm & save room"},
+  ];
+  const NEXT_LABELS = ["Next: Assets & Amenities →","Next: Images →","Next: Review & Save →","Save Room"];
+
+  let current = 1;
+  const state = {
+    room_type:"Single", custom_room_type:"",
+    total_units:1, base_price:0, max_adults:2, max_children:0,
+    extra_adult_price:0, overstay_price:0, description:"",
+    amenities:[], assets:[], images:[],
+    features:[]   // NEW — plain-text specialty tags (Room.features JSONField)
+  };
+
+  // ── Common Specialties (NEW) ─────────────────────────────────────
+  // Presets for common room extras. These are NOT Property rows — they
+  // are just strings stored in Room.features, toggled instantly with no
+  // server round-trip, matching what add_room / edit_room already parse
+  // via request.POST.getlist('features').
+  const COMMON_FEATURES = [
+    {name:"Hairdryer",        icon:"hairdryer"},
+    {name:"Balcony",          icon:"balcony"},
+    {name:"Bathtub",          icon:"bathtub"},
+    {name:"Mini Bar",         icon:"fridge"},
+    {name:"In-room Safe",     icon:"lock"},
+    {name:"Iron & Board",     icon:"iron"},
+    {name:"Sea View",         icon:"view"},
+    {name:"Room Service",     icon:"phone"},
+    {name:"Work Desk",        icon:"desk"},
+    {name:"Wardrobe",         icon:"wardrobe"},
+    {name:"Coffee Maker",     icon:"coffee"},
+    {name:"Air Conditioning", icon:"snow"},
+  ];
+
+  // ── Amenities: real Property rows for this tenant, same source
+  // view_rooms.html's Edit Room modal uses, so ids always line up. ──
+  const AMENITIES = JSON.parse('{{ amenities_json|escapejs }}').map(a => ({
+    id: a.id,
+    icon: "sparkles",   // Property has no icon field on this model
+    name: a.name,
+    sub: ""
+  }));
+  state.amenities = [];   // nothing preselected — was previously fake ids
+
+  const ASSETS = [
+    {id:1,icon:"desktop",name:"AC",sub:"Electronics · Double, Suite"},
+    {id:2,icon:"tv",name:"TV",sub:"Electronics · Deluxe"},
+  ];
+  state.assets = [1,2];
+
+  const $ = s => document.querySelector(s);
+  const stepperEl = $("#arwStepper");
+
+  function getCookie(name){
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+
+  function renderStepper(){
+    stepperEl.innerHTML = "";
+    STEP_META.forEach((s,i)=>{
+      const n = i+1;
+      const stepDiv = document.createElement("div");
+      stepDiv.className = "arw-step" + (n===current?" active":"") + (n<current?" done":"");
+      stepDiv.innerHTML = `<div class="arw-step-circle">${n<current?icon('check'):n}</div>
+        <div><div class="arw-step-title">${s.title}</div><div class="arw-step-sub">${s.sub}</div></div>`;
+      stepperEl.appendChild(stepDiv);
+      if(n<STEP_META.length){
+        const conn = document.createElement("div");
+        conn.className = "arw-step-connector" + (n<current?" done":"");
+        stepperEl.appendChild(conn);
+      }
+    });
+  }
+
+  function showPane(n){
+    document.querySelectorAll(".arw-pane").forEach(p=>p.classList.toggle("show", +p.dataset.pane===n));
+    $("#arwBackBtn").style.visibility = n===1 ? "hidden" : "visible";
+    $("#arwBackBtn").textContent = n===2 ? "← Back to Room Types" : (n===3 ? "← Back to Amenities" : (n===4 ? "← Back to Room Types" : "← Back"));
+    $("#arwNextBtn").textContent = NEXT_LABELS[n-1];
+    if(n===4) renderReview();
+    renderStepper();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  document.querySelectorAll(".arw-rt").forEach(card=>{
+    card.addEventListener("click", ()=>{
+      document.querySelectorAll(".arw-rt").forEach(c=>c.classList.remove("sel"));
+      card.classList.add("sel");
+      state.room_type = card.dataset.type;
+      $("#arwCustomTypeWrap").style.display = state.room_type==="Custom" ? "block" : "none";
+    });
+  });
+
+  $("#arwDescription").addEventListener("input", e=>{
+    state.description = e.target.value;
+    $("#arwDescCount").textContent = e.target.value.length;
+  });
+
+  // ── Common Specialties chip rendering / toggle (NEW) ──────────────
+    // Cycles a small palette across the chip icon badges, matching the
+  // multi-colour look in the design reference (purple/blue/green/pink/orange/teal).
+  const CHIP_COLORS = ["#7C3AED","#2563EB","#059669","#DB2777","#D97706","#0D9488"];
+
+  const commonFeaturesRow = $("#arwCommonFeatures");
+  function renderCommonFeatures(){
+    commonFeaturesRow.innerHTML = "";
+    COMMON_FEATURES.forEach((item,i)=>{
+      const sel = state.features.includes(item.name);
+      const color = CHIP_COLORS[i % CHIP_COLORS.length];
+      const chip = document.createElement("div");
+      chip.className = "arw-chip" + (sel?" sel":"");
+      chip.innerHTML = `<span class="c-ico" style="background:${color}">${icon(item.icon)}</span>
+        <span>${item.name}</span>
+        <span class="c-plus">${icon('plus')}</span>`;
+      chip.addEventListener("click", ()=>{
+        const idx = state.features.indexOf(item.name);
+        if(idx>-1) state.features.splice(idx,1); else state.features.push(item.name);
+        renderCommonFeatures();
+        renderSelected();
+      });
+      commonFeaturesRow.appendChild(chip);
+    });
+  }
+  const amenityGrid = $("#arwAmenityGrid");
+  function renderAmenities(filter=""){
+    amenityGrid.innerHTML = "";
+    AMENITIES.filter(a=>a.name.toLowerCase().includes(filter.toLowerCase())).forEach(a=>{
+      const sel = state.amenities.includes(a.id);
+      const el = document.createElement("div");
+      el.className = "arw-amenity" + (sel?" sel":"");
+      el.innerHTML = `<span class="a-ico">${icon(a.icon)}</span>
+        <div><div class="a-name">${a.name}</div><div class="a-sub">${a.sub}</div></div>
+        <span class="a-check">${sel?icon('check'):''}</span>`;
+      el.addEventListener("click", ()=>{
+        const idx = state.amenities.indexOf(a.id);
+        if(idx>-1) state.amenities.splice(idx,1); else state.amenities.push(a.id);
+        renderAmenities($("#arwAmenitySearch").value);
+        renderSelected();
+      });
+      amenityGrid.appendChild(el);
+    });
+  }
+  $("#arwAmenitySearch").addEventListener("input", e=>renderAmenities(e.target.value));
+
+  // ── Add Custom Amenity — persists to pms.Property via the backend
+  // before it's added to local state, so the id is always real and
+  // survives the server-side Property.filter(id__in=...) check. ──
+  const amenityModal = $("#arwAmenityModal");
+  const amenityModalInput = $("#arwAmenityModalInput");
+  const amenityModalErr = $("#arwAmenityModalErr");
+  const amenityModalOkBtn = $("#arwAmenityModalOk");
+
+  function openAmenityModal(){
+    amenityModalInput.value = "";
+    amenityModalErr.textContent = "";
+    amenityModal.classList.add("show");
+    setTimeout(()=>amenityModalInput.focus(), 50);
+  }
+  function closeAmenityModal(){
+    amenityModal.classList.remove("show");
+  }
+
+  $("#arwAddAmenityBtn").addEventListener("click", openAmenityModal);
+  $("#arwAmenityModalCancel").addEventListener("click", closeAmenityModal);
+  amenityModal.addEventListener("click", e=>{ if(e.target===amenityModal) closeAmenityModal(); });
+  amenityModalInput.addEventListener("keydown", e=>{
+    if(e.key==="Enter"){ e.preventDefault(); amenityModalOkBtn.click(); }
+    if(e.key==="Escape"){ closeAmenityModal(); }
+  });
+
+  amenityModalOkBtn.addEventListener("click", ()=>{
+    const name = amenityModalInput.value.trim();
+    if(!name){ amenityModalErr.textContent = "Please enter a name."; return; }
+
+    amenityModalOkBtn.disabled = true;
+    amenityModalOkBtn.textContent = "Adding...";
+
+    fetch("{% url 'add_room_amenity' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: name }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { amenityModalErr.textContent = data.error; return; }
+        AMENITIES.push({ id: data.id, icon: "sparkles", name: data.name, sub: "" });
+        state.amenities.push(data.id);
+        renderAmenities($("#arwAmenitySearch").value);
+        renderSelected();
+        closeAmenityModal();
+        showToast(`"${data.name}" added`);
+      })
+      .catch(() => { amenityModalErr.textContent = "Could not add amenity. Try again."; })
+      .finally(() => {
+        amenityModalOkBtn.disabled = false;
+        amenityModalOkBtn.textContent = "Add Amenity";
+      });
+  });
+  const assetList = $("#arwAssetList");
+  function renderAssets(filter=""){
+    assetList.innerHTML = "";
+    ASSETS.filter(a=>a.name.toLowerCase().includes(filter.toLowerCase())).forEach(a=>{
+      const sel = state.assets.includes(a.id);
+      const row = document.createElement("div");
+      row.className = "arw-asset-row" + (sel?" sel":"");
+      row.innerHTML = `<span class="a-check">${sel?icon('check'):''}</span>
+        <span class="a-ico">${icon(a.icon)}</span>
+        <div><div class="a-name">${a.name}</div><div class="a-sub">${a.sub}</div></div>
+        <span class="a-status"><span class="arw-dot"></span>Active</span>`;
+      row.addEventListener("click", ()=>{
+        const idx = state.assets.indexOf(a.id);
+        if(idx>-1) state.assets.splice(idx,1); else state.assets.push(a.id);
+        renderAssets($("#arwAssetSearch").value);
+        renderSelected();
+      });
+      assetList.appendChild(row);
+    });
+  }
+  $("#arwAssetSearch").addEventListener("input", e=>renderAssets(e.target.value));
+
+  document.querySelectorAll(".arw-tab").forEach(tab=>{
+    tab.addEventListener("click", ()=>{
+      document.querySelectorAll(".arw-tab").forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      const isAmenities = tab.dataset.tab==="amenities";
+      $("#arwTabAmenities").style.display = isAmenities ? "block" : "none";
+      $("#arwTabAssets").style.display = isAmenities ? "none" : "block";
+    });
+  });
+
+  function renderSelected(){
+    const list = $("#arwSelectedList");
+    list.innerHTML = "";
+    const selAmenities = AMENITIES.filter(a=>state.amenities.includes(a.id));
+    const selAssets = ASSETS.filter(a=>state.assets.includes(a.id));
+    const total = selAmenities.length + selAssets.length + state.features.length;
+    if(total===0){
+      list.innerHTML = `<div class="arw-sel-empty">Nothing selected yet</div>`;
+    } else {
+      // NEW — specialty feature tags (plain strings, no id)
+      state.features.forEach(name=>{
+        const featItem = COMMON_FEATURES.find(f=>f.name===name);
+        const ic = featItem ? featItem.icon : 'sparkles';
+        const it = document.createElement("div");
+        it.className = "arw-sel-item";
+        it.innerHTML = `<span class="a-ico">${icon(ic)}</span><span class="a-name">${name}</span><span class="a-x">${icon('x')}</span>`;
+        it.querySelector(".a-x").addEventListener("click", ()=>{
+          state.features = state.features.filter(n=>n!==name);
+          renderCommonFeatures(); renderSelected();
+        });
+        list.appendChild(it);
+      });
+      selAmenities.forEach(a=>{
+        const it = document.createElement("div");
+        it.className = "arw-sel-item";
+        it.innerHTML = `<span class="a-ico">${icon(a.icon)}</span><span class="a-name">${a.name}</span><span class="a-x">${icon('x')}</span>`;
+        it.querySelector(".a-x").addEventListener("click", ()=>{
+          state.amenities = state.amenities.filter(id=>id!==a.id);
+          renderAmenities($("#arwAmenitySearch").value); renderSelected();
+        });
+        list.appendChild(it);
+      });
+      selAssets.forEach(a=>{
+        const it = document.createElement("div");
+        it.className = "arw-sel-item";
+        it.innerHTML = `<span class="a-ico">${icon(a.icon)}</span><span class="a-name">${a.name}</span><span class="a-x">${icon('x')}</span>`;
+        it.querySelector(".a-x").addEventListener("click", ()=>{
+          state.assets = state.assets.filter(id=>id!==a.id);
+          renderAssets($("#arwAssetSearch").value); renderSelected();
+        });
+        list.appendChild(it);
+      });
+    }
+    $("#arwSelCountNum").textContent = total;
+  }
+
+  const IMG_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>`;
+
+  const thumbGrid = $("#arwThumbGrid");
+  function renderThumbs(){
+    thumbGrid.innerHTML = "";
+    const slots = Math.max(8, state.images.length);
+    for(let i=0;i<slots;i++){
+      const div = document.createElement("div");
+      div.className = "arw-thumb";
+      const img = state.images[i];
+      if(img){
+        div.innerHTML = `<img src="${img.src}">` + (i===0?`<div class="primary-tag">COVER</div>`:"") + `<div class="rm">${icon('x')}</div>`;
+        div.querySelector(".rm").addEventListener("click", (e)=>{
+          e.stopPropagation();
+          state.images.splice(i,1);
+          renderThumbs();
+        });
+      } else {
+        div.innerHTML = IMG_ICON;
+      }
+      thumbGrid.appendChild(div);
+    }
+    $("#arwImgCount").textContent = state.images.length;
+    $("#arwImgCountRight").textContent = state.images.length + "/10";
+  }
+  function handleFiles(files){
+    [...files].slice(0, 10-state.images.length).forEach(file=>{
+      if(!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = ev=>{
+        state.images.push({name:file.name, src:ev.target.result, file:file});
+        renderThumbs();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  $("#arwChooseFilesBtn").addEventListener("click", ()=>$("#arwFileInput").click());
+  $("#arwFileInput").addEventListener("change", e=>handleFiles(e.target.files));
+  const dz = $("#arwDropzone");
+  dz.addEventListener("click", ()=>$("#arwFileInput").click());
+  ["dragenter","dragover"].forEach(evt=>dz.addEventListener(evt, e=>{e.preventDefault(); dz.classList.add("drag");}));
+  ["dragleave","drop"].forEach(evt=>dz.addEventListener(evt, e=>{e.preventDefault(); dz.classList.remove("drag");}));
+  dz.addEventListener("drop", e=>handleFiles(e.dataTransfer.files));
+
+  function renderReview(){
+    const typeLabel = state.room_type==="Custom" ? ($("#arwCustomRoomType").value || "Custom") : state.room_type;
+    const rows = [
+      ["Room Type", typeLabel],
+      ["Total Units", state.total_units],
+      ["Base Price (₹/night)", "₹" + state.base_price],
+      ["Max Adults", state.max_adults + " adults"],
+      ["Max Children", state.max_children],
+      ["Extra Adult (₹)", state.extra_adult_price],
+      ["Overstay Charge (₹/day)", state.overstay_price],
+      ["Amenities & Assets", (state.amenities.length + state.assets.length) + " selected"],
+      ["Specialties", state.features.length ? state.features.join(", ") : "—"],
+      ["Description", state.description || "—"],
+    ];
+    $("#arwReviewInfo").innerHTML = rows.map(r=>
+      `<div class="arw-kv"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`
+    ).join("");
+
+    const box = $("#arwReviewImgBox");
+    const note = $("#arwReviewImgNote");
+    if(state.images.length){
+      box.className = "arw-review-img-grid";
+      box.innerHTML = state.images.slice(0,8).map((img,i)=>
+        `<div class="arw-thumb" style="aspect-ratio:1"><img src="${img.src}">${i===0?'<div class="primary-tag">COVER</div>':''}</div>`
+      ).join("");
+      note.textContent = `${state.images.length} image(s) selected — looking good!`;
+    } else {
+      box.className = "arw-review-img-box";
+      box.innerHTML = IMG_ICON + `<div>No images uploaded</div>`;
+      note.textContent = "Only 0 image(s) selected — add images to showcase your room better.";
+    }
+  }
+
+  const bind = (id, key, isNum) => $(id).addEventListener("input", e=>{
+    state[key] = isNum ? (parseFloat(e.target.value)||0) : e.target.value;
+  });
+  bind("#arwTotalUnits","total_units",true);
+  bind("#arwBasePrice","base_price",true);
+  bind("#arwMaxAdults","max_adults",true);
+  bind("#arwMaxChildren","max_children",true);
+  bind("#arwExtraAdult","extra_adult_price",true);
+  bind("#arwOverstay","overstay_price",true);
+  bind("#arwCustomRoomType","custom_room_type",false);
+
+  function validateStep(n){
+    if(n===1){
+      if(state.room_type==="Custom" && !$("#arwCustomRoomType").value.trim()){
+        showToast("Custom room type name is required"); return false;
+      }
+      if(!state.description.trim()){
+        showToast("Description is required"); return false;
+      }
+      if(state.base_price<0 || state.total_units<1){
+        showToast("Please check units and price"); return false;
+      }
+    }
+    return true;
+  }
+
+  $("#arwNextBtn").addEventListener("click", ()=>{
+    if(!validateStep(current)) return;
+    if(current<4){ current++; showPane(current); }
+    else { saveRoom(); }
+  });
+  $("#arwBackBtn").addEventListener("click", ()=>{
+    if(current>1){ current--; showPane(current); }
+  });
+
+  // ── SAVE ROOM ──────────────────────────────────────────────────────
+  // Posts to pms.views.add_room (the real room-creation endpoint) — not
+  // hotel_setup — so this page never touches the setup wizard or its
+  // Subscription-plan step. After a successful save, the selected assets
+  // are linked to the new room, then the page redirects using the
+  // redirect_url the backend returns (falls back to view_rooms_page).
+  function saveRoom(){
+    const saveBtn = $("#arwNextBtn");
+    const backBtn = $("#arwBackBtn");
+    saveBtn.disabled = true;
+    backBtn.disabled = true;
+    const originalLabel = saveBtn.textContent;
+    saveBtn.textContent = "Saving...";
+
+    const fd = new FormData();
+    fd.append("room_type", state.room_type);
+    fd.append("custom_room_type", state.room_type==="Custom" ? $("#arwCustomRoomType").value : "");
+    fd.append("total_units", state.total_units);
+    fd.append("base_price", state.base_price);
+    fd.append("max_adults", state.max_adults);
+    fd.append("max_children", state.max_children);
+    fd.append("extra_adult_price", state.extra_adult_price);
+    fd.append("overstay_price", state.overstay_price);
+    fd.append("description", state.description);
+    state.amenities.forEach(id=>fd.append("amenities", id));
+    state.features.forEach(name=>fd.append("features", name));
+    state.images.forEach(img=>{ if(img.file) fd.append("images", img.file, img.name); });
+
+    fetch("{% url 'add_room' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": getCookie("csrftoken") },
+      body: fd,
+    })
+      .then(r => {
+        const contentType = r.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error("Server did not return JSON (got redirected).");
+        }
+        return r.json();
+      })
+      .then(async (data) => {
+        if (data.success) {
+          // Link the selected assets to the newly created room.
+          if (data.room_id && state.assets.length) {
+            try {
+              await fetch("/inventory/assets/assign-room/", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": getCookie("csrftoken"),
+                },
+                body: JSON.stringify({ room_id: data.room_id, asset_ids: state.assets }),
+              });
+            } catch (e) {
+              /* asset linking is best-effort; don't block the redirect on it */
+            }
+          }
+
+          showToast("Room saved successfully");
+          setTimeout(()=>{
+            window.location.href = data.redirect_url || "{% url 'view_rooms_page' %}";
+          }, 900);
+        } else {
+          showToast(data.error || "Could not save room");
+          saveBtn.disabled = false;
+          backBtn.disabled = false;
+          saveBtn.textContent = originalLabel;
+        }
+      })
+      .catch(err => {
+        console.error("Save room failed:", err);
+        showToast("Something went wrong while saving the room");
+        saveBtn.disabled = false;
+        backBtn.disabled = false;
+        saveBtn.textContent = originalLabel;
+      });
+  }
+
+  function showToast(msg){
+    const t = $("#arwToast");
+    t.innerHTML = icon('check') + `<span>${msg}</span>`;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  renderCommonFeatures();
+  renderAmenities();
+  renderAssets();
+  renderSelected();
+  renderThumbs();
+  showPane(1);
+})();
+</script>
+{% endblock %}

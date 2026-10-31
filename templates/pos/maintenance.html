@@ -1,0 +1,604 @@
+{% extends "pos/base.html" %}
+{% load static %}
+
+{% block title %}Maintenance{% endblock %}
+
+{% block extra_head %}
+<style>
+  .mt-wrap { --mt-border: var(--admio-border-color, #e5e7eb); --mt-muted: #6b7280; --mt-primary: var(--admio-primary, #7C3AED); --mt-primary-dark: #6D28D9;
+    --mt-soft: rgba(124,58,237,.09); --mt-ring: rgba(124,58,237,.14);
+    --mt-input-bg: var(--admio-input-bg, #fff); --mt-text: var(--admio-text-color, #374151); }
+  .mt-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+  .mt-title-row { display: flex; align-items: center; gap: 14px; }
+  .mt-title-ico { width: 54px; height: 54px; border-radius: 16px; background: var(--mt-soft); color: var(--mt-primary); display: grid; place-items: center; font-size: 26px; }
+  .mt-title { font-size: 1.9rem; font-weight: 800; margin: 0; line-height: 1.1; }
+  .mt-sub { color: var(--mt-muted); font-size: 1rem; margin: 2px 0 0; }
+  .mt-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; border: 1px solid var(--mt-border); background: var(--mt-input-bg); color: var(--mt-text); transition: background .15s, color .15s, border-color .15s; }
+  .mt-btn:hover { background: var(--mt-soft); color: var(--mt-primary); border-color: var(--mt-primary); }
+  .mt-btn-primary { background: var(--mt-primary); border-color: var(--mt-primary); color: #fff; }
+  .mt-btn-primary:hover { background: var(--mt-primary-dark); border-color: var(--mt-primary-dark); color: #fff; }
+  .mt-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+  .mt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 24px; }
+  .mt-stat { display: flex; align-items: center; gap: 16px; padding: 22px; border-radius: 18px; border: 1px solid var(--mt-border); }
+  .mt-stat-ico { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; flex-shrink: 0; }
+  .mt-stat-val { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+  .mt-stat-lbl { font-weight: 700; margin-top: 4px; }
+  .mt-stat-note { font-size: .9rem; color: var(--mt-muted); }
+  .mt-s-total { background: #eff6ff; } .mt-s-total .mt-stat-ico { background: #dbeafe; color: #2563eb; }
+  .mt-s-open { background: #ecfdf5; } .mt-s-open .mt-stat-ico { background: #d1fae5; color: #059669; }
+  .mt-s-prog { background: #fff7ed; } .mt-s-prog .mt-stat-ico { background: #ffedd5; color: #ea580c; }
+  .mt-s-done { background: #f5f3ff; } .mt-s-done .mt-stat-ico { background: #ede9fe; color: #7c3aed; }
+  .mt-stat { cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; outline: none; }
+  .mt-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.07); }
+  .mt-stat:focus-visible, .mt-stat.active { border-color: var(--mt-primary); box-shadow: 0 0 0 3px var(--mt-ring); }
+  .mt-stat-val { transition: opacity .2s; }
+  .mt-stat-note.warn { color: #b91c1c; font-weight: 600; }
+
+  .mt-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start; }
+  .mt-card { background: #fff; border: 1px solid var(--mt-border); border-radius: 20px; padding: 26px; min-width: 0; }
+  .mt-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .mt-card-title { font-size: 1.3rem; font-weight: 700; margin: 0; }
+  .mt-tabs { display: inline-flex; background: #f3f4f6; border-radius: 999px; padding: 4px; }
+  .mt-tab:hover:not(.active) { color: var(--mt-primary); }
+  .mt-tab { border: 0; background: transparent; padding: 7px 18px; border-radius: 999px; font-size: .95rem; font-weight: 600; color: var(--mt-muted); cursor: pointer; }
+  .mt-tab.active { background: var(--mt-primary); color: #fff; }
+
+  .mt-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .mt-input, .mt-select, .mt-textarea { border: 1px solid var(--mt-border); border-radius: 10px; padding: 9px 12px; font-size: .95rem; background: var(--mt-input-bg); color: var(--mt-text); outline: none; }
+  .mt-input:focus, .mt-select:focus, .mt-textarea:focus { border-color: var(--mt-primary); box-shadow: 0 0 0 3px var(--mt-ring); }
+  .mt-search { flex: 1; min-width: 200px; }
+  .mt-count { text-align: right; font-size: .85rem; color: var(--mt-muted); margin-bottom: 10px; }
+
+  /* ── TABLE ── */
+  .mt-table-wrap { overflow-x: auto; border: 1px solid var(--mt-border); border-radius: 14px; }
+  .mt-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  .mt-table thead th {
+    background: #f9fafb; color: var(--mt-muted); font-size: .8rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em; text-align: left;
+    padding: 13px 16px; border-bottom: 1px solid var(--mt-border); white-space: nowrap;
+  }
+  .mt-table tbody td { padding: 14px 16px; border-bottom: 1px solid var(--mt-border); vertical-align: middle; font-size: .95rem; }
+  .mt-table tbody tr:last-child td { border-bottom: 0; }
+  .mt-table tbody tr:hover { background: #f9fafb; }
+  .mt-td-id { color: var(--mt-muted); font-weight: 600; white-space: nowrap; }
+  .mt-td-issue { min-width: 200px; max-width: 320px; }
+  .mt-issue { font-weight: 700; word-break: break-word; }
+  .mt-issue-note { font-size: .85rem; color: var(--mt-muted); margin-top: 3px; word-break: break-word; }
+  .mt-td-nowrap { white-space: nowrap; }
+  .mt-muted { color: var(--mt-muted); }
+
+  .mt-badge { display: inline-block; font-size: .8rem; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; background: #f3f4f6; color: #4b5563; }
+  .mt-b-medium { background: #dbeafe; color: #1d4ed8; }
+  .mt-b-high { background: #fef3c7; color: #b45309; }
+  .mt-b-critical { background: #fee2e2; color: #b91c1c; }
+  .mt-status-select { padding: 6px 10px; font-size: .88rem; }
+  .mt-st-open { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+  .mt-st-in_progress { border-color: #fed7aa; background: #fff7ed; color: #c2410c; }
+  .mt-st-completed { border-color: #ddd6fe; background: #f5f3ff; color: #6d28d9; }
+  .mt-st-cancelled { border-color: #e5e7eb; background: #f3f4f6; color: #6b7280; }
+
+  .mt-empty { text-align: center; padding: 60px 20px; color: var(--mt-muted); }
+  .mt-empty i { font-size: 54px; color: var(--mt-primary); opacity: .45; }
+  .mt-empty h4 { color: #111827; font-size: 1.1rem; font-weight: 700; margin: 14px 0 4px; }
+
+  .mt-form-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .mt-form-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--mt-soft); color: var(--mt-primary); display: grid; place-items: center; font-size: 20px; }
+  .mt-field { margin-bottom: 14px; }
+  .mt-field label { display: block; font-size: .85rem; font-weight: 700; margin-bottom: 6px; color: #374151; }
+  .mt-field .mt-select, .mt-field .mt-input, .mt-field .mt-textarea { width: 100%; }
+  .mt-textarea { resize: vertical; min-height: 84px; }
+  .mt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mt-msg { font-size: .9rem; margin-top: 10px; display: none; }
+  .mt-msg.err { display: block; color: #b91c1c; } .mt-msg.ok { display: block; color: #047857; }
+
+  /* tabs never wrap: they scroll sideways if the screen is narrow */
+  .mt-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .mt-tabs::-webkit-scrollbar { display: none; }
+  .mt-tab { white-space: nowrap; flex-shrink: 0; }
+  .mt-wrap, .mt-grid > * { min-width: 0; }
+
+  /* ── RESPONSIVE ── */
+  [data-theme="dark"] .mt-card, [data-theme="dark"] .mt-table tbody tr { background: var(--admio-card-bg, #1e1e2d); }
+  [data-theme="dark"] .mt-tabs, [data-theme="dark"] .mt-table thead th { background: rgba(255,255,255,.05); }
+  [data-theme="dark"] .mt-table tbody tr:hover { background: rgba(255,255,255,.04); }
+  [data-theme="dark"] .mt-title, [data-theme="dark"] .mt-card-title, [data-theme="dark"] .mt-issue,
+  [data-theme="dark"] .mt-field label, [data-theme="dark"] .mt-empty h4 { color: #e5e7eb; }
+
+  @media (max-width: 1199px) { .mt-grid { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 991px)  { .mt-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  @media (max-width: 767px) {
+    .mt-title { font-size: 1.5rem; }
+    .mt-title-ico { width: 46px; height: 46px; font-size: 22px; }
+    .mt-header { margin-bottom: 20px; }
+    .mt-header > div:last-child { width: 100%; }
+    .mt-header .mt-btn { flex: 1; justify-content: center; padding: 10px 12px; font-size: .95rem; }
+
+    .mt-stats { gap: 12px; margin-bottom: 18px; }
+    .mt-stat { padding: 14px; gap: 12px; }
+    .mt-stat-ico { width: 42px; height: 42px; font-size: 20px; }
+    .mt-stat-val { font-size: 1.7rem; }
+    .mt-stat-lbl { font-size: .9rem; }
+    .mt-stat-note { font-size: .78rem; }
+
+    .mt-card { padding: 16px; border-radius: 16px; }
+    .mt-card-head { flex-direction: column; align-items: stretch; }
+    .mt-tabs { width: 100%; }
+    .mt-tab { flex: 1; padding: 8px 12px; font-size: .9rem; }
+
+    /* filters: 2-column grid */
+    .mt-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .mt-filters .mt-search { grid-column: 1 / -1; min-width: 0; }
+    .mt-filters .mt-input, .mt-filters .mt-select { width: 100%; min-width: 0; }
+    .mt-filters #fClear { grid-column: 1 / -1; justify-content: center; }
+
+    /* table → stacked cards */
+    .mt-table-wrap { border: 0; overflow: visible; }
+    .mt-table { min-width: 0; }
+    .mt-table thead { display: none; }
+    .mt-table, .mt-table tbody, .mt-table tr, .mt-table td { display: block; width: 100%; }
+    .mt-table tbody tr { border: 1px solid var(--mt-border); border-radius: 14px; margin-bottom: 12px; padding: 4px 14px; background: #fff; }
+    .mt-table tbody tr:hover { background: #fff; }
+    .mt-table tbody td {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+      padding: 10px 0; border-bottom: 1px dashed var(--mt-border); text-align: right; font-size: .92rem;
+    }
+    .mt-table tbody td:last-child { border-bottom: 0; }
+    .mt-table tbody td::before {
+      content: attr(data-label); flex-shrink: 0; text-align: left;
+      font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--mt-muted);
+      padding-top: 3px;
+    }
+    .mt-td-issue { max-width: none; min-width: 0; }
+    .mt-td-nowrap { white-space: normal; }
+    .mt-td-empty::before { display: none !important; }
+    .mt-td-empty { display: block !important; text-align: center !important; }
+    .mt-table tbody tr:has(.mt-td-empty) { border: 0; padding: 0; }
+    .mt-status-select { min-width: 130px; }
+
+    .mt-row2 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  }
+
+  @media (max-width: 479px) {
+    .mt-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mt-stat { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .mt-row2 { grid-template-columns: 1fr; gap: 0; }
+    .mt-tab { padding: 8px 10px; font-size: .85rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mt-wrap">
+
+  <div class="mt-header">
+    <div class="mt-title-row">
+      <div class="mt-title-ico"><i class="icon-wrench"></i></div>
+      <div>
+        <h1 class="mt-title">Maintenance</h1>
+        <p class="mt-sub">Log and review maintenance work for your property.</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" class="mt-btn" id="mtRefresh"><i class="icon-refresh-cw"></i> Refresh</button>
+      <button type="button" class="mt-btn mt-btn-primary" id="mtFocusForm"><i class="icon-plus"></i> Log Maintenance</button>
+    </div>
+  </div>
+
+  <div class="mt-stats">
+    <div class="mt-stat mt-s-total" data-tab="all" role="button" tabindex="0">
+      <div class="mt-stat-ico"><i class="icon-clipboard-list"></i></div>
+      <div><div class="mt-stat-val" id="stTotal">0</div><div class="mt-stat-lbl">Total Logs</div><div class="mt-stat-note" id="stTotalNote">No logs recorded yet</div></div>
+    </div>
+    <div class="mt-stat mt-s-open" data-tab="open" role="button" tabindex="0">
+      <div class="mt-stat-ico"><i class="icon-hourglass"></i></div>
+      <div><div class="mt-stat-val" id="stOpen">0</div><div class="mt-stat-lbl">Open</div><div class="mt-stat-note" id="stOpenNote">Pending maintenance</div></div>
+    </div>
+    <div class="mt-stat mt-s-prog" data-tab="in_progress" role="button" tabindex="0">
+      <div class="mt-stat-ico"><i class="icon-clock"></i></div>
+      <div><div class="mt-stat-val" id="stProg">0</div><div class="mt-stat-lbl">In Progress</div><div class="mt-stat-note" id="stProgNote">Currently being worked on</div></div>
+    </div>
+    <div class="mt-stat mt-s-done" data-tab="completed" role="button" tabindex="0">
+      <div class="mt-stat-ico"><i class="icon-circle-check"></i></div>
+      <div><div class="mt-stat-val" id="stDone">0</div><div class="mt-stat-lbl">Completed</div><div class="mt-stat-note" id="stDoneNote">Successfully resolved</div></div>
+    </div>
+  </div>
+
+  <div class="mt-grid">
+
+    <!-- LOGS TABLE -->
+    <section class="mt-card">
+      <div class="mt-card-head">
+        <div>
+          <h2 class="mt-card-title">Maintenance Logs</h2>
+          <div class="mt-sub" style="font-size:.9rem">View and manage all maintenance records.</div>
+        </div>
+        <div class="mt-tabs" id="mtTabs">
+          <button class="mt-tab active" data-status="all">All</button>
+          <button class="mt-tab" data-status="open">Open</button>
+          <button class="mt-tab" data-status="in_progress">In Progress</button>
+          <button class="mt-tab" data-status="completed">Completed</button>
+        </div>
+      </div>
+
+      <div class="mt-filters">
+        <input type="text" class="mt-input mt-search" id="fSearch" placeholder="Search by issue, location, or notes…">
+        <select class="mt-select" id="fPriority">
+          <option value="">All Priorities</option>
+          {% for v, l in priorities %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+        </select>
+        <select class="mt-select" id="fType">
+          <option value="">All Types</option>
+          {% for v, l in types %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+        </select>
+        <input type="date" class="mt-input" id="fFrom" title="From">
+        <input type="date" class="mt-input" id="fTo" title="To">
+        <button type="button" class="mt-btn" id="fClear">Clear</button>
+      </div>
+
+      <div class="mt-count" id="mtCount">0 logs</div>
+
+      <div class="mt-table-wrap">
+        <table class="mt-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Issue / Work</th>
+              <th>Location</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Date</th>
+              <th>Assigned / Logged By</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="mtBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FORM -->
+    <aside class="mt-card">
+      <div class="mt-form-head">
+        <div class="mt-form-ico"><i class="icon-plus"></i></div>
+        <div>
+          <h2 class="mt-card-title" style="font-size:1.15rem">Log Maintenance</h2>
+          <div class="mt-sub" style="font-size:.85rem">Create a new maintenance record.</div>
+        </div>
+      </div>
+
+      <div class="mt-field">
+        <label for="mRoom">Room / Task Reference</label>
+        <select class="mt-select" id="mRoom">
+          <option value="">Select Room (optional)</option>
+          {% for u in room_units %}
+            <option value="Room {{ u.room_number }}{% if u.room %} — {{ u.room.room_type }}{% endif %}">Room {{ u.room_number }}{% if u.room %} · {{ u.room.room_type }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mt-field">
+        <label for="mIssue">Issue / Work Details</label>
+        <textarea class="mt-textarea" id="mIssue" placeholder="e.g. Water leakage in bathroom, AC not working…"></textarea>
+      </div>
+
+      <div class="mt-field">
+        <label for="mType">Type</label>
+        <select class="mt-select" id="mType">
+          {% for v, l in types %}<option value="{{ v }}" {% if v == 'reactive' %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="mt-row2">
+        <div class="mt-field">
+          <label for="mPriority">Priority</label>
+          <select class="mt-select" id="mPriority">
+            {% for v, l in priorities %}<option value="{{ v }}" {% if v == 'medium' %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="mt-field">
+          <label for="mStatus">Status</label>
+          <select class="mt-select" id="mStatus">
+            {% for v, l in statuses %}<option value="{{ v }}" {% if v == 'open' %}selected{% endif %}>{{ l }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-field">
+        <label for="mAssignee">Assigned To</label>
+        <select class="mt-select" id="mAssignee">
+          <option value="">Select staff (optional)</option>
+          {% for s in staff_list %}<option value="{{ s.name }}">{{ s.name }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="mt-field">
+        <label for="mNotes">Notes</label>
+        <textarea class="mt-textarea" id="mNotes" placeholder="Additional notes…"></textarea>
+      </div>
+
+      <button type="button" class="mt-btn mt-btn-primary" id="mSubmit" style="width:100%; justify-content:center;">
+        <i class="icon-send"></i> Submit Maintenance
+      </button>
+      <div class="mt-msg" id="mMsg"></div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // ⚠️ Set these to the URLs of your existing inventory maintenance endpoints
+  //    (list_maintenance_logs, add_maintenance_log, update_maintenance_status).
+  const API = {
+    list:   "/inventory/maintenance/",              // GET  → {logs: [...]}
+    add:    "/inventory/maintenance/add/",          // POST → JSON body
+    status: "/inventory/maintenance/{id}/status/",  // POST → {status}; {id} is replaced
+  };
+
+  const DEPARTMENT_ID = {{ staff.department_id|default:"null" }};
+  const TYPE_LABELS = { {% for v, l in types %}"{{ v }}": "{{ l|escapejs }}",{% endfor %} };
+  const PRIORITY_LABELS = { {% for v, l in priorities %}"{{ v }}": "{{ l|escapejs }}",{% endfor %} };
+  const STATUSES = [ {% for v, l in statuses %}["{{ v }}", "{{ l|escapejs }}"],{% endfor %} ];
+
+  let logs = [];
+  let tab = "all";
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function localDate(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+  function niceDate(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleString([], { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  function csrfToken() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  function norm(l) {
+    return {
+      id: l.id,
+      issue: l.description || "",
+      asset: l.asset || l.custom_asset || "",
+      location: l.location || "",
+      type: l.type,
+      typeLabel: TYPE_LABELS[l.type] || l.type || "",
+      priority: l.priority,
+      priorityLabel: PRIORITY_LABELS[l.priority] || l.priority || "",
+      status: l.status,
+      by: l.performed_by || "",
+      loggedBy: l.recorded_by || "",
+      notes: l.notes || "",
+      when: l.performed_at,
+      date: localDate(l.performed_at),
+    };
+  }
+
+  // animate a number from its current value to the new one
+  function countTo(el, target) {
+    const from = parseInt(el.textContent, 10) || 0;
+    if (from === target) return;
+    const start = performance.now(), dur = 450;
+    (function step(now) {
+      const t = Math.min((now - start) / dur, 1);
+      el.textContent = Math.round(from + (target - from) * t);
+      if (t < 1) requestAnimationFrame(step);
+    })(start);
+  }
+
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+  function stats() {
+    const open = logs.filter((l) => l.status === "open");
+    const prog = logs.filter((l) => l.status === "in_progress");
+    const done = logs.filter((l) => l.status === "completed");
+    const today = localDate(new Date().toISOString());
+    const todayCount = logs.filter((l) => l.date === today).length;
+    const criticalOpen = [...open, ...prog].filter((l) => l.priority === "critical").length;
+
+    countTo($("stTotal"), logs.length);
+    countTo($("stOpen"), open.length);
+    countTo($("stProg"), prog.length);
+    countTo($("stDone"), done.length);
+
+    $("stTotalNote").textContent = logs.length
+      ? (todayCount ? `${plural(todayCount, "log")} added today` : "No logs added today")
+      : "No logs recorded yet";
+
+    const openNote = $("stOpenNote");
+    openNote.textContent = open.length
+      ? (criticalOpen ? `${criticalOpen} critical need attention` : "Pending maintenance")
+      : "Nothing pending";
+    openNote.classList.toggle("warn", criticalOpen > 0 && open.length > 0);
+
+    $("stProgNote").textContent = prog.length
+      ? `${plural(prog.length, "job")} being worked on`
+      : "No work in progress";
+
+    $("stDoneNote").textContent = logs.length
+      ? `${Math.round((done.length / logs.length) * 100)}% completion rate`
+      : "Successfully resolved";
+
+    // highlight the card that matches the active tab
+    document.querySelectorAll(".mt-stat").forEach((c) =>
+      c.classList.toggle("active", c.dataset.tab === tab && tab !== "all"));
+  }
+
+  function filtered() {
+    const q = $("fSearch").value.trim().toLowerCase();
+    const pr = $("fPriority").value, ty = $("fType").value;
+    const from = $("fFrom").value, to = $("fTo").value;
+    return logs.filter((l) => {
+      if (tab !== "all" && l.status !== tab) return false;
+      if (pr && l.priority !== pr) return false;
+      if (ty && l.type !== ty) return false;
+      if (from && l.date < from) return false;
+      if (to && l.date > to) return false;
+      if (q && ![l.issue, l.asset, l.location, l.notes, l.by, l.typeLabel].join(" ").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    stats();
+    const rows = filtered();
+    $("mtCount").textContent = rows.length + (rows.length === 1 ? " log" : " logs");
+
+    if (!rows.length) {
+      $("mtBody").innerHTML =
+        '<tr><td colspan="8" class="mt-td-empty"><div class="mt-empty"><i class="icon-clipboard-list"></i>' +
+        "<h4>No maintenance logs match your search</h4>" +
+        "<div>Try adjusting your filters or search to find what you're looking for.</div></div></td></tr>";
+      return;
+    }
+
+    $("mtBody").innerHTML = rows.map((l) => {
+      const where = [l.asset, l.location].filter(Boolean).join(" · ");
+      const who = l.by
+        ? `${esc(l.by)}${l.loggedBy ? `<div class="mt-issue-note">logged by ${esc(l.loggedBy)}</div>` : ""}`
+        : (l.loggedBy ? esc(l.loggedBy) : '<span class="mt-muted">—</span>');
+      return `
+        <tr>
+          <td class="mt-td-id" data-label="Log">#${l.id}</td>
+          <td class="mt-td-issue" data-label="Issue">
+            <div>
+              <div class="mt-issue">${esc(l.issue)}</div>
+              ${l.notes ? `<div class="mt-issue-note">${esc(l.notes)}</div>` : ""}
+            </div>
+          </td>
+          <td data-label="Location">${where ? esc(where) : '<span class="mt-muted">—</span>'}</td>
+          <td class="mt-td-nowrap" data-label="Type">${esc(l.typeLabel)}</td>
+          <td data-label="Priority"><span class="mt-badge mt-b-${esc(l.priority)}">${esc(l.priorityLabel)}</span></td>
+          <td class="mt-td-nowrap" data-label="Date">${esc(niceDate(l.when))}</td>
+          <td data-label="By"><div>${who}</div></td>
+          <td data-label="Status">
+            <select class="mt-select mt-status-select mt-st-${esc(l.status)}" data-id="${l.id}">
+              ${STATUSES.map(([v, t]) => `<option value="${v}" ${v === l.status ? "selected" : ""}>${t}</option>`).join("")}
+            </select>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(API.list, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+      const data = await res.json();
+      logs = (data.logs || []).map(norm);
+    } catch (e) {
+      logs = [];
+    }
+    render();
+  }
+
+  // filters
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll(".mt-tab").forEach((b) => b.classList.toggle("active", b.dataset.status === t));
+    render();
+  }
+  $("mtTabs").addEventListener("click", (e) => {
+    const b = e.target.closest(".mt-tab"); if (!b) return;
+    setTab(b.dataset.status);
+  });
+
+  // clicking a stat card filters the list to that status
+  document.querySelectorAll(".mt-stat").forEach((card) => {
+    const go = () => {
+      setTab(tab === card.dataset.tab ? "all" : card.dataset.tab);
+      document.querySelector(".mt-table-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    card.addEventListener("click", go);
+    card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+
+  ["fSearch", "fPriority", "fType", "fFrom", "fTo"].forEach((id) => $(id).addEventListener("input", render));
+  $("fClear").addEventListener("click", () => {
+    ["fSearch", "fPriority", "fType", "fFrom", "fTo"].forEach((id) => ($(id).value = ""));
+    setTab("all");
+  });
+  $("mtRefresh").addEventListener("click", load);
+
+  // auto-refresh every 30s while the tab is visible
+  setInterval(() => {
+    const busy = document.activeElement && document.activeElement.classList.contains("mt-status-select");
+    if (!document.hidden && !busy) load();
+  }, 30000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+
+  // change status from the table
+  $("mtBody").addEventListener("change", async (e) => {
+    const sel = e.target.closest(".mt-status-select"); if (!sel) return;
+    try {
+      const res = await fetch(API.status.replace("{id}", sel.dataset.id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+        body: JSON.stringify({ status: sel.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Update failed");
+    } catch (err) {
+      alert(err.message);
+    }
+    load();
+  });
+
+  // create
+  function msg(text, ok) {
+    const m = $("mMsg");
+    m.textContent = text;
+    m.className = "mt-msg " + (ok ? "ok" : "err");
+  }
+
+  $("mSubmit").addEventListener("click", async () => {
+    const description = $("mIssue").value.trim();
+    if (!description) { msg("Please describe the issue / work details.", false); return; }
+    const btn = $("mSubmit");
+    btn.disabled = true;
+    try {
+      const res = await fetch(API.add, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+        body: JSON.stringify({
+          description: description,
+          location: $("mRoom").value,
+          maintenance_type: $("mType").value,
+          priority: $("mPriority").value,
+          status: $("mStatus").value,
+          performed_by: $("mAssignee").value,
+          notes: $("mNotes").value.trim(),
+          department_id: DEPARTMENT_ID,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not save");
+      ["mIssue", "mNotes"].forEach((id) => ($(id).value = ""));
+      $("mRoom").value = ""; $("mAssignee").value = "";
+      $("mPriority").value = "medium"; $("mStatus").value = "open"; $("mType").value = "reactive";
+      msg("Maintenance log saved.", true);
+      load();
+    } catch (err) {
+      msg(err.message, false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $("mtFocusForm").addEventListener("click", () => {
+    $("mIssue").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("mIssue").focus();
+  });
+
+  load();
+})();
+</script>
+{% endblock %}

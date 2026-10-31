@@ -1,0 +1,1282 @@
+{% extends 'pos/base.html' %}
+
+
+{% block title %}Order Summary{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+  .os {
+    --os-border: var(--admio-border-color, #e5e7ef);
+    --os-text: var(--admio-heading-color, #172033);
+    --os-muted: var(--admio-nav-color, #69758a);
+    --os-bg: #fff;
+    --os-soft: #f6f7fc;
+    color: var(--os-text);
+  }
+
+  .os-heading,
+  .os-actions,
+  .os-card-header,
+  .os-footer,
+  .os-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .os-heading { margin-bottom: 22px; }
+  .os-actions { justify-content: flex-start; }
+  .os-breadcrumb { margin-bottom: 8px; color: var(--os-muted); }
+  .os-breadcrumb a { color: #7c3aed; text-decoration: none; }
+  .os-muted { color: var(--os-muted); }
+
+  .os-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    min-height: 40px;
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    background: var(--os-bg);
+    color: var(--os-text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .os-button:hover { border-color: #bca5f7; color: #7c3aed; }
+  .os-button.primary { background: #7c3aed; border-color: #7c3aed; color: white; }
+  .os-button:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ── Date range bar ── */
+  .os-range {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    background: var(--os-bg);
+    border: 1px solid var(--os-border);
+    border-radius: 14px;
+  }
+  .os-range-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .os-range-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+  .os-range-title svg { width: 18px; height: 18px; color: #7c3aed; }
+  .os-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .os-chip {
+    padding: 7px 14px;
+    border: 1px solid var(--os-border);
+    border-radius: 999px;
+    background: var(--os-bg);
+    color: var(--os-text);
+    cursor: pointer;
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+  .os-chip:hover { border-color: #bca5f7; color: #7c3aed; }
+  .os-chip.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+  .os-range-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .os-range-label { color: var(--os-muted); font-size: .9rem; }
+  .os-custom {
+    display: none;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px dashed var(--os-border);
+  }
+  .os-custom.show { display: flex; }
+  .os-custom label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--os-muted); }
+  .os-custom .os-input { min-height: 40px; }
+  .os-range-error { width: 100%; color: #b42318; font-size: .85rem; }
+
+  /* ── Stat cards (each one separate) ── */
+  .os-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .os-stat {
+    --c: #3b82f6;
+    --c-soft: rgba(59, 130, 246, .10);
+    position: relative;
+    overflow: hidden;
+    padding: 18px 20px 18px 22px;
+    border-radius: 16px;
+    border: 1px solid var(--os-border);
+    border-left: 4px solid var(--c);
+    background: linear-gradient(135deg, var(--c-soft), transparent 75%), var(--os-bg);
+    box-shadow: 0 2px 10px rgba(20, 30, 60, .05);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .os-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(20, 30, 60, .10); }
+
+  /* dynamic behaviour: clickable, active filter ring, flash on change */
+  .os-stat[data-filter] { cursor: pointer; user-select: none; }
+  .os-stat.active { box-shadow: 0 0 0 2px var(--c), 0 8px 20px rgba(20, 30, 60, .10); }
+  .os-stat.updated { animation: os-flash .9s ease; }
+  .os-stat:focus-visible { outline: 3px solid var(--c); outline-offset: 3px; }
+  @keyframes os-flash {
+    0%   { box-shadow: 0 0 0 0 var(--c); }
+    40%  { box-shadow: 0 0 0 7px var(--c-soft); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  .os-header-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .os-live { display: inline-flex; align-items: center; gap: 8px; color: var(--os-muted); font-size: .9rem; }
+  .os-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: os-pulse 2s infinite; }
+  .os-live.offline .os-live-dot { background: #f59e0b; animation: none; }
+  @keyframes os-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .5); }
+    70%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .os-live-dot, .os-stat.updated { animation: none; }
+  }
+
+  .os-stat.s-blue   { --c: #3b82f6; --c-soft: rgba(59, 130, 246, .12); }
+  .os-stat.s-orange { --c: #f59e0b; --c-soft: rgba(245, 158, 11, .14); }
+  .os-stat.s-purple { --c: #7c3aed; --c-soft: rgba(124, 58, 237, .12); }
+  .os-stat.s-green  { --c: #22c55e; --c-soft: rgba(34, 197, 94, .13); }
+  .os-stat.s-pink   { --c: #f43f5e; --c-soft: rgba(244, 63, 94, .12); }
+
+  .os-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--c);
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .os-stat-icon svg { width: 20px; height: 20px; }
+
+  .os-stat-label { color: var(--os-muted); font-size: .95rem; }
+  .os-stat-value {
+    margin-top: 4px;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--os-text);
+    overflow-wrap: anywhere;
+  }
+
+  .os-stat-bg {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 68px;
+    height: 68px;
+    transform: translateY(-50%);
+    color: var(--c);
+    opacity: .16;
+    pointer-events: none;
+  }
+
+  .os-card {
+    background: var(--os-bg);
+    border: 1px solid var(--os-border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .os-card-header { padding: 20px 24px 12px; }
+  .os-count { background: var(--os-soft); padding: 4px 9px; border-radius: 20px; }
+
+  .os-tabs {
+    display: flex;
+    gap: 25px;
+    margin: 0 24px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--os-muted);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 15px 3px;
+    cursor: pointer;
+  }
+
+  .os-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+  .os-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .os-filters { display: flex; gap: 14px; padding: 18px 24px; }
+
+  .os-input {
+    min-height: 44px;
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    background: var(--os-bg);
+    color: var(--os-text);
+  }
+
+  .os-search { width: min(100%, 590px); }
+  .os-select { min-width: 210px; }
+  .os-scroll { overflow-x: auto; }
+
+  .os-table {
+    width: 100%;
+    min-width: 820px;
+    border-collapse: collapse;
+  }
+
+  .os-table th,
+  .os-table td {
+    padding: 15px 24px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-table th { background: var(--os-soft); color: var(--os-muted); }
+  .os-table tbody tr:hover { background: rgba(124, 58, 237, .035); }
+  .os-table .amount { text-align: right; white-space: nowrap; }
+  .os-table .action { text-align: right; white-space: nowrap; }
+  .os-sub { margin-top: 4px; color: var(--os-muted); }
+
+  .os-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+
+  .os-status.pending { background: #fff6df; color: #986000; }
+  .os-status.preparing { background: #edf3ff; color: #2458b9; }
+  .os-status.served { background: #eafaf1; color: #078348; }
+  .os-status.cancelled { background: #fff0f1; color: #c72c40; }
+
+  .os-view { color: #7c3aed; border-color: #e0d5fb; }
+  .os-footer { padding: 16px 24px; }
+  .os-pagination { display: flex; gap: 6px; flex-wrap: wrap; }
+  .os-page { padding: 7px 12px; min-width: 38px; }
+  .os-message { padding: 26px 24px; text-align: center; }
+  .os-error { color: #b42318; }
+
+  .os-modal {
+    width: min(1100px, calc(100vw - 32px));
+    max-height: 90vh;
+    margin: auto;
+    padding: 0;
+    background: var(--os-bg);
+    color: var(--os-text);
+    border: 1px solid var(--os-border);
+    border-radius: 16px;
+    overflow: auto;
+  }
+
+  .os-modal::backdrop { background: rgba(14, 20, 37, .5); }
+
+  .os-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--os-bg);
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-modal-body { padding: 24px; }
+
+  .os-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .os-detail-section {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--os-border);
+    border-radius: 12px;
+  }
+
+  .os-wide { grid-column: 1 / -1; }
+  .os-detail-section h3 { margin: 0 0 18px; }
+
+  .os-detail-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 18px;
+    margin: 0;
+  }
+
+  .os-detail-list dt { color: var(--os-muted); }
+  .os-detail-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+  .os-note {
+    background: var(--os-soft);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 16px 0 0;
+  }
+
+  .os-item-table { width: 100%; min-width: 480px; border-collapse: collapse; }
+  .os-item-table th,
+  .os-item-table td { padding: 12px 8px; border-bottom: 1px solid var(--os-border); }
+  .os-item-table th { text-align: left; color: var(--os-muted); }
+  .os-item-table th:last-child,
+  .os-item-table td:last-child { text-align: right; }
+  .os-totals { max-width: 420px; margin: 20px 0 0 auto; }
+  .os-payment + .os-payment { border-top: 1px solid var(--os-border); margin-top: 20px; padding-top: 20px; }
+
+  /* ── Update status ── */
+  .os-status-update {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .os-status-update .os-select { min-width: 200px; }
+  .os-status-msg { margin-top: 12px; }
+  .os-status-msg.ok { color: #078348; }
+  .os-status-msg.err { color: #b42318; }
+
+  .os :is(button, a, input, select):focus-visible {
+    outline: 3px solid #c4b5fd;
+    outline-offset: 3px;
+  }
+
+  [data-theme="dark"] .os {
+    --os-bg: #1e1e2d;
+    --os-soft: #28283b;
+    --os-text: #edf0f7;
+    --os-muted: #b1bbcc;
+    --os-border: #3a3a4d;
+  }
+  [data-theme="dark"] .os-input { color-scheme: dark; }
+
+  @media (max-width: 1100px) {
+    .os-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 900px) {
+    .os-detail-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .os-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .os-stat:last-child { grid-column: 1 / -1; }
+    .os-stat-value { font-size: 1.6rem; }
+    .os-filters { flex-direction: column; }
+    .os-search, .os-select { width: 100%; }
+    .os-tabs { gap: 18px; }
+    .os-modal-body, .os-modal-header { padding: 16px; }
+    .os-range { padding: 12px; gap: 10px; }
+    .os-range-left { width: 100%; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .os-chips {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+    }
+    .os-chip { padding: 9px 6px; text-align: center; font-size: .85rem; }
+    .os-range-right {
+      width: 100%;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .os-range-label { font-size: .85rem; }
+    .os-range-right .os-button { min-height: 36px; padding: 6px 12px; }
+    .os-custom { flex-direction: column; align-items: stretch; }
+    .os-custom label, .os-custom .os-input { width: 100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if is_staff_pos %}
+  {% url 'dashboard' as u_home %}
+  {% url 'new_order_pos' as u_new %}
+{% else %}
+  {% url 'restaurant_overview_page' as u_home %}
+  {% url 'new_order_page' as u_new %}
+{% endif %}
+<section class="os" id="orderSummary">
+
+  <div class="os-breadcrumb text-xs">
+    <a href="{{ u_home }}">Restaurant</a>
+    <span> / Orders</span>
+  </div>
+
+  <div class="os-heading">
+    <div>
+      <h1 class="page-title mb-1">Order Summary</h1>
+      <p class="page-subtitle mb-0">Track and manage restaurant orders</p>
+    </div>
+    <div class="os-actions">
+      <a class="os-button" href="{% url 'restaurant_dashboard' %}">Overview</a>
+      <a class="os-button primary" href="{{ u_new }}">＋ New order</a>
+    </div>
+  </div>
+
+  <!-- icon sprite (defined once, reused by the stat cards) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="ic-receipt" viewBox="0 0 24 24">
+        <path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2-3 2z"/>
+        <path d="M8 8h8M8 12h8M8 16h5"/>
+      </symbol>
+      <symbol id="ic-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </symbol>
+      <symbol id="ic-chef" viewBox="0 0 24 24">
+        <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/>
+        <path d="M6 17h12"/>
+      </symbol>
+      <symbol id="ic-dish" viewBox="0 0 24 24">
+        <path d="M3 20a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1Z"/>
+        <path d="M20 16a8 8 0 1 0-16 0"/>
+        <path d="M12 4v4"/>
+        <path d="M10 4h4"/>
+      </symbol>
+      <symbol id="ic-rupee" viewBox="0 0 24 24">
+        <path d="M6 3h12"/>
+        <path d="M6 8h12"/>
+        <path d="m6 13 8.5 8"/>
+        <path d="M6 13h3"/>
+        <path d="M9 13c6.667 0 6.667-10 0-10"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ── DATE RANGE FILTER ── -->
+  <div class="os-range" id="rangeBar">
+    <div class="os-range-left">
+      <span class="os-range-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Date range
+      </span>
+      <div class="os-chips" role="group" aria-label="Date range">
+        <button type="button" class="os-chip" data-range="all"       aria-pressed="false">All time</button>
+        <button type="button" class="os-chip active" data-range="today"     aria-pressed="true">Today</button>
+        <button type="button" class="os-chip" data-range="yesterday" aria-pressed="false">Yesterday</button>
+        <button type="button" class="os-chip" data-range="week"      aria-pressed="false">This week</button>
+        <button type="button" class="os-chip" data-range="month"     aria-pressed="false">This month</button>
+        <button type="button" class="os-chip" data-range="last"      aria-pressed="false">Last month</button>
+        <button type="button" class="os-chip" data-range="custom"    aria-pressed="false">Custom</button>
+      </div>
+    </div>
+    <div class="os-range-right">
+      <span class="os-range-label" id="rangeLabel"></span>
+      <button type="button" class="os-button" id="resetFilters">Reset filters</button>
+    </div>
+
+    <div class="os-custom" id="customDates">
+      <label>From
+        <input type="date" class="os-input" id="dateFrom">
+      </label>
+      <label>To
+        <input type="date" class="os-input" id="dateTo">
+      </label>
+      <div class="os-range-error" id="rangeError" role="status" hidden></div>
+    </div>
+  </div>
+
+  <div class="os-stats">
+
+    <div class="os-stat s-blue" data-filter="all" role="button" tabindex="0" title="Show all orders">
+      <span class="os-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-receipt"/></svg>
+      </span>
+      <div class="os-stat-label">Total Orders</div>
+      <div class="os-stat-value" id="statTotal">—</div>
+      <svg class="os-stat-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-receipt"/></svg>
+    </div>
+
+    <div class="os-stat s-orange" data-filter="pending" role="button" tabindex="0" title="Show pending orders">
+      <span class="os-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-clock"/></svg>
+      </span>
+      <div class="os-stat-label">Pending</div>
+      <div class="os-stat-value" id="statPending">—</div>
+      <svg class="os-stat-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-clock"/></svg>
+    </div>
+
+    <div class="os-stat s-purple" data-filter="preparing" role="button" tabindex="0" title="Show preparing orders">
+      <span class="os-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-chef"/></svg>
+      </span>
+      <div class="os-stat-label">Preparing</div>
+      <div class="os-stat-value" id="statPreparing">—</div>
+      <svg class="os-stat-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-chef"/></svg>
+    </div>
+
+    <div class="os-stat s-green" data-filter="served" role="button" tabindex="0" title="Show served orders">
+      <span class="os-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-dish"/></svg>
+      </span>
+      <div class="os-stat-label">Served</div>
+      <div class="os-stat-value" id="statServed">—</div>
+      <svg class="os-stat-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-dish"/></svg>
+    </div>
+
+    <div class="os-stat s-pink" data-filter="served" role="button" tabindex="0" title="Show served orders">
+      <span class="os-stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-rupee"/></svg>
+      </span>
+      <div class="os-stat-label" title="Served orders including tax">Revenue</div>
+      <div class="os-stat-value" id="statRevenue">—</div>
+      <svg class="os-stat-bg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#ic-rupee"/></svg>
+    </div>
+
+  </div>
+
+  <div class="os-card">
+    <div class="os-card-header">
+      <h2 class="card-title mb-0">
+        All orders <span class="os-count text-xs" id="orderCount">0</span>
+      </h2>
+      <div class="os-header-tools">
+        <span class="os-live" id="liveBadge" title="Refreshes automatically every 30 seconds">
+          <span class="os-live-dot" aria-hidden="true"></span>
+          <span id="liveStamp">Live</span>
+        </span>
+        <button type="button" class="os-button" id="refreshOrders">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="os-tabs" aria-label="Filter by status">
+      <button type="button" class="os-tab active" data-status="all" aria-pressed="true">
+        All orders <span class="os-count text-xs" id="countAll">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="pending" aria-pressed="false">
+        Pending <span class="os-count text-xs" id="countPending">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="preparing" aria-pressed="false">
+        Preparing <span class="os-count text-xs" id="countPreparing">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="served" aria-pressed="false">
+        Served <span class="os-count text-xs" id="countServed">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="cancelled" aria-pressed="false">
+        Cancelled <span class="os-count text-xs" id="countCancelled">0</span>
+      </button>
+    </div>
+
+    <div class="os-filters">
+      <input class="os-input os-search" id="orderSearch"
+             aria-label="Search orders"
+             placeholder="Search by order, guest, table or room…">
+      <select class="os-input os-select" id="orderType" aria-label="Order type">
+        <option value="all">All order types</option>
+        <option value="dine_in">Dine in</option>
+        <option value="room_service">Room service</option>
+        <option value="takeaway">Takeaway</option>
+      </select>
+    </div>
+
+    <div class="os-message" id="orderMessage" role="status">Loading orders…</div>
+
+    <div class="os-scroll">
+      <table class="os-table">
+        <thead>
+          <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Guest &amp; location</th>
+            <th scope="col">Date &amp; time</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="amount">Amount</th>
+            <th scope="col" class="action">Action</th>
+          </tr>
+        </thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+
+    <div class="os-footer">
+      <span class="os-muted text-xs" id="pageInfo"></span>
+      <nav class="os-pagination" id="pagination" aria-label="Order pages"></nav>
+    </div>
+  </div>
+
+  <dialog class="os-modal" id="orderModal" aria-labelledby="modalTitle">
+    <div class="os-modal-header">
+      <div>
+        <h2 class="card-title mb-1" id="modalTitle">Order details</h2>
+        <div class="os-muted text-xs">Complete recorded order information</div>
+      </div>
+      <button type="button" class="os-button" id="closeModal">Close ×</button>
+    </div>
+    <div class="os-modal-body" id="modalBody"></div>
+  </dialog>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(() => {
+  const endpoint = "{% url 'restaurant_order_list' %}";
+  const statusUrlTemplate = "{% url 'update_order_status' 0 %}";
+  const statusUrl = id => statusUrlTemplate.replace('/0/', '/' + id + '/');
+
+  const root = document.getElementById('orderSummary');
+  const $ = id => document.getElementById(id);
+  const pageSize = 6;
+
+  let orders = [];       // everything from the server
+  let dated = [];        // orders inside the selected date range
+  let filtered = [];     // dated + status + type + search
+  let page = 1;
+  let statusFilter = 'all';
+  let rangeMode = 'today';   // all | today | yesterday | week | month | last | custom
+  let loading = false;
+
+  const escape = value => String(value ?? '').replace(
+    /[&<>"']/g,
+    char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;',
+      '"': '&quot;', "'": '&#39;'
+    }[char])
+  );
+
+  const number = value => {
+    const result = Number(value);
+    return Number.isFinite(result) ? result : 0;
+  };
+
+  const money = value => '₹' + number(value).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  const types = {
+    dine_in: 'Dine in',
+    room_service: 'Room service',
+    takeaway: 'Takeaway'
+  };
+
+  const statuses = {
+    pending: 'Pending',
+    preparing: 'Preparing',
+    served: 'Served',
+    cancelled: 'Cancelled'
+  };
+
+  // Allowed moves. Served and cancelled are final.
+  const nextStatuses = current => ({
+    pending: ['preparing', 'served', 'cancelled'],
+    preparing: ['served', 'cancelled']
+  }[current] || []);
+
+  const csrfToken = () => {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  };
+
+  const location = order => {
+    if (order.type === 'dine_in') {
+      return order.table ? `Table ${order.table}` : (order.room || 'Not recorded');
+    }
+    return order.room || 'Not recorded';
+  };
+
+  const dateTime = value => {
+    if (!value) return 'Not recorded';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
+  };
+
+  // ── date helpers (local time, YYYY-MM-DD keys) ──
+  const dateKey = date => [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+
+  const orderKey = order => {
+    const date = new Date(order.created_at);
+    return Number.isNaN(date.getTime()) ? '' : dateKey(date);
+  };
+
+  const prettyKey = key => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  };
+
+  // returns {from, to} as YYYY-MM-DD ('' = open ended)
+  function rangeBounds() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    switch (rangeMode) {
+      case 'today':
+        return {from: dateKey(now), to: dateKey(now)};
+      case 'yesterday': {
+        const d = new Date(y, m, now.getDate() - 1);
+        return {from: dateKey(d), to: dateKey(d)};
+      }
+      case 'week': {
+        const back = (now.getDay() + 6) % 7;            // Monday start
+        const start = new Date(y, m, now.getDate() - back);
+        return {from: dateKey(start), to: dateKey(now)};
+      }
+      case 'month':
+        return {from: dateKey(new Date(y, m, 1)), to: dateKey(new Date(y, m + 1, 0))};
+      case 'last':
+        return {from: dateKey(new Date(y, m - 1, 1)), to: dateKey(new Date(y, m, 0))};
+      case 'custom':
+        return {from: $('dateFrom').value, to: $('dateTo').value};
+      default:
+        return {from: '', to: ''};
+    }
+  }
+
+  function updateRangeLabel(bounds) {
+    let text = 'Showing all orders';
+    if (bounds.from && bounds.to) {
+      text = bounds.from === bounds.to
+        ? prettyKey(bounds.from)
+        : prettyKey(bounds.from) + ' – ' + prettyKey(bounds.to);
+    } else if (bounds.from) {
+      text = 'From ' + prettyKey(bounds.from);
+    } else if (bounds.to) {
+      text = 'Up to ' + prettyKey(bounds.to);
+    }
+    $('rangeLabel').textContent = text;
+  }
+
+  function badge(status) {
+    const known = Object.prototype.hasOwnProperty.call(statuses, status);
+    return `<span class="os-status ${known ? status : ''}">
+      <span class="os-dot" aria-hidden="true"></span>
+      ${escape(known ? statuses[status] : 'Unknown')}
+    </span>`;
+  }
+
+  function message(text, error = false) {
+    $('orderMessage').textContent = text;
+    $('orderMessage').hidden = !text;
+    $('orderMessage').classList.toggle('os-error', error);
+  }
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // animated number: counts from the previous value to the new one
+  function setStat(id, value, format = v => String(Math.round(v))) {
+    const el = $(id);
+    if (!el) return;
+    const from = el._value ?? 0;
+    const changed = el._value !== undefined && el._value !== value;
+    el._value = value;
+    cancelAnimationFrame(el._raf);
+
+    if (reduceMotion || from === value) {
+      el.textContent = format(value);
+    } else {
+      const start = performance.now();
+      const duration = 600;
+      const tick = now => {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = format(from + (value - from) * eased);
+        if (t < 1) el._raf = requestAnimationFrame(tick);
+      };
+      el._raf = requestAnimationFrame(tick);
+    }
+
+    if (changed) {
+      const card = el.closest('.os-stat');
+      if (card) {
+        card.classList.remove('updated');
+        void card.offsetWidth;
+        card.classList.add('updated');
+      }
+    }
+  }
+
+  // highlight the card that matches the current status filter
+  function syncCards() {
+    root.querySelectorAll('.os-stat[data-filter]').forEach(card =>
+      card.classList.toggle('active', card.dataset.filter === statusFilter));
+  }
+
+  // stats and tab counts follow the selected date range
+  function renderStats() {
+    const counts = {pending: 0, preparing: 0, served: 0, cancelled: 0};
+    let revenue = 0;
+
+    dated.forEach(order => {
+      if (Object.prototype.hasOwnProperty.call(counts, order.status)) {
+        counts[order.status]++;
+      }
+      if (order.status === 'served') {
+        revenue += number(order.total) + number(order.tax);
+      }
+    });
+
+    setStat('statTotal', dated.length);
+    $('orderCount').textContent = dated.length;
+    $('countAll').textContent = dated.length;
+    setStat('statRevenue', revenue, money);
+
+    ['pending', 'preparing', 'served', 'cancelled'].forEach(status => {
+      const suffix = status[0].toUpperCase() + status.slice(1);
+      $('count' + suffix).textContent = counts[status];
+      setStat('stat' + suffix, counts[status]);
+    });
+  }
+
+  // 1) date range  2) stats  3) status / type / search  4) table
+  function applyFilters(resetPage = true) {
+    const bounds = rangeBounds();
+    const error = $('rangeError');
+    const invalid = rangeMode === 'custom' && bounds.from && bounds.to && bounds.from > bounds.to;
+
+    error.hidden = !invalid;
+    error.textContent = invalid ? 'The end date must be on or after the start date.' : '';
+    updateRangeLabel(bounds);
+
+    dated = invalid ? [] : orders.filter(order => {
+      const key = orderKey(order);
+      if (!bounds.from && !bounds.to) return true;
+      if (!key) return false;
+      return (!bounds.from || key >= bounds.from) && (!bounds.to || key <= bounds.to);
+    });
+
+    renderStats();
+
+    const search = $('orderSearch').value.trim().toLowerCase();
+    const type = $('orderType').value;
+
+    filtered = dated.filter(order => {
+      if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+      if (type !== 'all' && order.type !== type) return false;
+
+      const text = [
+        order.order_number, order.guest, location(order),
+        types[order.type] || order.type
+      ].join(' ').toLowerCase();
+
+      return !search || text.includes(search);
+    });
+
+    if (resetPage) page = 1;
+    page = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
+    renderRows();
+  }
+
+  function renderRows() {
+    const start = (page - 1) * pageSize;
+    const visible = filtered.slice(start, start + pageSize);
+
+    $('orderRows').innerHTML = visible.map(order => {
+      const date = new Date(order.created_at);
+      const validDate = !Number.isNaN(date.getTime());
+
+      return `<tr>
+        <td>
+          <strong>#${escape(order.order_number)}</strong>
+          <div class="os-sub text-xs">${escape(types[order.type] || order.type)}</div>
+        </td>
+        <td>
+          ${escape(order.guest || '—')}
+          <div class="os-sub text-xs">${escape(location(order))}</div>
+        </td>
+        <td>
+          ${validDate ? escape(date.toLocaleDateString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric'
+          })) : '—'}
+          <div class="os-sub text-xs">
+            ${validDate ? escape(date.toLocaleTimeString([], {
+              hour: 'numeric', minute: '2-digit'
+            })) : ''}
+          </div>
+        </td>
+        <td>${badge(order.status)}</td>
+        <td class="amount"><strong>${money(number(order.total) + number(order.tax))}</strong></td>
+        <td class="action">
+          <button type="button" class="os-button os-view"
+                  data-view="${escape(order.id)}">View details →</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    message(filtered.length ? '' : 'No orders match your filters.');
+
+    $('pageInfo').textContent = `Showing ${filtered.length ? start + 1 : 0}–${Math.min(
+      start + pageSize, filtered.length
+    )} of ${filtered.length} orders`;
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const container = $('pagination');
+    container.replaceChildren();
+
+    function button(label, target, disabled = false, active = false) {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'os-button os-page' + (active ? ' primary' : '');
+      element.textContent = label;
+      element.disabled = disabled;
+      if (active) element.setAttribute('aria-current', 'page');
+      element.addEventListener('click', () => {
+        page = target;
+        renderRows();
+      });
+      container.appendChild(element);
+    }
+
+    button('Previous', page - 1, page === 1);
+
+    for (let index = Math.max(1, page - 2); index <= Math.min(pages, page + 2); index++) {
+      button(index, index, false, index === page);
+    }
+
+    button('Next', page + 1, page === pages);
+  }
+
+  function openDetails(order, notice) {
+    const pair = (label, value) => `
+      <dt>${escape(label)}</dt>
+      <dd>${escape(value ?? 'Not recorded')}</dd>`;
+
+    const payments = Array.isArray(order.payments) ? order.payments : [];
+    const options = nextStatuses(order.status);
+
+    $('modalTitle').textContent = '#' + order.order_number;
+
+    $('modalBody').innerHTML = `
+      <div class="os-detail-grid">
+
+        <section class="os-detail-section">
+          <h3 class="card-title">Order information</h3>
+          <dl class="os-detail-list">
+            ${pair('Order type', types[order.type] || order.type)}
+            ${pair('Status', statuses[order.status] || order.status)}
+            ${pair('Placed at', dateTime(order.created_at))}
+            ${pair('Guest / customer', order.guest || 'Not recorded')}
+            ${pair('Table / room', location(order))}
+            ${pair('Booking ID', order.booking_id)}
+            ${pair('Reservation ID', order.reservation_id)}
+            ${pair('Charge to room', order.charge_to_room == null
+              ? 'Not recorded' : (order.charge_to_room ? 'Yes' : 'No'))}
+          </dl>
+        </section>
+
+        <section class="os-detail-section">
+          <h3 class="card-title">Staff activity</h3>
+          <dl class="os-detail-list">
+            ${pair('Order taken / entered by', order.order_taken_by || 'Not recorded')}
+            ${pair('Preparing by', order.preparing_by || 'Not recorded')}
+            ${pair('Preparation started', dateTime(order.preparing_at))}
+            ${pair('Served by', order.served_status_by || 'Not recorded')}
+            ${pair('Marked served at', dateTime(order.served_status_at))}
+          </dl>
+          <p class="os-note text-xs">
+            The guest is the recorded customer. “Order taken / entered by”
+            identifies the account that created the order.
+          </p>
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Update status</h3>
+          ${options.length ? `
+            <div class="os-status-update">
+              <select class="os-input os-select" id="newStatus" aria-label="New status">
+                ${options.map(s =>
+                  `<option value="${s}">${escape(statuses[s])}</option>`
+                ).join('')}
+              </select>
+              <button type="button" class="os-button primary" id="saveStatus"
+                      data-order="${escape(order.id)}">Update status</button>
+            </div>
+            <div class="os-status-msg text-xs ${notice ? 'ok' : ''}" id="statusMsg"
+                 role="status">${escape(notice || '')}</div>
+          ` : `
+            <p class="os-muted">
+              This order is ${escape(statuses[order.status] || order.status)}
+              and its status can no longer be changed.
+            </p>
+            ${notice ? `<div class="os-status-msg text-xs ok" role="status">${escape(notice)}</div>` : ''}
+          `}
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Ordered items</h3>
+          <div class="os-scroll">
+            <table class="os-item-table">
+              <thead>
+                <tr><th>Item</th><th>Quantity</th><th>Unit price</th><th>Subtotal</th></tr>
+              </thead>
+              <tbody>
+                ${(order.items || []).map(item => `
+                  <tr>
+                    <td>
+                      ${escape(item.name)}
+                      ${item.note ? `<div class="os-sub text-xs">${escape(item.note)}</div>` : ''}
+                    </td>
+                    <td>${escape(item.qty)}</td>
+                    <td>${money(item.unit_price)}</td>
+                    <td>${money(item.subtotal)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4">No item records.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+          <dl class="os-detail-list os-totals">
+            ${pair('Subtotal', money(order.total))}
+            ${pair('Tax', money(order.tax))}
+            ${pair('Grand total', money(number(order.total) + number(order.tax)))}
+          </dl>
+          ${order.note ? `<p class="os-note"><strong>Order note:</strong> ${escape(order.note)}</p>` : ''}
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Payment details</h3>
+          ${payments.length ? payments.map(payment => `
+            <div class="os-payment">
+              <dl class="os-detail-list">
+                ${pair('Payment record', payment.id)}
+                ${pair('Payment status', payment.status || 'Not recorded')}
+                ${pair('Payment method', payment.method || 'Not recorded')}
+                ${pair('Payment amount', money(payment.amount))}
+                ${pair('Payment staff (recorded)', payment.received_by || 'Not recorded')}
+                ${pair('Paid at', dateTime(payment.paid_at))}
+                ${pair('Reference number', payment.reference_number || 'Not recorded')}
+              </dl>
+            </div>
+          `).join('') : `
+            <p class="os-muted">
+              ${order.charge_to_room
+                ? 'Charged to the guest folio. Settlement details are available in billing.'
+                : 'No payment record found.'}
+            </p>
+          `}
+          <p class="os-note text-xs">
+            Older payment staff entries may identify who opened the bill.
+            Payments collected after the backend update record the collecting staff member or admin.
+          </p>
+        </section>
+
+      </div>`;
+
+    if (!$('orderModal').open) $('orderModal').showModal();
+  }
+
+  async function updateStatus(orderId, newStatus) {
+    const msg = $('statusMsg');
+    const button = $('saveStatus');
+    button.disabled = true;
+    msg.className = 'os-status-msg text-xs';
+    msg.textContent = 'Updating…';
+
+    try {
+      const response = await fetch(statusUrl(orderId), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRFToken': csrfToken()
+        },
+        body: JSON.stringify({status: newStatus})
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Could not update the status.');
+      }
+
+      await loadOrders();
+      const fresh = orders.find(item => String(item.id) === String(orderId));
+      if (fresh) openDetails(fresh, 'Status updated to ' + statuses[newStatus] + '.');
+    } catch (error) {
+      msg.className = 'os-status-msg text-xs err';
+      msg.textContent = error.message;
+      button.disabled = false;
+    }
+  }
+
+  async function loadOrders(silent = false) {
+    if (loading) return;
+    loading = true;
+    if (!silent) {
+      $('refreshOrders').disabled = true;
+      message('Loading orders…');
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Accept': 'application/json'}
+      });
+
+      if (!response.ok || response.redirected ||
+          !(response.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error('Could not load orders. Check your login and press Refresh.');
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data.orders)) throw new Error('Invalid order response.');
+
+      orders = data.orders;
+      applyFilters(false);
+      $('liveBadge').classList.remove('offline');
+      $('liveStamp').textContent = 'Updated ' + new Date().toLocaleTimeString([], {
+        hour: 'numeric', minute: '2-digit', second: '2-digit'
+      });
+    } catch (error) {
+      if (silent) {
+        $('liveBadge').classList.add('offline');
+        $('liveStamp').textContent = 'Offline – retrying';
+      } else {
+        message(error.message, true);
+      }
+    } finally {
+      loading = false;
+      $('refreshOrders').disabled = false;
+    }
+  }
+
+  // ── status tabs ──
+  root.querySelectorAll('[data-status]').forEach(button => {
+    button.addEventListener('click', () => {
+      statusFilter = button.dataset.status;
+      root.querySelectorAll('[data-status]').forEach(item => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      applyFilters();
+      syncCards();
+    });
+  });
+
+  // ── date range chips ──
+  function setRange(mode) {
+    rangeMode = mode;
+    root.querySelectorAll('.os-chip').forEach(chip => {
+      const on = chip.dataset.range === mode;
+      chip.classList.toggle('active', on);
+      chip.setAttribute('aria-pressed', String(on));
+    });
+    $('customDates').classList.toggle('show', mode === 'custom');
+    applyFilters();
+  }
+
+  root.querySelectorAll('.os-chip').forEach(chip => {
+    chip.addEventListener('click', () => setRange(chip.dataset.range));
+  });
+
+  $('dateFrom').addEventListener('change', () => applyFilters());
+  $('dateTo').addEventListener('change', () => applyFilters());
+
+  $('resetFilters').addEventListener('click', () => {
+    $('dateFrom').value = '';
+    $('dateTo').value = '';
+    $('orderSearch').value = '';
+    $('orderType').value = 'all';
+    statusFilter = 'all';
+    root.querySelectorAll('[data-status]').forEach(item => {
+      const active = item.dataset.status === 'all';
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+    setRange('today');
+    syncCards();
+  });
+
+  $('orderSearch').addEventListener('input', () => applyFilters());
+  $('orderType').addEventListener('change', () => applyFilters());
+  $('refreshOrders').addEventListener('click', () => loadOrders());
+
+  // clicking a stat card filters the table (click the active one again to clear)
+  root.querySelectorAll('.os-stat[data-filter]').forEach(card => {
+    const go = () => {
+      const target = (card.dataset.filter === statusFilter && statusFilter !== 'all')
+        ? 'all' : card.dataset.filter;
+      const tab = root.querySelector('.os-tab[data-status="' + target + '"]');
+      if (tab) tab.click();
+      $('orderRows').closest('.os-card').scrollIntoView({behavior: 'smooth', block: 'start'});
+    };
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        go();
+      }
+    });
+  });
+
+  // live refresh: every 30s while the tab is visible and no modal is open.
+  // "Today", "This week" etc. are recalculated on each refresh, so the
+  // range rolls over automatically after midnight.
+  setInterval(() => {
+    if (document.hidden || $('orderModal').open) return;
+    loadOrders(true);
+  }, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !$('orderModal').open) loadOrders(true);
+  });
+
+  $('orderRows').addEventListener('click', event => {
+    const button = event.target.closest('[data-view]');
+    if (!button) return;
+    const order = orders.find(item => String(item.id) === button.dataset.view);
+    if (order) openDetails(order);
+  });
+
+  $('modalBody').addEventListener('click', event => {
+    const button = event.target.closest('#saveStatus');
+    if (!button) return;
+    updateStatus(button.dataset.order, $('newStatus').value);
+  });
+
+  $('closeModal').addEventListener('click', () => $('orderModal').close());
+
+  $('orderModal').addEventListener('click', event => {
+    const modal = $('orderModal');
+    if (event.target !== modal) return;
+    const rect = modal.getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom) {
+      modal.close();
+    }
+  });
+
+  syncCards();
+  updateRangeLabel(rangeBounds());
+  loadOrders();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,546 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Seasonal Rates - Admio{% endblock %}
+{% block nav_dashboard_active %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sr-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
+  .sr-header .page-subtitle { color: #6b7280; }
+  .sr-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
+  @media (max-width: 900px) { .sr-stats { grid-template-columns: repeat(2, 1fr); } }
+  .sr-stat { background: #fff; border: 1px solid var(--admio-border-color, #e5e7eb); border-radius: 18px; padding: 22px 24px; transition: background .2s, border-color .2s; }
+  .sr-stat-value { font-size: 2.2rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .sr-stat-label { font-size: .95rem; color: #6b7280; font-weight: 600; }
+  .sr-body { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 991px) { .sr-body { grid-template-columns: 1fr; } }
+  .sr-card { background: #fff; border: 1px solid var(--admio-border-color, #e5e7eb); border-radius: 18px; overflow: hidden; transition: background .2s, border-color .2s; }
+  .sr-card-head { padding: 18px 22px; border-bottom: 1px solid var(--admio-border-color, #e5e7eb); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .sr-card-head h2 { font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; color: #111827; }
+  .sr-card-body { padding: 18px 22px; }
+  .sr-search { width: 100%; padding: 10px 14px; border: 1.5px solid #d8dae0; border-radius: 10px; font-size: .95rem; margin-bottom: 10px; background: #fff; color: #374151; }
+  .sr-select { width: 100%; padding: 10px 14px; border: 1.5px solid #d8dae0; border-radius: 10px; font-size: .95rem; margin-bottom: 14px; background: #f9fafb; color: #374151; }
+  .sr-empty { text-align: center; padding: 36px 10px; color: #9ca3af; }
+  .sr-empty i { font-size: 34px; display: block; margin-bottom: 10px; }
+  .sr-rate-item { border: 1px solid #eef0f3; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; cursor: default; transition: border-color .15s, background .2s; }
+  .sr-rate-item:hover { border-color: #d8d2fb; }
+  .sr-rate-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .sr-rate-room { font-weight: 700; font-size: .95rem; color: #111827; }
+  .sr-rate-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 7px; }
+  .sr-rate-dates { font-size: .82rem; color: #6b7280; margin-top: 4px; }
+  .sr-rate-price { font-weight: 700; color: #7C3AED; }
+  .sr-rate-actions button { border: none; background: transparent; color: #9ca3af; cursor: pointer; padding: 4px; }
+  .sr-rate-actions button:hover { color: #ef4444; }
+  .sr-add-btn { width: 100%; padding: 11px; border-radius: 10px; border: 1.5px dashed #c9c3f5; background: rgba(124,58,237,.06); color: #7C3AED; font-weight: 700; cursor: pointer; }
+  .sr-cal-nav { display: flex; align-items: center; gap: 10px; }
+  .sr-cal-nav button { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; color: #374151; }
+  .sr-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .sr-cal-dow { text-align: center; font-size: .8rem; font-weight: 700; color: #9ca3af; padding-bottom: 6px; }
+  .sr-cal-day { min-height: 74px; border-radius: 10px; border: 1px solid #f1f1f4; padding: 6px 8px; font-size: .82rem; cursor: pointer; position: relative; color: #374151; transition: background .15s, border-color .15s, color .15s; }
+  .sr-cal-day.muted { color: #cfd2d8; background: #fafafb; }
+  .sr-cal-day.today:not(.selected) { border-color: #7C3AED; box-shadow: inset 0 0 0 1px #7C3AED; }
+
+  /* Selected day: solid fill, not just an outline */
+  .sr-cal-day.selected {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(124,58,237,.35);
+  }
+  .sr-cal-day.selected.muted { color: rgba(255,255,255,.7); }
+
+  .sr-cal-dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 6px; }
+  .sr-cal-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .sr-cal-day.selected .sr-cal-dot { background: #fff !important; opacity: .85; }
+
+  .sr-day-panel { margin-top: 16px; border-top: 1px solid var(--admio-border-color, #e5e7eb); padding-top: 16px; }
+  .sr-day-panel .fw-700 { color: #111827; }
+
+  /* Reason box inside each rate card in the day panel */
+  .sr-reason-box {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-top: 10px; padding: 9px 11px;
+    background: #f9fafb; border: 1px solid #eef0f3; border-radius: 9px;
+    font-size: .84rem; color: #4b5563;
+  }
+  .sr-reason-box i { color: #7C3AED; margin-top: 1px; flex-shrink: 0; }
+  .sr-reason-label { font-weight: 700; color: #374151; margin-right: 4px; }
+
+  .sr-tag-badge { font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; color: #fff; display: inline-block; }
+
+  /* Fix: Add Rate modal was appearing under the sticky topbar/sidebar
+     (topbar z-index: 9999, sidebar z-index: 10001 in base.html) */
+  #addRateModal.modal { z-index: 10050; }
+  .modal-backdrop { z-index: 10040; }
+
+  /* ══════════════════════════════════════
+     DARK THEME
+     ══════════════════════════════════════ */
+  [data-theme="dark"] .page-title { color: #f3f4f6; }
+  [data-theme="dark"] .sr-header .page-subtitle { color: #9b9bb5; }
+
+  [data-theme="dark"] .sr-stat {
+    background: var(--admio-sidebar-bg, #1e1e2d);
+    border-color: var(--admio-border-color, #2d2d3d);
+  }
+  [data-theme="dark"] .sr-stat-label { color: #9b9bb5; }
+
+  [data-theme="dark"] .sr-card {
+    background: var(--admio-sidebar-bg, #1e1e2d);
+    border-color: var(--admio-border-color, #2d2d3d);
+  }
+  [data-theme="dark"] .sr-card-head { border-color: var(--admio-border-color, #2d2d3d); }
+  [data-theme="dark"] .sr-card-head h2 { color: #f3f4f6; }
+
+  [data-theme="dark"] .sr-search,
+  [data-theme="dark"] .sr-select {
+    background: #252536;
+    border-color: #3a3a4c;
+    color: #f3f4f6;
+  }
+  [data-theme="dark"] .sr-search::placeholder { color: #7d7d95; }
+
+  [data-theme="dark"] .sr-empty { color: #7d7d95; }
+
+  [data-theme="dark"] .sr-rate-item {
+    border-color: #2d2d3d;
+    background: #252536;
+  }
+  [data-theme="dark"] .sr-rate-item:hover { border-color: #4c3d8f; }
+  [data-theme="dark"] .sr-rate-room { color: #f3f4f6; }
+  [data-theme="dark"] .sr-rate-dates { color: #9b9bb5; }
+
+  [data-theme="dark"] .sr-reason-box {
+    background: #1e1e2d;
+    border-color: #3a3a4c;
+    color: #c4c4d8;
+  }
+  [data-theme="dark"] .sr-reason-label { color: #e5e7eb; }
+  [data-theme="dark"] .sr-reason-box i { color: #a78bfa; }
+
+  [data-theme="dark"] .sr-add-btn {
+    background: rgba(124,58,237,.14);
+    border-color: #4c3d8f;
+    color: #a78bfa;
+  }
+
+  [data-theme="dark"] .sr-cal-nav button {
+    background: #252536;
+    border-color: #3a3a4c;
+    color: #d1d5db;
+  }
+  [data-theme="dark"] .sr-cal-nav button:hover { background: rgba(124,58,237,.14); }
+
+  [data-theme="dark"] .sr-cal-dow { color: #7d7d95; }
+
+  [data-theme="dark"] .sr-cal-day {
+    border-color: #2d2d3d;
+    color: #d1d5db;
+  }
+  [data-theme="dark"] .sr-cal-day.muted {
+    color: #4d4d63;
+    background: #1a1a26;
+  }
+  [data-theme="dark"] .sr-cal-day.today:not(.selected) { border-color: #a78bfa; box-shadow: inset 0 0 0 1px #a78bfa; }
+  [data-theme="dark"] .sr-cal-day.selected {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(124,58,237,.5);
+  }
+  [data-theme="dark"] .sr-cal-day:hover:not(.selected) { background: rgba(124,58,237,.14); }
+
+  [data-theme="dark"] .sr-day-panel { border-color: var(--admio-border-color, #2d2d3d); }
+  [data-theme="dark"] .sr-day-panel .fw-700 { color: #f3f4f6; }
+
+  /* Modal + form fields inside it */
+  [data-theme="dark"] #addRateModal .modal-content {
+    background: var(--admio-sidebar-bg, #1e1e2d);
+    color: #f3f4f6;
+  }
+  [data-theme="dark"] #addRateModal .modal-title { color: #f3f4f6; }
+  [data-theme="dark"] #addRateModal .modal-header,
+  [data-theme="dark"] #addRateModal .modal-footer {
+    border-color: var(--admio-border-color, #2d2d3d);
+  }
+  [data-theme="dark"] #addRateModal .form-label { color: #d1d5db; }
+  [data-theme="dark"] #addRateModal .form-control-admio,
+  [data-theme="dark"] #addRateModal .form-select-admio {
+    background: #252536;
+    border-color: #3a3a4c;
+    color: #f3f4f6;
+  }
+  [data-theme="dark"] #addRateModal .btn-close { filter: invert(1); }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ rooms|json_script:"roomsData" }}
+
+<div class="sr-header">
+  <div>
+    <h1 class="page-title"><i class="icon-tag"></i> Seasonal Rate Manager</h1>
+    <p class="page-subtitle text-sm">Manage seasonal pricing across all room types</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn-admio" id="refreshRatesBtn" type="button"><i class="icon-refresh-cw"></i> Refresh</button>
+    <button class="btn-admio" style="background:#7C3AED;color:#fff;" id="openAddRateBtn" type="button"><i class="icon-plus"></i> Add Rate</button>
+  </div>
+</div>
+
+<div class="sr-stats">
+  <div class="sr-stat"><div class="sr-stat-value" id="statTotal" style="color:#7C3AED;">0</div><div class="sr-stat-label">Total Rates</div></div>
+  <div class="sr-stat"><div class="sr-stat-value" id="statActive" style="color:#22c55e;">0</div><div class="sr-stat-label">Active Now</div></div>
+  <div class="sr-stat"><div class="sr-stat-value" id="statUpcoming" style="color:#f59e0b;">0</div><div class="sr-stat-label">Upcoming</div></div>
+  <div class="sr-stat"><div class="sr-stat-value" id="statRoomTypes" style="color:#3b82f6;">0</div><div class="sr-stat-label">Room Types</div></div>
+</div>
+
+<div class="sr-body">
+  <div class="sr-card">
+    <div class="sr-card-head"><h2><i class="icon-list"></i> All Rates</h2></div>
+    <div class="sr-card-body">
+      <input type="text" class="sr-search" id="rateSearch" placeholder="Search rates...">
+      <select class="sr-select" id="roomFilter">
+        <option value="">All room types</option>
+      </select>
+      <div id="ratesList"></div>
+      <button class="sr-add-btn" id="openAddRateBtn2" type="button">+ Add Seasonal Rate</button>
+    </div>
+  </div>
+
+  <div class="sr-card">
+    <div class="sr-card-head">
+      <div class="sr-cal-nav">
+        <button id="calPrev" type="button">&lt;</button>
+        <h2 id="calTitle" style="min-width:170px;text-align:center;"></h2>
+        <button id="calNext" type="button">&gt;</button>
+      </div>
+      <button class="btn-admio btn-sm" id="calToday" type="button">Today</button>
+    </div>
+    <div class="sr-card-body">
+      <div class="sr-cal-grid" id="calDow"></div>
+      <div class="sr-cal-grid" id="calGrid" style="margin-top:6px;"></div>
+      <div class="sr-day-panel" id="dayPanel" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Rate Modal -->
+<div class="modal fade" id="addRateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:16px;">
+      <form id="addRateForm">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Add Seasonal Rate</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-600">Room Type</label>
+            <select class="form-select-admio" name="room_id" id="rateRoomSelect" required></select>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-600">Start Date</label>
+              <input type="date" class="form-control-admio" name="start_date" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-600">End Date</label>
+              <input type="date" class="form-control-admio" name="end_date" required>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-600">Price (per night)</label>
+              <input type="number" step="0.01" min="0.01" class="form-control-admio" name="price" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-600">Tag</label>
+              <select class="form-select-admio" name="tag">
+                <option value="base">Base</option>
+                <option value="peak">Peak</option>
+                <option value="offer">Offer</option>
+                <option value="festival">Festival</option>
+                <option value="event">Event</option>
+                <option value="holiday">Holiday</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-600">Reason</label>
+            <input type="text" class="form-control-admio" name="reason" placeholder="e.g. Christmas & New Year">
+          </div>
+          <div class="mb-1">
+            <label class="form-label fw-600">Notes</label>
+            <textarea class="form-control-admio" name="notes" rows="2"></textarea>
+          </div>
+          <div class="text-sm" style="color:#ef4444;" id="addRateError"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-admio" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-admio" style="background:#7C3AED;color:#fff;">Save Rate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const rooms = JSON.parse(document.getElementById('roomsData').textContent);
+  const TAG_META = {
+    base:     { label: 'Base',     color: '#7C3AED' },
+    peak:     { label: 'Peak',     color: '#ef4444' },
+    offer:    { label: 'Offer',    color: '#22c55e' },
+    festival: { label: 'Festival', color: '#f59e0b' },
+    event:    { label: 'Event',    color: '#3b82f6' },
+    holiday:  { label: 'Holiday',  color: '#ec4899' },
+  };
+
+  const ratesUrl  = "{% url 'get_seasonal_rates' %}";
+  const addUrl    = "{% url 'add_seasonal_rate' %}";
+  const delUrlTpl = "{% url 'delete_seasonal_rate' 999999 %}"; // swap 999999 for real id
+
+  let allRates = [];
+  let calYear, calMonth; // calMonth: 0-11
+  let selectedDate = null;
+
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  const csrftoken = getCookie('csrftoken') || document.querySelector('#addRateForm [name=csrfmiddlewaretoken]').value;
+
+  // ---- populate room selects ----
+  const roomFilter = document.getElementById('roomFilter');
+  const rateRoomSelect = document.getElementById('rateRoomSelect');
+  rooms.forEach(r => {
+    roomFilter.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`);
+    rateRoomSelect.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`);
+  });
+
+  function parseDate(s) { const [y,m,dd] = s.split('-').map(Number); return new Date(y, m-1, dd); }
+
+  async function loadRates() {
+    const res = await fetch(ratesUrl);
+    const data = await res.json();
+    allRates = data.rates || [];
+    renderStats();
+    renderList();
+    renderCalendar();
+    if (selectedDate) renderDayPanel(selectedDate);
+  }
+
+  function renderStats() {
+    const now = new Date(); now.setHours(0,0,0,0);
+    let active = 0, upcoming = 0;
+    const roomTypeIds = new Set();
+    allRates.forEach(r => {
+      const s = parseDate(r.start_date), e = parseDate(r.end_date);
+      roomTypeIds.add(r.room_id);
+      if (s <= now && e >= now) active++;
+      else if (s > now) upcoming++;
+    });
+    document.getElementById('statTotal').textContent = allRates.length;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statUpcoming').textContent = upcoming;
+    document.getElementById('statRoomTypes').textContent = roomTypeIds.size;
+  }
+
+  function filteredRates() {
+    const q = document.getElementById('rateSearch').value.trim().toLowerCase();
+    const roomId = roomFilter.value;
+    return allRates.filter(r => {
+      if (roomId && String(r.room_id) !== roomId) return false;
+      if (q && !(`${r.room_name} ${r.reason} ${r.tag}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }
+
+  function renderList() {
+    const list = document.getElementById('ratesList');
+    const rates = filteredRates();
+    if (!rates.length) {
+      list.innerHTML = `<div class="sr-empty"><i class="icon-tag"></i>No rates found.<br>Click + Add Rate to create one.</div>`;
+      return;
+    }
+    list.innerHTML = rates.map(r => {
+      const meta = TAG_META[r.tag] || TAG_META.base;
+      return `
+        <div class="sr-rate-item">
+          <div class="sr-rate-top">
+            <div><span class="sr-rate-dot" style="background:${meta.color}"></span><span class="sr-rate-room">${r.room_name}</span></div>
+            <div class="sr-rate-actions"><button type="button" data-id="${r.id}" class="sr-del-btn" title="Delete"><i class="icon-trash-2"></i></button></div>
+          </div>
+          <div class="sr-rate-dates">${r.start_date} &rarr; ${r.end_date}</div>
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span class="sr-tag-badge" style="background:${meta.color}">${meta.label}</span>
+            <span class="sr-rate-price">₹${Number(r.price).toLocaleString()}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.sr-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteRate(btn.dataset.id));
+    });
+  }
+
+  async function deleteRate(id) {
+    if (!confirm('Delete this seasonal rate?')) return;
+    const url = delUrlTpl.replace('999999', id);
+    const res = await fetch(url, { method: 'DELETE', headers: { 'X-CSRFToken': csrftoken } });
+    if (res.ok) { await loadRates(); } else { alert('Could not delete rate.'); }
+  }
+
+  function ratesForDate(d) {
+    const roomId = roomFilter.value;
+    return allRates.filter(r => {
+      if (roomId && String(r.room_id) !== roomId) return false;
+      return parseDate(r.start_date) <= d && parseDate(r.end_date) >= d;
+    });
+  }
+
+  function renderCalendarDow() {
+    const dow = document.getElementById('calDow');
+    dow.innerHTML = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="sr-cal-dow">${d}</div>`).join('');
+  }
+
+  function renderCalendar() {
+    document.getElementById('calTitle').textContent =
+      new Date(calYear, calMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const grid = document.getElementById('calGrid');
+    const firstDow = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+    const cells = [];
+
+    for (let i = firstDow - 1; i >= 0; i--) {
+      cells.push({ day: daysInPrevMonth - i, muted: true, date: new Date(calYear, calMonth - 1, daysInPrevMonth - i) });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, muted: false, date: new Date(calYear, calMonth, d) });
+    }
+    while (cells.length % 7 !== 0 || cells.length < 42) {
+      const last = cells[cells.length - 1].date;
+      const next = new Date(last); next.setDate(next.getDate() + 1);
+      cells.push({ day: next.getDate(), muted: true, date: next });
+      if (cells.length >= 42) break;
+    }
+
+    const now = new Date(); now.setHours(0,0,0,0);
+
+    grid.innerHTML = cells.map(c => {
+      const isToday = c.date.getTime() === now.getTime();
+      const isSelected = selectedDate && c.date.getTime() === selectedDate.getTime();
+      const rates = ratesForDate(c.date);
+      const dots = rates.slice(0, 4).map(r => {
+        const meta = TAG_META[r.tag] || TAG_META.base;
+        return `<span class="sr-cal-dot" style="background:${meta.color}"></span>`;
+      }).join('');
+      return `
+        <div class="sr-cal-day ${c.muted ? 'muted' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}"
+             data-date="${c.date.getFullYear()}-${String(c.date.getMonth()+1).padStart(2,'0')}-${String(c.date.getDate()).padStart(2,'0')}">
+          <div>${c.day}</div>
+          <div class="sr-cal-dots">${dots}</div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.sr-cal-day').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedDate = parseDate(el.dataset.date);
+        renderCalendar();
+        renderDayPanel(selectedDate);
+      });
+    });
+  }
+
+  function renderDayPanel(date) {
+    const panel = document.getElementById('dayPanel');
+    const rates = ratesForDate(date);
+    const label = date.toLocaleDateString('default', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    if (!rates.length) {
+      panel.style.display = 'block';
+      panel.innerHTML = `<div class="fw-700 mb-2">${label}</div><div class="text-sm" style="color:#9ca3af;">No seasonal rates active on this date.</div>`;
+      return;
+    }
+    panel.style.display = 'block';
+    panel.innerHTML = `<div class="fw-700 mb-2">${label}</div>` + rates.map(r => {
+      const meta = TAG_META[r.tag] || TAG_META.base;
+      const reasonHtml = r.reason
+        ? `<div class="sr-reason-box"><i class="icon-info"></i><div><span class="sr-reason-label">Reason:</span>${r.reason}</div></div>`
+        : `<div class="sr-reason-box"><i class="icon-info"></i><div style="color:#9ca3af;">No reason specified for this rate.</div></div>`;
+      return `<div class="sr-rate-item">
+        <div class="sr-rate-top">
+          <div><span class="sr-rate-dot" style="background:${meta.color}"></span><span class="sr-rate-room">${r.room_name}</span></div>
+          <span class="sr-rate-price">₹${Number(r.price).toLocaleString()}</span>
+        </div>
+        <div class="sr-rate-dates">${r.start_date} &rarr; ${r.end_date}</div>
+        <div class="mt-2"><span class="sr-tag-badge" style="background:${meta.color}">${meta.label}</span></div>
+        ${reasonHtml}
+      </div>`;
+    }).join('');
+  }
+
+  // ---- events ----
+  document.getElementById('calPrev').addEventListener('click', () => {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+  });
+  document.getElementById('calNext').addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+  });
+  document.getElementById('calToday').addEventListener('click', () => {
+    const t = new Date(); calYear = t.getFullYear(); calMonth = t.getMonth(); renderCalendar();
+  });
+  document.getElementById('rateSearch').addEventListener('input', renderList);
+  roomFilter.addEventListener('change', () => { renderList(); renderCalendar(); });
+  document.getElementById('refreshRatesBtn').addEventListener('click', loadRates);
+
+  const addModalEl = document.getElementById('addRateModal');
+  const addModal = new bootstrap.Modal(addModalEl);
+  document.getElementById('openAddRateBtn').addEventListener('click', () => addModal.show());
+  document.getElementById('openAddRateBtn2').addEventListener('click', () => addModal.show());
+
+  document.getElementById('addRateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('addRateError');
+    errEl.textContent = '';
+    const fd = new FormData(e.target);
+    const payload = {
+      room_id: fd.get('room_id'),
+      start_date: fd.get('start_date'),
+      end_date: fd.get('end_date'),
+      price: fd.get('price'),
+      tag: fd.get('tag'),
+      reason: fd.get('reason'),
+      notes: fd.get('notes'),
+    };
+    try {
+      const res = await fetch(addUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { errEl.textContent = data.error || 'Could not save rate.'; return; }
+      addModal.hide();
+      e.target.reset();
+      await loadRates();
+    } catch (err) {
+      errEl.textContent = 'Network error — please try again.';
+    }
+  });
+
+  renderCalendarDow();
+  loadRates();
+})();
+</script>
+{% endblock %}

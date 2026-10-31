@@ -1,0 +1,338 @@
+{% extends "hotel/base.html" %}
+{% block title %}Sync Logs · {{ hotel.hotel_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sl-header { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; }
+  .sl-title-wrap { display:flex; align-items:center; gap:16px; }
+  .sl-title-ico { width:60px; height:60px; border-radius:16px; background:rgba(124,58,237,.10); color:#7C3AED; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sl-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+  .sl-daterange { display:flex; align-items:center; gap:8px; height:46px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:12px; background:#fff; font-size:.95rem; }
+  .sl-daterange input { border:none; outline:none; background:transparent; font-size:.95rem; color:inherit; width:132px; }
+  .sl-btn { height:46px; padding:0 20px; border-radius:12px; border:1px solid transparent; background:rgba(124,58,237,.10); color:#7C3AED; font-weight:600; font-size:.95rem; display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+  .sl-btn:hover { background:rgba(124,58,237,.16); }
+  .sl-btn.spin svg { animation: sl-spin .8s linear infinite; }
+  @keyframes sl-spin { to { transform: rotate(360deg); } }
+
+  /* stat cards */
+  .sl-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:24px; }
+  .sl-stat { display:flex; align-items:center; gap:16px; padding:22px; border-radius:16px; border:1px solid transparent; cursor:pointer; text-align:left; background:#fff; transition:box-shadow .15s; }
+  .sl-stat:hover { box-shadow:0 4px 16px rgba(0,0,0,.07); }
+  .sl-stat.active { box-shadow:0 0 0 2px currentColor; }
+  .sl-stat-ico { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:#fff; }
+  .sl-stat-label { font-weight:700; font-size:.98rem; }
+  .sl-stat-value { font-size:2rem; font-weight:800; line-height:1.1; color:#111827; }
+  .sl-stat-sub { font-size:.82rem; opacity:.85; }
+  .sl-stat.t-all     { background:#eef2ff; color:#4f46e5; }
+  .sl-stat.t-success { background:#ecfdf5; color:#059669; }
+  .sl-stat.t-failed  { background:#fef2f2; color:#dc2626; }
+  .sl-stat.t-partial { background:#fffbeb; color:#d97706; }
+  .sl-stat.t-sent    { background:#f5f3ff; color:#7C3AED; cursor:default; }
+  .sl-stat.t-sent:hover { box-shadow:none; }
+
+  /* filters */
+  .sl-filters { display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; padding:20px 24px; border-radius:16px; background:#fff; border:1px solid var(--admio-border-color,#e5e7eb); margin-bottom:24px; }
+  .sl-field { display:flex; flex-direction:column; gap:6px; min-width:150px; }
+  .sl-field label { font-size:.85rem; font-weight:600; color:#4b5563; }
+  .sl-field select, .sl-search input { height:46px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:10px; padding:0 14px; background:#fff; font-size:.95rem; }
+  .sl-search { flex:1; min-width:220px; }
+  .sl-search input { width:100%; }
+
+  /* table card */
+  .sl-card { background:#fff; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:16px; overflow:hidden; }
+  .sl-card-head { display:flex; align-items:center; gap:10px; padding:20px 24px; font-weight:700; font-size:1.15rem; border-bottom:1px solid var(--admio-border-color,#e5e7eb); }
+  .sl-table-wrap { overflow-x:auto; }
+  .sl-table { width:100%; border-collapse:collapse; }
+  .sl-table th { padding:14px 20px; font-size:.82rem; font-weight:700; color:#6b7280; text-align:left; background:#f9fafb; white-space:nowrap; cursor:pointer; user-select:none; }
+  .sl-table th .arrow { opacity:.4; margin-left:4px; }
+  .sl-table td { padding:16px 20px; font-size:.95rem; border-top:1px solid #f0f1f4; vertical-align:middle; }
+  .sl-detail { max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#4b5563; }
+  .sl-badge { display:inline-block; padding:5px 12px; border-radius:20px; font-size:.82rem; font-weight:600; text-transform:capitalize; }
+  .sl-badge.success { background:#d1fae5; color:#047857; }
+  .sl-badge.failed  { background:#fee2e2; color:#b91c1c; }
+  .sl-badge.partial { background:#fef3c7; color:#b45309; }
+  .sl-badge.push    { background:#ede9fe; color:#6d28d9; }
+  .sl-badge.pull    { background:#dbeafe; color:#1d4ed8; }
+  .sl-badge.neutral { background:#f3f4f6; color:#4b5563; }
+
+  .sl-empty { text-align:center; padding:56px 20px; color:#6b7280; }
+  .sl-empty strong { display:block; color:#111827; font-size:1.05rem; margin:14px 0 4px; }
+  .sl-pager { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-top:1px solid #f0f1f4; font-size:.9rem; color:#6b7280; }
+  .sl-pager button { border:1px solid var(--admio-border-color,#e5e7eb); background:#fff; border-radius:8px; padding:6px 14px; margin-left:6px; cursor:pointer; }
+  .sl-pager button:disabled { opacity:.4; cursor:default; }
+
+  [data-theme="dark"] .sl-daterange, [data-theme="dark"] .sl-filters, [data-theme="dark"] .sl-card,
+  [data-theme="dark"] .sl-field select, [data-theme="dark"] .sl-search input { background:#1e1e2d; border-color:#2d2d3d; color:#e5e7eb; }
+  [data-theme="dark"] .sl-table th { background:#252536; color:#a1a1b5; }
+  [data-theme="dark"] .sl-table td { border-color:#2d2d3d; }
+  [data-theme="dark"] .sl-stat-value, [data-theme="dark"] .sl-empty strong { color:#f3f4f6; }
+
+  @media (max-width:1199px) { .sl-stats { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:767px)  { .sl-stats { grid-template-columns:repeat(2,1fr); } .sl-field { min-width:100%; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sl-header">
+  <div class="sl-title-wrap">
+    <div class="sl-title-ico">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/><path d="M16 16h5v5"/></svg>
+    </div>
+    <div>
+      <h1 class="page-title mb-1">Sync Logs</h1>
+      <p class="page-subtitle mb-0">Track and monitor the synchronization status of your channels and data.</p>
+    </div>
+  </div>
+
+  <div class="sl-actions">
+    <div class="sl-daterange">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <input type="date" id="dateFrom" value="{{ default_from }}" aria-label="From date">
+      <span>–</span>
+      <input type="date" id="dateTo" value="{{ default_to }}" aria-label="To date">
+    </div>
+    <button class="sl-btn" id="refreshBtn" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<!-- Stat cards (click to filter by outcome) -->
+<div class="sl-stats">
+  <button type="button" class="sl-stat t-all" data-outcome="">
+    <span class="sl-stat-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-15-6.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 15 6.7L21 16"/></svg></span>
+    <span><div class="sl-stat-label">Total</div><div class="sl-stat-value" id="statTotal">0</div><div class="sl-stat-sub">Total sync logs</div></span>
+  </button>
+  <button type="button" class="sl-stat t-success" data-outcome="success">
+    <span class="sl-stat-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></span>
+    <span><div class="sl-stat-label">Success</div><div class="sl-stat-value" id="statSuccess">0</div><div class="sl-stat-sub">Successful syncs</div></span>
+  </button>
+  <button type="button" class="sl-stat t-failed" data-outcome="failed">
+    <span class="sl-stat-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg></span>
+    <span><div class="sl-stat-label">Failed</div><div class="sl-stat-value" id="statFailed">0</div><div class="sl-stat-sub">Failed syncs</div></span>
+  </button>
+  <button type="button" class="sl-stat t-partial" data-outcome="partial">
+    <span class="sl-stat-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+    <span><div class="sl-stat-label">Partial</div><div class="sl-stat-value" id="statPartial">0</div><div class="sl-stat-sub">Partial syncs</div></span>
+  </button>
+  <div class="sl-stat t-sent">
+    <span class="sl-stat-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
+    <span><div class="sl-stat-label">Records Sent</div><div class="sl-stat-value" id="statSent">0</div><div class="sl-stat-sub">Records sent</div></span>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="sl-filters">
+  <div class="sl-field">
+    <label for="fDirection">Direction</label>
+    <select id="fDirection">
+      <option value="">All</option>
+      <option value="push">Push (ERP → Channel)</option>
+      <option value="pull">Pull (Channel → ERP)</option>
+    </select>
+  </div>
+  <div class="sl-field">
+    <label for="fOutcome">Outcome</label>
+    <select id="fOutcome">
+      <option value="">All</option>
+      <option value="success">Success</option>
+      <option value="failed">Failed</option>
+      <option value="partial">Partial</option>
+    </select>
+  </div>
+  <div class="sl-field">
+    <label for="fChannel">Channel</label>
+    <select id="fChannel">
+      <option value="">All channels</option>
+      {% if website_channels %}
+      <optgroup label="Website">
+        {% for c in website_channels %}<option value="website:{{ c.pk }}">{{ c.site_name }}</option>{% endfor %}
+      </optgroup>
+      {% endif %}
+      {% if ota_channels %}
+      <optgroup label="OTA">
+        {% for c in ota_channels %}<option value="ota:{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+      </optgroup>
+      {% endif %}
+    </select>
+  </div>
+  <div class="sl-field sl-search">
+    <label for="fSearch">Search</label>
+    <input type="search" id="fSearch" placeholder="Search detail or entity…">
+  </div>
+  <button type="button" class="sl-btn" id="clearBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    Clear Filters
+  </button>
+</div>
+
+<!-- Table -->
+<div class="sl-card">
+  <div class="sl-card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    Sync Logs
+  </div>
+  <div class="sl-table-wrap">
+    <table class="sl-table">
+      <thead>
+        <tr>
+          <th data-sort="channel_name">Channel <span class="arrow">↕</span></th>
+          <th data-sort="direction">Direction <span class="arrow">↕</span></th>
+          <th data-sort="outcome">Outcome <span class="arrow">↕</span></th>
+          <th data-sort="records_sent">Sent <span class="arrow">↕</span></th>
+          <th data-sort="records_failed">Failed <span class="arrow">↕</span></th>
+          <th data-sort="duration_ms">Duration <span class="arrow">↕</span></th>
+          <th data-sort="detail">Detail <span class="arrow">↕</span></th>
+          <th data-sort="created_at">Time <span class="arrow">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="slBody"></tbody>
+    </table>
+  </div>
+
+  <div class="sl-empty" id="slEmpty" style="display:none;">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>
+    <strong>No sync logs found</strong>
+    Once your channels start syncing, the logs will appear here.
+  </div>
+
+  <div class="sl-pager" id="slPager" style="display:none;">
+    <span id="pagerInfo"></span>
+    <span><button type="button" id="prevBtn">Previous</button><button type="button" id="nextBtn">Next</button></span>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const API = "{% url 'sync-log-list' %}";
+  const PAGE_SIZE = 10;
+  const $ = (id) => document.getElementById(id);
+
+  let rows = [];
+  let page = 1;
+  let sortKey = "created_at";
+  let sortDir = -1;
+  let timer = null;
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function fmtDuration(ms) {
+    if (ms == null) return "—";
+    return ms < 1000 ? ms + " ms" : (ms / 1000).toFixed(1) + " s";
+  }
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleString(undefined, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function params() {
+    const p = new URLSearchParams();
+    const map = { date_from: "dateFrom", date_to: "dateTo", direction: "fDirection", outcome: "fOutcome", channel: "fChannel", q: "fSearch" };
+    for (const [k, id] of Object.entries(map)) {
+      const v = $(id).value.trim();
+      if (v) p.set(k, v);
+    }
+    return p;
+  }
+
+  async function load() {
+    const btn = $("refreshBtn");
+    btn.classList.add("spin");
+    try {
+      const res = await fetch(API + "?" + params().toString(), { headers: { "Accept": "application/json" } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      rows = data.results || [];
+      const s = data.stats || {};
+      $("statTotal").textContent   = s.total ?? 0;
+      $("statSuccess").textContent = s.success ?? 0;
+      $("statFailed").textContent  = s.failed ?? 0;
+      $("statPartial").textContent = s.partial ?? 0;
+      $("statSent").textContent    = s.records_sent ?? 0;
+      page = 1;
+      render();
+    } catch (err) {
+      rows = [];
+      render();
+      $("slEmpty").querySelector("strong").textContent = "Couldn't load sync logs";
+      $("slEmpty").lastChild.textContent = "Check your connection and press Refresh.";
+    } finally {
+      btn.classList.remove("spin");
+    }
+  }
+
+  function render() {
+    const sorted = rows.slice().sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
+    });
+
+    const total = sorted.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    page = Math.min(page, pages);
+    const slice = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    $("slBody").innerHTML = slice.map((r) => `
+      <tr>
+        <td><strong>${esc(r.channel_name)}</strong>${r.channel_kind ? ` <span class="sl-badge neutral">${esc(r.channel_kind)}</span>` : ""}</td>
+        <td><span class="sl-badge ${esc(r.direction)}">${esc(r.direction)}</span> <span class="text-muted">${esc(r.entity)}</span></td>
+        <td><span class="sl-badge ${esc(r.outcome)}">${esc(r.outcome)}</span></td>
+        <td>${r.records_sent}</td>
+        <td>${r.records_failed}</td>
+        <td>${fmtDuration(r.duration_ms)}</td>
+        <td><div class="sl-detail" title="${esc(r.detail)}">${esc(r.detail) || "—"}</div></td>
+        <td style="white-space:nowrap;">${fmtTime(r.created_at)}</td>
+      </tr>`).join("");
+
+    $("slEmpty").style.display = total ? "none" : "block";
+    if (!total) {
+      $("slEmpty").querySelector("strong").textContent = "No sync logs found";
+      $("slEmpty").lastChild.textContent = "Once your channels start syncing, the logs will appear here.";
+    }
+    $("slPager").style.display = total > PAGE_SIZE ? "flex" : "none";
+    $("pagerInfo").textContent = `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`;
+    $("prevBtn").disabled = page <= 1;
+    $("nextBtn").disabled = page >= pages;
+
+    document.querySelectorAll(".sl-stat[data-outcome]").forEach((el) => {
+      el.classList.toggle("active", el.dataset.outcome === $("fOutcome").value);
+    });
+  }
+
+  // Events
+  ["dateFrom", "dateTo", "fDirection", "fOutcome", "fChannel"].forEach((id) => $(id).addEventListener("change", load));
+  $("fSearch").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(load, 350); });
+  $("refreshBtn").addEventListener("click", load);
+
+  $("clearBtn").addEventListener("click", () => {
+    ["fDirection", "fOutcome", "fChannel", "fSearch"].forEach((id) => ($(id).value = ""));
+    $("dateFrom").value = "{{ default_from }}";
+    $("dateTo").value = "{{ default_to }}";
+    load();
+  });
+
+  document.querySelectorAll(".sl-stat[data-outcome]").forEach((el) => {
+    el.addEventListener("click", () => { $("fOutcome").value = el.dataset.outcome; load(); });
+  });
+
+  document.querySelectorAll(".sl-table th[data-sort]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      sortDir = sortKey === k ? -sortDir : 1;
+      sortKey = k;
+      render();
+    });
+  });
+
+  $("prevBtn").addEventListener("click", () => { page--; render(); });
+  $("nextBtn").addEventListener("click", () => { page++; render(); });
+
+  load();
+})();
+</script>
+{% endblock %}

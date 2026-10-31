@@ -1,0 +1,3117 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Laundry Report{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+
+<style>
+/* =========================================================
+   LAUNDRY REPORT
+   Typography intentionally inherits from hotel/base.html.
+   No custom font-family/font-size system.
+   ========================================================= */
+
+.lr {
+    --lr-purple: #6933f5;
+    --lr-surface: #ffffff;
+    --lr-subtle: #f8f8fc;
+    --lr-input: #ffffff;
+    --lr-line: #e5e4f2;
+    --lr-ink: #17203b;
+    --lr-muted: #64718c;
+    --lr-accent-text: #6430de;
+    --lr-tint: #f0ecff;
+    --lr-hover: #f4f0ff;
+
+    --lr-green: #15784c;
+    --lr-green-bg: #e9faf1;
+
+    --lr-orange: #995700;
+    --lr-orange-bg: #fff3dc;
+
+    --lr-danger: #a92737;
+    --lr-danger-bg: #fff0f1;
+
+    color: var(--lr-ink);
+    color-scheme: light;
+}
+
+[data-theme="dark"] .lr,
+[data-bs-theme="dark"] .lr,
+.lr[data-theme="dark"] {
+    --lr-surface: #1e1e2f;
+    --lr-subtle: #252537;
+    --lr-input: #171725;
+    --lr-line: #3b3b51;
+    --lr-ink: #f1f2fa;
+    --lr-muted: #b0b7ce;
+    --lr-accent-text: #c2aaff;
+    --lr-tint: #33274d;
+    --lr-hover: #30263f;
+
+    --lr-green: #9be3c3;
+    --lr-green-bg: #173b32;
+
+    --lr-orange: #ffd084;
+    --lr-orange-bg: #44341c;
+
+    --lr-danger: #ffbdc7;
+    --lr-danger-bg: #40232e;
+
+    color-scheme: dark;
+}
+
+.lr *,
+dialog.lr * {
+    box-sizing: border-box;
+}
+
+.lr button,
+.lr input,
+.lr select,
+.lr textarea,
+dialog.lr button,
+dialog.lr input,
+dialog.lr select,
+dialog.lr textarea {
+    font: inherit;
+}
+
+.lr button,
+dialog.lr button {
+    cursor: pointer;
+}
+
+.lr button:disabled,
+dialog.lr button:disabled {
+    cursor: default;
+    opacity: .45;
+}
+
+
+/* =========================================================
+   BREADCRUMB + HEADER
+   Matches Laundry Services
+   ========================================================= */
+
+.lr-breadcrumb {
+    color: var(--lr-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lr-breadcrumb span:last-child {
+    color: var(--lr-accent-text);
+}
+
+.lr-head,
+.lr-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.lr-between {
+    justify-content: space-between;
+}
+
+.lr-head {
+    justify-content: space-between;
+    margin: 18px 0 28px;
+}
+
+.lr h1,
+.lr h2,
+.lr h3,
+.lr p {
+    margin: 0;
+}
+
+.lr-muted {
+    color: var(--lr-muted);
+}
+
+.lr-head .page-subtitle {
+    margin-top: 5px;
+    color: var(--lr-muted);
+}
+
+
+/* =========================================================
+   BUTTONS
+   Same sizing/pattern as Laundry Services
+   ========================================================= */
+
+.lr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 11px 17px;
+    min-height: 44px;
+
+    border: 1px solid var(--lr-line);
+    border-radius: 8px;
+
+    background: var(--lr-surface);
+    color: var(--lr-accent-text);
+
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.lr-btn:hover:not(:disabled) {
+    background: var(--lr-hover);
+}
+
+.lr-primary {
+    background: var(--lr-purple);
+    color: #fff;
+    border-color: var(--lr-purple);
+}
+
+.lr-primary:hover:not(:disabled) {
+    background: #5927db;
+    border-color: #5927db;
+}
+
+.lr-icon {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MESSAGES
+   ========================================================= */
+
+.lr-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    background: var(--lr-green-bg);
+    color: var(--lr-green);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    white-space: pre-wrap;
+}
+
+.lr-message.error {
+    background: var(--lr-danger-bg);
+    color: var(--lr-danger);
+}
+
+.lr-message-close {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 4px;
+    min-height: auto;
+}
+
+.lr [hidden],
+dialog.lr [hidden] {
+    display: none !important;
+}
+
+
+/* =========================================================
+   STAT CARDS
+   ========================================================= */
+
+.lr-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.lr-stat {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    padding: 20px;
+
+    background: var(--lr-surface);
+    border: 1px solid var(--lr-line);
+    border-radius: 12px;
+}
+
+.lr-stat-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: var(--lr-tint);
+    color: var(--lr-accent-text);
+}
+
+.lr-stat-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.lr-stat-value {
+    display: block;
+    margin: 4px 0;
+    color: var(--lr-ink);
+}
+
+.lr-stat small {
+    display: block;
+    color: var(--lr-muted);
+}
+
+
+/* =========================================================
+   MAIN PANEL
+   ========================================================= */
+
+.lr-panel {
+    border: 1px solid var(--lr-line);
+    border-radius: 12px;
+
+    background: var(--lr-surface);
+
+    overflow: hidden;
+}
+
+.lr-toolbar {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--lr-line);
+}
+
+.lr-count {
+    padding: 5px 12px;
+    border-radius: 30px;
+
+    background: var(--lr-tint);
+    color: var(--lr-accent-text);
+}
+
+
+/* =========================================================
+   STATUS TABS
+   ========================================================= */
+
+.lr-tabs {
+    display: flex;
+    gap: 22px;
+
+    margin-top: 20px;
+
+    border-bottom: 1px solid var(--lr-line);
+
+    overflow-x: auto;
+}
+
+.lr-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+
+    padding: 12px 1px;
+
+    background: transparent;
+    color: var(--lr-muted);
+
+    white-space: nowrap;
+}
+
+.lr-tab:hover {
+    color: var(--lr-accent-text);
+}
+
+.lr-tab[aria-pressed="true"] {
+    color: var(--lr-accent-text);
+    border-bottom-color: var(--lr-purple);
+}
+
+
+/* =========================================================
+   FILTERS
+   ========================================================= */
+
+.lr-filters {
+    display: grid;
+
+    grid-template-columns:
+        minmax(220px, 2fr)
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        auto
+        auto;
+
+    gap: 12px;
+    align-items: end;
+
+    margin-top: 18px;
+}
+
+.lr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    color: var(--lr-muted);
+}
+
+.lr-field input,
+.lr-field select,
+.lr-field textarea {
+    width: 100%;
+
+    padding: 11px 12px;
+    min-height: 44px;
+
+    border: 1px solid var(--lr-line);
+    border-radius: 8px;
+
+    background: var(--lr-input);
+    color: var(--lr-ink);
+}
+
+.lr-field input::placeholder {
+    color: var(--lr-muted);
+}
+
+.lr-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    min-height: 44px;
+
+    color: var(--lr-muted);
+
+    white-space: nowrap;
+}
+
+.lr-check input {
+    accent-color: var(--lr-purple);
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.lr-scroll {
+    overflow: auto;
+}
+
+.lr table {
+    width: 100%;
+    min-width: 1100px;
+
+    border-collapse: collapse;
+}
+
+.lr th {
+    text-align: left;
+
+    padding: 14px 20px;
+
+    background: var(--lr-subtle);
+    color: var(--lr-muted);
+
+    border-bottom: 1px solid var(--lr-line);
+
+    white-space: nowrap;
+}
+
+.lr td {
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--lr-line);
+
+    color: var(--lr-ink);
+    vertical-align: middle;
+}
+
+.lr tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.lr tbody tr:hover {
+    background: var(--lr-subtle);
+}
+
+.lr td small {
+    display: block;
+
+    margin-top: 4px;
+
+    color: var(--lr-muted);
+}
+
+.lr-money {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+.lr-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 5px 10px;
+
+    border-radius: 7px;
+
+    background: var(--lr-orange-bg);
+    color: var(--lr-orange);
+
+    white-space: nowrap;
+}
+
+.lr-status::before {
+    content: "";
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+.lr-status.partial {
+    background: var(--lr-tint);
+    color: var(--lr-accent-text);
+}
+
+.lr-status.received {
+    background: var(--lr-green-bg);
+    color: var(--lr-green);
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.lr-empty {
+    text-align: center;
+
+    padding: 64px 24px 70px;
+}
+
+.lr-empty-icon {
+    width: 100px;
+    height: 100px;
+
+    margin: 0 auto 22px;
+
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--lr-tint);
+    color: var(--lr-accent-text);
+}
+
+.lr-empty-icon svg {
+    width: 49px;
+    height: 49px;
+}
+
+.lr-empty p {
+    margin: 12px auto 22px;
+
+    max-width: 540px;
+
+    color: var(--lr-muted);
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.lr-footer {
+    padding: 19px 24px;
+
+    border-top: 1px solid var(--lr-line);
+}
+
+.lr-note {
+    text-align: center;
+
+    margin-top: 16px;
+
+    color: var(--lr-muted);
+}
+
+
+/* =========================================================
+   DIALOG
+   ========================================================= */
+
+dialog.lr {
+    border: 1px solid var(--lr-line);
+    border-radius: 16px;
+
+    padding: 0;
+
+    width: min(900px, calc(100vw - 32px));
+    max-height: 90dvh;
+
+    overflow: auto;
+
+    background: var(--lr-surface);
+    color: var(--lr-ink);
+}
+
+dialog.lr::backdrop {
+    background: rgba(5, 7, 18, .65);
+}
+
+.lr-dialog-head {
+    padding: 21px 24px;
+
+    border-bottom: 1px solid var(--lr-line);
+}
+
+.lr-dialog-body {
+    padding: 24px;
+}
+
+.lr-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 18px;
+}
+
+.lr-full {
+    grid-column: 1 / -1;
+}
+
+.lr-dialog-footer {
+    padding: 19px 24px;
+
+    border-top: 1px solid var(--lr-line);
+}
+
+.lr-line {
+    display: grid;
+
+    grid-template-columns:
+        minmax(200px, 2fr)
+        minmax(100px, .7fr)
+        minmax(130px, .8fr)
+        auto;
+
+    gap: 10px;
+
+    align-items: end;
+
+    margin-top: 12px;
+}
+
+.lr-detail-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 20px;
+
+    margin: 0 0 24px;
+}
+
+.lr-detail-grid dt {
+    color: var(--lr-muted);
+    margin-bottom: 6px;
+}
+
+.lr-detail-grid dd {
+    margin: 0;
+
+    overflow-wrap: anywhere;
+}
+
+.lr-detail-note {
+    margin-top: 14px !important;
+
+    color: var(--lr-muted);
+
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.lr-recv {
+    width: 90px;
+
+    padding: 10px;
+
+    border: 1px solid var(--lr-line);
+    border-radius: 8px;
+
+    background: var(--lr-input);
+    color: var(--lr-ink);
+}
+
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
+.lr :focus-visible,
+dialog.lr :focus-visible {
+    outline: 3px solid #b7a0fa;
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .lr-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .lr-filters {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .lr-head {
+        align-items: flex-start;
+    }
+
+    .lr-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-toolbar {
+        padding: 18px;
+    }
+
+    .lr-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-form-grid,
+    .lr-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-line {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-footer,
+    .lr-dialog-footer {
+        padding: 18px;
+    }
+
+    .lr-empty {
+        padding: 45px 18px;
+    }
+
+}
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="lr" id="laundryReportPage">
+
+    {% csrf_token %}
+
+
+    <!-- =====================================================
+         BREADCRUMB
+         ===================================================== -->
+
+    <div class="lr-breadcrumb text-sm">
+        <span>Laundry</span>
+        <span>/</span>
+        <span>Report</span>
+    </div>
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <header class="lr-head">
+
+        <div>
+
+            <h1 class="page-title">
+                Laundry Report
+            </h1>
+
+            <p class="page-subtitle">
+                Track vendor batches, returned items and laundry costs.
+            </p>
+
+        </div>
+
+
+        <div class="lr-row">
+
+            <button
+                type="button"
+                class="lr-btn"
+                id="lrRefresh"
+            >
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path d="M20 7v5h-5"/>
+                    <path d="M4 17v-5h5"/>
+                    <path d="M6.1 6.1A8 8 0 0 1 20 12"/>
+                    <path d="M4 12a8 8 0 0 0 13.9 5.9"/>
+                </svg>
+
+                Refresh
+
+            </button>
+
+
+            <button
+                type="button"
+                class="lr-btn lr-primary"
+                data-new
+            >
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path d="M12 5v14"/>
+                    <path d="M5 12h14"/>
+                </svg>
+
+                New batch
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         MESSAGE
+         ===================================================== -->
+
+    <div
+        id="lrMessage"
+        class="lr-message"
+        role="status"
+        hidden
+    >
+
+        <span id="lrMessageText"></span>
+
+        <button
+            type="button"
+            class="lr-message-close"
+            id="lrMessageClose"
+            aria-label="Dismiss message"
+        >
+            ×
+        </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         STATISTICS
+         ===================================================== -->
+
+    <section class="lr-stats">
+
+
+        <!-- TOTAL BATCHES -->
+
+        <article class="lr-stat">
+
+            <div class="lr-stat-icon">
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M8 9h8"/>
+                    <path d="M8 13h8"/>
+                    <path d="M8 17h5"/>
+                </svg>
+
+            </div>
+
+            <div>
+
+                <span class="lr-muted text-sm">
+                    Total batches
+                </span>
+
+                <strong
+                    class="lr-stat-value"
+                    id="lrTotal"
+                >
+                    —
+                </strong>
+
+                <small id="lrBreakdown">
+                    All batches
+                </small>
+
+            </div>
+
+        </article>
+
+
+        <!-- TOTAL PIECES -->
+
+        <article class="lr-stat">
+
+            <div class="lr-stat-icon">
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path d="m8 3-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3"/>
+                    <path d="M8 3l4 5 4-5"/>
+                </svg>
+
+            </div>
+
+            <div>
+
+                <span class="lr-muted text-sm">
+                    Total pieces
+                </span>
+
+                <strong
+                    class="lr-stat-value"
+                    id="lrPieces"
+                >
+                    —
+                </strong>
+
+                <small id="lrMissing">
+                    Unreturned: —
+                </small>
+
+            </div>
+
+        </article>
+
+
+        <!-- TOTAL COST -->
+
+        <article class="lr-stat">
+
+            <div class="lr-stat-icon">
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M8 8h8"/>
+                    <path d="M8 11h8"/>
+                    <path d="M10 8c4 0 4 6 0 6"/>
+                    <path d="M10 14l5 4"/>
+                </svg>
+
+            </div>
+
+            <div>
+
+                <span class="lr-muted text-sm">
+                    Total cost
+                </span>
+
+                <strong
+                    class="lr-stat-value"
+                    id="lrCost"
+                >
+                    —
+                </strong>
+
+                <small id="lrMissingCost">
+                    Unreturned value: —
+                </small>
+
+            </div>
+
+        </article>
+
+
+        <!-- PAYABLE -->
+
+        <article class="lr-stat">
+
+            <div class="lr-stat-icon">
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <rect x="3" y="6" width="18" height="13" rx="2"/>
+                    <path d="M3 10h18"/>
+                    <path d="M16 15h2"/>
+                </svg>
+
+            </div>
+
+            <div>
+
+                <span class="lr-muted text-sm">
+                    Payable
+                </span>
+
+                <strong
+                    class="lr-stat-value"
+                    id="lrPayable"
+                >
+                    —
+                </strong>
+
+                <small>
+                    Based on received pieces
+                </small>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         REPORT PANEL
+         ===================================================== -->
+
+    <section
+        class="lr-panel"
+        aria-labelledby="lrReportTitle"
+    >
+
+
+        <!-- TOOLBAR -->
+
+        <div class="lr-toolbar">
+
+            <div class="lr-row lr-between">
+
+                <div class="lr-row">
+
+                    <h2
+                        class="card-title"
+                        id="lrReportTitle"
+                    >
+                        Laundry batches
+                    </h2>
+
+                    <span
+                        class="lr-count text-sm"
+                        id="lrCount"
+                    >
+                        Loading…
+                    </span>
+
+                </div>
+
+
+                <select
+                    id="lrSort"
+                    class="lr-btn"
+                    aria-label="Sort batches"
+                >
+                    <option value="newest">
+                        Newest first
+                    </option>
+
+                    <option value="oldest">
+                        Oldest first
+                    </option>
+                </select>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div
+                class="lr-tabs"
+                aria-label="Batch status"
+            >
+
+                <button
+                    type="button"
+                    class="lr-tab"
+                    data-status=""
+                    aria-pressed="true"
+                >
+                    All batches
+                </button>
+
+                <button
+                    type="button"
+                    class="lr-tab"
+                    data-status="dispatched"
+                    aria-pressed="false"
+                >
+                    Dispatched
+                </button>
+
+                <button
+                    type="button"
+                    class="lr-tab"
+                    data-status="partial"
+                    aria-pressed="false"
+                >
+                    Partial
+                </button>
+
+                <button
+                    type="button"
+                    class="lr-tab"
+                    data-status="received"
+                    aria-pressed="false"
+                >
+                    Received
+                </button>
+
+            </div>
+
+
+            <!-- FILTERS -->
+
+            <div class="lr-filters">
+
+                <label class="lr-field">
+
+                    Search
+
+                    <input
+                        id="lrSearch"
+                        type="search"
+                        placeholder="Batch, vendor or staff…"
+                    >
+
+                </label>
+
+
+                <label class="lr-field">
+
+                    Dispatched from
+
+                    <input
+                        type="date"
+                        id="lrFrom"
+                    >
+
+                </label>
+
+
+                <label class="lr-field">
+
+                    Dispatched to
+
+                    <input
+                        type="date"
+                        id="lrTo"
+                    >
+
+                </label>
+
+
+                <label
+                    class="lr-check"
+                    title="Includes pieces that are still with the vendor"
+                >
+
+                    <input
+                        type="checkbox"
+                        id="lrOnlyMissing"
+                    >
+
+                    Unreturned only
+
+                </label>
+
+
+                <button
+                    type="button"
+                    class="lr-btn"
+                    id="lrClear"
+                >
+                    Clear filters
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="lr-scroll">
+
+            <table aria-label="Laundry batches">
+
+                <thead>
+
+                    <tr>
+                        <th>Batch / dispatched</th>
+                        <th>Expected return</th>
+                        <th>Vendor / dispatched by</th>
+                        <th>Pieces / received</th>
+                        <th>Unreturned</th>
+                        <th>Cost / payable</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="lrRows"></tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- EMPTY STATE -->
+
+        <div
+            class="lr-empty"
+            id="lrEmpty"
+        >
+
+            <div class="lr-empty-icon">
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path d="m8 3-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3"/>
+                    <path d="M8 3l4 5 4-5"/>
+                </svg>
+
+            </div>
+
+            <h3 id="lrEmptyTitle">
+                Loading batches…
+            </h3>
+
+            <p id="lrEmptyText">
+                Please wait while the report loads.
+            </p>
+
+            <button
+                type="button"
+                class="lr-btn lr-primary"
+                data-new
+                id="lrEmptyNew"
+                hidden
+            >
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                >
+                    <path d="M12 5v14"/>
+                    <path d="M5 12h14"/>
+                </svg>
+
+                New batch
+
+            </button>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <footer class="lr-footer lr-row lr-between">
+
+            <span
+                class="lr-muted text-sm"
+                id="lrRange"
+            >
+                Loading…
+            </span>
+
+
+            <div class="lr-row">
+
+                <select
+                    id="lrSize"
+                    class="lr-btn"
+                    aria-label="Rows per page"
+                >
+                    <option value="25">25 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                </select>
+
+
+                <button
+                    type="button"
+                    class="lr-btn"
+                    id="lrPrev"
+                >
+                    ‹ Previous
+                </button>
+
+
+                <button
+                    type="button"
+                    class="lr-btn"
+                    id="lrNext"
+                >
+                    Next ›
+                </button>
+
+            </div>
+
+        </footer>
+
+    </section>
+
+
+    <p
+        class="lr-note text-sm"
+        id="lrUpdated"
+    ></p>
+
+</div>
+
+
+<!-- =========================================================
+     CREATE BATCH DIALOG
+     ========================================================= -->
+
+<dialog
+    class="lr"
+    id="lrCreate"
+    aria-labelledby="lrCreateTitle"
+>
+
+    <form id="lrCreateForm">
+
+        {% csrf_token %}
+
+
+        <header class="lr-dialog-head lr-row lr-between">
+
+            <h2
+                class="card-title"
+                id="lrCreateTitle"
+            >
+                New laundry batch
+            </h2>
+
+
+            <button
+                type="button"
+                class="lr-btn"
+                data-close
+                aria-label="Close"
+            >
+
+                <svg
+                    class="lr-icon"
+                    viewBox="0 0 24 24"
+                >
+                    <path d="m6 6 12 12"/>
+                    <path d="M18 6 6 18"/>
+                </svg>
+
+            </button>
+
+        </header>
+
+
+        <div class="lr-dialog-body">
+
+            <div class="lr-form-grid">
+
+
+                <label class="lr-field">
+
+                    Vendor / laundry name *
+
+                    <input
+                        name="sent_to_laundry"
+                        required
+                        maxlength="100"
+                    >
+
+                </label>
+
+
+                <label class="lr-field">
+
+                    Expected return
+
+                    <input
+                        name="expected_return_date"
+                        type="date"
+                    >
+
+                </label>
+
+
+                <label class="lr-field">
+
+                    Contact person
+
+                    <input
+                        name="laundry_contact"
+                        maxlength="100"
+                    >
+
+                </label>
+
+
+                <label class="lr-field">
+
+                    Phone
+
+                    <input
+                        name="laundry_phone"
+                        type="tel"
+                        maxlength="20"
+                    >
+
+                </label>
+
+
+                <label class="lr-field lr-full">
+
+                    Notes
+
+                    <textarea
+                        name="note"
+                        rows="3"
+                    ></textarea>
+
+                </label>
+
+            </div>
+
+
+            <div
+                class="lr-row lr-between"
+                style="margin-top:24px;"
+            >
+
+                <h2 class="card-title">
+                    Batch items
+                </h2>
+
+                <button
+                    type="button"
+                    id="lrAddLine"
+                    class="lr-btn"
+                >
+
+                    <svg
+                        class="lr-icon"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M12 5v14"/>
+                        <path d="M5 12h14"/>
+                    </svg>
+
+                    Add item
+
+                </button>
+
+            </div>
+
+
+            <div id="lrLines"></div>
+
+
+            <div
+                id="lrCreateError"
+                class="lr-message error"
+                role="alert"
+                hidden
+                style="margin-top:18px;"
+            ></div>
+
+        </div>
+
+
+        <footer class="lr-dialog-footer lr-row lr-between">
+
+            <span class="lr-muted text-sm">
+                Quantities are in pieces.
+            </span>
+
+
+            <div class="lr-row">
+
+                <button
+                    type="button"
+                    class="lr-btn"
+                    data-close
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="lr-btn lr-primary"
+                    id="lrSave"
+                >
+                    Create batch
+                </button>
+
+            </div>
+
+        </footer>
+
+    </form>
+
+</dialog>
+
+
+<!-- =========================================================
+     DETAIL DIALOG
+     ========================================================= -->
+
+<dialog
+    class="lr"
+    id="lrDetail"
+    aria-labelledby="lrDetailTitle"
+>
+
+    <header class="lr-dialog-head lr-row lr-between">
+
+        <h2
+            class="card-title"
+            id="lrDetailTitle"
+        >
+            Batch details
+        </h2>
+
+
+        <button
+            type="button"
+            class="lr-btn"
+            data-close
+            aria-label="Close"
+        >
+
+            <svg
+                class="lr-icon"
+                viewBox="0 0 24 24"
+            >
+                <path d="m6 6 12 12"/>
+                <path d="M18 6 6 18"/>
+            </svg>
+
+        </button>
+
+    </header>
+
+
+    <div
+        class="lr-dialog-body"
+        id="lrDetailBody"
+    ></div>
+
+</dialog>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+{{ block.super }}
+
+<script>
+(() => {
+
+    'use strict';
+
+
+    /* =====================================================
+       API URLS
+       ===================================================== */
+
+    const API = {
+
+        list:
+            "{% url 'list_linen_batches' %}",
+
+        create:
+            "{% url 'dispatch_linen_batch' %}",
+
+        detail:
+            "{% url 'linen_batch_detail' 0 %}",
+
+        receive:
+            "{% url 'mark_item_received' 0 0 %}"
+
+    };
+
+
+    const $ = id =>
+        document.getElementById(id);
+
+
+    const root =
+        $('laundryReportPage');
+
+
+    const esc = value =>
+        String(value ?? '').replace(
+            /[&<>"']/g,
+            char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char])
+        );
+
+
+    const num = value =>
+        Number.isFinite(Number(value))
+            ? Number(value)
+            : 0;
+
+
+    const money = value =>
+        new Intl.NumberFormat(
+            'en-IN',
+            {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 2
+            }
+        ).format(num(value));
+
+
+    const date = value => {
+
+        if (!value)
+            return '—';
+
+        const d = new Date(value);
+
+        if (Number.isNaN(d.getTime()))
+            return '—';
+
+        return d.toLocaleDateString(
+            'en-IN',
+            {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }
+        );
+
+    };
+
+
+    const localDay = value => {
+
+        const d = new Date(value);
+
+        if (Number.isNaN(d.getTime()))
+            return '';
+
+        return (
+            d.getFullYear()
+            + '-'
+            + String(d.getMonth() + 1).padStart(2, '0')
+            + '-'
+            + String(d.getDate()).padStart(2, '0')
+        );
+
+    };
+
+
+    let batches = [];
+    let page = 1;
+    let status = '';
+    let loaded = false;
+
+
+    const states = {
+        dispatched: 'Dispatched',
+        partial: 'Partial',
+        received: 'Received'
+    };
+
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
+
+    function badge(value) {
+
+        const safe =
+            Object.hasOwn(states, value)
+                ? value
+                : '';
+
+        return `
+            <span class="lr-status ${safe}">
+                ${esc(states[value] || value || 'Unknown')}
+            </span>
+        `;
+
+    }
+
+
+    /* =====================================================
+       MESSAGE
+       ===================================================== */
+
+    function message(text, error = false) {
+
+        $('lrMessageText').textContent = text;
+
+        $('lrMessage')
+            .classList
+            .toggle('error', error);
+
+        $('lrMessage').hidden = !text;
+
+    }
+
+
+    $('lrMessageClose').onclick = () =>
+        message('');
+
+
+    /* =====================================================
+       REQUEST
+       ===================================================== */
+
+    async function api(url, data) {
+
+        const options = {
+
+            credentials: 'same-origin',
+
+            cache: 'no-store',
+
+            headers: {
+                Accept: 'application/json'
+            }
+
+        };
+
+
+        if (data !== undefined) {
+
+            options.method = 'POST';
+
+            options.headers['Content-Type'] =
+                'application/json';
+
+            options.headers['X-CSRFToken'] =
+                root.querySelector(
+                    '[name=csrfmiddlewaretoken]'
+                ).value;
+
+            options.body =
+                JSON.stringify(data);
+
+        }
+
+
+        const response =
+            await fetch(url, options);
+
+
+        let json;
+
+
+        try {
+
+            json =
+                await response.json();
+
+        }
+        catch {
+
+            throw new Error(
+                'Unexpected server response. Check your login and try again.'
+            );
+
+        }
+
+
+        if (
+            !response.ok
+            || json.error
+            || json.success === false
+        ) {
+
+            throw new Error(
+                json.error
+                || 'Unable to complete the request.'
+            );
+
+        }
+
+
+        return json;
+
+    }
+
+
+    /* =====================================================
+       STATS
+       ===================================================== */
+
+    function stats() {
+
+        const sum = key =>
+            batches.reduce(
+                (total, batch) =>
+                    total + num(batch[key]),
+                0
+            );
+
+
+        $('lrTotal').textContent =
+            batches.length;
+
+
+        $('lrPieces').textContent =
+            sum('total_pieces');
+
+
+        $('lrMissing').textContent =
+            `Unreturned: ${sum('missing_pieces')}`;
+
+
+        $('lrCost').textContent =
+            money(sum('total_cost'));
+
+
+        $('lrMissingCost').textContent =
+            `Unreturned value: ${money(sum('missing_cost'))}`;
+
+
+        $('lrPayable').textContent =
+            money(sum('payable_amount'));
+
+
+        $('lrBreakdown').textContent =
+            Object.entries(states)
+                .map(([key, label]) =>
+                    `${label} ${
+                        batches.filter(
+                            batch =>
+                                batch.status === key
+                        ).length
+                    }`
+                )
+                .join(' · ');
+
+    }
+
+
+    /* =====================================================
+       RENDER
+       ===================================================== */
+
+    function render() {
+
+        const query =
+            $('lrSearch')
+                .value
+                .trim()
+                .toLowerCase();
+
+
+        const from =
+            $('lrFrom').value;
+
+
+        const to =
+            $('lrTo').value;
+
+
+        let rows =
+            batches.filter(batch => {
+
+                const searchable = [
+                    batch.batch_code,
+                    batch.sent_to_laundry,
+                    batch.dispatched_by
+                ]
+                    .join(' ')
+                    .toLowerCase();
+
+
+                return (
+
+                    (!status || batch.status === status)
+
+                    &&
+
+                    (
+                        !query
+                        || searchable.includes(query)
+                    )
+
+                    &&
+
+                    (
+                        !from
+                        || localDay(batch.dispatched_at) >= from
+                    )
+
+                    &&
+
+                    (
+                        !to
+                        || localDay(batch.dispatched_at) <= to
+                    )
+
+                    &&
+
+                    (
+                        !$('lrOnlyMissing').checked
+                        || num(batch.missing_pieces) > 0
+                    )
+
+                );
+
+            });
+
+
+        rows.sort((a, b) => {
+
+            const newest =
+                new Date(b.dispatched_at).getTime()
+                -
+                new Date(a.dispatched_at).getTime();
+
+            return (
+                $('lrSort').value === 'newest'
+                    ? newest
+                    : -newest
+            );
+
+        });
+
+
+        const size =
+            Number($('lrSize').value);
+
+
+        const pages =
+            Math.max(
+                1,
+                Math.ceil(rows.length / size)
+            );
+
+
+        page =
+            Math.max(
+                1,
+                Math.min(page, pages)
+            );
+
+
+        const start =
+            (page - 1) * size;
+
+
+        const visible =
+            rows.slice(
+                start,
+                start + size
+            );
+
+
+        $('lrRows').innerHTML =
+            visible.map(batch => `
+
+                <tr>
+
+                    <td>
+
+                        <strong>
+                            ${esc(batch.batch_code)}
+                        </strong>
+
+                        <small>
+                            ${date(batch.dispatched_at)}
+                        </small>
+
+                    </td>
+
+
+                    <td>
+                        ${date(batch.expected_return_date)}
+                    </td>
+
+
+                    <td>
+
+                        ${esc(batch.sent_to_laundry || '—')}
+
+                        <small>
+                            ${esc(
+                                batch.dispatched_by
+                                || 'Not recorded'
+                            )}
+                        </small>
+
+                    </td>
+
+
+                    <td>
+
+                        ${num(batch.total_pieces)} pieces
+
+                        <small>
+                            ${num(batch.received_pieces)}
+                            received
+                        </small>
+
+                    </td>
+
+
+                    <td>
+
+                        ${num(batch.missing_pieces)}
+
+                        <small>
+                            ${money(batch.missing_cost)}
+                        </small>
+
+                    </td>
+
+
+                    <td class="lr-money">
+
+                        ${money(batch.total_cost)}
+
+                        <small>
+                            Payable
+                            ${money(batch.payable_amount)}
+                        </small>
+
+                    </td>
+
+
+                    <td>
+                        ${badge(batch.status)}
+                    </td>
+
+
+                    <td>
+
+                        <button
+                            type="button"
+                            class="lr-btn"
+                            data-detail="${Number(batch.id)}"
+                        >
+                            View details →
+                        </button>
+
+                    </td>
+
+                </tr>
+
+            `).join('');
+
+
+        $('lrCount').textContent =
+            `${rows.length} ${
+                rows.length === 1
+                    ? 'batch'
+                    : 'batches'
+            }`;
+
+
+        $('lrRange').textContent =
+            rows.length
+                ? `Showing ${start + 1}–${
+                    Math.min(
+                        start + size,
+                        rows.length
+                    )
+                } of ${rows.length} batches`
+                : '0 batches';
+
+
+        $('lrPrev').disabled =
+            page === 1;
+
+
+        $('lrNext').disabled =
+            page >= pages;
+
+
+        $('lrEmpty').hidden =
+            rows.length > 0;
+
+
+        if (loaded) {
+
+            $('lrEmptyTitle').textContent =
+                batches.length
+                    ? 'No matching batches'
+                    : 'No laundry batches yet';
+
+
+            $('lrEmptyText').textContent =
+                batches.length
+                    ? 'Change your filters to see more results.'
+                    : 'Create your first batch to track pieces sent to a laundry vendor.';
+
+
+            $('lrEmptyNew').hidden =
+                batches.length > 0;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       LOAD
+       ===================================================== */
+
+    async function load() {
+
+        $('lrRefresh').disabled = true;
+
+        message('');
+
+
+        try {
+
+            const data =
+                await api(API.list);
+
+
+            if (!Array.isArray(data.batches)) {
+
+                throw new Error(
+                    'The server returned an invalid batch list.'
+                );
+
+            }
+
+
+            batches =
+                data.batches;
+
+
+            loaded =
+                true;
+
+
+            stats();
+            render();
+
+
+            $('lrUpdated').textContent =
+                'Last refreshed at '
+                + new Date().toLocaleTimeString();
+
+
+            return true;
+
+        }
+        catch (error) {
+
+            message(
+                error.message,
+                true
+            );
+
+
+            if (!loaded) {
+
+                $('lrEmptyTitle').textContent =
+                    'Unable to load batches';
+
+
+                $('lrEmptyText').textContent =
+                    'Use Refresh to try again.';
+
+
+                $('lrRange').textContent =
+                    'Unavailable';
+
+            }
+
+
+            return false;
+
+        }
+        finally {
+
+            $('lrRefresh').disabled =
+                false;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       FILTER EVENTS
+       ===================================================== */
+
+    [
+        'lrSearch',
+        'lrFrom',
+        'lrTo',
+        'lrOnlyMissing',
+        'lrSort',
+        'lrSize'
+    ].forEach(id => {
+
+        $(id).addEventListener(
+            'input',
+            () => {
+
+                page = 1;
+                render();
+
+            }
+        );
+
+    });
+
+
+    $('lrClear').onclick = () => {
+
+        $('lrSearch').value = '';
+        $('lrFrom').value = '';
+        $('lrTo').value = '';
+
+        $('lrOnlyMissing').checked =
+            false;
+
+        status = '';
+
+
+        document
+            .querySelectorAll('[data-status]')
+            .forEach(button => {
+
+                button.setAttribute(
+                    'aria-pressed',
+                    String(
+                        button.dataset.status === ''
+                    )
+                );
+
+            });
+
+
+        page = 1;
+
+        render();
+
+    };
+
+
+    document
+        .querySelectorAll('[data-status]')
+        .forEach(button => {
+
+            button.onclick = () => {
+
+                status =
+                    button.dataset.status;
+
+
+                document
+                    .querySelectorAll('[data-status]')
+                    .forEach(item => {
+
+                        item.setAttribute(
+                            'aria-pressed',
+                            String(item === button)
+                        );
+
+                    });
+
+
+                page = 1;
+
+                render();
+
+            };
+
+        });
+
+
+    $('lrPrev').onclick = () => {
+
+        if (page > 1) {
+
+            page--;
+            render();
+
+        }
+
+    };
+
+
+    $('lrNext').onclick = () => {
+
+        page++;
+        render();
+
+    };
+
+
+    $('lrRefresh').onclick = () =>
+        load();
+
+
+    /* =====================================================
+       DIALOGS
+       ===================================================== */
+
+    const dialogs = [
+        $('lrCreate'),
+        $('lrDetail')
+    ];
+
+
+    dialogs.forEach(dialog =>
+        document.body.appendChild(dialog)
+    );
+
+
+    function syncTheme() {
+
+        const theme =
+            document.documentElement.getAttribute('data-theme')
+            ||
+            document.body.getAttribute('data-theme')
+            ||
+            document.documentElement.getAttribute('data-bs-theme')
+            ||
+            document.body.getAttribute('data-bs-theme')
+            ||
+            'light';
+
+
+        dialogs.forEach(dialog =>
+            dialog.setAttribute(
+                'data-theme',
+                theme
+            )
+        );
+
+    }
+
+
+    syncTheme();
+
+
+    const observer =
+        new MutationObserver(syncTheme);
+
+
+    [
+        document.documentElement,
+        document.body
+    ].forEach(node => {
+
+        observer.observe(
+            node,
+            {
+                attributes: true,
+                attributeFilter: [
+                    'data-theme',
+                    'data-bs-theme'
+                ]
+            }
+        );
+
+    });
+
+
+    document
+        .querySelectorAll('[data-close]')
+        .forEach(button => {
+
+            button.onclick = () => {
+
+                button
+                    .closest('dialog')
+                    .close();
+
+            };
+
+        });
+
+
+    /* =====================================================
+       ADD ITEM LINE
+       ===================================================== */
+
+    function addLine() {
+
+        const element =
+            document.createElement('div');
+
+
+        element.className =
+            'lr-line';
+
+
+        element.innerHTML = `
+
+            <label class="lr-field">
+
+                Item name *
+
+                <input
+                    data-label
+                    required
+                    maxlength="100"
+                    placeholder="e.g. Bath towels"
+                >
+
+            </label>
+
+
+            <label class="lr-field">
+
+                Pieces *
+
+                <input
+                    data-qty
+                    type="number"
+                    required
+                    min="1"
+                    step="1"
+                    value="1"
+                >
+
+            </label>
+
+
+            <label class="lr-field">
+
+                Cost / piece (₹)
+
+                <input
+                    data-price
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value="0"
+                >
+
+            </label>
+
+
+            <button
+                type="button"
+                class="lr-btn"
+                aria-label="Remove item"
+            >
+                ×
+            </button>
+
+        `;
+
+
+        element
+            .querySelector('button')
+            .onclick = () => {
+
+                if (
+                    $('lrLines').children.length > 1
+                ) {
+
+                    element.remove();
+
+                }
+
+            };
+
+
+        $('lrLines')
+            .appendChild(element);
+
+    }
+
+
+    document
+        .querySelectorAll('[data-new]')
+        .forEach(button => {
+
+            button.onclick = () => {
+
+                $('lrCreateForm').reset();
+
+                $('lrLines')
+                    .replaceChildren();
+
+                addLine();
+
+                $('lrCreateError').hidden =
+                    true;
+
+                $('lrCreate').showModal();
+
+            };
+
+        });
+
+
+    $('lrAddLine').onclick =
+        addLine;
+
+
+    /* =====================================================
+       CREATE BATCH
+       ===================================================== */
+
+    $('lrCreateForm').onsubmit =
+        async event => {
+
+            event.preventDefault();
+
+
+            const form =
+                new FormData(
+                    event.currentTarget
+                );
+
+
+            const payload =
+                Object.fromEntries(form);
+
+
+            delete payload.csrfmiddlewaretoken;
+
+
+            payload.items =
+                Array.from(
+                    $('lrLines').children
+                ).map(element => ({
+
+                    label:
+                        element
+                            .querySelector('[data-label]')
+                            .value
+                            .trim(),
+
+                    quantity:
+                        Number(
+                            element
+                                .querySelector('[data-qty]')
+                                .value
+                        ),
+
+                    item_price:
+                        element
+                            .querySelector('[data-price]')
+                            .value
+
+                }));
+
+
+            if (
+
+                !payload.sent_to_laundry.trim()
+
+                ||
+
+                payload.items.some(item =>
+                    !item.label
+                    ||
+                    !Number.isSafeInteger(
+                        item.quantity
+                    )
+                    ||
+                    item.quantity < 1
+                )
+
+            ) {
+
+                $('lrCreateError').textContent =
+                    'Enter a vendor, item names and whole-number quantities.';
+
+                $('lrCreateError').hidden =
+                    false;
+
+                return;
+
+            }
+
+
+            $('lrSave').disabled =
+                true;
+
+
+            $('lrCreateError').hidden =
+                true;
+
+
+            try {
+
+                await api(
+                    API.create,
+                    payload
+                );
+
+
+                $('lrCreate').close();
+
+
+                message(
+                    'Laundry batch created successfully.'
+                );
+
+
+                await load();
+
+            }
+            catch (error) {
+
+                $('lrCreateError').textContent =
+                    error.message;
+
+                $('lrCreateError').hidden =
+                    false;
+
+            }
+            finally {
+
+                $('lrSave').disabled =
+                    false;
+
+            }
+
+        };
+
+
+    /* =====================================================
+       BATCH DETAIL
+       ===================================================== */
+
+    let detailToken = 0;
+
+
+    async function detail(
+        id,
+        openDialog = true
+    ) {
+
+        const token =
+            ++detailToken;
+
+
+        if (openDialog) {
+
+            $('lrDetailTitle').textContent =
+                'Batch details';
+
+
+            $('lrDetailBody').textContent =
+                'Loading…';
+
+
+            $('lrDetail').showModal();
+
+        }
+
+
+        try {
+
+            const batch =
+                await api(
+                    API.detail.replace(
+                        '/0/',
+                        '/' + id + '/'
+                    )
+                );
+
+
+            if (token !== detailToken)
+                return;
+
+
+            drawDetail(batch);
+
+        }
+        catch (error) {
+
+            if (token === detailToken) {
+
+                $('lrDetailBody').textContent =
+                    error.message;
+
+            }
+
+        }
+
+    }
+
+
+    /* =====================================================
+       DRAW DETAIL
+       ===================================================== */
+
+    function drawDetail(batch) {
+
+        $('lrDetailTitle').textContent =
+            `${batch.batch_code} · Batch details`;
+
+
+        const field =
+            (label, value) => `
+
+                <div>
+
+                    <dt>
+                        ${esc(label)}
+                    </dt>
+
+                    <dd>
+                        ${esc(
+                            value || 'Not recorded'
+                        )}
+                    </dd>
+
+                </div>
+
+            `;
+
+
+        $('lrDetailBody').innerHTML = `
+
+            <dl class="lr-detail-grid">
+
+                ${field(
+                    'Vendor',
+                    batch.sent_to_laundry
+                )}
+
+                ${field(
+                    'Contact',
+                    batch.laundry_contact
+                )}
+
+                ${field(
+                    'Phone',
+                    batch.laundry_phone
+                )}
+
+                ${field(
+                    'Dispatched by',
+                    batch.dispatched_by
+                )}
+
+                ${field(
+                    'Dispatched on',
+                    date(batch.dispatched_at)
+                )}
+
+                ${field(
+                    'Expected return',
+                    date(batch.expected_return_date)
+                )}
+
+                ${field(
+                    'Received by',
+                    batch.received_by
+                )}
+
+                ${field(
+                    'Received on',
+                    date(batch.received_at)
+                )}
+
+                ${field(
+                    'Payable',
+                    money(batch.payable_amount)
+                )}
+
+            </dl>
+
+
+            ${badge(batch.status)}
+
+
+            ${
+                batch.note
+                    ? `
+                        <p class="lr-detail-note">
+                            ${esc(batch.note)}
+                        </p>
+                    `
+                    : ''
+            }
+
+
+            <h2
+                class="card-title"
+                style="margin-top:26px;"
+            >
+                Items and returns
+            </h2>
+
+
+            <p
+                class="lr-muted"
+                style="margin-top:7px;"
+            >
+                Enter the total quantity received so far,
+                including earlier returns.
+            </p>
+
+
+            <div
+                id="lrReturnMessage"
+                role="status"
+                class="lr-message"
+                hidden
+                style="margin-top:18px;"
+            ></div>
+
+
+            <div
+                class="lr-scroll"
+                style="margin-top:18px;"
+            >
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th>
+                                Sent
+                            </th>
+
+                            <th>
+                                Cost / piece
+                            </th>
+
+                            <th>
+                                Received so far
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        ${
+                            (batch.items || [])
+                                .map(item => `
+
+                                    <tr>
+
+                                        <td>
+
+                                            ${esc(item.label)}
+
+                                            ${
+                                                item.missing_reason
+                                                || item.missing_note
+
+                                                    ? `
+                                                        <small>
+                                                            ${esc(
+                                                                item.missing_reason
+                                                                || ''
+                                                            )}
+
+                                                            ${
+                                                                item.missing_note
+                                                                    ? ' · '
+                                                                    + esc(
+                                                                        item.missing_note
+                                                                    )
+                                                                    : ''
+                                                            }
+                                                        </small>
+                                                    `
+
+                                                    : ''
+                                            }
+
+                                        </td>
+
+
+                                        <td>
+                                            ${num(item.quantity)}
+                                        </td>
+
+
+                                        <td>
+                                            ${money(item.item_price)}
+                                        </td>
+
+
+                                        <td>
+
+                                            <input
+                                                class="lr-recv"
+                                                type="number"
+                                                min="0"
+                                                max="${num(item.quantity)}"
+                                                step="1"
+                                                value="${num(item.received_quantity)}"
+                                                id="recv-${Number(item.id)}"
+                                                aria-label="Received ${esc(item.label)}"
+                                            >
+
+                                        </td>
+
+
+                                        <td>
+
+                                            <button
+                                                type="button"
+                                                class="lr-btn"
+                                                data-receive="${Number(item.id)}"
+                                            >
+                                                Save return
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+
+                                `)
+                                .join('')
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        `;
+
+
+        $('lrDetailBody')
+            .querySelectorAll('[data-receive]')
+            .forEach(button => {
+
+                button.onclick =
+                    async () => {
+
+                        const itemId =
+                            Number(
+                                button.dataset.receive
+                            );
+
+
+                        const input =
+                            $('recv-' + itemId);
+
+
+                        if (
+                            !input.reportValidity()
+                            ||
+                            input.value === ''
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        button.disabled =
+                            true;
+
+
+                        const notice =
+                            $('lrReturnMessage');
+
+
+                        notice.hidden =
+                            true;
+
+
+                        notice.classList
+                            .remove('error');
+
+
+                        try {
+
+                            const url =
+                                API.receive
+                                    .replace(
+                                        '/0/',
+                                        '/' + Number(batch.id) + '/'
+                                    )
+                                    .replace(
+                                        '/0/',
+                                        '/' + itemId + '/'
+                                    );
+
+
+                            await api(
+                                url,
+                                {
+                                    received_quantity:
+                                        Number(input.value)
+                                }
+                            );
+
+
+                            message(
+                                'Return quantities saved successfully.'
+                            );
+
+
+                            await detail(
+                                batch.id,
+                                false
+                            );
+
+
+                            await load();
+
+                        }
+                        catch (error) {
+
+                            notice.textContent =
+                                error.message;
+
+
+                            notice.classList
+                                .add('error');
+
+
+                            notice.hidden =
+                                false;
+
+                        }
+                        finally {
+
+                            button.disabled =
+                                false;
+
+                        }
+
+                    };
+
+            });
+
+    }
+
+
+    /* =====================================================
+       TABLE VIEW BUTTON
+       ===================================================== */
+
+    $('lrRows').onclick =
+        event => {
+
+            const button =
+                event.target.closest(
+                    '[data-detail]'
+                );
+
+
+            if (!button)
+                return;
+
+
+            detail(
+                Number(
+                    button.dataset.detail
+                )
+            );
+
+        };
+
+
+    /* =====================================================
+       START
+       ===================================================== */
+
+    load();
+
+})();
+</script>
+
+{% endblock %}

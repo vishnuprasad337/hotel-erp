@@ -1,0 +1,910 @@
+{% extends 'pos/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - {{ hotel.hotel_name|default:"Admio" }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Fonts are inherited from pos/base.html – no font-family is set here. */
+
+  /* ── insight banner ── */
+  .insight-banner { position:relative; overflow:hidden; display:flex; align-items:center; gap:20px; flex-wrap:wrap; min-height:130px; padding:36px 32px; margin-bottom:28px; border-radius:22px; color:#fff;
+    background:linear-gradient(90deg,#6d28d9 0%,#3f1d85 55%,#1e1b3a 100%); }
+  .insight-banner::after { content:""; position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:rgba(255,255,255,.06); pointer-events:none; }
+  .insight-icon { width:60px; height:60px; border-radius:18px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:28px; }
+  .insight-text { flex:1; min-width:220px; }
+  .insight-title { font-size:1.3rem; font-weight:700; line-height:1.3; }
+  .insight-sub { margin-top:8px; font-size:1rem; color:rgba(255,255,255,.8); }
+  .insight-btn { position:relative; z-index:1; display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.12); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s; }
+  .insight-btn:hover { background:rgba(255,255,255,.22); }
+  .insight-close { position:relative; z-index:1; background:none; border:0; color:rgba(255,255,255,.7); font-size:16px; cursor:pointer; padding:6px; line-height:1; }
+  .insight-close:hover { color:#fff; }
+    /* ── insight banner: compact on mobile ── */
+  @media (max-width: 767px) {
+    .insight-banner {
+      min-height: 0;
+      padding: 16px 40px 16px 16px;   /* right space for the close button */
+      gap: 12px;
+      margin-bottom: 18px;
+      border-radius: 16px;
+      align-items: flex-start;
+    }
+    .insight-banner::after { width: 140px; height: 140px; right: -40px; top: -50px; }
+    .insight-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 20px; }
+    .insight-text { min-width: 0; flex: 1 1 calc(100% - 56px); }
+    .insight-title { font-size: 1rem; line-height: 1.3; }
+    .insight-sub { font-size: .8rem; margin-top: 4px; line-height: 1.4; }
+    .insight-btn { padding: 6px 12px; font-size: 12px; }
+    .insight-close { position: absolute; top: 8px; right: 8px; padding: 4px; }
+  }
+  /* ── period tabs ── */
+  .period-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+  .period-tabs { display:inline-flex; gap:2px; padding:5px; background:#eef0f4; border-radius:12px; }
+  .period-tabs a { padding:8px 18px; border-radius:9px; font-size:14px; font-weight:600; color:#6b7280; text-decoration:none; transition:background .15s,color .15s; }
+  .period-tabs a:hover { color:#7C3AED; }
+  .period-tabs a.active { background:#fff; color:#7C3AED; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  .custom-range { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
+  .custom-range.show { display:flex; }
+  .custom-range input { padding:8px 12px; border:1px solid #e5e7eb; border-radius:9px; font-size:14px; font-family:inherit; background:#fff; }
+
+  /* ── stat-card tweaks (same cards as the index page) ── */
+  .stat-card .stat-value { white-space:nowrap; }
+  .stat-card { height:100%; display:flex; flex-direction:column; }
+  .stat-card .stat-card-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .mini-chart-bar { margin-top:auto; }
+
+  /* ── cards ── */
+  .dash-card-title { display:flex; align-items:center; gap:8px; font-size:1rem !important; }
+  .dash-card-title i { color:#7C3AED; }
+  .chart-box { position:relative; height:220px; }
+  .donut-wrap { display:flex; align-items:center; gap:28px; }
+.donut-box { position:relative; width:150px; height:150px; flex-shrink:0; }
+.pay-legend { flex:1; min-width:0; }
+.pay-row { display:flex; align-items:center; gap:8px; padding:8px 0; font-size:.9rem; min-width:0; }
+.pay-row .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.pay-row .pname { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pay-row .pct { color:#9ca3af; flex-shrink:0; }
+.pay-row .pamt { flex-shrink:0; white-space:nowrap; font-weight:700; }
+.pay-total { display:flex; justify-content:space-between; border-top:1px solid #e5e7eb; padding-top:10px; margin-top:6px; font-weight:700; font-size:.9rem; }
+.pay-total span:last-child { white-space:nowrap; }
+
+@media (max-width: 1399px) and (min-width: 992px) {
+  .donut-wrap { flex-direction:column; }
+  .pay-legend { width:100%; }
+}
+@media (max-width: 767px) {
+  .donut-wrap { flex-direction:column; gap:20px; }
+  .donut-box { width:170px; height:170px; }
+  .pay-legend { width:100%; }
+}
+
+  .top-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f0f1f4; }
+  .top-item:last-child { border-bottom:0; }
+  .rank { width:24px; height:24px; border-radius:50%; background:rgba(124,58,237,.12); color:#7C3AED; font-size:.75rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .top-item img, .top-item .ph { width:40px; height:40px; border-radius:8px; object-fit:cover; flex-shrink:0; background:#f3f4f6; }
+  .top-item .name { flex:1; font-size:.95rem; }
+  .top-item .qty { color:#9ca3af; font-size:.9rem; }
+  .top-item .amt { font-weight:700; min-width:70px; text-align:right; font-variant-numeric:tabular-nums; }
+
+  .summary-row { display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px solid #f0f1f4; font-size:.95rem; }
+  .summary-row:last-child { border-bottom:0; }
+  .summary-row .lbl { color:#6b7280; }
+  .summary-row .val { font-weight:700; }
+  .summary-row .val small { font-weight:400; color:#9ca3af; }
+
+  .empty-state { text-align:center; color:#6b7280; padding:36px 0; font-size:.95rem; }
+  .mono { font-variant-numeric:tabular-nums; }   /* base font, aligned digits */
+  #dashBody { transition:opacity .15s; }
+  #dashBody.loading { opacity:.45; pointer-events:none; }
+  #dashError { display:none; margin-bottom:20px; padding:12px 16px; border-radius:10px; background:#fee2e2; color:#991b1b; font-size:.95rem; }
+ /* keep tabs on one line and let them scroll inside their own box */
+.period-bar > div:first-child { min-width: 0; max-width: 100%; }
+
+
+@media (max-width: 767px) {
+ 
+  .period-bar { flex-direction: column; align-items: stretch; }
+  .period-bar > div:first-child { width: 100%; }
+  #resetBtn { align-self: flex-start; }
+}
+.period-tabs a { white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .period-bar > div:first-child { width: 100%; }
+  .period-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    width: 100%;
+    overflow: visible;
+  }
+  .period-tabs a {
+    padding: 9px 4px;
+    font-size: 13px;
+    text-align: center;
+  }
+  /* Custom sits on its own row under the other tabs */
+  .period-tabs a[data-range="custom"] {
+    grid-column: 1 / -1;
+  }
+  .custom-range { width: 100%; }
+  .custom-range input { flex: 1; min-width: 0; }
+}
+  [data-theme="dark"] .period-tabs { background:#252536; }
+  [data-theme="dark"] .period-tabs a.active { background:#1e1e2d; }
+  [data-theme="dark"] .custom-range input { background:#252536; border-color:#3a3a4c; color:#f3f4f6; }
+
+  /* ══════════ COMPOSE EMAIL MODAL ══════════ */
+  .em-overlay { position:fixed; inset:0; z-index:99999; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(15,15,25,.55); backdrop-filter:blur(3px); }
+  .em-overlay.show { display:flex; }
+  .em-modal { width:100%; max-width:620px; max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px); display:flex; flex-direction:column; overflow:hidden; border-radius:18px; background:#fff; color:#1f2937; box-shadow:0 24px 60px rgba(0,0,0,.35); border:1px solid #e5e7eb; }
+  .em-head { display:flex; align-items:center; gap:12px; padding:18px 22px; border-bottom:1px solid #eef0f4; }
+  .em-head-icon { width:36px; height:36px; border-radius:10px; background:rgba(124,58,237,.12); color:#7C3AED; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .em-head-text { flex:1; min-width:0; }
+  .em-head-text h3 { margin:0; font-size:1.05rem; font-weight:700; }
+  .em-head-text p { margin:2px 0 0; font-size:.8rem; color:#7C3AED; opacity:.85; }
+  .em-x { width:32px; height:32px; border-radius:8px; border:1px solid #e5e7eb; background:transparent; color:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .em-x:hover { background:#f3f4f6; }
+
+  .em-body { padding:18px 22px; overflow-y:auto; flex:1; min-height:0; }
+  .em-label { display:block; margin:0 0 8px; font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; }
+  .em-field { margin-bottom:18px; }
+  .em-input, .em-textarea { width:100%; padding:11px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:inherit; font:inherit; font-size:.92rem; outline:none; transition:border-color .15s, box-shadow .15s; }
+  .em-input:focus, .em-textarea:focus { border-color:#7C3AED; box-shadow:0 0 0 3px rgba(124,58,237,.15); }
+  .em-textarea { min-height:100px; resize:vertical; }
+
+  .em-tabs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .em-tab { padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:transparent; color:#6b7280; font:inherit; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .15s; }
+  .em-tab:hover { border-color:#7C3AED; color:#7C3AED; }
+  .em-tab.active { background:rgba(124,58,237,.1); border-color:#7C3AED; color:#7C3AED; }
+
+  .em-search { position:relative; margin-bottom:10px; }
+  .em-search svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9ca3af; pointer-events:none; }
+  .em-search .em-input { padding-left:38px; }
+
+  .em-listbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:.78rem; color:#6b7280; }
+  .em-linkbtn { background:none; border:0; padding:0; color:#7C3AED; font:inherit; font-weight:600; cursor:pointer; }
+  .em-linkbtn:hover { text-decoration:underline; }
+
+  .em-list { max-height:230px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:10px; }
+  .em-row { display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f1f4; margin:0; transition:background .12s; }
+  .em-row:last-child { border-bottom:0; }
+  .em-row:hover { background:rgba(124,58,237,.06); }
+  .em-row input { width:16px; height:16px; accent-color:#7C3AED; flex-shrink:0; cursor:pointer; }
+  .em-avatar { width:34px; height:34px; border-radius:50%; background:rgba(124,58,237,.14); color:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:700; flex-shrink:0; }
+  .em-info { min-width:0; flex:1; line-height:1.3; }
+  .em-name { font-size:.92rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .em-dept { font-size:.75rem; color:#7C3AED; }
+  .em-mail { font-size:.8rem; color:#6b7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .em-empty { padding:26px 12px; text-align:center; font-size:.88rem; color:#9ca3af; }
+
+  .em-selected { display:flex; flex-wrap:wrap; gap:8px; min-height:44px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; align-items:center; }
+  .em-none { font-size:.88rem; color:#9ca3af; padding:2px 4px; }
+  .em-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-radius:999px; background:rgba(124,58,237,.12); color:#7C3AED; font-size:.8rem; font-weight:600; max-width:100%; }
+  .em-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+  .em-chip button { border:0; background:rgba(124,58,237,.18); color:inherit; width:18px; height:18px; border-radius:50%; line-height:1; font-size:12px; cursor:pointer; padding:0; }
+  .em-chip button:hover { background:rgba(124,58,237,.35); }
+
+  .em-alert { display:none; margin-bottom:14px; padding:10px 14px; border-radius:10px; font-size:.88rem; }
+  .em-alert.error { display:block; background:#fee2e2; color:#991b1b; }
+  .em-alert.ok { display:block; background:#dcfce7; color:#166534; }
+
+  .em-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 22px; border-top:1px solid #eef0f4; }
+  .em-from { font-size:.8rem; color:#6b7280; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .em-from b { color:inherit; font-weight:700; }
+  .em-actions { display:flex; gap:10px; margin-left:auto; }
+  .em-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:10px; border:1px solid #e5e7eb; background:transparent; color:inherit; font:inherit; font-size:.9rem; font-weight:600; cursor:pointer; transition:all .15s; }
+  .em-btn:hover { background:#f3f4f6; }
+  .em-btn.primary { background:#7C3AED; border-color:#7C3AED; color:#fff; }
+  .em-btn.primary:hover { background:#6d28d9; }
+  .em-btn:disabled { opacity:.6; cursor:not-allowed; }
+
+  [data-theme="dark"] .em-overlay { background:rgba(0,0,0,.65); }
+  [data-theme="dark"] .em-modal { background:#252531; color:#f3f4f6; border-color:#33334a; }
+  [data-theme="dark"] .em-head, [data-theme="dark"] .em-foot { border-color:#33334a; }
+  [data-theme="dark"] .em-head-text p { color:#a78bfa; }
+  [data-theme="dark"] .em-x, [data-theme="dark"] .em-tab, [data-theme="dark"] .em-btn,
+  [data-theme="dark"] .em-list, [data-theme="dark"] .em-selected { border-color:#3a3a4c; }
+  [data-theme="dark"] .em-x:hover, [data-theme="dark"] .em-btn:hover { background:#2e2e3f; }
+  [data-theme="dark"] .em-input, [data-theme="dark"] .em-textarea, [data-theme="dark"] .em-list, [data-theme="dark"] .em-selected { background:#1c1c27; border-color:#3a3a4c; color:#f3f4f6; }
+  [data-theme="dark"] .em-tab.active { background:rgba(139,92,246,.2); color:#c4b5fd; border-color:#8b5cf6; }
+  [data-theme="dark"] .em-row { border-color:#2e2e3f; }
+  [data-theme="dark"] .em-row:hover { background:rgba(139,92,246,.12); }
+  [data-theme="dark"] .em-dept, [data-theme="dark"] .em-linkbtn { color:#a78bfa; }
+  [data-theme="dark"] .em-mail, [data-theme="dark"] .em-label, [data-theme="dark"] .em-from, [data-theme="dark"] .em-listbar { color:#9ca3af; }
+  [data-theme="dark"] .em-chip { background:rgba(139,92,246,.2); color:#c4b5fd; }
+  [data-theme="dark"] .em-alert.error { background:#3b1d1d; color:#fca5a5; }
+  [data-theme="dark"] .em-alert.ok { background:#16321f; color:#86efac; }
+
+  @media (max-width:575px) {
+    .em-foot { flex-direction:column; align-items:stretch; }
+    .em-actions { margin-left:0; }
+    .em-actions .em-btn { flex:1; justify-content:center; }
+  }
+    @media (max-width: 767px) {
+    .page-header .page-subtitle.dash-subtitle {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      margin-top: 2px !important;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% url 'new_order_pos' as u_new_order_pos %}
+{% url 'all_orders' as u_all_orders %}
+{% url 'tables' as u_tables %}
+
+<!-- ══════════ INSIGHT BANNER ══════════ -->
+<div class="insight-banner" id="insightBanner">
+    <div class="insight-icon">
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+      <path d="M7 2v20"/>
+      <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>
+    </svg>
+  </div>
+  <div class="insight-text">
+    <div class="insight-title" id="insightTitle">Insight: loading your restaurant summary…</div>
+    <div class="insight-sub" id="insightSub"></div>
+  </div>
+  <button type="button" class="insight-btn" id="insightView"><i class="icon-arrow-right"></i> View Analysis</button>
+  <button type="button" class="insight-close" id="insightClose" aria-label="Dismiss"><i class="icon-x"></i></button>
+</div>
+
+<!-- ══════════ PAGE HEADER ══════════ -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Restaurant Dashboard</h1>
+        <p class="page-subtitle dash-subtitle">Welcome back, {{ staff.name|default:request.user.username }} — track your orders, tables and sales at a glance</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ u_new_order_pos|default:'#' }}" class="btn-admio btn-ai btn-sm"><i class="icon-plus"></i> New Order</a>
+    <!-- CHANGED: was <a href="#"> – now opens the Compose Email modal -->
+    <button type="button" id="sendEmailBtn" class="btn-admio btn-outline btn-sm"><i class="icon-send"></i> Send Email</button>
+  </div>
+</div>
+
+<div id="dashError"></div>
+
+<!-- ══════════ PERIOD FILTER ══════════ -->
+<div class="period-bar">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="period-tabs" id="periodTabs">
+      <a href="#" data-range="today" class="active">Today</a>
+      <a href="#" data-range="yesterday">Yesterday</a>
+      <a href="#" data-range="week">This Week</a>
+      <a href="#" data-range="month">This Month</a>
+      <a href="#" data-range="custom">Custom</a>
+    </div>
+    <div class="custom-range" id="customForm">
+      <input type="date" id="fromDate">
+      <span>to</span>
+      <input type="date" id="toDate">
+      <button type="button" id="applyCustom" class="btn-admio btn-ai btn-sm">Apply</button>
+    </div>
+  </div>
+  <button type="button" id="resetBtn" class="btn-admio btn-outline btn-sm"><i class="icon-refresh-cw"></i> Reset</button>
+</div>
+
+<div id="dashBody">
+
+  <!-- ══════════ STAT CARDS ══════════ -->
+  <div class="row g-4 mb-4">
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card pb-0">
+        <div class="stat-card-header">
+          <div class="stat-icon purple admio-bg-purple"><i class="icon-indian-rupee"></i></div>
+        </div>
+        <div class="stat-value" id="k-sales">₹0</div>
+        <div class="stat-label">Total Sales</div>
+        <div class="mini-chart-bar">
+          <div class="mini-bar bar-primary mh-40 op-30"></div><div class="mini-bar bar-primary mh-60 op-40"></div>
+          <div class="mini-bar bar-primary mh-45 op-50"></div><div class="mini-bar bar-primary mh-75 op-60"></div>
+          <div class="mini-bar bar-primary mh-55 op-70"></div><div class="mini-bar bar-primary mh-90 op-85"></div>
+          <div class="mini-bar bar-primary mh-100 op-100"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card pb-0">
+        <div class="stat-card-header">
+          <div class="stat-icon cyan admio-bg-cyan"><i class="icon-clipboard-list"></i></div>
+        </div>
+        <div class="stat-value" id="k-orders">0</div>
+        <div class="stat-label">Orders</div>
+        <div class="mini-chart-bar">
+          <div class="mini-bar bar-secondary mh-30 op-30"></div><div class="mini-bar bar-secondary mh-50 op-40"></div>
+          <div class="mini-bar bar-secondary mh-40 op-50"></div><div class="mini-bar bar-secondary mh-70 op-60"></div>
+          <div class="mini-bar bar-secondary mh-85 op-75"></div><div class="mini-bar bar-secondary mh-75 op-85"></div>
+          <div class="mini-bar bar-secondary mh-100 op-100"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card pb-0">
+        <div class="stat-card-header">
+          <div class="stat-icon green admio-bg-green"><i class="icon-armchair"></i></div>
+        </div>
+        <div class="stat-value" id="k-tables">0 / 0</div>
+        <div class="stat-label">Active Tables</div>
+        <div class="mini-chart-bar">
+          <div class="mini-bar bar-success mh-35 op-30"></div><div class="mini-bar bar-success mh-55 op-40"></div>
+          <div class="mini-bar bar-success mh-45 op-50"></div><div class="mini-bar bar-success mh-65 op-60"></div>
+          <div class="mini-bar bar-success mh-80 op-75"></div><div class="mini-bar bar-success mh-70 op-85"></div>
+          <div class="mini-bar bar-success mh-100 op-100"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card pb-0">
+        <div class="stat-card-header">
+          <div class="stat-icon orange admio-bg-orange"><i class="icon-hand-coins"></i></div>
+        </div>
+        <div class="stat-value" id="k-profit">₹0</div>
+        <div class="stat-label lbl-profit">Today's Profit</div>
+        <div class="mini-chart-bar">
+          <div class="mini-bar bar-warning mh-60 op-30"></div><div class="mini-bar bar-warning mh-75 op-40"></div>
+          <div class="mini-bar bar-warning mh-65 op-50"></div><div class="mini-bar bar-warning mh-85 op-60"></div>
+          <div class="mini-bar bar-warning mh-70 op-75"></div><div class="mini-bar bar-warning mh-90 op-85"></div>
+          <div class="mini-bar bar-warning mh-100 op-100"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ CHARTS ROW ══════════ -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-5">
+      <div class="admio-card h-100" id="salesCard">
+        <div class="admio-card-header"><h2 class="card-title dash-card-title mb-0"><i class="icon-chart-no-axes-combined"></i> Sales Overview</h2></div>
+        <div class="admio-card-body"><div class="chart-box"><canvas id="salesChart"></canvas></div></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="admio-card h-100">
+        <div class="admio-card-header"><h2 class="card-title dash-card-title mb-0"><i class="icon-chart-pie"></i> Sales by Payment Method</h2></div>
+        <div class="admio-card-body">
+          <div class="donut-wrap" id="payWrap">
+            <div class="donut-box"><canvas id="paymentChart"></canvas></div>
+            <div class="pay-legend">
+              <div id="payLegend"></div>
+              <div class="pay-total"><span>Total</span><span class="mono" id="payTotal">₹0.00</span></div>
+            </div>
+          </div>
+          <div class="empty-state" id="payEmpty" style="display:none;">No payments recorded for this period</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="admio-card h-100">
+        <div class="admio-card-header"><h2 class="card-title dash-card-title mb-0"><i class="icon-flame"></i> Top Selling Items</h2></div>
+        <div class="admio-card-body admio-card-body-sm" id="topItems"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TABLES ROW ══════════ -->
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="admio-card h-100">
+        <div class="admio-card-header">
+          <h2 class="card-title dash-card-title mb-0"><i class="icon-clipboard-list"></i> Recent Orders</h2>
+          <a href="{{ u_all_orders|default:'#' }}" class="btn-admio btn-outline btn-sm">View All</a>
+        </div>
+        <div class="admio-table-wrapper">
+          <table class="admio-table">
+            <thead><tr><th>Order ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Time</th></tr></thead>
+            <tbody id="recentOrders"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="admio-card h-100">
+        <div class="admio-card-header">
+          <h2 class="card-title dash-card-title mb-0"><i class="icon-armchair"></i> Active Tables</h2>
+          <a href="{{ u_tables|default:'#' }}" class="btn-admio btn-outline btn-sm">View All</a>
+        </div>
+        <div class="admio-table-wrapper">
+          <table class="admio-table">
+            <thead><tr><th>Table</th><th>Capacity</th><th>Status</th></tr></thead>
+            <tbody id="activeTables"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <div class="admio-card h-100">
+        <div class="admio-card-header"><h2 class="card-title dash-card-title mb-0"><i class="icon-list-checks"></i> Recent Orders (Summary)</h2></div>
+        <div class="admio-card-body admio-card-body-sm" id="summaryBox"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════ COMPOSE EMAIL MODAL ══════════ -->
+<div class="em-overlay" id="emailModal" aria-hidden="true">
+  <div class="em-modal" role="dialog" aria-modal="true" aria-labelledby="emTitle">
+
+    <div class="em-head">
+      <div class="em-head-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </div>
+      <div class="em-head-text">
+        <h3 id="emTitle">Compose Email</h3>
+        <p>Send message to staff or hotel admin</p>
+      </div>
+      <button type="button" class="em-x" id="emClose" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="em-body">
+      <div class="em-alert" id="emAlert"></div>
+
+      <div class="em-field">
+        <label class="em-label" for="emSubject">Subject</label>
+        <input type="text" class="em-input" id="emSubject" maxlength="200" placeholder="Enter email subject…" autocomplete="off">
+      </div>
+
+      <div class="em-field">
+        <label class="em-label" for="emMessage">Message</label>
+        <textarea class="em-textarea" id="emMessage" maxlength="5000" placeholder="Type your message here…"></textarea>
+      </div>
+
+      <div class="em-field">
+        <span class="em-label">Recipients</span>
+
+        <div class="em-tabs">
+          <button type="button" class="em-tab active" data-tab="staff">👤 Staff Members</button>
+          <button type="button" class="em-tab" data-tab="admin">🏨 Hotel Admin</button>
+        </div>
+
+        <div class="em-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="em-input" id="emSearch" placeholder="Search by name or department…" autocomplete="off">
+        </div>
+
+        <div class="em-listbar">
+          <span id="emCount"></span>
+          <button type="button" class="em-linkbtn" id="emSelectAll">Select all</button>
+        </div>
+
+        <div class="em-list" id="emList"></div>
+      </div>
+
+      <div class="em-field" style="margin-bottom:0;">
+        <span class="em-label" id="emSelLabel">Selected (0)</span>
+        <div class="em-selected" id="emSelected"><span class="em-none">No recipients selected</span></div>
+      </div>
+    </div>
+
+    <div class="em-foot">
+      <div class="em-from">Sending as <b>{{ request.user.email|default:request.user.username }}</b></div>
+      <div class="em-actions">
+        <button type="button" class="em-btn" id="emCancel">Cancel</button>
+        <button type="button" class="em-btn primary" id="emSend">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          <span id="emSendText">Send Email</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  /* ⚠️ Match these to what your _get_dashboard_range(request) reads */
+  var CFG = {
+    endpoint:   window.location.pathname,
+    rangeParam: 'range',   // ?range=today|yesterday|week|month|custom
+    fromParam:  'from',    // &from=2026-09-01
+    toParam:    'to'
+  };
+  var EMAIL_URLS = {
+    recipients: "{% url 'email_recipients' %}",
+    send:       "{% url 'send_dashboard_email' %}"
+  };
+  var CSRF = "{{ csrf_token }}";
+  var PALETTE = ['#16a34a', '#7C3AED', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b'];
+  var LABELS  = { today: "Today's", yesterday: "Yesterday's", week: "This Week's", month: "This Month's", custom: "Period" };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; };
+  var money = function (n) {
+    return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  // big KPI numbers: drop decimals when the value is a whole number
+  var kpiMoney = function (n) {
+    return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  };
+  var salesChart = null, payChart = null, currentRange = 'today';
+
+  function badge(status) {
+    var s = (status || '').toLowerCase();
+    var cls = s === 'served' || s === 'completed' ? 'badge-green' : (s === 'cancelled' ? 'badge-red' : 'badge-orange');
+    var label = s === 'served' ? 'Completed' : (s.charAt(0).toUpperCase() + s.slice(1));
+    return '<span class="badge-admio ' + cls + ' text-xs">' + esc(label) + '</span>';
+  }
+
+  /* insight banner: headline + one-line summary built from the loaded data */
+  function renderBanner(d, x, sales, label) {
+    var ch = (d.deltas || {}).total_sales, title;
+    if (ch === undefined || ch === null || isNaN(ch)) {
+      title = 'Insight: ' + label + ' sales are ' + kpiMoney(sales);
+    } else if (Number(ch) === 0) {
+      title = 'Insight: Sales are flat compared to the previous period';
+    } else {
+      title = 'Insight: Sales ' + (ch > 0 ? 'up ' : 'down ') + Math.abs(ch) + '% compared to the previous period';
+    }
+    var parts = [(d.order_count || 0) + ' orders', 'Avg order ' + kpiMoney(d.avg_order_value),
+                 (d.tables_occupied || 0) + ' of ' + (d.tables_total || 0) + ' tables occupied'];
+    var top = (x.top_items || [])[0];
+    if (top) parts.push('Top item: ' + top.name);
+    $('insightTitle').textContent = title;
+    $('insightSub').textContent = parts.join(' · ');
+  }
+
+  function render(data) {
+    var d = data.dashboard || {}, x = d.extra || {};
+    var sales = Number(d.total_sales || 0), expenses = Number(x.expenses || 0), profit = sales - expenses;
+    var label = LABELS[currentRange] || 'Period';
+
+    // ── stat cards ──
+    $('k-sales').textContent  = kpiMoney(sales);
+    $('k-orders').textContent = d.order_count || 0;
+    $('k-tables').textContent = (d.tables_occupied || 0) + ' / ' + (d.tables_total || 0);
+    $('k-profit').textContent = kpiMoney(profit);
+    document.querySelectorAll('.lbl-profit').forEach(function (e) { e.textContent = label + ' Profit'; });
+
+    renderBanner(d, x, sales, label);
+
+    // ── sales overview chart ──
+    var sc = x.sales_chart || { labels: [], values: [] };
+    if (typeof Chart !== 'undefined') {
+      if (!salesChart) {
+        salesChart = new Chart($('salesChart'), {
+          type: 'line',
+          data: { labels: sc.labels, datasets: [{ data: sc.values, borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,.12)', borderWidth: 2, fill: true, tension: .4, pointRadius: 0, pointHoverRadius: 4 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return money(c.parsed.y); } } } },
+            scales: {
+              y: { beginAtZero: true, ticks: { callback: function (v) { return '₹' + v; } }, grid: { color: 'rgba(0,0,0,.06)' } },
+              x: { grid: { color: 'rgba(0,0,0,.06)' }, ticks: { maxRotation: 60, autoSkip: true } }
+            }
+          }
+        });
+      } else {
+        salesChart.data.labels = sc.labels;
+        salesChart.data.datasets[0].data = sc.values;
+        salesChart.update();
+      }
+    }
+
+    // ── payment doughnut + legend ──
+    var pays = x.payments || [];
+    $('payWrap').style.display  = pays.length ? 'flex' : 'none';
+    $('payEmpty').style.display = pays.length ? 'none' : 'block';
+    $('payLegend').innerHTML = pays.map(function (p, i) {
+  return '<div class="pay-row">' +
+           '<span class="dot" style="background:' + PALETTE[i % PALETTE.length] + '"></span>' +
+           '<span class="pname">' + esc(p.name) + '</span>' +
+           '<span class="pct">' + p.pct + '%</span>' +
+           '<span class="pamt mono">' + money(p.amount) + '</span>' +
+         '</div>';
+}).join('');
+    $('payTotal').textContent = money(x.pay_total);
+    if (typeof Chart !== 'undefined' && pays.length) {
+      var pd = { labels: pays.map(function (p) { return p.name; }), datasets: [{ data: pays.map(function (p) { return p.amount; }), backgroundColor: pays.map(function (p, i) { return PALETTE[i % PALETTE.length]; }), borderWidth: 0 }] };
+      if (!payChart) {
+        payChart = new Chart($('paymentChart'), { type: 'doughnut', data: pd, options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } } });
+      } else { payChart.data = pd; payChart.update(); }
+    }
+
+    // ── top items ──
+    var items = x.top_items || [];
+    $('topItems').innerHTML = items.length ? items.map(function (it, i) {
+      return '<div class="top-item"><span class="rank">' + (i + 1) + '</span>' +
+        (it.image ? '<img src="' + esc(it.image) + '" alt="">' : '<span class="ph"></span>') +
+        '<span class="name">' + esc(it.name) + '</span><span class="qty">' + it.qty + '</span><span class="amt">' + money(it.revenue) + '</span></div>';
+    }).join('') : '<div class="empty-state">No items sold yet</div>';
+
+    // ── recent orders ──
+    var ro = x.recent_orders || [];
+    $('recentOrders').innerHTML = ro.length ? ro.map(function (o) {
+      return '<tr><td class="mono">#' + esc(o.order_number) + '</td><td>' + esc(o.type) + '</td><td class="mono fw-600">' + money(o.amount) +
+             '</td><td>' + badge(o.status) + '</td><td class="text-sm">' + esc(o.time) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5"><div class="empty-state">No orders for this period</div></td></tr>';
+
+    // ── active tables ──
+    var at = x.active_tables || [];
+    $('activeTables').innerHTML = at.length ? at.map(function (t) {
+      var tcls = t.status === 'Reserved' ? 'badge-orange' : (t.status === 'Available' ? 'badge-green' : 'badge-purple');
+      return '<tr><td class="fw-600">' + esc(t.number) + '</td><td>' + esc(t.capacity) + '</td><td><span class="badge-admio ' + tcls + ' text-xs">' + esc(t.status) + '</span></td></tr>';
+    }).join('') : '<tr><td colspan="3"><div class="empty-state">No active tables</div></td></tr>';
+
+    // ── summary ──
+    var s = x.summary || {};
+    function row(l, o) { return '<div class="summary-row"><span class="lbl">' + l + '</span><span class="val">' + (o ? o.count + ' <small>(' + o.pct + '%)</small>' : '') + '</span></div>'; }
+    $('summaryBox').innerHTML =
+      '<div class="summary-row"><span class="lbl">Total Orders</span><span class="val">' + (s.total || 0) + '</span></div>' +
+      row('Dine-in Orders', s.dine_in) + row('Takeaway Orders', s.takeaway) + row('Room Service Orders', s.room_service) +
+      row('Cancelled Orders', s.cancelled) +
+      '<div class="summary-row"><span class="lbl">Total Sales</span><span class="val">' + money(sales) + '</span></div>';
+  }
+
+  function load(range, from, to) {
+    currentRange = range;
+    document.querySelectorAll('#periodTabs a').forEach(function (a) { a.classList.toggle('active', a.dataset.range === range); });
+    var params = new URLSearchParams();
+    params.set(CFG.rangeParam, range);
+    if (range === 'custom' && from && to) { params.set(CFG.fromParam, from); params.set(CFG.toParam, to); }
+
+    var body = $('dashBody'), err = $('dashError');
+    body.classList.add('loading'); err.style.display = 'none';
+
+    fetch(CFG.endpoint + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(render)
+      .catch(function (e) {
+        err.textContent = 'Could not load dashboard data (' + e.message + '). Please refresh the page.';
+        err.style.display = 'block';
+      })
+      .finally(function () { body.classList.remove('loading'); });
+  }
+
+  document.querySelectorAll('#periodTabs a').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (a.dataset.range === 'custom') {
+        $('customForm').classList.add('show');
+        document.querySelectorAll('#periodTabs a').forEach(function (x) { x.classList.toggle('active', x === a); });
+      } else {
+        $('customForm').classList.remove('show');
+        load(a.dataset.range);
+      }
+    });
+  });
+  $('applyCustom').addEventListener('click', function () {
+    var f = $('fromDate').value, t = $('toDate').value;
+    if (f && t) load('custom', f, t);
+  });
+  $('resetBtn').addEventListener('click', function () {
+    $('customForm').classList.remove('show'); $('fromDate').value = ''; $('toDate').value = ''; load('today');
+  });
+
+  // banner buttons
+  $('insightClose').addEventListener('click', function () { $('insightBanner').style.display = 'none'; });
+  $('insightView').addEventListener('click', function () {
+    $('salesCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  /* ══════════════════════════════════════════════════════
+     COMPOSE EMAIL MODAL
+     ══════════════════════════════════════════════════════ */
+  var em = {
+    loaded: false,
+    sending: false,
+    tab: 'staff',
+    data: { staff: [], admin: [] },
+    selected: new Map()          // email -> display name (kept across tabs)
+  };
+
+  function emAlert(type, msg) {
+    var a = $('emAlert');
+    a.className = 'em-alert' + (type ? ' ' + type : '');
+    a.textContent = msg || '';
+  }
+
+  function emInitials(name) {
+    var p = (name || '?').trim().split(/\s+/);
+    return ((p[0] ? p[0][0] : '?') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+
+  function emOpen() {
+    $('emailModal').classList.add('show');
+    $('emailModal').setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    emAlert('');
+    if (!em.loaded) emLoad();
+    setTimeout(function () { $('emSubject').focus(); }, 50);
+  }
+
+  function emClose() {
+    if (em.sending) return;
+    $('emailModal').classList.remove('show');
+    $('emailModal').setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function emReset() {
+    $('emSubject').value = '';
+    $('emMessage').value = '';
+    $('emSearch').value = '';
+    em.selected.clear();
+    emRenderList();
+    emRenderSelected();
+  }
+
+  function emLoad() {
+    $('emList').innerHTML = '<div class="em-empty">Loading recipients…</div>';
+    fetch(EMAIL_URLS.recipients, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) {
+        em.data = { staff: d.staff || [], admin: d.admin || [] };
+        em.loaded = true;
+        emRenderList();
+      })
+      .catch(function (e) {
+        $('emList').innerHTML = '<div class="em-empty">Could not load recipients (' + esc(e.message) + ').</div>';
+      });
+  }
+
+  function emVisibleRows() {
+    var q = ($('emSearch').value || '').trim().toLowerCase();
+    return (em.data[em.tab] || []).filter(function (r) {
+      if (!q) return true;
+      return ((r.name || '') + ' ' + (r.department || '') + ' ' + (r.email || '')).toLowerCase().indexOf(q) > -1;
+    });
+  }
+
+  function emRenderList() {
+    var rows = emVisibleRows();
+    $('emCount').textContent = rows.length + (rows.length === 1 ? ' person' : ' people');
+    $('emSelectAll').style.display = rows.length ? '' : 'none';
+
+    if (!rows.length) {
+      $('emList').innerHTML = '<div class="em-empty">' +
+        (em.data[em.tab].length ? 'No matches found' : (em.tab === 'admin' ? 'No hotel admin email found' : 'No staff with an email address')) + '</div>';
+      return;
+    }
+
+    $('emList').innerHTML = rows.map(function (r) {
+      var checked = em.selected.has(r.email) ? ' checked' : '';
+      return '<label class="em-row">' +
+        '<input type="checkbox" data-email="' + esc(r.email) + '" data-name="' + esc(r.name) + '"' + checked + '>' +
+        '<span class="em-avatar">' + esc(emInitials(r.name)) + '</span>' +
+        '<span class="em-info">' +
+          '<div class="em-name">' + esc(r.name) + '</div>' +
+          (r.department ? '<div class="em-dept">' + esc(r.department) + '</div>' : '') +
+          '<div class="em-mail">' + esc(r.email) + '</div>' +
+        '</span></label>';
+    }).join('');
+
+    // update "Select all / Clear" label for the visible rows
+    var allOn = rows.every(function (r) { return em.selected.has(r.email); });
+    $('emSelectAll').textContent = allOn ? 'Clear all' : 'Select all';
+  }
+
+  function emRenderSelected() {
+    var n = em.selected.size;
+    $('emSelLabel').textContent = 'Selected (' + n + ')';
+    if (!n) {
+      $('emSelected').innerHTML = '<span class="em-none">No recipients selected</span>';
+      return;
+    }
+    var html = '';
+    em.selected.forEach(function (name, email) {
+      html += '<span class="em-chip" title="' + esc(email) + '"><span>' + esc(name || email) + '</span>' +
+              '<button type="button" data-remove="' + esc(email) + '" aria-label="Remove">✕</button></span>';
+    });
+    $('emSelected').innerHTML = html;
+  }
+
+  function emSend() {
+    if (em.sending) return;
+    var subject = $('emSubject').value.trim();
+    var message = $('emMessage').value.trim();
+
+    if (!subject)            return emAlert('error', 'Please enter a subject.');
+    if (!message)            return emAlert('error', 'Please type a message.');
+    if (!em.selected.size)   return emAlert('error', 'Select at least one recipient.');
+
+    em.sending = true;
+    emAlert('');
+    $('emSend').disabled = true;
+    $('emCancel').disabled = true;
+    $('emSendText').textContent = 'Sending…';
+
+    fetch(EMAIL_URLS.send, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF, 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ subject: subject, message: message, recipients: Array.from(em.selected.keys()) })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.body.success) throw new Error(res.body.error || 'Could not send email.');
+        emAlert('ok', res.body.message || 'Email sent.');
+        setTimeout(function () { em.sending = false; emClose(); emReset(); emAlert(''); }, 1300);
+      })
+      .catch(function (e) { emAlert('error', e.message); })
+      .finally(function () {
+        // if the success timer is pending keep the buttons locked until it fires
+        if ($('emAlert').classList.contains('ok')) { $('emSendText').textContent = 'Sent'; return; }
+        em.sending = false;
+        $('emSend').disabled = false;
+        $('emCancel').disabled = false;
+        $('emSendText').textContent = 'Send Email';
+      });
+  }
+
+  // after a successful send the timer resets the button state
+  var _emClose = emClose;
+  emClose = function () {
+    _emClose();
+    $('emSend').disabled = false;
+    $('emCancel').disabled = false;
+    $('emSendText').textContent = 'Send Email';
+  };
+
+  // ── wiring ──
+  // Move the modal to <body> so no parent stacking context (topbar, sidebar,
+  // transformed containers) can draw over it.
+  document.body.appendChild($('emailModal'));
+
+  $('sendEmailBtn').addEventListener('click', emOpen);
+  $('emClose').addEventListener('click', function () { emClose(); });
+  $('emCancel').addEventListener('click', function () { emClose(); });
+  $('emailModal').addEventListener('mousedown', function (e) { if (e.target === this) emClose(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('emailModal').classList.contains('show')) emClose();
+  });
+
+  document.querySelectorAll('.em-tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      em.tab = b.dataset.tab;
+      document.querySelectorAll('.em-tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+      $('emSearch').value = '';
+      $('emSearch').placeholder = em.tab === 'staff' ? 'Search by name or department…' : 'Search hotel admin…';
+      emRenderList();
+    });
+  });
+
+  $('emSearch').addEventListener('input', emRenderList);
+
+  $('emList').addEventListener('change', function (e) {
+    var cb = e.target;
+    if (!cb || cb.type !== 'checkbox') return;
+    if (cb.checked) em.selected.set(cb.dataset.email, cb.dataset.name);
+    else em.selected.delete(cb.dataset.email);
+    emRenderSelected();
+    emRenderList();   // refresh the Select all / Clear all label
+  });
+
+  $('emSelectAll').addEventListener('click', function () {
+    var rows = emVisibleRows();
+    var allOn = rows.every(function (r) { return em.selected.has(r.email); });
+    rows.forEach(function (r) {
+      if (allOn) em.selected.delete(r.email); else em.selected.set(r.email, r.name);
+    });
+    emRenderList();
+    emRenderSelected();
+  });
+
+  $('emSelected').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    em.selected.delete(btn.dataset.remove);
+    emRenderSelected();
+    emRenderList();
+  });
+
+  $('emSend').addEventListener('click', emSend);
+
+  load('today');
+})();
+</script>
+{% endblock %}

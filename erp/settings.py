@@ -186,7 +186,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'msvishnu673@gmail.com'
-EMAIL_HOST_PASSWORD = 'sjcf tyva aldr ashi'
+EMAIL_HOST_PASSWORD = 'ntbu oxim xxnt bloe'
 DEFAULT_FROM_EMAIL = 'msvishnu673@gmail.com'
 
 PASSWORD_RESET_TIMEOUT =900

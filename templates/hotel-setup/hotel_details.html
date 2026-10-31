@@ -1,0 +1,928 @@
+{% extends "hotel-setup/base.html" %}
+{% load static %}
+
+{% block title %}Hotel Details - Admio{% endblock %}
+
+{% block nav_hotel_details_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ─── WELCOME BANNER ─── */
+  .hd-banner {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+    padding: 28px 32px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, rgba(124,58,237,.16), rgba(124,58,237,.05));
+    border: 1px solid rgba(124,58,237,.18);
+  }
+  .hd-banner-left { display: flex; gap: 14px; max-width: 480px; }
+  .hd-banner-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #fff; border: 1px solid rgba(124,58,237,.15);
+    display: flex; align-items: center; justify-content: center;
+    color: #7C3AED; font-size: 19px; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .hd-banner-title { font-size: 1.5rem; font-weight: 800; color: var(--admio-heading-color, #111); margin: 0 0 6px; }
+  .hd-banner-sub { font-size: 0.95rem; color: var(--admio-nav-color, #6b7280); margin: 0; line-height: 1.5; }
+
+  .hd-almost-badge {
+    position: absolute;
+    top: 18px; right: 32px;
+    display: flex; align-items: center; gap: 8px;
+    background: #16a34a; color: #fff;
+    padding: 8px 14px; border-radius: 12px;
+    font-size: 12.5px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(22,163,74,.25);
+  }
+  .hd-almost-badge .hd-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+  .hd-almost-badge .hd-almost-text { display: flex; flex-direction: column; line-height: 1.25; }
+  .hd-almost-text small { font-weight: 500; opacity: .9; font-size: 11px; }
+
+  /* ─── STEP INDICATOR (4 steps) ─── */
+  .hd-steps {
+    display: flex; align-items: flex-start; gap: 0;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+  .hd-step { display: flex; flex-direction: column; align-items: center; width: 118px; text-align: center; }
+  .hd-step-circle {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    background: #e5e7eb; color: #9ca3af;
+    margin-bottom: 8px;
+  }
+  .hd-step.active .hd-step-circle { background: #7C3AED; color: #fff; }
+  .hd-step.done .hd-step-circle { background: #7C3AED; color: #fff; }
+  .hd-step-label { font-size: 13.5px; font-weight: 700; color: #9ca3af; }
+  .hd-step.active .hd-step-label { color: #7C3AED; }
+  .hd-step-sub { font-size: 11.5px; color: #9ca3af; margin-top: 2px; }
+  .hd-step-line { flex: 1; height: 2px; background: #e5e7eb; margin-top: 15px; min-width: 36px; }
+  .hd-step-line.done { background: #7C3AED; }
+
+  /* ─── FORM GRID ─── */
+  .hd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 991px) { .hd-grid { grid-template-columns: 1fr; } }
+
+  .hd-card-icon {
+    width: 38px; height: 38px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .hd-card-icon.hd-icon-dark { background: #111827; color: #fff; }
+  .hd-card-icon.hd-icon-tint { background: rgba(59,130,246,.12); color: #3b82f6; }
+  .hd-card-icon.hd-icon-purple { background: rgba(124,58,237,.1); color: #7C3AED; }
+  .hd-card-icon.hd-icon-amber { background: rgba(245,158,11,.12); color: #b45309; }
+  .hd-card-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+  .hd-card-head h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 3px; color: var(--admio-heading-color, #111); }
+  .hd-card-head p { font-size: 0.9rem; color: var(--admio-nav-color, #6b7280); margin: 0; line-height: 1.45; }
+
+  .hd-field { margin-bottom: 16px; }
+  .hd-field:last-child { margin-bottom: 0; }
+  .hd-field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 6px; color: var(--admio-heading-color, #111); }
+  .hd-field label .req { color: #ef4444; }
+  .hd-field label .opt { color: #9ca3af; font-weight: 500; font-size: 12px; }
+  .hd-field-label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .hd-field-label-row label { margin: 0; }
+  .hd-info-ico { font-size: 12px; color: #9ca3af; }
+
+  .hd-input-wrap { position: relative; }
+  .hd-input-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 14px; }
+  .hd-input-wrap input,
+  .hd-input-wrap select,
+  .hd-input-wrap textarea {
+    width: 100%; padding: 10px 14px 10px 38px;
+    border: 1.5px solid #e5e7eb; border-radius: 10px;
+    font-size: 14.5px; color: #374151; background: #fff;
+    outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .hd-input-wrap textarea { padding-left: 14px; resize: vertical; min-height: 90px; }
+  .hd-input-wrap input:focus,
+  .hd-input-wrap select:focus,
+  .hd-input-wrap textarea:focus {
+    border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+  }
+
+  /* ─── CUSTOM SELECT DROPDOWNS ─── */
+  .hd-input-wrap select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    padding-right: 40px !important;
+    cursor: pointer;
+    color: #374151 !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+  }
+  .hd-input-wrap select::-ms-expand { display: none; }
+  .hd-input-wrap select:focus {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%237C3AED' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  }
+  .hd-input-wrap select option { color: #374151; background: #fff; }
+  .hd-input-wrap select:disabled { cursor: not-allowed; opacity: .6; }
+  [data-theme="dark"] .hd-input-wrap select {
+    color: #f3f4f6 !important;
+    background-color: #252536 !important;
+    color-scheme: dark;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 16px !important;
+  }
+  [data-theme="dark"] .hd-input-wrap select:focus {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  }
+  [data-theme="dark"] .hd-input-wrap select option { color: #f3f4f6; background: #252536; }
+  .hd-eye-toggle {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #9ca3af; cursor: pointer; padding: 4px;
+  }
+  .hd-char-count { text-align: right; font-size: 11.5px; color: #9ca3af; margin-top: 4px; }
+
+  .hd-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .hd-row-2 { grid-template-columns: 1fr; } }
+
+  /* ─── MOBILE: banner + step indicator ─── */
+  @media (max-width: 767px) {
+    .hd-page { max-width: 100vw; overflow-x: hidden; }
+    .hd-banner {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 20px;
+      gap: 20px;
+    }
+    .hd-banner-left { max-width: 100%; }
+    .hd-banner-icon { width: 40px; height: 40px; font-size: 16px; }
+    .hd-banner-title { font-size: 1.25rem; }
+    .hd-banner-sub { font-size: 0.88rem; }
+
+    .hd-steps {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      justify-content: flex-start;
+      margin-top: 0;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+    .hd-steps::-webkit-scrollbar { height: 4px; }
+    .hd-steps::-webkit-scrollbar-thumb { background: rgba(124,58,237,.25); border-radius: 10px; }
+    .hd-step { width: 88px; flex-shrink: 0; }
+    .hd-step-label { font-size: 12px; }
+    .hd-step-sub { font-size: 10.5px; }
+    .hd-step-line { min-width: 22px; }
+
+    .hd-almost-badge { position: static; margin-top: 4px; align-self: flex-start; }
+  }
+
+  /* ─── QUICK TIPS ─── */
+  .hd-tips-box {
+    display: flex; gap: 12px;
+    padding: 16px 18px; border-radius: 16px;
+    background: rgba(124,58,237,.06);
+    border: 1px solid rgba(124,58,237,.12);
+    margin-top: 22px;
+  }
+  .hd-tips-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(124,58,237,.14); color: #7C3AED;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .hd-tips-title { font-weight: 700; font-size: 13.5px; margin: 0 0 3px; color: var(--admio-heading-color, #111); }
+  .hd-tips-text { font-size: 12.5px; color: var(--admio-nav-color, #6b7280); line-height: 1.55; margin: 0; }
+
+  /* ─── UPLOAD BOXES (preview left, dropzone right) ─── */
+  .hd-upload-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; align-items: stretch; }
+  .hd-upload-preview {
+    position: relative;
+    border-radius: 14px; overflow: hidden; border: 1px solid #e5e7eb;
+    display: flex; align-items: center; justify-content: center;
+    background: #111827; min-height: 130px;
+  }
+  .hd-upload-preview.hd-upload-preview-empty { background: #f3f4f6; }
+  .hd-upload-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .hd-upload-badge {
+    position: absolute; top: 10px; right: 10px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #16a34a; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+  .hd-upload-box {
+    border: 1.5px dashed #d8dae0; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 16px; cursor: pointer; text-align: center;
+    background: #fafafd; transition: border-color .15s ease, background .15s ease;
+    min-height: 130px;
+  }
+  .hd-upload-box:hover { border-color: #7C3AED; background: rgba(124,58,237,.04); }
+  .hd-upload-box i { font-size: 20px; color: #7C3AED; }
+  .hd-upload-box .hd-upload-label { font-size: 13px; font-weight: 700; color: #7C3AED; }
+  .hd-upload-box .hd-upload-hint { font-size: 11px; color: #9ca3af; line-height: 1.5; }
+
+  .hd-secure-note {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: #16a34a; margin-top: 18px;
+  }
+
+  .hd-pw-hint { font-size: 11.5px; color: #9ca3af; margin: 2px 0 0; line-height: 1.5; }
+
+  /* ─── INLINE FORM MESSAGE ─── */
+  .hd-msg {
+    display: none;
+    margin-top: 18px; padding: 11px 14px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 500;
+  }
+  .hd-msg.show { display: block; }
+  .hd-msg.error { background: rgba(239,68,68,.1); color: #b91c1c; border: 1px solid rgba(239,68,68,.25); }
+  .hd-msg.success { background: rgba(22,163,74,.1); color: #15803d; border: 1px solid rgba(22,163,74,.25); }
+
+  /* ─── FOOTER ACTIONS ─── */
+  .hd-footer-bar {
+    display: flex; justify-content: flex-end; gap: 12px;
+    margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--admio-border-color, #e5e7eb);
+  }
+
+  /* ─── RENAME CONFIRM MODAL ─── */
+  .hd-modal-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(17,24,39,.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  .hd-modal-overlay.show { display: flex; animation: hdFade .15s ease; }
+  @keyframes hdFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes hdPop {
+    from { opacity: 0; transform: translateY(8px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .hd-modal {
+    width: 100%; max-width: 460px;
+    background: #fff; border-radius: 18px;
+    padding: 26px 26px 22px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    animation: hdPop .18s ease;
+  }
+  .hd-modal-icon {
+    width: 46px; height: 46px; border-radius: 13px;
+    background: rgba(245,158,11,.14); color: #b45309;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; margin-bottom: 14px;
+  }
+  .hd-modal h3 {
+    font-size: 1.15rem; font-weight: 800; margin: 0 0 6px;
+    color: var(--admio-heading-color, #111);
+  }
+  .hd-modal p {
+    font-size: 0.92rem; line-height: 1.55; margin: 0 0 14px;
+    color: var(--admio-nav-color, #6b7280);
+  }
+  .hd-modal-change {
+    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px; font-size: 13px;
+  }
+  .hd-modal-change .row { display: flex; gap: 8px; margin: 3px 0; word-break: break-word; }
+  .hd-modal-change .lbl { flex: 0 0 44px; font-weight: 700; color: #9ca3af; }
+  .hd-modal-change .val { font-weight: 600; color: #374151; }
+  .hd-modal-change .val.new { color: #7C3AED; }
+  .hd-modal-note {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 12.5px; line-height: 1.5; color: #b45309;
+    background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+    border-radius: 10px; padding: 9px 12px; margin-bottom: 20px;
+  }
+  .hd-modal-note i { margin-top: 2px; flex-shrink: 0; }
+  .hd-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .hd-modal-actions button {
+    padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 700;
+    cursor: pointer; border: 1.5px solid transparent;
+    transition: background .15s ease, border-color .15s ease, transform .05s ease;
+  }
+  .hd-modal-actions button:active { transform: scale(.98); }
+  .hd-modal-actions .hd-modal-cancel { background: #fff; border-color: #e5e7eb; color: #374151; }
+  .hd-modal-actions .hd-modal-cancel:hover { background: #f3f4f6; }
+  .hd-modal-actions .hd-modal-ok { background: #7C3AED; color: #fff; }
+  .hd-modal-actions .hd-modal-ok:hover { background: #6d28d9; }
+  .hd-modal-actions button:focus-visible { outline: 3px solid rgba(124,58,237,.35); outline-offset: 2px; }
+  @media (max-width: 480px) {
+    .hd-modal { padding: 22px 18px 18px; }
+    .hd-modal-actions { flex-direction: column-reverse; }
+    .hd-modal-actions button { width: 100%; }
+  }
+
+  [data-theme="dark"] .hd-modal { background: #1a1a26; border: 1px solid #2d2d3d; }
+  [data-theme="dark"] .hd-modal h3 { color: #f3f4f6; }
+  [data-theme="dark"] .hd-modal p { color: #9b9bb5; }
+  [data-theme="dark"] .hd-modal-change { background: #20202f; border-color: #3a3a4c; }
+  [data-theme="dark"] .hd-modal-change .val { color: #e5e7eb; }
+  [data-theme="dark"] .hd-modal-change .val.new { color: #a78bfa; }
+  [data-theme="dark"] .hd-modal-note { color: #fbbf24; }
+  [data-theme="dark"] .hd-modal-actions .hd-modal-cancel { background: #252536; border-color: #3a3a4c; color: #e5e7eb; }
+  [data-theme="dark"] .hd-modal-actions .hd-modal-cancel:hover { background: #2d2d3d; }
+
+  [data-theme="dark"] .hd-banner { background: linear-gradient(135deg, rgba(124,58,237,.14), rgba(124,58,237,.03)); border-color: rgba(124,58,237,.2); }
+  [data-theme="dark"] .hd-banner-icon { background: #1e1e2d; border-color: rgba(124,58,237,.25); }
+  [data-theme="dark"] .hd-banner-title { color: #f3f4f6; }
+  [data-theme="dark"] .hd-banner-sub { color: #b3b3c6; }
+
+  [data-theme="dark"] .hd-step-circle { background: #2d2d3d; color: #8888a0; }
+  [data-theme="dark"] .hd-step.active .hd-step-circle,
+  [data-theme="dark"] .hd-step.done .hd-step-circle { background: #7C3AED; color: #fff; }
+  [data-theme="dark"] .hd-step-label { color: #8888a0; }
+  [data-theme="dark"] .hd-step.active .hd-step-label { color: #a78bfa; }
+  [data-theme="dark"] .hd-step-sub { color: #6b6b85; }
+  [data-theme="dark"] .hd-step-line { background: #2d2d3d; }
+  [data-theme="dark"] .hd-step-line.done { background: #7C3AED; }
+
+  [data-theme="dark"] .admio-card { background: #1a1a26; border: 1px solid #2d2d3d; }
+  [data-theme="dark"] .hd-card-head h3 { color: #f3f4f6; }
+  [data-theme="dark"] .hd-card-head p { color: #9b9bb5; }
+  [data-theme="dark"] .hd-card-icon.hd-icon-dark { background: #0b0f19; }
+
+  [data-theme="dark"] .hd-field label { color: #e5e7eb; }
+  [data-theme="dark"] .hd-field-label-row label { color: #e5e7eb; }
+  [data-theme="dark"] .hd-info-ico { color: #6b6b85; }
+  [data-theme="dark"] .hd-char-count { color: #6b6b85; }
+  [data-theme="dark"] .hd-pw-hint { color: #6b6b85; }
+  [data-theme="dark"] .hd-secure-note { color: #4ade80; }
+
+  [data-theme="dark"] .hd-input-wrap i { color: #8888a0; }
+  [data-theme="dark"] .hd-input-wrap input::placeholder,
+  [data-theme="dark"] .hd-input-wrap textarea::placeholder { color: #6b6b85; }
+  [data-theme="dark"] .hd-eye-toggle { color: #8888a0; }
+
+  [data-theme="dark"] .hd-upload-box .hd-upload-hint { color: #6b6b85; }
+  [data-theme="dark"] .hd-upload-box .hd-upload-label { color: #a78bfa; }
+
+  [data-theme="dark"] .hd-tips-title { color: #f3f4f6; }
+  [data-theme="dark"] .hd-tips-text { color: #9b9bb5; }
+
+  [data-theme="dark"] .hd-msg.error { color: #fca5a5; }
+  [data-theme="dark"] .hd-msg.success { color: #86efac; }
+
+  [data-theme="dark"] .hd-input-wrap input,
+  [data-theme="dark"] .hd-input-wrap select,
+  [data-theme="dark"] .hd-input-wrap textarea { background: #252536; border-color: #3a3a4c; color: #f3f4f6; }
+  [data-theme="dark"] .hd-upload-box { background: #20202f; border-color: #3a3a4c; }
+  [data-theme="dark"] .hd-upload-preview.hd-upload-preview-empty { background: #20202f; }
+  [data-theme="dark"] .hd-tips-box { background: rgba(124,58,237,.12); border-color: rgba(124,58,237,.22); }
+  [data-theme="dark"] .hd-footer-bar { border-color: #2d2d3d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hd-page">
+
+  <!-- ══════════ WELCOME BANNER ══════════ -->
+  <div class="hd-banner">
+    <div class="hd-banner-left">
+      <div class="hd-banner-icon"><i class="icon-building"></i></div>
+      <div>
+        <h1 class="hd-banner-title">Let's set up your hotel</h1>
+        <p class="hd-banner-sub">Fill in the details below to create your hotel profile. This information will be used on your website and dashboard. You can always update it later.</p>
+      </div>
+    </div>
+
+    <div class="hd-steps">
+      <div class="hd-step active">
+        <div class="hd-step-circle">1</div>
+        <div class="hd-step-label">Hotel Details</div>
+        <div class="hd-step-sub">About your property</div>
+      </div>
+      <div class="hd-step-line"></div>
+      <div class="hd-step">
+        <div class="hd-step-circle">2</div>
+        <div class="hd-step-label">Room Setup</div>
+        <div class="hd-step-sub">Configure your rooms</div>
+      </div>
+      <div class="hd-step-line"></div>
+      <div class="hd-step">
+        <div class="hd-step-circle">3</div>
+        <div class="hd-step-label">Subscription</div>
+        <div class="hd-step-sub">Choose your plan</div>
+      </div>
+      <div class="hd-step-line"></div>
+      <div class="hd-step">
+        <div class="hd-step-circle">4</div>
+        <div class="hd-step-label">Review &amp; Finish</div>
+        <div class="hd-step-sub">Complete setup</div>
+      </div>
+    </div>
+
+    {% if is_first_time %}
+    <div class="hd-almost-badge">
+      <span class="hd-check"><i class="icon-circle-check"></i></span>
+      <span class="hd-almost-text">You're almost there!<small>Step 1 of 4 · 25% complete</small></span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════ FORM ══════════ -->
+  <form id="hotelDetailsForm" enctype="multipart/form-data" autocomplete="off">
+    {% csrf_token %}
+    <input type="hidden" name="form_type" value="hotel_details">
+
+    <div class="hd-grid">
+
+      <!-- Hotel Information -->
+      <div class="admio-card">
+        <div class="admio-card-body">
+          <div class="hd-card-head">
+            <div class="hd-card-icon hd-icon-dark"><i class="icon-building"></i></div>
+            <div>
+              <h3>Hotel Information</h3>
+              <p>Tell us about your hotel. This information will be shown on your website and dashboard.</p>
+            </div>
+          </div>
+
+          <div class="hd-row-2">
+            <div class="hd-field">
+              <label>Hotel Name <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-building"></i>
+                <input type="text" name="hotel_name" value="{{ hotel.hotel_name }}" placeholder="Sunrise Grand Hotel" required>
+              </div>
+            </div>
+            <div class="hd-field">
+              <label>Owner Name <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-circle-user"></i>
+                <input type="text" name="owner_name" value="{{ hotel.owner_name }}" placeholder="John Doe" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="hd-row-2">
+            <div class="hd-field">
+              <label>Property Type <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-hotel"></i>
+                <input type="text" name="property_type" value="{{ hotel.property_type }}" placeholder="e.g. Resort, Boutique Hotel, Business Hotel" required>
+              </div>
+            </div>
+            <div class="hd-field">
+              <label>Phone <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-phone"></i>
+                <input type="tel" name="phone" value="{{ hotel.phone|default:'' }}" placeholder="+91 98765 43210" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <label>Email <span class="req">*</span></label>
+            <div class="hd-input-wrap">
+              <i class="icon-mail"></i>
+              <input type="email" name="email" value="{{ hotel.email }}" placeholder="hotel@example.com" required>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <label>Description <span class="req">*</span></label>
+            <div class="hd-input-wrap">
+              <textarea name="description" maxlength="500" placeholder="A short description about your hotel..." id="hdDescription" required>{{ hotel.description }}</textarea>
+            </div>
+            <div class="hd-char-count"><span id="hdDescCount">0</span>/500</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Branding -->
+      <div class="admio-card">
+        <div class="admio-card-body">
+          <div class="hd-card-head">
+            <div class="hd-card-icon hd-icon-tint"><i class="icon-wand-sparkles"></i></div>
+            <div>
+              <h3>Branding</h3>
+              <p>Upload your hotel logo and cover image. These will be shown on your website and in communications.</p>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <div class="hd-field-label-row">
+              <label>Hotel Logo</label>
+              <i class="icon-info hd-info-ico"></i>
+            </div>
+            <div class="hd-upload-row">
+              <div class="hd-upload-preview {% if not hotel.logo %}hd-upload-preview-empty{% endif %}" id="hdLogoPreview">
+                {% if hotel.logo %}
+                  <img src="{{ hotel.logo.url }}" alt="Logo">
+                  <span class="hd-upload-badge"><i class="icon-circle-check"></i></span>
+                {% else %}
+                  <i class="icon-image" style="font-size:22px;color:#9ca3af;"></i>
+                {% endif %}
+              </div>
+              <label class="hd-upload-box" for="hdLogoInput">
+                <i class="icon-cloud-upload"></i>
+                <span class="hd-upload-label" id="hdLogoLabel">{% if hotel.logo %}Change Logo{% else %}Upload Logo{% endif %}</span>
+                <span class="hd-upload-hint">or drag and drop<br>Recommended size: 200 × 200px<br>(PNG, JPG, Max 2MB)</span>
+                <input type="file" id="hdLogoInput" name="logo" accept="image/*" style="display:none;">
+              </label>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <div class="hd-field-label-row">
+              <label>Cover Image</label>
+              <i class="icon-info hd-info-ico"></i>
+            </div>
+            <div class="hd-upload-row">
+              <div class="hd-upload-preview {% if not hotel.image %}hd-upload-preview-empty{% endif %}" id="hdCoverPreview">
+                {% if hotel.image %}
+                  <img src="{{ hotel.image.url }}" alt="Cover">
+                  <span class="hd-upload-badge"><i class="icon-circle-check"></i></span>
+                {% else %}
+                  <i class="icon-image" style="font-size:22px;color:#9ca3af;"></i>
+                {% endif %}
+              </div>
+              <label class="hd-upload-box" for="hdCoverInput">
+                <i class="icon-cloud-upload"></i>
+                <span class="hd-upload-label" id="hdCoverLabel">{% if hotel.image %}Change Image{% else %}Upload Image{% endif %}</span>
+                <span class="hd-upload-hint">or drag and drop<br>Recommended size: 1920 × 1080px<br>(PNG, JPG, Max 5MB)</span>
+                <input type="file" id="hdCoverInput" name="image" accept="image/*" style="display:none;">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="admio-card">
+        <div class="admio-card-body">
+          <div class="hd-card-head">
+            <div class="hd-card-icon hd-icon-amber"><i class="icon-map-pin"></i></div>
+            <div>
+              <h3>Location</h3>
+              <p>Help guests find your hotel easily.</p>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <label>Address <span class="req">*</span></label>
+            <div class="hd-input-wrap">
+              <i class="icon-map-pin"></i>
+              <input type="text" name="address" value="{{ hotel.address }}" placeholder="123 Hotel Street" required>
+            </div>
+          </div>
+
+          <div class="hd-row-2">
+            <div class="hd-field">
+              <label>City <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-building"></i>
+                <input type="text" name="city" value="{{ hotel.city }}" placeholder="Kochi" required>
+              </div>
+            </div>
+            <div class="hd-field">
+              <label>State <span class="req">*</span></label>
+              <div class="hd-input-wrap">
+                <i class="icon-map"></i>
+                <input type="text" name="state" value="{{ hotel.state }}" placeholder="Kerala" required>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Security (password is OPTIONAL) -->
+      <div class="admio-card">
+        <div class="admio-card-body">
+          <div class="hd-card-head">
+            <div class="hd-card-icon hd-icon-purple"><i class="icon-shield"></i></div>
+            <div>
+              <h3>Account Security <span class="opt" style="font-size:12px;font-weight:500;color:#9ca3af;">(optional)</span></h3>
+              <p>Leave these blank to keep your current password. Fill all three only if you want to change it.</p>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <label>Current Password</label>
+            <div class="hd-input-wrap">
+              <i class="icon-lock"></i>
+              <input type="password" name="current_password" placeholder="••••••••" id="hdCurrentPw" autocomplete="new-password">
+              <button type="button" class="hd-eye-toggle" data-target="hdCurrentPw"><i class="icon-eye"></i></button>
+            </div>
+          </div>
+
+          <div class="hd-row-2">
+            <div class="hd-field">
+              <label>New Password</label>
+              <div class="hd-input-wrap">
+                <i class="icon-lock"></i>
+                <input type="password" name="new_password" placeholder="••••••••" id="hdNewPw" autocomplete="new-password">
+                <button type="button" class="hd-eye-toggle" data-target="hdNewPw"><i class="icon-eye"></i></button>
+              </div>
+            </div>
+            <div class="hd-field">
+              <label>Confirm New Password</label>
+              <div class="hd-input-wrap">
+                <i class="icon-lock"></i>
+                <input type="password" name="confirm_password" placeholder="••••••••" id="hdConfirmPw" autocomplete="new-password">
+                <button type="button" class="hd-eye-toggle" data-target="hdConfirmPw"><i class="icon-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <p class="hd-pw-hint">Must be at least 8 characters with a mix of letters, numbers and symbols.</p>
+
+          <div class="hd-secure-note">
+            <i class="icon-shield-check"></i>
+            <span>Your information is secure and encrypted</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Inline message (errors / saved) -->
+    <div class="hd-msg" id="hdMsg" role="alert"></div>
+
+    <!-- Quick Tips -->
+    <div class="hd-tips-box">
+      <div class="hd-tips-icon"><i class="icon-lightbulb"></i></div>
+      <div>
+        <p class="hd-tips-title">Quick Tips</p>
+        <p class="hd-tips-text">Use a clear and professional hotel name, add accurate contact details, and write a short description about your hotel to attract more guests. Note: changing the hotel name also changes your login URL.</p>
+      </div>
+    </div>
+
+    <div class="hd-footer-bar">
+      <button type="button" class="btn-admio btn-outline" id="hdSaveDraft"><i class="icon-save"></i> Save Draft</button>
+      <button type="submit" class="btn-admio btn-ai" id="hdSaveContinue">Next: Room Setup <i class="icon-arrow-right"></i></button>
+    </div>
+  </form>
+
+</div>
+
+<!-- ══════════ RENAME CONFIRM MODAL ══════════ -->
+<div class="hd-modal-overlay" id="hdRenameModal" aria-hidden="true">
+  <div class="hd-modal" role="dialog" aria-modal="true" aria-labelledby="hdModalTitle" aria-describedby="hdModalDesc">
+    <div class="hd-modal-icon"><i class="icon-triangle-alert"></i></div>
+    <h3 id="hdModalTitle">Change hotel name?</h3>
+    <p id="hdModalDesc">Changing the hotel name will also change your login URL.</p>
+
+    <div class="hd-modal-change">
+      <div class="row"><span class="lbl">From</span><span class="val" id="hdModalOld"></span></div>
+      <div class="row"><span class="lbl">To</span><span class="val new" id="hdModalNew"></span></div>
+    </div>
+
+    <div class="hd-modal-note">
+      <i class="icon-info"></i>
+      <span>You will be signed out and need to log in again on the new address. Old bookmarks and email links will stop working.</span>
+    </div>
+
+    <div class="hd-modal-actions">
+      <button type="button" class="hd-modal-cancel" id="hdModalCancel">Cancel</button>
+      <button type="button" class="hd-modal-ok" id="hdModalOk">Yes, change name</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // ── Description char counter ──
+  const desc = document.getElementById('hdDescription');
+  const descCount = document.getElementById('hdDescCount');
+  function updateCount() { descCount.textContent = desc.value.length; }
+  if (desc) { updateCount(); desc.addEventListener('input', updateCount); }
+
+  // ── Image previews (badge + label swap on upload) ──
+  function wireUpload(inputId, previewId, labelId, changeText) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const label = document.getElementById(labelId);
+    if (!input || !preview) return;
+    input.addEventListener('change', function () {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.classList.remove('hd-upload-preview-empty');
+        preview.innerHTML = '<img src="' + e.target.result + '" alt="Preview"><span class="hd-upload-badge"><i class="icon-circle-check"></i></span>';
+        if (label) { label.textContent = changeText; }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  wireUpload('hdLogoInput', 'hdLogoPreview', 'hdLogoLabel', 'Change Logo');
+  wireUpload('hdCoverInput', 'hdCoverPreview', 'hdCoverLabel', 'Change Image');
+
+  // ── Password visibility toggles ──
+  document.querySelectorAll('.hd-eye-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const target = document.getElementById(btn.getAttribute('data-target'));
+      if (!target) return;
+      const isPw = target.type === 'password';
+      target.type = isPw ? 'text' : 'password';
+      btn.querySelector('i').className = isPw ? 'icon-eye-off' : 'icon-eye';
+    });
+  });
+
+  // ── Elements ──
+  const form = document.getElementById('hotelDetailsForm');
+  const saveContinueBtn = document.getElementById('hdSaveContinue');
+  const saveDraftBtn = document.getElementById('hdSaveDraft');
+  const msgBox = document.getElementById('hdMsg');
+  const currentPw = document.getElementById('hdCurrentPw');
+  const newPw = document.getElementById('hdNewPw');
+  const confirmPw = document.getElementById('hdConfirmPw');
+
+  // Remember the hotel name as loaded, to detect a rename (which changes the domain)
+  const hotelNameInput = form.querySelector('input[name="hotel_name"]');
+  const originalHotelName = hotelNameInput ? hotelNameInput.value.trim() : '';
+
+  // Rename modal elements
+  const modal = document.getElementById('hdRenameModal');
+  const modalOld = document.getElementById('hdModalOld');
+  const modalNew = document.getElementById('hdModalNew');
+  const modalOk = document.getElementById('hdModalOk');
+  const modalCancel = document.getElementById('hdModalCancel');
+
+  function showMsg(text, type) {
+    msgBox.textContent = text;
+    msgBox.className = 'hd-msg show ' + type;
+    if (type === 'error') { msgBox.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  }
+  function hideMsg() { msgBox.className = 'hd-msg'; msgBox.textContent = ''; }
+
+  // ── Rename confirmation modal (replaces browser confirm()) ──
+  let modalOnConfirm = null;
+  let lastFocused = null;
+
+  function openRenameModal(oldName, newName, onConfirm) {
+    modalOnConfirm = onConfirm;
+    lastFocused = document.activeElement;
+    modalOld.textContent = oldName;
+    modalNew.textContent = newName;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    modalOk.focus();
+  }
+
+  function closeRenameModal() {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    modalOnConfirm = null;
+    if (lastFocused && lastFocused.focus) { lastFocused.focus(); }
+  }
+
+  modalOk.addEventListener('click', function () {
+    const cb = modalOnConfirm;
+    closeRenameModal();
+    if (cb) { cb(); }
+  });
+  modalCancel.addEventListener('click', closeRenameModal);
+
+  // Click on the dark backdrop (not the dialog) closes it
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) { closeRenameModal(); }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (!modal.classList.contains('show')) return;
+    if (e.key === 'Escape') { closeRenameModal(); return; }
+    // Keep Tab focus inside the modal
+    if (e.key === 'Tab') {
+      const focusables = [modalCancel, modalOk];
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+
+  // The password is changed ONLY when a new password or confirmation is typed.
+  // Otherwise the whole password section is ignored, so other edits still save.
+  function wantsPasswordChange() {
+    return newPw.value !== '' || confirmPw.value !== '';
+  }
+
+  function validatePassword() {
+    if (!wantsPasswordChange()) { return null; }
+    if (!currentPw.value) { return 'Enter your current password to change it.'; }
+    if (!newPw.value) { return 'Enter a new password.'; }
+    if (!confirmPw.value) { return 'Confirm your new password.'; }
+    if (newPw.value !== confirmPw.value) { return 'New password and confirmation do not match.'; }
+    if (newPw.value.length < 8) { return 'Password must contain at least 8 characters.'; }
+    return null;
+  }
+
+  function clearPasswordFields() {
+    currentPw.value = '';
+    newPw.value = '';
+    confirmPw.value = '';
+  }
+
+  function setBusy(busy) {
+    saveContinueBtn.disabled = busy;
+    saveDraftBtn.disabled = busy;
+  }
+
+  // ── Actually send the form to the server ──
+  function sendForm(nextUrl) {
+    const formData = new FormData(form);
+
+    // Not changing the password: don't send any password fields
+    // (also covers a browser auto-filling "current password").
+    if (!wantsPasswordChange()) {
+      formData.delete('current_password');
+      formData.delete('new_password');
+      formData.delete('confirm_password');
+    }
+
+    setBusy(true);
+
+    fetch("{% url 'hotel_details_page' %}", {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(function (res) {
+        return res.json().catch(function () {
+          throw new Error('The server returned an invalid response. Please log in again and retry.');
+        });
+      })
+      .then(function (data) {
+        setBusy(false);
+        if (data.success) {
+          clearPasswordFields();
+
+          // Hotel name changed -> the domain changed too.
+          // Applies to BOTH Save Draft and Next, and takes priority over
+          // nextUrl because the old domain (and its session) no longer works.
+          if (data.redirect_url) {
+            showMsg('Saved. Your hotel URL has changed, redirecting to the new address...', 'success');
+            setTimeout(function () {
+              window.location.href = data.redirect_url;
+            }, 1500);
+            return;
+          }
+
+          if (nextUrl) {
+            window.location.href = nextUrl;
+          } else {
+            showMsg(data.password_changed ? 'Saved. Your password was updated.' : 'Saved.', 'success');
+          }
+        } else {
+          showMsg(data.error || 'Something went wrong. Please check the form and try again.', 'error');
+        }
+      })
+      .catch(function (err) {
+        setBusy(false);
+        showMsg(err.message || 'Network error. Please try again.', 'error');
+      });
+  }
+
+  // ── Validate, then (if the name changed) ask via modal, then send ──
+  function submitForm(nextUrl) {
+    hideMsg();
+
+    const pwError = validatePassword();
+    if (pwError) { showMsg(pwError, 'error'); return; }
+
+    const newName = hotelNameInput ? hotelNameInput.value.trim() : '';
+    const nameChanged = originalHotelName && newName.toLowerCase() !== originalHotelName.toLowerCase();
+
+    if (nameChanged) {
+      openRenameModal(originalHotelName, newName, function () { sendForm(nextUrl); });
+      return;
+    }
+
+    sendForm(nextUrl);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    submitForm("{% url 'room_status' %}");
+  });
+
+  saveDraftBtn.addEventListener('click', function () {
+    submitForm(null);
+  });
+})();
+</script>
+{% endblock %}

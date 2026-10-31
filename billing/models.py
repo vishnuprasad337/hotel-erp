@@ -169,6 +169,12 @@ class BillingPayment(models.Model):
         null=True, blank=True,
         related_name="received_payments",
     )
+    received_by_user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="received_payments_admin",
+    )
 
     class Meta:
         ordering = ["received_at"]

@@ -1,0 +1,1707 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Maintenance Logs{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+
+<style>
+  .maintenance-ui {
+    --m-bg: #ffffff;
+    --m-soft: #f5f6fb;
+    --m-text: #18223b;
+    --m-muted: #65718a;
+    --m-border: #e3e6f0;
+    --m-accent: #713bea;
+    --m-tint: #f0eaff;
+    --m-green: #08794c;
+    --m-green-bg: #e3f8ed;
+    --m-amber: #946000;
+    --m-amber-bg: #fff3d6;
+    --m-red: #b62e48;
+    --m-red-bg: #ffeaf0;
+
+    color: var(--m-text);
+    color-scheme: light;
+    font-size: 15px;
+  }
+
+  html[data-theme="dark"] .maintenance-ui {
+    --m-bg: #1b1e30;
+    --m-soft: #24283c;
+    --m-text: #eef1fa;
+    --m-muted: #b1b9d0;
+    --m-border: #353b52;
+    --m-accent: #be9fff;
+    --m-tint: #34294e;
+    --m-green: #7ae2b7;
+    --m-green-bg: #173e34;
+    --m-amber: #f8d188;
+    --m-amber-bg: #443721;
+    --m-red: #ffacc0;
+    --m-red-bg: #452b38;
+
+    color-scheme: dark;
+  }
+
+  .maintenance-ui * {
+    box-sizing: border-box;
+  }
+
+  .maintenance-ui h1,
+  .maintenance-ui h2,
+  .maintenance-ui h3,
+  .maintenance-ui p {
+    margin: 0;
+    color: inherit;
+  }
+
+  .maintenance-ui h1 {
+    margin: 6px 0;
+    font-size: 30px;
+    font-weight: 750;
+  }
+
+  .maintenance-ui h2 {
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .maintenance-ui h3 {
+    font-size: 17px;
+  }
+
+  .maintenance-ui small,
+  .maintenance-ui .m-muted {
+    color: var(--m-muted);
+  }
+
+  .maintenance-ui .m-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .maintenance-ui .m-between {
+    justify-content: space-between;
+  }
+
+  .maintenance-ui .m-header {
+    margin-bottom: 24px;
+  }
+
+  .maintenance-ui .m-subtitle {
+    margin-top: 7px;
+    color: var(--m-muted);
+  }
+
+  .maintenance-ui button,
+  .maintenance-ui input,
+  .maintenance-ui select,
+  .maintenance-ui textarea {
+    font: inherit;
+  }
+
+  .maintenance-ui button {
+    cursor: pointer;
+  }
+
+  .maintenance-ui button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  .maintenance-ui .m-btn,
+  .maintenance-ui input,
+  .maintenance-ui select,
+  .maintenance-ui textarea {
+    padding: 10px 13px;
+    border: 1px solid var(--m-border);
+    border-radius: 8px;
+    background: var(--m-bg);
+    color: var(--m-text);
+  }
+
+  .maintenance-ui .m-btn:hover:not(:disabled) {
+    border-color: var(--m-accent);
+    background: var(--m-tint);
+  }
+
+  .maintenance-ui .m-primary {
+    border-color: #713bea;
+    background: #713bea;
+    color: #ffffff;
+  }
+
+  .maintenance-ui .m-primary:hover:not(:disabled) {
+    border-color: #6030d0;
+    background: #6030d0;
+    color: #ffffff;
+  }
+
+  .maintenance-ui .m-danger {
+    color: var(--m-red);
+  }
+
+  .maintenance-ui input::placeholder,
+  .maintenance-ui textarea::placeholder {
+    color: var(--m-muted);
+    opacity: 1;
+  }
+
+  .maintenance-ui option {
+    background: var(--m-bg);
+    color: var(--m-text);
+  }
+
+  .maintenance-ui :focus-visible {
+    outline: 3px solid #b395f2;
+    outline-offset: 2px;
+  }
+
+  .maintenance-ui .m-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .maintenance-ui .m-stat {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 22px;
+    border: 1px solid var(--m-border);
+    border-radius: 13px;
+    background: var(--m-bg);
+  }
+
+  .maintenance-ui .m-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: var(--m-tint);
+    color: var(--m-accent);
+  }
+
+  .maintenance-ui svg {
+    width: 23px;
+    height: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .maintenance-ui .m-stat:nth-child(2) .m-icon {
+    background: var(--m-amber-bg);
+    color: var(--m-amber);
+  }
+
+  .maintenance-ui .m-stat:nth-child(3) .m-icon {
+    background: var(--m-green-bg);
+    color: var(--m-green);
+  }
+
+  .maintenance-ui .m-stat strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 27px;
+    color: var(--m-text);
+  }
+
+  .maintenance-ui .m-panel {
+    overflow: hidden;
+    border: 1px solid var(--m-border);
+    border-radius: 14px;
+    background: var(--m-bg);
+  }
+
+  .maintenance-ui .m-pad {
+    padding: 20px;
+  }
+
+  .maintenance-ui .m-ranges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 9px;
+    background: var(--m-soft);
+  }
+
+  .maintenance-ui .m-ranges button {
+    padding: 8px 11px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--m-muted);
+    font-size: 13px;
+  }
+
+  .maintenance-ui .m-ranges button[aria-pressed="true"] {
+    background: var(--m-tint);
+    color: var(--m-accent);
+    font-weight: 650;
+  }
+
+  .maintenance-ui .m-filters {
+    padding: 0 20px 18px;
+  }
+
+  .maintenance-ui .m-search {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .maintenance-ui .m-link {
+    padding: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--m-accent);
+  }
+
+  .maintenance-ui .m-custom {
+    padding: 0 20px 16px;
+  }
+
+  .maintenance-ui .m-scroll {
+    overflow-x: auto;
+  }
+
+  .maintenance-ui table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+
+  .maintenance-ui th {
+    background: var(--m-soft);
+    color: var(--m-muted);
+    font-size: 12px;
+    font-weight: 650;
+    text-align: left;
+  }
+
+  .maintenance-ui th,
+  .maintenance-ui td {
+    padding: 15px 17px;
+    border-bottom: 1px solid var(--m-border);
+  }
+
+  .maintenance-ui td,
+  .maintenance-ui td strong {
+    color: var(--m-text);
+  }
+
+  .maintenance-ui td small {
+    display: block;
+    max-width: 230px;
+    margin-top: 5px;
+    white-space: normal;
+  }
+
+  .maintenance-ui .m-badge {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 30px;
+    background: var(--m-soft);
+    color: var(--m-muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .maintenance-ui .m-badge.completed {
+    background: var(--m-green-bg);
+    color: var(--m-green);
+  }
+
+  .maintenance-ui .m-badge.open,
+  .maintenance-ui .m-badge.in_progress {
+    background: var(--m-amber-bg);
+    color: var(--m-amber);
+  }
+
+  .maintenance-ui .m-badge.cancelled {
+    background: var(--m-red-bg);
+    color: var(--m-red);
+  }
+
+  .maintenance-ui .m-empty {
+    padding: 55px 20px;
+    text-align: center;
+  }
+
+  .maintenance-ui .m-empty .m-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 17px;
+    border-radius: 50%;
+  }
+
+  .maintenance-ui .m-empty p {
+    margin: 9px 0 20px;
+    color: var(--m-muted);
+  }
+
+  .maintenance-ui .m-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--m-border);
+  }
+
+  .maintenance-ui .m-error {
+    padding: 13px 16px;
+    margin: 12px 0;
+    border-radius: 8px;
+    background: var(--m-red-bg);
+    color: var(--m-red);
+    white-space: pre-wrap;
+  }
+
+  .maintenance-ui .m-notice {
+    margin-bottom: 12px;
+    color: var(--m-green);
+  }
+
+  .maintenance-ui [hidden] {
+    display: none !important;
+  }
+
+  dialog.maintenance-ui {
+    width: min(760px, calc(100vw - 28px));
+    max-height: 90dvh;
+    overflow: auto;
+    padding: 0;
+    border: 1px solid var(--m-border);
+    border-radius: 16px;
+    background: var(--m-bg);
+    box-shadow: 0 25px 90px #0005;
+  }
+
+  dialog.maintenance-ui::backdrop {
+    background: #080d2099;
+  }
+
+  .maintenance-ui .m-modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid var(--m-border);
+    background: var(--m-bg);
+  }
+
+  .maintenance-ui .m-form-grid,
+  .maintenance-ui .m-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 17px;
+    padding: 20px;
+  }
+
+  .maintenance-ui label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: var(--m-text);
+    font-size: 13px;
+  }
+
+  .maintenance-ui label.m-check {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .maintenance-ui input[type="checkbox"] {
+    accent-color: #713bea;
+  }
+
+  .maintenance-ui .m-full {
+    grid-column: 1 / -1;
+  }
+
+  .maintenance-ui textarea {
+    resize: vertical;
+  }
+
+  .maintenance-ui dt {
+    margin-bottom: 5px;
+    color: var(--m-muted);
+    font-size: 12px;
+  }
+
+  .maintenance-ui dd {
+    margin: 0;
+    color: var(--m-text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .maintenance-ui .m-modal-error {
+    margin: 12px 20px;
+  }
+
+  .maintenance-ui .m-section-label {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--m-border);
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .maintenance-ui .m-form-note {
+    color: var(--m-muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 1000px) {
+    .maintenance-ui .m-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .maintenance-ui .m-stats {
+      gap: 10px;
+    }
+
+    .maintenance-ui .m-stat {
+      gap: 9px;
+      padding: 14px;
+    }
+
+    .maintenance-ui .m-stat strong {
+      font-size: 23px;
+    }
+
+    .maintenance-ui .m-icon {
+      width: 35px;
+      height: 35px;
+    }
+
+    .maintenance-ui .m-form-grid,
+    .maintenance-ui .m-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .maintenance-ui .m-search {
+      width: 100%;
+      min-width: 0;
+      flex-basis: 100%;
+    }
+
+    .maintenance-ui .m-filters select {
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .maintenance-ui h1 {
+      font-size: 25px;
+    }
+
+    .maintenance-ui .m-header {
+      align-items: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="maintenance-ui" id="maintenancePage">
+  {% csrf_token %}
+
+  <header class="m-header m-row m-between">
+    <div>
+      <small>Inventory / Maintenance</small>
+      <h1>Maintenance Logs</h1>
+      <p class="m-subtitle">
+        Track asset service history, repairs, and scheduled maintenance.
+      </p>
+    </div>
+
+    <div class="m-row">
+      <button class="m-btn" id="refreshLogs">↻ Refresh</button>
+      <button class="m-btn m-primary" data-add>
+        + Log maintenance
+      </button>
+    </div>
+  </header>
+
+  <div id="pageNotice" class="m-notice" role="status" hidden></div>
+  <div id="pageError" class="m-error" role="alert" hidden></div>
+
+  <div class="m-stats" id="maintenanceStats"></div>
+
+  <section class="m-panel">
+    <div class="m-pad m-row m-between">
+      <div>
+        <h2>Service history</h2>
+        <small id="recordCount">Loading records…</small>
+      </div>
+
+      <div class="m-ranges" aria-label="Service date range">
+        <button data-range="all" aria-pressed="true">All time</button>
+        <button data-range="today" aria-pressed="false">Today</button>
+        <button data-range="week" aria-pressed="false">This week</button>
+        <button data-range="month" aria-pressed="false">This month</button>
+        <button data-range="custom" aria-pressed="false">Custom</button>
+      </div>
+    </div>
+
+    <div class="m-row m-custom" id="customRange" hidden>
+      <label>
+        From
+        <input type="date" id="dateFrom">
+      </label>
+      <label>
+        To
+        <input type="date" id="dateTo">
+      </label>
+    </div>
+
+    <div class="m-row m-filters">
+      <input
+        class="m-search"
+        type="search"
+        id="logSearch"
+        aria-label="Search maintenance logs"
+        placeholder="Search asset, location, or staff…"
+      >
+
+      <select id="deptFilter" aria-label="Department">
+        <option value="">All departments</option>
+      </select>
+
+      <select id="typeFilter" aria-label="Maintenance type">
+        <option value="">All types</option>
+      </select>
+
+      <select id="statusFilter" aria-label="Status">
+        <option value="">All statuses</option>
+      </select>
+
+      <button class="m-link" id="resetFilters">Reset filters</button>
+    </div>
+
+    <div id="logResults" aria-live="polite">
+      <div class="m-empty">Loading maintenance logs…</div>
+    </div>
+
+    <footer class="m-footer m-row m-between">
+      <small id="paginationSummary"></small>
+
+      <div class="m-row">
+        <select id="pageSize" aria-label="Records per page">
+          <option value="20">20 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+
+        <button class="m-btn" id="previousPage" disabled>
+          ← Previous
+        </button>
+
+        <small id="pageLabel"></small>
+
+        <button class="m-btn" id="nextPage" disabled>
+          Next →
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<dialog
+  class="maintenance-ui"
+  id="maintenanceDialog"
+  aria-labelledby="maintenanceTitle"
+>
+  <header class="m-pad m-row m-between m-modal-head">
+    <h2 id="maintenanceTitle"></h2>
+
+    <button
+      class="m-btn"
+      type="button"
+      data-close
+      aria-label="Close dialog"
+    >
+      ✕
+    </button>
+  </header>
+
+  <div
+    id="modalError"
+    class="m-error m-modal-error"
+    role="alert"
+    hidden
+  ></div>
+
+  <div id="maintenanceBody"></div>
+</dialog>
+
+{{ maintenance_choices|json_script:"maintenanceChoices" }}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  const escapeHTML = value => String(value ?? "").replace(
+    /[&<>"']/g,
+    character => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[character])
+  );
+
+  const urls = {
+    list: "{% url 'list_maintenance_logs' %}",
+    add: "{% url 'add_maintenance_log' %}",
+    edit: "{% url 'edit_maintenance_log' 987654321 %}",
+    status: "{% url 'update_maintenance_status' 987654321 %}",
+    remove: "{% url 'delete_maintenance_log' 987654321 %}",
+    assets: "{% url 'list_assets' %}",
+    departments: "{% url 'departments' %}"
+  };
+
+  const choices = JSON.parse(
+    $("maintenanceChoices").textContent
+  );
+
+  const dialog = $("maintenanceDialog");
+
+  // The dialog still follows html[data-theme].
+  document.body.appendChild(dialog);
+
+  const wrenchIcon = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14 3a6 6 0 0 0-7 8L3 15a3 3 0 0 0 4 4l4-4a6 6 0 0 0 8-7l-4 4-3-3z"/>
+    </svg>
+  `;
+
+  const icons = [
+    wrenchIcon,
+    `<svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 2"/>
+    </svg>`,
+    `<svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="m7 12 3 3 7-7"/>
+    </svg>`,
+    `<svg viewBox="0 0 24 24" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3"/>
+      <path d="M4 6v12c0 4 16 4 16 0V6M4 12c0 4 16 4 16 0"/>
+    </svg>`
+  ];
+
+  let logs = [];
+  let assets = [];
+  let departments = [];
+  let range = "all";
+  let page = 1;
+  let busy = false;
+  let loaded = false;
+  let loading = false;
+  let dialogVersion = 0;
+
+  const titleCase = value => String(value || "—")
+    .replaceAll("_", " ")
+    .replace(/^./, character => character.toUpperCase());
+
+  function choiceLabel(group, value) {
+    const choice = choices[group].find(
+      item => String(item[0]) === String(value)
+    );
+
+    return choice ? choice[1] : titleCase(value);
+  }
+
+  function money(value) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR"
+    }).format(Number(value) || 0);
+  }
+
+  function parseDate(value) {
+    if (!value) return null;
+
+    const text = String(value);
+    const parsed = new Date(
+      text.length === 10 ? text + "T00:00:00" : text
+    );
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function formatDate(value) {
+    const parsed = parseDate(value);
+
+    return parsed
+      ? parsed.toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        })
+      : "—";
+  }
+
+  function dateKey(value) {
+    const parsed = value instanceof Date ? value : parseDate(value);
+
+    if (!parsed || Number.isNaN(parsed.getTime())) return "";
+
+    return [
+      parsed.getFullYear(),
+      String(parsed.getMonth() + 1).padStart(2, "0"),
+      String(parsed.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+
+  function showMessage(id, message) {
+    $(id).textContent = message;
+    $(id).hidden = !message;
+  }
+
+  async function api(url, data) {
+    const options = {
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json"
+      }
+    };
+
+    if (data !== undefined) {
+      options.method = "POST";
+      options.headers["Content-Type"] = "application/json";
+      options.headers["X-CSRFToken"] = $("maintenancePage")
+        .querySelector("[name=csrfmiddlewaretoken]").value;
+      options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, options);
+
+    let body;
+
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(
+        "Unable to read the server response. Check your login and try again."
+      );
+    }
+
+    if (!response.ok || body.error || body.success === false) {
+      throw new Error(
+        body.error || "Request failed. Please try again."
+      );
+    }
+
+    return body;
+  }
+
+  function optionHTML(rows, current, placeholder) {
+    const first = placeholder !== undefined
+      ? `<option value="">${escapeHTML(placeholder)}</option>`
+      : "";
+
+    return first + rows.map(([id, name]) => `
+      <option
+        value="${escapeHTML(id)}"
+        ${String(id) === String(current) ? "selected" : ""}
+      >
+        ${escapeHTML(name)}
+      </option>
+    `).join("");
+  }
+
+  function statusBadge(log) {
+    const allowed = [
+      "open", "in_progress", "completed", "cancelled"
+    ];
+
+    const className = allowed.includes(log.status)
+      ? log.status
+      : "";
+
+    return `
+      <span class="m-badge ${className}">
+        ${escapeHTML(choiceLabel("statuses", log.status))}
+      </span>
+    `;
+  }
+
+  function updateFilters() {
+    const departmentChoices = [
+      ...new Set(logs.map(log => log.department).filter(Boolean))
+    ].sort().map(name => [name, name]);
+
+    const typeChoices = [
+      ...new Set(logs.map(log => log.type).filter(Boolean))
+    ].map(value => [value, choiceLabel("types", value)]);
+
+    const filters = [
+      ["deptFilter", departmentChoices, "All departments"],
+      ["typeFilter", typeChoices, "All types"],
+      ["statusFilter", choices.statuses, "All statuses"]
+    ];
+
+    filters.forEach(([id, rows, placeholder]) => {
+      const previous = $(id).value;
+
+      $(id).innerHTML = optionHTML(
+        rows,
+        previous,
+        placeholder
+      );
+    });
+  }
+
+  function filteredLogs() {
+    let from = "";
+    let to = "";
+
+    const today = new Date();
+
+    if (range === "today") {
+      from = dateKey(today);
+      to = dateKey(today);
+    }
+
+    if (range === "week") {
+      const monday = new Date(today);
+
+      monday.setDate(
+        monday.getDate() - ((monday.getDay() + 6) % 7)
+      );
+
+      from = dateKey(monday);
+      to = dateKey(today);
+    }
+
+    if (range === "month") {
+      from = dateKey(
+        new Date(today.getFullYear(), today.getMonth(), 1)
+      );
+
+      to = dateKey(today);
+    }
+
+    if (range === "custom") {
+      from = $("dateFrom").value;
+      to = $("dateTo").value;
+    }
+
+    const search = $("logSearch").value.trim().toLowerCase();
+    const department = $("deptFilter").value;
+    const type = $("typeFilter").value;
+    const status = $("statusFilter").value;
+
+    return logs.filter(log => {
+      const serviceDate = dateKey(log.performed_at);
+
+      const searchable = [
+        log.asset,
+        log.custom_asset,
+        log.location,
+        log.performed_by,
+        log.description
+      ].join(" ").toLowerCase();
+
+      return (
+        (!from || (serviceDate && serviceDate >= from)) &&
+        (!to || (serviceDate && serviceDate <= to)) &&
+        (!department || log.department === department) &&
+        (!type || log.type === type) &&
+        (!status || log.status === status) &&
+        (!search || searchable.includes(search))
+      );
+    });
+  }
+
+  function renderStats() {
+    const statistics = [
+      ["Total logs", logs.length],
+      [
+        "Open / pending",
+        logs.filter(log => (
+          ["open", "in_progress"].includes(log.status)
+        )).length
+      ],
+      [
+        "Completed",
+        logs.filter(log => log.status === "completed").length
+      ],
+      [
+        "Total cost",
+        money(
+          logs.reduce(
+            (total, log) => total + (Number(log.cost) || 0),
+            0
+          )
+        )
+      ]
+    ];
+
+    $("maintenanceStats").innerHTML = statistics.map(
+      ([name, value], index) => `
+        <div class="m-stat">
+          <span class="m-icon">${icons[index]}</span>
+          <div>
+            <small>${name}</small>
+            <strong>${value}</strong>
+          </div>
+        </div>
+      `
+    ).join("");
+  }
+
+  function render() {
+    renderStats();
+
+    const rows = filteredLogs();
+    const size = Number($("pageSize").value);
+    const totalPages = Math.max(1, Math.ceil(rows.length / size));
+
+    page = Math.max(1, Math.min(page, totalPages));
+
+    const visible = rows.slice(
+      (page - 1) * size,
+      page * size
+    );
+
+    $("recordCount").textContent =
+      `${rows.length} records` +
+      (rows.length !== logs.length ? " matching filters" : "");
+
+    if (rows.length) {
+      $("logResults").innerHTML = `
+        <div class="m-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Asset / Location</th>
+                <th>Department</th>
+                <th>Type</th>
+                <th>Performed by</th>
+                <th>Priority</th>
+                <th>Cost</th>
+                <th>Service date</th>
+                <th>Next due</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${visible.map(log => `
+                <tr>
+                  <td>
+                    <strong>
+                      ${escapeHTML(
+                        log.asset ||
+                        log.custom_asset ||
+                        "Unspecified asset"
+                      )}
+                    </strong>
+                    <small>
+                      ${escapeHTML(
+                        log.location || "Location not recorded"
+                      )}
+                    </small>
+                  </td>
+
+                  <td>${escapeHTML(log.department || "—")}</td>
+                  <td>${escapeHTML(choiceLabel("types", log.type))}</td>
+                  <td>${escapeHTML(log.performed_by || "—")}</td>
+                  <td>${escapeHTML(choiceLabel("priorities", log.priority))}</td>
+                  <td>${money(log.cost)}</td>
+                  <td>${formatDate(log.performed_at)}</td>
+                  <td>${formatDate(log.next_due)}</td>
+                  <td>${statusBadge(log)}</td>
+                  <td>
+                    <button
+                      class="m-btn"
+                      data-view="${escapeHTML(log.id)}"
+                    >
+                      View details
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      $("logResults").innerHTML = `
+        <div class="m-empty">
+          <span class="m-icon">${wrenchIcon}</span>
+
+          <h3>
+            ${logs.length
+              ? "No matching maintenance logs"
+              : "No maintenance logs yet"}
+          </h3>
+
+          <p>
+            ${logs.length
+              ? "Try another search or reset your filters."
+              : "Add your first log to track service work and upcoming maintenance."}
+          </p>
+
+          <button
+            class="m-btn m-primary"
+            ${logs.length ? "data-reset" : "data-add"}
+          >
+            ${logs.length ? "Reset filters" : "+ Log maintenance"}
+          </button>
+        </div>
+      `;
+    }
+
+    $("paginationSummary").textContent = rows.length
+      ? `Showing ${(page - 1) * size + 1}–${Math.min(
+          page * size,
+          rows.length
+        )} of ${rows.length}`
+      : "0 records";
+
+    $("pageLabel").textContent = rows.length
+      ? `${page} / ${totalPages}`
+      : "";
+
+    $("previousPage").disabled = page === 1;
+    $("nextPage").disabled = page === totalPages;
+  }
+
+  async function loadLogs() {
+    if (loading) return;
+
+    loading = true;
+    $("refreshLogs").disabled = true;
+    showMessage("pageError", "");
+
+    try {
+      const data = await api(urls.list);
+
+      if (!Array.isArray(data.logs)) {
+        throw new Error("Invalid maintenance list response.");
+      }
+
+      logs = data.logs;
+      loaded = true;
+
+      updateFilters();
+      render();
+    } catch (error) {
+      showMessage("pageError", error.message);
+
+      if (!loaded) {
+        $("logResults").innerHTML = `
+          <div class="m-empty">
+            Unable to load records. Click Refresh to try again.
+          </div>
+        `;
+      }
+    } finally {
+      loading = false;
+      $("refreshLogs").disabled = false;
+    }
+  }
+
+  function openDialog(title, html) {
+    dialogVersion += 1;
+
+    $("maintenanceTitle").textContent = title;
+    $("maintenanceBody").innerHTML = html;
+    showMessage("modalError", "");
+
+    if (!dialog.open) dialog.showModal();
+
+    return dialogVersion;
+  }
+
+  function closeDialog() {
+    dialogVersion += 1;
+    dialog.close();
+  }
+
+  async function save(url, data, message) {
+    if (busy) return;
+
+    busy = true;
+    showMessage("modalError", "");
+
+    dialog.querySelectorAll("button").forEach(button => {
+      button.disabled = true;
+    });
+
+    try {
+      await api(url, data);
+
+      closeDialog();
+      showMessage("pageNotice", message);
+
+      await loadLogs();
+    } catch (error) {
+      showMessage("modalError", error.message);
+    } finally {
+      busy = false;
+
+      dialog.querySelectorAll("button").forEach(button => {
+        button.disabled = false;
+      });
+    }
+  }
+
+  function showDetails(log) {
+    const fields = [
+      ["Asset", log.asset || log.custom_asset],
+      ["Location", log.location],
+      ["Department", log.department],
+      ["Maintenance type", choiceLabel("types", log.type)],
+      ["Performed by", log.performed_by],
+      ["Service date", formatDate(log.performed_at)],
+      ["Priority", choiceLabel("priorities", log.priority)],
+      ["Duration", log.duration],
+      ["Labour cost", money(log.labour_cost)],
+      ["Parts cost", money(log.parts_cost)],
+      ["Total cost", money(log.cost)],
+      ["Next due", formatDate(log.next_due)],
+      ["Parts replaced", log.parts_replaced],
+      ["Recorded by", log.recorded_by],
+      ["Description", log.description],
+      ["Notes", log.notes]
+    ];
+
+    openDialog(
+      "Maintenance log #" + log.id,
+      `
+        <dl class="m-detail-grid">
+          ${fields.map(([name, value]) => `
+            <div>
+              <dt>${escapeHTML(name)}</dt>
+              <dd>${escapeHTML(value || "—")}</dd>
+            </div>
+          `).join("")}
+        </dl>
+
+        <form id="statusForm">
+          <div class="m-pad m-row">
+            <label>
+              Status
+              <select name="status">
+                ${optionHTML(choices.statuses, log.status)}
+              </select>
+            </label>
+
+            <button class="m-btn m-primary">Update status</button>
+
+            <button
+              type="button"
+              class="m-btn"
+              data-edit="${escapeHTML(log.id)}"
+            >
+              Edit log
+            </button>
+
+            <button
+              type="button"
+              class="m-btn m-danger"
+              data-delete="${escapeHTML(log.id)}"
+            >
+              Delete log
+            </button>
+          </div>
+        </form>
+      `
+    );
+
+    $("statusForm").onsubmit = event => {
+      event.preventDefault();
+
+      save(
+        urls.status.replace("987654321", log.id),
+        {
+          status: event.target.elements.status.value
+        },
+        "Maintenance status updated."
+      );
+    };
+  }
+
+  function field(name, label, value = "", type = "text", extra = "") {
+    return `
+      <label>
+        ${label}
+        <input
+          name="${name}"
+          type="${type}"
+          value="${escapeHTML(value ?? "")}"
+          ${extra}
+        >
+      </label>
+    `;
+  }
+
+  function textarea(name, label, value = "") {
+    return `
+      <label class="m-full">
+        ${label}
+        <textarea name="${name}" rows="3">${escapeHTML(value || "")}</textarea>
+      </label>
+    `;
+  }
+
+  async function showEditor(log = null) {
+    const version = openDialog(
+      log ? "Edit maintenance log" : "Log maintenance",
+      '<div class="m-pad">Loading form…</div>'
+    );
+
+    if (!log) {
+      try {
+        const [assetData, departmentData] = await Promise.all([
+          api(urls.assets),
+          api(urls.departments)
+        ]);
+
+        assets = assetData.assets || [];
+        departments = departmentData.departments || [];
+      } catch (error) {
+        if (version === dialogVersion && dialog.open) {
+          showMessage("modalError", error.message);
+        }
+        return;
+      }
+
+      if (!dialog.open || version !== dialogVersion) return;
+    }
+
+    const value = log || {};
+    const now = new Date();
+
+    const localNow = new Date(
+      now.getTime() - now.getTimezoneOffset() * 60000
+    ).toISOString().slice(0, 16);
+
+    const assetFields = log
+      ? `
+        <p class="m-full m-form-note">
+          Edit service details and costs here.
+          Use Update status to change progress.
+        </p>
+      `
+      : `
+        <h3 class="m-full m-section-label">Asset and service</h3>
+
+        <label class="m-full">
+          Asset
+          <select name="asset_id">
+            ${optionHTML(
+              assets.map(asset => [
+                asset.id,
+                asset.name + (asset.location ? " — " + asset.location : "")
+              ]),
+              "",
+              "Custom / unlisted asset"
+            )}
+          </select>
+        </label>
+
+        ${field(
+          "custom_asset",
+          "Custom asset name *",
+          "",
+          "text",
+          'required maxlength="200"'
+        )}
+
+        <label>
+          Department
+          <select name="department_id">
+            ${optionHTML(
+              departments.map(department => [
+                department.id,
+                department.name
+              ]),
+              "",
+              "Use asset department"
+            )}
+          </select>
+        </label>
+
+        ${field(
+          "location",
+          "Service location",
+          "",
+          "text",
+          'placeholder="e.g. Room 101 or Lobby"'
+        )}
+
+        <label>
+          Maintenance type
+          <select name="maintenance_type">
+            ${optionHTML(choices.types, "scheduled")}
+          </select>
+        </label>
+
+        <label>
+          Status
+          <select name="status">
+            ${optionHTML(choices.statuses, "open")}
+          </select>
+        </label>
+
+        ${field(
+          "performed_by",
+          "Performed by",
+          "",
+          "text",
+          'placeholder="Staff or service provider"'
+        )}
+
+        ${field(
+          "performed_at",
+          "Service date and time *",
+          localNow,
+          "datetime-local",
+          "required"
+        )}
+
+        ${field(
+          "duration",
+          "Duration",
+          "",
+          "text",
+          'placeholder="e.g. 2 hours"'
+        )}
+      `;
+
+    $("maintenanceBody").innerHTML = `
+      <form id="logForm">
+        <div class="m-form-grid">
+          ${assetFields}
+
+          <label>
+            Priority
+            <select name="priority">
+              ${optionHTML(
+                choices.priorities,
+                value.priority || "low"
+              )}
+            </select>
+          </label>
+
+          ${textarea(
+            "description",
+            "Description",
+            value.description
+          )}
+
+          <h3 class="m-full m-section-label">Cost and follow-up</h3>
+
+          ${field(
+            "labour_cost",
+            "Labour cost (₹)",
+            value.labour_cost || 0,
+            "number",
+            'min="0" step="0.01" required'
+          )}
+
+          ${field(
+            "parts_cost",
+            "Parts cost (₹)",
+            value.parts_cost || 0,
+            "number",
+            'min="0" step="0.01" required'
+          )}
+
+          ${field(
+            "cost",
+            "Total cost (₹)",
+            value.cost || 0,
+            "number",
+            'min="0" step="0.01" required'
+          )}
+
+          ${field(
+            "next_due",
+            "Next maintenance date",
+            value.next_due || "",
+            "date"
+          )}
+
+          <p class="m-full m-form-note">
+            Labour and parts update the total;
+            you can adjust the total if needed.
+          </p>
+
+          ${log ? "" : textarea("parts_replaced", "Parts replaced")}
+
+          ${textarea("notes", "Notes", value.notes)}
+
+          ${log ? "" : `
+            <label class="m-full m-check">
+              <input type="checkbox" name="create_expense">
+              Also record this cost as a maintenance expense
+            </label>
+          `}
+        </div>
+
+        <footer class="m-footer m-row m-between">
+          <button type="button" class="m-btn" data-close>
+            Cancel
+          </button>
+
+          <button class="m-btn m-primary">
+            ${log ? "Save changes" : "Save maintenance log"}
+          </button>
+        </footer>
+      </form>
+    `;
+
+    const form = $("logForm");
+
+    if (!log) {
+      form.elements.asset_id.onchange = () => {
+        const selected = assets.find(
+          asset => String(asset.id) === form.elements.asset_id.value
+        );
+
+        form.elements.custom_asset.required = !selected;
+        form.elements.custom_asset.closest("label").hidden = !!selected;
+      };
+    }
+
+    ["labour_cost", "parts_cost"].forEach(name => {
+      form.elements[name].oninput = () => {
+        const labour = Number(form.elements.labour_cost.value) || 0;
+        const parts = Number(form.elements.parts_cost.value) || 0;
+
+        form.elements.cost.value = (labour + parts).toFixed(2);
+      };
+    });
+
+    form.onsubmit = event => {
+      event.preventDefault();
+
+      const data = Object.fromEntries(new FormData(form));
+
+      for (const name of ["labour_cost", "parts_cost", "cost"]) {
+        if (!Number.isFinite(Number(data[name])) || Number(data[name]) < 0) {
+          showMessage(
+            "modalError",
+            "Costs must be valid non-negative amounts."
+          );
+          return;
+        }
+      }
+
+      if (!log) {
+        data.custom_asset = (data.custom_asset || "").trim();
+
+        if (!data.asset_id && !data.custom_asset) {
+          showMessage(
+            "modalError",
+            "Select an asset or enter a custom asset name."
+          );
+          return;
+        }
+
+        const serviceDate = parseDate(data.performed_at);
+
+        if (!serviceDate) {
+          showMessage("modalError", "Enter a valid service date.");
+          return;
+        }
+
+        if (data.asset_id) data.custom_asset = "";
+
+        data.create_expense = form.elements.create_expense.checked;
+        data.performed_at = serviceDate.toISOString();
+      }
+
+      save(
+        log
+          ? urls.edit.replace("987654321", log.id)
+          : urls.add,
+        data,
+        log
+          ? "Maintenance log updated."
+          : "Maintenance log saved."
+      );
+    };
+  }
+
+  function confirmDelete(log) {
+    openDialog(
+      "Delete maintenance log?",
+      `
+        <div class="m-pad">
+          <p>
+            Delete log #${escapeHTML(log.id)}
+            for ${escapeHTML(log.asset || log.custom_asset || "this asset")}?
+            This cannot be undone.
+          </p>
+        </div>
+
+        <footer class="m-footer m-row m-between">
+          <button
+            class="m-btn"
+            data-view="${escapeHTML(log.id)}"
+          >
+            Keep log
+          </button>
+
+          <button class="m-btn m-danger" id="confirmDelete">
+            Delete log
+          </button>
+        </footer>
+      `
+    );
+
+    $("confirmDelete").onclick = () => {
+      save(
+        urls.remove.replace("987654321", log.id),
+        {},
+        "Maintenance log deleted."
+      );
+    };
+  }
+
+  function resetFilters() {
+    range = "all";
+    page = 1;
+
+    [
+      "logSearch",
+      "deptFilter",
+      "typeFilter",
+      "statusFilter",
+      "dateFrom",
+      "dateTo"
+    ].forEach(id => {
+      $(id).value = "";
+    });
+
+    $("customRange").hidden = true;
+
+    document.querySelectorAll("[data-range]").forEach(button => {
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.range === "all")
+      );
+    });
+
+    if (loaded) render();
+  }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest("button");
+
+    if (!button || busy) return;
+
+    if (button.hasAttribute("data-close")) closeDialog();
+    if (button.hasAttribute("data-add")) showEditor();
+    if (button.hasAttribute("data-reset")) resetFilters();
+
+    if (button.dataset.range) {
+      range = button.dataset.range;
+      page = 1;
+
+      $("customRange").hidden = range !== "custom";
+
+      document.querySelectorAll("[data-range]").forEach(item => {
+        item.setAttribute(
+          "aria-pressed",
+          String(item === button)
+        );
+      });
+
+      if (loaded) render();
+    }
+
+    for (const action of ["view", "edit", "delete"]) {
+      if (!button.dataset[action]) continue;
+
+      const log = logs.find(
+        item => String(item.id) === button.dataset[action]
+      );
+
+      if (!log) return;
+
+      if (action === "view") showDetails(log);
+      if (action === "edit") showEditor(log);
+      if (action === "delete") confirmDelete(log);
+    }
+  });
+
+  dialog.addEventListener("cancel", event => {
+    if (busy) {
+      event.preventDefault();
+    } else {
+      dialogVersion += 1;
+    }
+  });
+
+  $("refreshLogs").onclick = loadLogs;
+  $("resetFilters").onclick = resetFilters;
+
+  [
+    "logSearch",
+    "deptFilter",
+    "typeFilter",
+    "statusFilter",
+    "dateFrom",
+    "dateTo",
+    "pageSize"
+  ].forEach(id => {
+    $(id).addEventListener(
+      id === "logSearch" ? "input" : "change",
+      () => {
+        page = 1;
+
+        $("dateTo").setCustomValidity(
+          $("dateFrom").value &&
+          $("dateTo").value &&
+          $("dateTo").value < $("dateFrom").value
+            ? "End date must be on or after the start date."
+            : ""
+        );
+
+        if (!$("dateTo").reportValidity()) return;
+
+        if (loaded) render();
+      }
+    );
+  });
+
+  $("previousPage").onclick = () => {
+    page -= 1;
+    render();
+  };
+
+  $("nextPage").onclick = () => {
+    page += 1;
+    render();
+  };
+
+  loadLogs();
+})();
+</script>
+{% endblock %}

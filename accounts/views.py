@@ -398,9 +398,12 @@ def _send_otp_email(pending):
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[pending.email],
-            fail_silently=True,
+            fail_silently=False,   # was True — this is what's hiding the real error
         )
     except Exception as e:
+        import traceback
+        print("OTP EMAIL SEND FAILED:", repr(e))
+        traceback.print_exc()
         logger.warning("OTP email failed for %s: %s", pending.email, e)
 def hotel_register(request):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -1487,6 +1490,97 @@ from collections import defaultdict
 from datetime import timedelta
 
 
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+
+
+def _serialize_recent_bookings(bookings_qs):
+    """Shared serializer used by both the full-page render and the AJAX
+    date-range response, so the two never drift out of sync."""
+    recent_bookings = []
+    for b in bookings_qs:
+        guest_name = "—"
+        if b.guest:
+            guest_name = (
+                getattr(b.guest, 'full_name', None)
+                or getattr(b.guest, 'name', None)
+                or f"{getattr(b.guest, 'first_name', '')} {getattr(b.guest, 'last_name', '')}".strip()
+                or str(b.guest)
+            )
+
+        room_label = "—"
+        if b.room:
+            room_label = (
+                b.room.custom_room_type
+                if b.room.room_type == 'Custom' and b.room.custom_room_type
+                else b.room.room_type
+            )
+        if b.room_unit:
+            room_label = f"{room_label} ({b.room_unit.room_number})"
+
+        recent_bookings.append({
+            "id": b.id,
+            "guest_name": guest_name,
+            "room_label": room_label,
+            "check_in": str(b.check_in),
+            "status": b.status,
+            "total_amount": str(b.total_amount),
+        })
+    return recent_bookings
+
+
+def _build_range_data(start_date, end_date):
+    """Everything that depends on the selected date range: the hero label,
+    the check-in/check-out trend chart, the bookings count + growth badge,
+    and the recent-bookings table for that window."""
+    weekly_labels = []
+    weekly_checkins = []
+    weekly_checkouts = []
+
+    num_days = (end_date - start_date).days + 1
+    for i in range(num_days):
+        day = start_date + timedelta(days=i)
+        weekly_labels.append(day.strftime("%a %d"))
+        weekly_checkins.append(Booking.objects.filter(check_in=day).count())
+        weekly_checkouts.append(Booking.objects.filter(check_out=day).count())
+
+    total_bookings_in_range = Booking.objects.filter(
+        check_in__gte=start_date, check_in__lte=end_date
+    ).count()
+
+    # growth = this range's check-ins+check-outs vs. an equally long
+    # window immediately before it
+    prev_start = start_date - timedelta(days=num_days)
+    prev_end = start_date - timedelta(days=1)
+    current_activity = sum(weekly_checkins) + sum(weekly_checkouts)
+    previous_activity = (
+        Booking.objects.filter(check_in__gte=prev_start, check_in__lte=prev_end).count()
+        + Booking.objects.filter(check_out__gte=prev_start, check_out__lte=prev_end).count()
+    )
+    if previous_activity > 0:
+        bookings_growth_pct = round(((current_activity - previous_activity) / previous_activity) * 100, 1)
+    else:
+        bookings_growth_pct = 100.0 if current_activity > 0 else 0.0
+
+    recent_bookings_qs = (
+        Booking.objects.select_related('guest', 'room', 'room_unit')
+        .filter(check_in__gte=start_date, check_in__lte=end_date)
+        .order_by('-id')[:5]
+    )
+
+    date_range_display = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
+
+    return {
+        "weekly_labels": weekly_labels,
+        "weekly_checkins": weekly_checkins,
+        "weekly_checkouts": weekly_checkouts,
+        "total_bookings": total_bookings_in_range,
+        "bookings_growth_pct": bookings_growth_pct,
+        "recent_bookings": _serialize_recent_bookings(recent_bookings_qs),
+        "date_range_display": date_range_display,
+    }
+
+
 @never_cache
 @login_required
 def dashboard(request):
@@ -1494,6 +1588,27 @@ def dashboard(request):
     from inventory.models import Vendor, ItemCategory
 
     current_tenant = connection.tenant
+
+    today = timezone.now().date()
+
+    # ── Parse the requested range (defaults to the last 7 days, same as before) ──
+    start_param = request.GET.get('start')
+    end_param = request.GET.get('end')
+    try:
+        week_start = datetime.strptime(start_param, "%Y-%m-%d").date() if start_param else today - timedelta(days=6)
+        week_end = datetime.strptime(end_param, "%Y-%m-%d").date() if end_param else today
+    except ValueError:
+        week_start, week_end = today - timedelta(days=6), today
+    if week_end < week_start:
+        week_start, week_end = week_end, week_start
+
+    # ── AJAX branch: the hero date-range picker calls this exact same URL
+    # with ?ajax=1&start=...&end=... and only wants the range-dependent
+    # data back as JSON — skip the module sync + full render below. ──
+    is_ajax = request.GET.get('ajax') == '1' or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if is_ajax:
+        return JsonResponse(_build_range_data(week_start, week_end))
+
     _sync_statuses()
 
     with schema_context('public'):
@@ -1578,15 +1693,12 @@ def dashboard(request):
     print(f"{'='*60}\n")
     active_module_names = list(active_module_names)
 
-    # ── Core room stats ──
+    # ── Core room stats (current live state, not date-range dependent) ──
     all_units = RoomUnit.objects.select_related('room')
     total_rooms = all_units.count()
     available_rooms = all_units.filter(status="Available").count()
     occupied_rooms = all_units.filter(status="Occupied").count()
     total_staff = Staff.objects.count()
-    total_bookings = Booking.objects.count()
-
-    today = timezone.now().date()
 
     today_checkins = Booking.objects.filter(
         check_in=today,
@@ -1648,29 +1760,11 @@ def dashboard(request):
     ]
     dirty_rooms = all_units.filter(status="Dirty").count()
 
-    # ── Weekly Bookings Trend (last 7 days) ──
-    weekly_labels = []
-    weekly_checkins = []
-    weekly_checkouts = []
-
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        weekly_labels.append(day.strftime("%a"))
-        weekly_checkins.append(Booking.objects.filter(check_in=day).count())
-        weekly_checkouts.append(Booking.objects.filter(check_out=day).count())
-
-    # ── Bookings growth % (last 3 days vs previous 3 days, based on created_at) ──
-    bookings_daily = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        bookings_daily.append(Booking.objects.filter(created_at__date=day).count())
-
-    recent_3 = sum(bookings_daily[-3:])
-    previous_3 = sum(bookings_daily[-6:-3]) or 0
-    if previous_3 > 0:
-        bookings_growth_pct = round(((recent_3 - previous_3) / previous_3) * 100, 1)
-    else:
-        bookings_growth_pct = 100.0 if recent_3 > 0 else 0.0
+    # ── Range-dependent data: trend chart, bookings count/growth, recent
+    # bookings — all computed once here for the requested week_start/week_end
+    # (defaults to the last 7 days) so the initial page load and the AJAX
+    # picker always agree. ──
+    range_data = _build_range_data(week_start, week_end)
 
     # ── Departments / Categories / Vendors ──
     with schema_context(current_tenant.schema_name):
@@ -1701,42 +1795,6 @@ def dashboard(request):
             .values('id', 'name', 'department__name')[:10]
         )
 
-    # ── Recent Bookings — uses real Booking fields (guest FK, room FK, room_unit FK) ──
-    recent_bookings_qs = (
-        Booking.objects.select_related('guest', 'room', 'room_unit')
-        .order_by('-id')[:5]
-    )
-
-    recent_bookings = []
-    for b in recent_bookings_qs:
-        guest_name = "—"
-        if b.guest:
-            guest_name = (
-                getattr(b.guest, 'full_name', None)
-                or getattr(b.guest, 'name', None)
-                or f"{getattr(b.guest, 'first_name', '')} {getattr(b.guest, 'last_name', '')}".strip()
-                or str(b.guest)
-            )
-
-        room_label = "—"
-        if b.room:
-            room_label = (
-                b.room.custom_room_type
-                if b.room.room_type == 'Custom' and b.room.custom_room_type
-                else b.room.room_type
-            )
-        if b.room_unit:
-            room_label = f"{room_label} ({b.room_unit.room_number})"
-
-        recent_bookings.append({
-            "id": b.id,
-            "guest_name": guest_name,
-            "room_label": room_label,
-            "check_in": b.check_in,
-            "status": b.status,
-            "total_amount": b.total_amount,
-        })
-
     return render(request, "hotel/property.html", {
         "hotel": hotel,
         "amenities": amenities,
@@ -1746,13 +1804,13 @@ def dashboard(request):
         "occupied_rooms": occupied_rooms,
         "dirty_rooms": dirty_rooms,
         "total_staff": total_staff,
-        "total_bookings": total_bookings,
+        "total_bookings": range_data["total_bookings"],
         "reserved_count": reserved_count,
         "today_checkins": today_checkins,
         "today_checkouts": today_checkouts,
         "occupancy_rate": occupancy_rate,
         "availability_rate": availability_rate,
-        "bookings_growth_pct": bookings_growth_pct,
+        "bookings_growth_pct": range_data["bookings_growth_pct"],
         "departments": departments,
         "departments_json": json.dumps(list(departments)),
         "categories": categories,
@@ -1768,26 +1826,27 @@ def dashboard(request):
         "room_status_breakdown": room_status_breakdown,
         "room_status_breakdown_json": json.dumps(room_status_breakdown),
         "today_shifts": today_shifts,
-        "recent_bookings": recent_bookings,
-        "weekly_labels": json.dumps(weekly_labels),
-        "weekly_checkins": json.dumps(weekly_checkins),
-        "weekly_checkouts": json.dumps(weekly_checkouts),
+        "recent_bookings": range_data["recent_bookings"],
+        "weekly_labels": json.dumps(range_data["weekly_labels"]),
+        "weekly_checkins": json.dumps(range_data["weekly_checkins"]),
+        "weekly_checkouts": json.dumps(range_data["weekly_checkouts"]),
+        "week_start": week_start,
+        "week_end": week_end,
+        "date_range_display": range_data["date_range_display"],
     })
 ##----------------------Role & permissions----------------------
 def add_department(request):
     if request.method == "POST":
-        name = request.POST.get("name")
-
-       
+        name = request.POST.get("name", "").strip()
         hotel = request.session.get("hotel_id")
 
-        if hotel:
+        if hotel and name:
             hotel_obj = Hotel.objects.get(id=hotel)
-
-            Department.objects.create(
-                hotel=hotel_obj,
-                name=name
-            )
+            exists = Department.objects.filter(
+                hotel=hotel_obj, name__iexact=name
+            ).exists()
+            if not exists:
+                Department.objects.create(hotel=hotel_obj, name=name)
 
         return redirect('staff_page')
 def add_permission(request):
@@ -2885,9 +2944,17 @@ def hotel_setup(request):
                         features=features,                                      # NEW
                     )
 
+                    # ── AMENITIES ────────────────────────────────────
+                    # The frontend wizard can still send stale/placeholder IDs
+                    # that don't correspond to any real Property row. Filtering
+                    # through Property.objects.filter(id__in=...) before calling
+                    # .set() means those bad IDs are silently dropped instead of
+                    # raising a ForeignKey IntegrityError and 500ing the whole
+                    # room save.
                     amenity_ids = request.POST.getlist('amenities')
                     if amenity_ids:
-                        room.amenities.set(amenity_ids)
+                        valid_amenities = Property.objects.filter(id__in=amenity_ids)
+                        room.amenities.set(valid_amenities)
 
                     total_units = int(request.POST.get('total_units') or 1)
                     prefix_map  = {
@@ -2943,6 +3010,8 @@ def hotel_setup(request):
                     'features':     room.features,                             # NEW
                 })
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
         elif form_type == 'finish':
@@ -3624,43 +3693,1105 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
         return '/login/'
 
 
-import json
-from django.utils import timezone
+import base64
+from django.core.files.base import ContentFile
+from django.views.decorators.csrf import ensure_csrf_cookie
 
-@csrf_exempt
+
+@login_required
+@require_POST
 def register_staff_face(request, staff_id):
-    """Save a face descriptor (128-d vector) captured client-side for a staff member."""
-    if request.method != "POST":
-        return JsonResponse({"error": "POST required"}, status=405)
-    try:
-        staff = Staff.objects.get(id=staff_id)
-    except Staff.DoesNotExist:
-        return JsonResponse({"error": "Staff not found"}, status=404)
+    """Save face descriptor (128 floats) + snapshot for a staff member.
+    Accepts multipart (photo file + descriptor JSON string) or JSON (photo_base64)."""
+    staff = Staff.objects.filter(id=staff_id).first()
+    if not staff:
+        return JsonResponse({"success": False, "error": "Staff not found"}, status=404)
+
+    photo_file = None
+    photo_b64 = None
+
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            data = json.loads(request.body or "{}")
+        except ValueError:
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        descriptor = data.get("descriptor")
+        photo_b64 = data.get("photo_base64")
+    else:
+        raw = request.POST.get("descriptor")
+        try:
+            descriptor = json.loads(raw) if raw else None
+        except ValueError:
+            descriptor = None
+        photo_file = request.FILES.get("photo")
 
     try:
-        data = json.loads(request.body)
-        descriptor = data.get("descriptor")
-        if not descriptor or len(descriptor) != 128:
-            return JsonResponse({"error": "Invalid face descriptor"}, status=400)
+        descriptor = [float(x) for x in descriptor]
+    except (TypeError, ValueError):
+        descriptor = None
+    if not descriptor or len(descriptor) != 128:
+        return JsonResponse({"success": False, "error": "Invalid face data."}, status=400)
+
+    if photo_file:
+        if photo_file.size > 5 * 1024 * 1024:
+            return JsonResponse({"success": False, "error": "Photo is too large."}, status=400)
+        if not (photo_file.content_type or "").startswith("image/"):
+            return JsonResponse({"success": False, "error": "File must be an image."}, status=400)
+
+    try:
+        if photo_file or photo_b64:
+            if staff.face_photo:
+                staff.face_photo.delete(save=False)   # remove the old snapshot
+            if photo_file:
+                staff.face_photo.save(f"staff_{staff.id}_face.jpg", photo_file, save=False)
+            else:
+                fmt, imgstr = photo_b64.split(";base64,")
+                ext = fmt.split("/")[-1] or "jpg"
+                staff.face_photo.save(
+                    f"staff_{staff.id}_face.{ext}",
+                    ContentFile(base64.b64decode(imgstr)),
+                    save=False,
+                )
 
         staff.face_descriptor = descriptor
         staff.face_registered_at = timezone.now()
+        staff.save(update_fields=["face_descriptor", "face_photo", "face_registered_at"])
 
-        # optional: save the captured snapshot too
-        photo_b64 = data.get("photo_base64")
-        if photo_b64:
-            import base64
-            from django.core.files.base import ContentFile
-            fmt, imgstr = photo_b64.split(';base64,')
-            ext = fmt.split('/')[-1]
-            staff.face_photo.save(
-                f"staff_{staff.id}_face.{ext}",
-                ContentFile(base64.b64decode(imgstr)),
-                save=False
+        return JsonResponse({
+            "success": True,
+            "message": "Face registered successfully",
+            "face_photo_url": staff.face_photo.url if staff.face_photo else "",
+        })
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+@login_required
+def staff_directory_page(request):
+    current_tenant = connection.tenant
+
+    with schema_context('public'):
+        hotel = Hotel.objects.get(schema_name=current_tenant.schema_name)
+
+    with schema_context(current_tenant.schema_name):
+        staffs = (
+            Staff.objects.filter(hotel=hotel)
+            .select_related('department', 'user')
+            .order_by('employee_id')
+        )
+        departments = Department.objects.filter(hotel=hotel)
+
+        total_staff = staffs.count()
+        active_staff = staffs.filter(is_active=True).count()
+        total_departments = departments.count()
+
+        salaries = [s.salary for s in staffs if s.salary]
+        average_salary = sum(salaries) / len(salaries) if salaries else 0
+
+    return render(request, "hotel/staff_directory.html", {
+        "hotel": hotel,
+        "staffs": staffs,
+        "departments": departments,
+        "total_staff": total_staff,
+        "active_staff": active_staff,
+        "total_departments": total_departments,
+        "average_salary": average_salary,
+    })
+
+
+def _file_url(value):
+    try:
+        return value.url if value and value.name else ""
+    except Exception:
+        return ""
+
+
+def _display_date(value):
+    if not value:
+        return ""
+    return value.strftime("%Y-%m-%d") if hasattr(value, "strftime") else str(value)
+
+
+def _display_datetime(value):
+    if not value:
+        return ""
+    return value.strftime("%Y-%m-%d %H:%M") if hasattr(value, "strftime") else str(value)
+
+
+@login_required
+@ensure_csrf_cookie
+def staff_details_page(request, staff_id):
+    """Render the HTML profile page; keep get_staff_details as the JSON API."""
+    obj = get_object_or_404(
+        Staff.objects.select_related("user", "department", "hotel"), pk=staff_id
+    )
+    user = getattr(obj, "user", None)
+    hotel = getattr(obj, "hotel", None)
+    department = getattr(obj, "department", None)
+    role_obj = getattr(user, "role", None)
+
+    cards = []
+    # Support either related_name used by the project (documents or id_cards).
+    for related_name in ("documents", "id_cards"):
+        manager = getattr(obj, related_name, None)
+        if manager is None or not hasattr(manager, "all"):
+            continue
+        for card in manager.all():
+            image = getattr(card, "document", None) or getattr(card, "image", None)
+            cards.append({
+                "id": getattr(card, "id", None),
+                "document_type": getattr(card, "document_type", "ID document"),
+                "id_proof_number": getattr(card, "id_proof_number", ""),
+                "uploaded_at": _display_datetime(getattr(card, "uploaded_at", None)),
+                "url": _file_url(image),
+            })
+        break
+
+    id_proof_image_url = _file_url(getattr(obj, "id_proof_image", None))
+    created_at = getattr(obj, "created_at", None) or getattr(user, "date_joined", None)
+    id_proof_type = getattr(obj, "id_proof_type", "") or ""
+    id_proof_label = id_proof_type
+    try:
+        field = obj._meta.get_field("id_proof_type")
+        if field.choices:
+            id_proof_label = dict(field.choices).get(id_proof_type, id_proof_type)
+    except Exception:
+        pass
+
+    staff = {
+        "id": obj.pk,
+        "employee_id": getattr(obj, "employee_id", ""),
+        "name": getattr(obj, "name", ""),
+        "email": getattr(user, "email", "") if user else "",
+        "phone": getattr(obj, "phone", ""),
+        "nickname": getattr(obj, "nickname", ""),
+        "dob": _display_date(getattr(obj, "dob", None)),
+        "gender": getattr(obj, "gender", ""),
+        "address": getattr(obj, "address", ""),
+        "emergency_contact_name": getattr(obj, "emergency_contact_name", ""),
+        "emergency_contact_phone": getattr(obj, "emergency_contact_phone", ""),
+        "employment_type": getattr(obj, "employment_type", ""),
+        "bank_account": getattr(obj, "bank_account", ""),
+        "ifsc": getattr(obj, "ifsc", ""),
+        "pf_number": getattr(obj, "pf_number", ""),
+        "esi_number": getattr(obj, "esi_number", ""),
+        "notes": getattr(obj, "notes", ""),
+        "department_id": getattr(obj, "department_id", None),
+        "department": getattr(department, "name", "Unassigned") if department else "Unassigned",
+        "role": getattr(role_obj, "name", None) or "Staff",
+        "salary": getattr(obj, "salary", 0) or 0,
+        "joining_date": _display_date(getattr(obj, "joining_date", None)),
+        "created_at": _display_datetime(created_at),
+        "is_active": getattr(obj, "is_active", True),
+        "is_available": getattr(obj, "is_available", False),
+        "hotel_name": getattr(hotel, "hotel_name", "N/A") if hotel else "N/A",
+        "hotel_id": getattr(hotel, "id", None) if hotel else None,
+        "hotel_logo_url": _file_url(getattr(hotel, "logo", None)) if hotel else "",
+        "photo_url": _file_url(getattr(obj, "photo", None)),
+        "face_photo_url": _file_url(getattr(obj, "face_photo", None)),
+        "face_registered_at": _display_datetime(getattr(obj, "face_registered_at", None)),
+        "id_proof_type": id_proof_type,
+        "id_proof_type_label": id_proof_label,
+        "id_proof_number": getattr(obj, "id_proof_number", ""),
+        "id_proof_image_url": id_proof_image_url,
+        "id_proof_url": id_proof_image_url,
+        "id_proof_uploaded_at": _display_datetime(created_at) if id_proof_image_url else "",
+        "id_cards": cards,
+    }
+    return render(request, "hotel/staff_details.html", {"staff": staff})
+
+@login_required
+@never_cache
+def add_staff_page(request):
+    hotel_id = request.session.get("hotel_id")
+
+    departments_qs = Department.objects.all().order_by("name")
+    if hotel_id:
+        departments_qs = departments_qs.filter(hotel_id=hotel_id)
+
+    return render(
+        request,
+        "hotel/staff_add_stepper.html",
+        {
+            "departments": departments_qs,
+        },
+    )
+
+@login_required
+@never_cache
+def department_page(request):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        messages.error(request, "Hotel session expired. Please log in again.")
+        return redirect("hotel_login")
+
+    hotel_obj = get_object_or_404(Hotel, id=hotel_id)
+
+    # Departments that require a module the hotel's plan may not include.
+    gated_departments = {"maintenance", "security"}
+
+    with schema_context(hotel_obj.schema_name):
+        active_module_names = set(
+            HotelModule.objects.filter(hotel=hotel_obj, is_enabled=True)
+            .select_related('module')
+            .values_list('module__name', flat=True)
+        )
+    active_module_names_lower = {n.strip().lower() for n in active_module_names}
+
+    locked_departments = sorted(
+        name for name in gated_departments
+        if name not in active_module_names_lower
+    )
+
+    if request.method == "POST":
+        department_name = request.POST.get("name", "").strip()
+
+        if not department_name:
+            messages.error(request, "Please select a department.")
+            return redirect("department_page")
+
+        if department_name.strip().lower() in locked_departments:
+            messages.error(
+                request,
+                f"{department_name} isn't included in your current plan. Upgrade to add this department."
             )
+            return redirect("department_page")
 
-        staff.save()
-        return JsonResponse({"success": True, "message": "Face registered successfully"})
+        exists = Department.objects.filter(
+            hotel=hotel_obj, name__iexact=department_name
+        ).exists()
+
+        if exists:
+            messages.warning(request, f"{department_name} department already exists.")
+        else:
+            Department.objects.create(hotel=hotel_obj, name=department_name)
+            messages.success(request, f"{department_name} department created successfully.")
+
+        return redirect("department_page")
+
+    departments = list(
+        Department.objects.filter(hotel=hotel_obj).order_by("name")
+    )
+
+    total_staff = Staff.objects.filter(hotel=hotel_obj).count()
+
+    dept_presets = {
+        "front desk":   {"icon": "🛎", "color": "green",  "description": "Guest services and reception operations"},
+        "housekeeping": {"icon": "🧹", "color": "blue",   "description": "Room cleaning and maintenance"},
+        "hr":           {"icon": "⚙",  "color": "orange", "description": "Human resources and staff management"},
+        "restaurant":   {"icon": "🍴", "color": "purple", "description": "Food & beverage and restaurant operations"},
+        "maintenance":  {"icon": "🔧", "color": "orange", "description": "Facility upkeep and repairs"},
+        "security":     {"icon": "🛡",  "color": "blue",   "description": "Property and guest safety"},
+    }
+    default_preset = {"icon": "▦", "color": "purple", "description": "Department operations"}
+
+    for department in departments:
+        department.staff_count = Staff.objects.filter(
+            hotel=hotel_obj, department=department
+        ).count()
+
+        preset = dept_presets.get(department.name.strip().lower(), default_preset)
+        department.icon = preset["icon"]
+        department.color = preset["color"]
+        if not getattr(department, "description", None):
+            department.description = preset["description"]
+
+        lead = (
+            Staff.objects.filter(hotel=hotel_obj, department=department, is_active=True)
+            .select_related("user")
+            .order_by("id")
+            .first()
+        )
+        if lead:
+            name_parts = (lead.name or "").split()
+            initials = "".join(p[0] for p in name_parts[:2]).upper() or "?"
+            department.lead_name = lead.name
+            department.lead_role = f"{department.name} Staff"
+            department.lead_initials = initials
+        else:
+            department.lead_name = None
+            department.lead_role = None
+            department.lead_initials = None
+
+    total_departments = len(departments)
+    average_team_size = (
+        f"{round(total_staff / total_departments, 1)} staff"
+        if total_departments else "0 staff"
+    )
+
+    return render(
+        request,
+        "hotel/departments_updated.html",
+        {
+            "departments": departments,
+            "total_staff": total_staff,
+            "total_departments": total_departments,
+            "average_team_size": average_team_size,
+            "locked_departments": locked_departments,
+        },
+    )
+
+
+@login_required
+@require_POST
+def delete_department(request, department_id):
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return JsonResponse({"error": "Hotel session expired."}, status=401)
+
+    department = get_object_or_404(
+        Department,
+        id=department_id,
+        hotel_id=hotel_id,
+    )
+
+    department_name = department.name
+    department.delete()
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": f"{department_name} deleted successfully.",
+        }
+    )
+def _sync_domain_with_hotel_name(hotel):
+    """Keep Client.name and the primary domain in step with hotel.hotel_name.
+    schema_name is NOT changed (renaming a Postgres schema is risky).
+
+    Returns (domain, changed):
+        domain  -> the tenant's primary domain string (or None if not found)
+        changed -> True only if the domain was actually rewritten just now
+    """
+    with schema_context('public'):
+        client = Client.objects.filter(schema_name=hotel.schema_name).first()
+        if not client:
+            return None, False
+
+        if client.name != hotel.hotel_name:
+            client.name = hotel.hotel_name
+            client.save(update_fields=['name'])
+
+        domain_obj = (
+            Domain.objects.filter(tenant=client, is_primary=True).first()
+            or Domain.objects.filter(tenant=client).first()
+        )
+        if not domain_obj:
+            return None, False
+
+        base = slugify(hotel.hotel_name) or "hotel"
+        candidate = f"{base}.{settings.BASE_URL}"
+        counter = 1
+        # keep it unique, ignoring this tenant's own current domain
+        while Domain.objects.filter(domain=candidate).exclude(pk=domain_obj.pk).exists():
+            candidate = f"{base}{counter}.{settings.BASE_URL}"
+            counter += 1
+
+        changed = domain_obj.domain != candidate
+        if changed:
+            domain_obj.domain = candidate
+            domain_obj.is_primary = True
+            domain_obj.save()
+
+        return domain_obj.domain, changed
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+from django.db import connection
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views.decorators.cache import never_cache
+
+from django_tenants.utils import schema_context
+
+# from .models import Hotel
+
+
+def _error(message, status=400):
+    return JsonResponse({"success": False, "error": message}, status=status)
+
+
+@never_cache
+@login_required
+def hotel_details_page(request):
+
+    # ── Current hotel ─────────────────────────────────────────
+    current_tenant = connection.tenant
+
+    try:
+        with schema_context("public"):
+            hotel = get_object_or_404(
+                Hotel.objects.select_related("subscription_plan"),
+                schema_name=current_tenant.schema_name,
+            )
+    except Exception as e:
+        print("HOTEL LOAD ERROR:", repr(e))
+        if request.method == "POST":
+            return _error(f"Unable to load hotel: {e}", 500)
+        raise
+
+    # ── POST: update hotel ────────────────────────────────────
+    if request.method == "POST":
+        try:
+            get = lambda key: (request.POST.get(key) or "").strip()
+
+            hotel_name    = get("hotel_name")
+            owner_name    = get("owner_name")
+            property_type = get("property_type")
+            phone         = get("phone")
+            email         = get("email")
+            description   = get("description")
+            address       = get("address")
+            city          = get("city")
+            state         = get("state")
+
+            if not hotel_name:
+                return _error("Hotel name is required.")
+            if not owner_name:
+                return _error("Owner name is required.")
+
+            # ── Password: OPTIONAL ────────────────────────────
+            current_password = request.POST.get("current_password") or ""
+            new_password     = request.POST.get("new_password") or ""
+            confirm_password = request.POST.get("confirm_password") or ""
+
+            wants_password_change = bool(new_password or confirm_password)
+
+            # Validate BEFORE saving anything, so a bad password
+            # does not leave the form half-saved.
+            if wants_password_change:
+                if not current_password:
+                    return _error("Enter your current password to change it.")
+                if not new_password:
+                    return _error("Enter a new password.")
+                if not confirm_password:
+                    return _error("Confirm your new password.")
+                if not request.user.check_password(current_password):
+                    return _error("Current password is incorrect.")
+                if new_password != confirm_password:
+                    return _error("New password and confirmation do not match.")
+                if len(new_password) < 8:
+                    return _error("Password must contain at least 8 characters.")
+
+            # ── Save hotel fields (+ domain sync) ─────────────
+            new_redirect_url = None
+            with schema_context("public"):
+                with transaction.atomic():
+                    hotel.hotel_name = hotel_name
+                    hotel.owner_name = owner_name
+
+                    if property_type:
+                        hotel.property_type = property_type
+                    if email:
+                        hotel.email = email
+
+                    hotel.phone       = phone
+                    hotel.description = description
+                    hotel.address     = address
+                    hotel.city        = city
+                    hotel.state       = state
+
+                    logo = request.FILES.get("logo")
+                    if logo:
+                        hotel.logo = logo
+
+                    image = request.FILES.get("image")
+                    if image:
+                        hotel.image = image
+
+                    hotel.save()
+
+                    # Always compare the EXPECTED domain (from the hotel name)
+                    # with the ACTUAL primary domain. If they differ, fix it.
+                    # This also repairs a domain that was left stale by an
+                    # earlier save.
+                    new_domain, domain_changed = _sync_domain_with_hotel_name(hotel)
+                    print("SYNC: new_domain =", new_domain, "| changed =", domain_changed)
+                    if domain_changed:
+                        new_redirect_url = f"http://{new_domain}{settings.PORT}"
+
+            # ── Save password (only if requested) ─────────────
+            if wants_password_change:
+                request.user.set_password(new_password)
+                request.user.save(update_fields=["password"])
+                update_session_auth_hash(request, request.user)  # stay logged in
+
+            return JsonResponse({
+                "success": True,
+                "message": "Hotel details updated successfully.",
+                "password_changed": wants_password_change,
+                "domain_changed": bool(new_redirect_url),
+                "redirect_url": (new_redirect_url + "/login/") if new_redirect_url else None,
+            })
+
+        except Exception as e:
+            import traceback
+            print("\n" + "=" * 70)
+            print("HOTEL DETAILS UPDATE ERROR")
+            print("=" * 70)
+            traceback.print_exc()
+            print("=" * 70 + "\n")
+            return _error(str(e), 500)
+
+    # ── GET: display page ─────────────────────────────────────
+    return render(request, "hotel-setup/hotel_details.html", {
+        "hotel": hotel,
+        "is_first_time": not hotel.is_setup_complete,
+    })
+
+import json
+
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+
+# Hotel is already imported at the top of your views file:
+# from .models import Hotel
+
+
+# ──────────────────────────────────────────────────────────────
+# ASSET <-> ROOM HELPERS
+# (also use _link_asset_to_room inside hotel_setup, see bottom)
+# ──────────────────────────────────────────────────────────────
+
+def _sync_asset_legacy_fields(asset):
+    """Keep HotelAsset.room / room_unit / area in step with its current locations.
+    Filled only when the asset has exactly one current location, otherwise cleared."""
+    from inventory.models import AssetLocation
+
+    current = list(
+        AssetLocation.objects.filter(asset=asset, is_current=True)
+        .select_related("room", "room_unit")[:2]
+    )
+    if len(current) == 1:
+        loc = current[0]
+        asset.room, asset.room_unit, asset.area = loc.room, loc.room_unit, loc.area or ""
+    else:
+        asset.room, asset.room_unit, asset.area = None, None, ""
+    asset.save(update_fields=["room", "room_unit", "area"])
+
+
+def _link_asset_to_room(asset, room):
+    """Add `room` as a current location WITHOUT touching the asset's other locations."""
+    from inventory.models import AssetLocation
+
+    already = AssetLocation.objects.filter(
+        asset=asset, room=room, is_current=True
+    ).exists()
+    if not already:
+        AssetLocation.objects.create(
+            asset=asset, room=room, room_unit=None, area="", is_current=True
+        )
+    _sync_asset_legacy_fields(asset)
+
+
+def _asset_picker_list():
+    """Assets for the picker in Add Room / Edit Room."""
+    from inventory.models import HotelAsset
+
+    return [
+        {
+            "id": a.id,
+            "name": a.name,
+            "category": a.asset_category.name if a.asset_category else "",
+        }
+        for a in HotelAsset.objects.select_related("asset_category").order_by("name")
+    ]
+
+
+# ──────────────────────────────────────────────────────────────
+# ADD ROOM PAGE
+# ──────────────────────────────────────────────────────────────
+
+@login_required
+@never_cache
+def add_room_page(request):
+    from pms.models import Property
+
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return redirect("hotel_login")
+
+    hotel_obj = get_object_or_404(Hotel, id=hotel_id)
+    amenities_qs = Property.objects.all()
+
+    return render(request, "hotel-setup/add_room.html", {
+        "hotel": hotel_obj,
+        "amenities": amenities_qs,
+        "amenities_json": json.dumps(list(amenities_qs.values("id", "name"))),
+        "all_assets_json": json.dumps(_asset_picker_list()),
+    })
+
+
+# ──────────────────────────────────────────────────────────────
+# VIEW ROOMS PAGE
+# ──────────────────────────────────────────────────────────────
+
+@login_required
+@never_cache
+def view_rooms_page(request):
+    from pms.models import Room, Property
+    from inventory.models import AssetLocation
+
+    hotel_id = request.session.get("hotel_id")
+    if not hotel_id:
+        return redirect("hotel_login")
+
+    hotel_obj = get_object_or_404(Hotel, id=hotel_id)
+
+    rooms = (
+        Room.objects.filter(is_active=True)
+        .prefetch_related("images", "amenities")
+        .order_by("-id")
+    )
+
+    def price_tier(price):
+        try:
+            p = float(price)
+        except (TypeError, ValueError):
+            p = 0
+        if p >= 2500:
+            return "Luxury"
+        if p >= 1500:
+            return "Premium"
+        return "Standard"
+
+    rooms_data = []
+    for r in rooms:
+        primary_image = r.images.filter(is_primary=True).first() or r.images.first()
+        display_type = (
+            r.custom_room_type
+            if r.room_type == "Custom" and r.custom_room_type
+            else r.room_type
+        )
+
+        # Assets currently linked to this room (distinct, in case of duplicate rows)
+        asset_ids = list(
+            AssetLocation.objects.filter(room=r, is_current=True)
+            .values_list("asset_id", flat=True)
+            .distinct()
+        )
+
+        rooms_data.append({
+            "id":             r.id,
+            "room_type":      r.room_type,
+            "display_type":   display_type,
+            "description":    r.description or "",
+            "units":          r.units.count(),
+            "price":          str(r.base_price),
+            "overstay_price": str(r.overstay_price),
+            "max_adults":     r.max_adults,
+            "max_children":   r.max_children,
+            "is_active":      r.is_active,
+            "tier":           price_tier(r.base_price),
+            "image_url":      primary_image.image.url if primary_image else None,
+            "amenity_ids":    list(r.amenities.values_list("id", flat=True)),
+            "asset_ids":      asset_ids,
+            "features":       r.features or [],
+        })
+
+    return render(request, "hotel-setup/view_rooms.html", {
+        "hotel":           hotel_obj,
+        "rooms":           rooms_data,
+        "rooms_json":      json.dumps(rooms_data),
+        "amenities":       Property.objects.all(),
+        "all_assets_json": json.dumps(_asset_picker_list()),
+    })
+
+
+# ──────────────────────────────────────────────────────────────
+# EDIT ROOM
+# ──────────────────────────────────────────────────────────────
+
+@require_POST
+@login_required
+def edit_room_view(request, room_id):
+    """Handles the 'Save Changes' submit from the Edit Room modal."""
+    from pms.models import Room, RoomImage, RoomUnit, Property
+    from inventory.models import HotelAsset, AssetLocation
+
+    try:
+        with transaction.atomic():
+            room = get_object_or_404(Room, id=room_id, is_active=True)
+
+            # ── Simple text/number fields ──
+            room_type_name = request.POST.get("room_type_name", "").strip()
+            if room_type_name:
+                if room.room_type == "Custom":
+                    room.custom_room_type = room_type_name
+                else:
+                    room.room_type = room_type_name
+
+            base_price = request.POST.get("base_price")
+            max_adults = request.POST.get("max_adults")
+            max_children = request.POST.get("max_children")
+            overstay_price = request.POST.get("overstay_price")
+            description = request.POST.get("description")
+
+            if base_price not in (None, ""):
+                room.base_price = base_price
+            if max_adults not in (None, ""):
+                room.max_adults = max_adults
+            if max_children not in (None, ""):
+                room.max_children = max_children
+            if overstay_price not in (None, ""):
+                room.overstay_price = overstay_price
+            if description is not None:
+                room.description = description
+
+            # ── Amenities / features ──
+            amenity_ids = request.POST.getlist("amenities")
+            room.amenities.set(Property.objects.filter(id__in=amenity_ids))
+            features = request.POST.getlist("features")
+            room.features = [str(f).strip() for f in features if str(f).strip()]
+
+            room.save()
+
+            # ── Assets ──
+            asset_ids_int = [
+                int(a) for a in request.POST.getlist("asset_ids") if str(a).isdigit()
+            ]
+
+            # 1) Unlink assets that were on THIS room but are no longer selected.
+            #    Only this room's rows are deactivated; the asset's locations in
+            #    other rooms and areas stay untouched.
+            removed_qs = AssetLocation.objects.filter(
+                room=room, is_current=True
+            ).exclude(asset_id__in=asset_ids_int)
+            removed_asset_ids = list(removed_qs.values_list("asset_id", flat=True).distinct())
+            removed_qs.update(is_current=False)
+
+            for asset in HotelAsset.objects.filter(id__in=removed_asset_ids):
+                _sync_asset_legacy_fields(asset)
+
+            # 2) Link selected assets: adds this room, keeps their other locations.
+            for asset in HotelAsset.objects.filter(id__in=asset_ids_int):
+                _link_asset_to_room(asset, room)
+
+            # ── Total units: grow or shrink the RoomUnit set to match ──
+            total_units_raw = request.POST.get("total_units")
+            if total_units_raw:
+                total_units = int(total_units_raw)
+                current_units = list(room.units.order_by("id"))
+
+                if total_units > len(current_units):
+                    prefix_map = {"Single": "S", "Double": "D", "Deluxe": "DL", "Suite": "SU"}
+                    prefix = prefix_map.get(
+                        room.room_type,
+                        (room.custom_room_type[:2].upper() if room.custom_room_type else "CR"),
+                    )
+                    existing_numbers = set(RoomUnit.objects.values_list("room_number", flat=True))
+                    new_units, counter = [], 1
+                    while len(new_units) < (total_units - len(current_units)):
+                        number = f"{prefix}{counter}"
+                        if number not in existing_numbers:
+                            new_units.append(RoomUnit(room=room, room_number=number))
+                            existing_numbers.add(number)
+                        counter += 1
+                    RoomUnit.objects.bulk_create(new_units)
+
+                elif total_units < len(current_units):
+                    # Remove the newest units first
+                    to_remove = current_units[total_units:]
+                    RoomUnit.objects.filter(id__in=[u.id for u in to_remove]).delete()
+
+            # ── Replace the primary image if a new one was uploaded ──
+            if request.FILES.get("image"):
+                RoomImage.objects.filter(room=room, is_primary=True).delete()
+                RoomImage.objects.create(room=room, image=request.FILES["image"], is_primary=True)
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+
+
+
+@require_http_methods(["DELETE", "POST"])
+@login_required
+def delete_room_view(request, room_id):
+    from pms.models import Room, Booking
+
+    room = get_object_or_404(Room, id=room_id)
+
+    # Keep the room if it has a confirmed or checked-in booking.
+    has_bookings = Booking.objects.filter(
+        room=room,
+        status__in=["confirmed", "checked_in"],
+    ).exists()
+
+    if has_bookings:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Cannot delete a room with active or upcoming bookings.",
+            },
+            status=400,
+        )
+
+    # Permanent deletion: related units and images are deleted if their
+    # model foreign keys use on_delete=models.CASCADE.
+    room.delete()
+
+    return JsonResponse({"success": True})
+
+from pms.models import Property
+
+@require_POST
+@login_required
+def add_room_amenity(request):
+    """Create a new room amenity (pms.Property) for the current tenant,
+    used by the 'Add Custom Amenity' button in the Add Room wizard."""
+    try:
+        data = json.loads(request.body) if request.content_type == "application/json" else request.POST
+        name = (data.get("name") or "").strip()
+
+        if not name:
+            return JsonResponse({"error": "Amenity name is required."}, status=400)
+
+        amenity, created = Property.objects.get_or_create(name=name)
+        if not created:
+            return JsonResponse({"error": "An amenity with this name already exists."}, status=400)
+
+        return JsonResponse({"id": amenity.id, "name": amenity.name, "created": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
+from accounts.models import Hotel, SubscriptionPlan, PlanPayment
+
+
+def _get_current_hotel(request):
+    """
+    Resolve the hotel for this request the same way the rest of the
+    app does — session hotel_id first, falling back to the logged-in
+    staff member's hotel.
+    """
+    hotel_id = request.session.get("hotel_id")
+    if hotel_id:
+        hotel = Hotel.objects.filter(id=hotel_id).select_related("subscription_plan").first()
+        if hotel:
+            return hotel
+
+    staff_id = request.session.get("staff_id")
+    if staff_id:
+        from accounts.models import Staff
+        staff = Staff.objects.filter(id=staff_id).select_related(
+            "hotel", "hotel__subscription_plan"
+        ).first()
+        if staff:
+            return staff.hotel
+
+    return None
+
+
+from django.urls import reverse  # add near the top of the file if not already imported
+
+@login_required
+@never_cache
+def subscription_page(request):
+    """
+    Renders the Subscription / Plans page using real Hotel +
+    SubscriptionPlan + PlanPayment data.
+    """
+    hotel = _get_current_hotel(request)
+    if not hotel:
+        return render(request, "hotel-setup/subscription.html", {
+            "current_plan": None,
+            "plans": [],
+            "error": "No hotel found for this account.",
+        })
+
+    active_plan = hotel.subscription_plan  # FK on Hotel -> SubscriptionPlan
+    today = timezone.now().date()
+
+    # ── Most recent payment record, for billing-cycle / payment-method display ──
+    latest_payment = PlanPayment.objects.filter(
+        hotel=hotel
+    ).order_by("-created_at").first()
+
+    # ── Days remaining on the current plan/trial, for the header badge ──
+    days_remaining = None
+    is_trial_period = hotel.is_on_trial and hotel.trial_is_active
+
+    if is_trial_period and hotel.trial_end:
+        trial_end_date = (
+            hotel.trial_end.date() if hasattr(hotel.trial_end, "date") else hotel.trial_end
+        )
+        days_remaining = max(0, (trial_end_date - today).days)
+    elif hotel.subscription_expiry:
+        days_remaining = max(0, (hotel.subscription_expiry - today).days)
+
+    # ── Build "Your Current Plan" block from real fields ──
+    if active_plan:
+        current_plan = {
+            "name": active_plan.name,
+            "is_active": hotel.subscription_status == "active" or hotel.trial_is_active,
+            "status_label": (
+                "Trial" if is_trial_period
+                else hotel.get_subscription_status_display()
+            ),
+            "next_billing_date": (
+                hotel.subscription_expiry.strftime("%d %b %Y")
+                if hotel.subscription_expiry else
+                (hotel.trial_end.strftime("%d %b %Y") if hotel.trial_end else "—")
+            ),
+            "payment_method": (
+                latest_payment.transaction_id if latest_payment and latest_payment.transaction_id
+                else "Not on file"
+            ),
+            "days_remaining": days_remaining,   # NEW
+            "is_trial": is_trial_period,        # NEW
+            # Pull whatever module/amenity names are attached to this plan
+            "modules": list(active_plan.modules.values_list("name", flat=True)),
+        }
+    else:
+        current_plan = {
+            "name": "No Active Plan",
+            "is_active": False,
+            "status_label": hotel.get_subscription_status_display(),
+            "next_billing_date": "—",
+            "payment_method": "—",
+            "days_remaining": None,   # NEW
+            "is_trial": False,        # NEW
+            "modules": [],
+        }
+
+    # ── All sellable plans, ordered cheapest first ──
+    plan_qs = SubscriptionPlan.objects.filter(
+        is_active=True, is_trial_plan=False
+    ).prefetch_related("modules").order_by("price")
+
+    plans = []
+    for p in plan_qs:
+        plans.append({
+            "key": p.id,
+            "name": p.name,
+            "tagline": p.tagline or "",
+            "price": p.price,
+            "is_current": bool(active_plan and p.id == active_plan.id),
+            # "Most Popular" — pick the middle-priced plan as a simple heuristic,
+            # or swap this for a real `is_popular` BooleanField on SubscriptionPlan.
+            "is_popular": False,
+            "features": list(p.modules.values_list("name", flat=True)),
+            "checkout_url": reverse("subscription_checkout", kwargs={"plan_uuid": p.uuid}),  # NEW
+        })
+
+    # Mark the middle plan as popular if there are exactly 3+ and none is flagged
+    if len(plans) >= 3 and not any(pl["is_popular"] for pl in plans):
+        mid = len(plans) // 2
+        plans[mid]["is_popular"] = True
+
+    # ── Recent billing history, for the "View Billing History" panel ──
+    payment_history = PlanPayment.objects.filter(
+        hotel=hotel
+    ).select_related("plan").order_by("-created_at")[:10]
+
+    return render(request, "hotel-setup/subscription.html", {
+        "hotel": hotel,
+        "current_plan": current_plan,
+        "plans": plans,
+        "payment_history": payment_history,
+    })
+@login_required
+@never_cache
+def subscription_checkout(request, plan_uuid):
+    """
+    Checkout page for a subscription plan, addressed by UUID rather than
+    the plan's numeric primary key (avoids exposing/guessing sequential IDs).
+    """
+    plan = get_object_or_404(SubscriptionPlan, uuid=plan_uuid, is_active=True)
+    hotel = _get_current_hotel(request)
+
+    if not hotel:
+        messages.error(request, "No hotel found for this account.")
+        return redirect("subscription_page")
+
+    already_on_plan = (
+        hotel.subscription_plan_id == plan.id
+        and hotel.subscription_status == "active"
+        and hotel.subscription_expiry
+        and hotel.subscription_expiry >= timezone.now().date()
+    )
+    if already_on_plan:
+        messages.info(request, f"You're already subscribed to the {plan.name} plan.")
+        return redirect("subscription_page")
+
+    if request.method == "POST":
+        payment_method   = request.POST.get("payment_method", "card").strip()
+        cardholder_name  = request.POST.get("cardholder_name", "").strip()
+        card_number      = request.POST.get("card_number", "").strip()
+        expiry           = request.POST.get("expiry", "").strip()
+        cvv              = request.POST.get("cvv", "").strip()
+
+        if payment_method == "card" and not (cardholder_name and card_number and expiry and cvv):
+            messages.error(request, "Please fill in all card details.")
+            return render(request, "hotel-setup/checkout.html", {"hotel": hotel, "plan": plan})
+
+        # ── NOTE ──────────────────────────────────────────────────────────
+        # This is where you'd call out to a real payment gateway (Stripe,
+        # Razorpay, etc.) and only proceed on a successful charge. For now
+        # this mirrors tenant_create_payment(): it records the payment and
+        # activates the plan directly.
+        # ─────────────────────────────────────────────────────────────────
+        with schema_context('public'):
+            hotel.subscription_plan   = plan
+            hotel.subscription_status = 'active'
+            hotel.is_subscribed       = True
+            hotel.is_on_trial         = False
+            hotel.subscription_expiry = timezone.now().date() + relativedelta(months=1)
+            hotel.save(update_fields=[
+                'subscription_plan',
+                'subscription_status',
+                'is_subscribed',
+                'is_on_trial',
+                'subscription_expiry',
+            ])
+
+            _enable_plan_modules(hotel, plan)
+
+            masked_card = f"**** **** **** {card_number[-4:]}" if card_number else ""
+            payment = PlanPayment.objects.create(
+                hotel     = hotel,
+                plan      = plan,
+                amount    = plan.price,
+                status    = 'paid',
+                due_date  = timezone.now().date() + relativedelta(months=1),
+                paid_date = timezone.now().date(),
+                notes     = f"payment_method={payment_method}; card={masked_card}",
+            )
+
+        try:
+            send_mail(
+                subject="Subscription Activated",
+                message=(
+                    f"Hello {hotel.hotel_name},\n\n"
+                    f"Your subscription to the {plan.name} plan is now active.\n"
+                    f"Amount paid: {plan.price}\n"
+                    f"Valid until: {hotel.subscription_expiry.strftime('%d %b %Y')}\n\n"
+                    "Regards,\nAdmin Team"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[hotel.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        messages.success(request, f"You're now subscribed to the {plan.name} plan.")
+        return redirect("subscription_page")
+
+    return render(request, "hotel-setup/checkout.html", {
+        "hotel": hotel,
+        "plan": plan,
+    })

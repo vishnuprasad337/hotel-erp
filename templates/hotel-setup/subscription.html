@@ -1,0 +1,763 @@
+{% extends "hotel-setup/base.html" %}
+{% load static %}
+
+{% block title %}Subscription - Admio{% endblock %}
+{% block nav_subscription_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sub{ --sub-purple:#7C3AED; --sub-purple-dark:#6D28D9; --sub-purple-light:#F5F3FF;
+        --sub-ink:#101828; --sub-sub:#667085; --sub-line:#e9e9f5; --sub-green:#16a34a;
+        --sub-radius:24px; --sub-radius-lg:28px; --sub-radius-sm:14px;
+        color:var(--sub-ink); }
+  .sub *{box-sizing:border-box;}
+  .sub svg{display:block;}
+
+  .sub-title-group{ display:flex; align-items:center; gap:14px; }
+  .sub-title-icon{
+    width:52px; height:52px; border-radius:16px;
+    background:rgba(124,58,237,.10); color:#7C3AED;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .sub-title-icon svg{ width:24px; height:24px; }
+  [data-theme="dark"] .sub-title-icon{ background:rgba(124,58,237,.18); }
+
+  .sub-grid{display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start;}
+  @media (max-width:991px){ .sub-grid{grid-template-columns:1fr;} }
+
+  .sub-card{background:var(--admio-sidebar-bg,#fff); border:1px solid var(--sub-line);
+    border-radius:var(--sub-radius); padding:26px; margin-bottom:20px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04);}
+
+  /* Card heading row — title + optional badge (e.g. days-left) share a line */
+  .sub-card-head-row{ display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .sub-card-head-row h2{ margin:0; }
+  .sub-card h2{margin:0 0 16px; font-size:1.08rem; font-weight:700;}
+
+  .sub-days-left{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    padding:5px 13px; border-radius:999px; white-space:nowrap; }
+  .sub-days-left svg{ width:12px; height:12px; }
+  .sub-days-left.ok{ color:var(--sub-purple); background:var(--sub-purple-light); }
+  .sub-days-left.warn{ color:#b45309; background:#fef3c7; }
+  .sub-days-left.critical{ color:#dc2626; background:#fee2e2; }
+  [data-theme="dark"] .sub-days-left.ok{ background:rgba(124,58,237,.16); }
+
+  .sub-current-inner{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;
+    background:var(--sub-purple-light); border-radius:var(--sub-radius-sm); padding:20px 22px; margin-bottom:20px;}
+  .sub-current-left{display:flex; align-items:center; gap:14px;}
+  .sub-plan-icon{width:48px; height:48px; border-radius:14px; background:#fff; color:var(--sub-purple);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow:0 1px 3px rgba(16,24,40,.08);}
+  .sub-plan-icon svg{width:22px; height:22px;}
+  .sub-plan-name{display:flex; align-items:center; gap:8px; font-weight:700; font-size:1.05rem;}
+  .sub-badge-active{font-size:11px; font-weight:700; color:var(--sub-green); background:#e9fbf1;
+    padding:3px 11px; border-radius:999px;}
+  .sub-badge-inactive{font-size:11px; font-weight:700; color:#9ca3af; background:#f3f4f6;
+    padding:3px 11px; border-radius:999px;}
+  .sub-plan-meta{font-size:.83rem; color:var(--sub-sub); margin-top:3px;}
+  .sub-manage-btn{display:inline-flex; align-items:center; gap:7px; background:var(--sub-purple); color:#fff;
+    border:none; border-radius:12px; padding:12px 20px; font-size:.88rem; font-weight:600; cursor:pointer;
+    white-space:nowrap; transition:background .15s, transform .15s;}
+  .sub-manage-btn:hover{background:var(--sub-purple-dark); transform:translateY(-1px);}
+  .sub-manage-btn svg{width:15px; height:15px;}
+
+  /* Modules included on the current plan */
+  .sub-modules-label{ font-size:.76rem; font-weight:700; color:var(--sub-sub); text-transform:uppercase;
+    letter-spacing:.05em; margin:0 0 10px; }
+  .sub-modules-row{display:flex; gap:9px; flex-wrap:wrap;}
+  .sub-module-chip{display:flex; align-items:center; gap:7px; font-size:.82rem; font-weight:600;
+    color:var(--sub-purple); background:var(--sub-purple-light); padding:7px 14px; border-radius:999px;
+    border:1px solid transparent; transition:border-color .15s;}
+  .sub-module-chip:hover{ border-color:var(--sub-purple); }
+  .sub-module-chip svg{width:13px; height:13px; flex-shrink:0;}
+  .sub-no-modules{font-size:.83rem; color:var(--sub-sub); padding:6px 0;}
+
+  .sub-plans-head p{margin:2px 0 20px; font-size:.9rem; color:var(--sub-sub); line-height:1.5;}
+
+  /* ═══════════════ PLAN CARDS ═══════════════ */
+  .sub-plans-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:22px;}
+  @media (max-width:900px){ .sub-plans-grid{grid-template-columns:1fr;} }
+
+  .sub-plan-card{
+    position:relative; border:1.5px solid var(--sub-line); border-radius:var(--sub-radius-lg);
+    padding:32px 28px; display:flex; flex-direction:column;
+    background:#fff; cursor:pointer; min-height:440px;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease,
+               border-color .22s ease, background .22s ease;
+  }
+  .sub-plan-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 18px 36px rgba(124,58,237,.16);
+    border-color:var(--sub-purple);
+  }
+  .sub-plan-card:active{ transform:translateY(-2px) scale(.99); }
+
+  .sub-plan-card[data-slot="0"]:hover{ border-color:#059669; box-shadow:0 18px 36px rgba(5,150,105,.16); }
+  .sub-plan-card[data-slot="2"]:hover{ border-color:#0284c7; box-shadow:0 18px 36px rgba(2,132,199,.16); }
+  .sub-plan-card[data-slot="3"]:hover{ border-color:#b45309; box-shadow:0 18px 36px rgba(180,83,9,.16); }
+
+  .sub-plan-card.popular{
+    background:linear-gradient(160deg,#7C3AED 0%,#6D28D9 100%);
+    border-color:transparent; color:#fff;
+    box-shadow:0 16px 32px rgba(124,58,237,.3);
+  }
+  .sub-plan-card.popular:hover{
+    transform:translateY(-8px) scale(1.015);
+    box-shadow:0 24px 48px rgba(124,58,237,.4);
+    border-color:transparent;
+  }
+  .sub-plan-card.popular .sub-tagline,
+  .sub-plan-card.popular .sub-price span{ color:rgba(255,255,255,.75); }
+  .sub-plan-card.popular .sub-feature-list li{ color:rgba(255,255,255,.92); }
+  .sub-plan-card.popular .sub-feature-list li svg{ color:#a7f3d0; }
+  .sub-plan-card.popular .sub-plan-icon-sm{ background:rgba(255,255,255,.18); color:#fff; }
+  .sub-plan-card.popular .sub-choose-btn{
+    background:#fff; color:var(--sub-purple); border-color:#fff;
+  }
+  .sub-plan-card.popular .sub-choose-btn:hover{ background:#f5f3ff; }
+  .sub-plan-card.popular .sub-module-count{ background:rgba(255,255,255,.18); color:#fff; }
+
+  .sub-popular-tag{
+    position:absolute; top:-15px; left:50%; transform:translateX(-50%);
+    background:#101828; color:#fff; display:flex; align-items:center; gap:5px;
+    font-size:12px; font-weight:700; padding:6px 18px; border-radius:999px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2); white-space:nowrap;
+  }
+  .sub-popular-tag svg{ width:12px; height:12px; }
+
+  .sub-plan-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+
+  .sub-plan-icon-sm{
+    width:56px; height:56px; border-radius:16px; display:flex; align-items:center;
+    justify-content:center; margin-bottom:18px; transition:background .22s ease, color .22s ease;
+  }
+  .sub-plan-icon-sm svg{width:26px; height:26px;}
+  .sub-plan-card[data-slot="0"] .sub-plan-icon-sm{background:#dcfce7; color:#059669;}
+  .sub-plan-card[data-slot="1"]:not(.popular) .sub-plan-icon-sm{background:var(--sub-purple-light); color:var(--sub-purple);}
+  .sub-plan-card[data-slot="2"] .sub-plan-icon-sm{background:#e0f2fe; color:#0284c7;}
+  .sub-plan-card[data-slot="3"] .sub-plan-icon-sm{background:#fef3c7; color:#b45309;}
+
+  /* Small pill showing how many modules/features are bundled */
+  .sub-module-count{ display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:700;
+    color:var(--sub-purple); background:var(--sub-purple-light); padding:5px 11px; border-radius:999px;
+    margin-bottom:18px; width:fit-content; }
+  .sub-module-count svg{ width:11px; height:11px; }
+
+  .sub-plan-card h3{margin:0 0 4px; font-size:1.32rem; font-weight:700;}
+  .sub-plan-card .sub-tagline{font-size:.9rem; color:var(--sub-sub); margin:0 0 20px; min-height:1.3em; line-height:1.5;}
+  .sub-price{font-size:2.4rem; font-weight:800; margin-bottom:22px;}
+  .sub-price span{font-size:.95rem; font-weight:600; color:var(--sub-sub);}
+  .sub-feature-list{list-style:none; margin:0 0 20px; padding:0; flex:1;}
+  .sub-feature-list li{display:flex; align-items:flex-start; gap:10px; font-size:.95rem; padding:6px 0; color:#344054;}
+  .sub-feature-list li svg{width:16px; height:16px; color:var(--sub-green); flex-shrink:0; margin-top:3px;}
+  .sub-feature-empty{font-size:.9rem; color:var(--sub-sub); padding:5px 0 18px;}
+  .sub-feature-more{font-size:.85rem; color:var(--sub-purple); font-weight:600; padding-top:6px;
+    display:flex; align-items:center; gap:5px;}
+  .sub-feature-more svg{ width:13px; height:13px; }
+  .sub-plan-card.popular .sub-feature-more{ color:rgba(255,255,255,.85); }
+
+  .sub-choose-btn{
+    width:100%; text-align:center; border-radius:14px; padding:14px; font-size:.95rem;
+    font-weight:700; cursor:pointer; border:1.5px solid var(--sub-purple); background:#fff; color:var(--sub-purple);
+    transition:background .15s, transform .15s;
+  }
+  .sub-choose-btn:hover{background:var(--sub-purple-light); transform:translateY(-1px);}
+  .sub-choose-btn.current{background:var(--sub-purple); color:#fff; cursor:default; transform:none;}
+  .sub-plan-card.popular .sub-choose-btn.current{ background:#fff; color:var(--sub-purple); }
+
+  .sub-empty-plans{font-size:.88rem; color:var(--sub-sub); padding:24px; text-align:center;
+    border:1.5px dashed var(--sub-line); border-radius:var(--sub-radius-sm);}
+
+  /* ═══════════════ PLAN DETAILS MODAL (checkout-style, two panel) ═══════════════ */
+  .sub-modal-overlay{
+    display:none; position:fixed; inset:0; z-index:20000;
+    background:rgba(15,15,25,.6); align-items:center; justify-content:center; padding:20px;
+    opacity:0; transition:opacity .2s ease;
+  }
+  .sub-modal-overlay.open{ display:flex; opacity:1; }
+  .sub-modal{
+    background:#fff; border-radius:28px; width:100%; max-width:760px;
+    max-height:88vh; overflow:hidden; box-shadow:0 30px 70px rgba(0,0,0,.32);
+    transform:translateY(16px) scale(.97); opacity:0;
+    display:grid; grid-template-columns:280px 1fr;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s ease;
+  }
+  @media (max-width:640px){ .sub-modal{ grid-template-columns:1fr; max-height:92vh; overflow-y:auto; border-radius:22px; } }
+  .sub-modal-overlay.open .sub-modal{ transform:translateY(0) scale(1); opacity:1; }
+  [data-theme="dark"] .sub-modal{ background:var(--admio-sidebar-bg,#1e1e2d); }
+
+  /* Left summary panel */
+  .sub-modal-head{
+    padding:36px 30px; position:relative; color:#fff;
+    background:linear-gradient(165deg,#7C3AED 0%,#5b21b6 100%);
+    display:flex; flex-direction:column;
+  }
+  .sub-modal-close{
+    position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,.16); border:none; color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:background .15s;
+    z-index:2;
+  }
+  .sub-modal-close:hover{ background:rgba(255,255,255,.28); }
+  .sub-modal-close svg{ width:15px; height:15px; }
+  .sub-modal-icon{
+    width:54px; height:54px; border-radius:16px; background:rgba(255,255,255,.18);
+    display:flex; align-items:center; justify-content:center; margin-bottom:20px;
+  }
+  .sub-modal-icon svg{ width:25px; height:25px; }
+  .sub-modal-head h3{ margin:0 0 6px; font-size:1.4rem; font-weight:800; }
+  .sub-modal-head p{ margin:0 0 auto; font-size:.85rem; color:rgba(255,255,255,.75); line-height:1.5; padding-bottom:24px; }
+  .sub-modal-price-block{ border-top:1px solid rgba(255,255,255,.22); padding-top:18px; }
+  .sub-modal-price-label{ font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:rgba(255,255,255,.6); margin-bottom:4px; }
+  .sub-modal-price{ font-size:2.4rem; font-weight:800; line-height:1; }
+  .sub-modal-price span{ font-size:.85rem; font-weight:600; color:rgba(255,255,255,.7); }
+  .sub-modal-badge{
+    display:inline-flex; align-items:center; gap:5px; margin-top:14px; font-size:.72rem; font-weight:700;
+    background:rgba(255,255,255,.16); padding:5px 12px; border-radius:999px; width:fit-content;
+  }
+  .sub-modal-badge svg{ width:11px; height:11px; }
+
+  /* Right panel: features + checkout action */
+  .sub-modal-body{ padding:30px 32px; display:flex; flex-direction:column; }
+  .sub-modal-body h4{ margin:0 0 14px; font-size:.78rem; font-weight:700; color:var(--sub-sub);
+    text-transform:uppercase; letter-spacing:.05em; }
+  .sub-modal-feature-list{ list-style:none; margin:0 0 20px; padding:0; columns:2; column-gap:20px; flex:1; }
+  .sub-modal-feature-list li{
+    display:flex; align-items:flex-start; gap:9px; font-size:.87rem; padding:7px 0;
+    color:#344054; break-inside:avoid;
+  }
+  .sub-modal-feature-list li svg{ width:15px; height:15px; color:var(--sub-green); flex-shrink:0; margin-top:2px; }
+  .sub-modal-empty{ font-size:.85rem; color:var(--sub-sub); text-align:center; padding:12px 0 22px; }
+
+  .sub-modal-checkout-box{
+    background:var(--sub-purple-light); border-radius:16px; padding:16px 18px; margin-bottom:18px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  [data-theme="dark"] .sub-modal-checkout-box{ background:rgba(124,58,237,.14); }
+  .sub-modal-checkout-label{ font-size:.78rem; color:var(--sub-sub); }
+  .sub-modal-checkout-total{ font-size:1.15rem; font-weight:800; color:var(--sub-ink); }
+  [data-theme="dark"] .sub-modal-checkout-total{ color:#f3f4f6; }
+
+  .sub-modal-choose{
+    width:100%; padding:15px; border-radius:14px; border:none; font-size:.97rem; font-weight:700;
+    background:var(--sub-purple); color:#fff; cursor:pointer; transition:background .15s, transform .15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .sub-modal-choose svg{ width:16px; height:16px; }
+  .sub-modal-choose:hover{ background:var(--sub-purple-dark); transform:translateY(-1px); }
+  .sub-modal-choose.current{ background:#e9fbf1; color:var(--sub-green); cursor:default; }
+  .sub-modal-choose.current:hover{ transform:none; }
+  .sub-modal-choose.unavailable{ background:#fee2e2; color:#dc2626; border:1.5px solid #fca5a5; cursor:not-allowed; }
+  .sub-modal-choose.unavailable:hover{ transform:none; background:#fee2e2; }
+  .sub-modal-secure-note{
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-size:.74rem; color:var(--sub-sub); margin-top:12px;
+  }
+  .sub-modal-secure-note svg{ width:12px; height:12px; }
+  .sub-modal-error{
+    font-size:.78rem; color:#dc2626; background:#fee2e2; border-radius:10px;
+    padding:9px 12px; margin-bottom:12px; text-align:center; display:none;
+  }
+  .sub-modal-error.show{ display:block; }
+
+  .sub-modal-warning{
+    font-size:.8rem; line-height:1.5; color:#b45309; background:#fef3c7; border-radius:10px;
+    padding:11px 14px; margin-bottom:16px; display:none; text-align:left;
+  }
+  .sub-modal-warning.show{ display:flex; align-items:flex-start; gap:8px; }
+  .sub-modal-warning svg{ width:15px; height:15px; flex-shrink:0; margin-top:2px; }
+  .sub-modal-warning strong{ font-weight:700; }
+  [data-theme="dark"] .sub-modal-warning{ background:rgba(180,83,9,.16); }
+
+  .sub-overview-row{display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid #f0f2f6;}
+  .sub-overview-row:last-of-type{border-bottom:none;}
+  .sub-overview-icon{width:32px; height:32px; border-radius:10px; background:var(--sub-purple-light);
+    color:var(--sub-purple); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .sub-overview-icon svg{width:15px; height:15px;}
+  .sub-overview-label{font-size:.76rem; color:var(--sub-sub);}
+  .sub-overview-value{font-size:.9rem; font-weight:700; margin-top:1px;}
+  .sub-billing-btn{width:100%; margin-top:14px; border:1px solid var(--sub-line); background:transparent;
+    border-radius:12px; padding:11px; font-size:.85rem; font-weight:600; color:#344054; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:7px; transition:background .15s;}
+  .sub-billing-btn:hover{background:var(--sub-purple-light); border-color:var(--sub-purple); color:var(--sub-purple);}
+  .sub-billing-btn svg{width:14px; height:14px;}
+
+  .sub-history-row{display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 0; border-bottom:1px solid #f0f2f6; font-size:.82rem;}
+  .sub-history-row:last-child{border-bottom:none;}
+  .sub-history-plan{font-weight:600;}
+  .sub-history-date{color:var(--sub-sub); font-size:.76rem;}
+  .sub-history-amount{font-weight:700;}
+  .sub-history-status{font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; text-transform:capitalize;}
+  .sub-history-status.paid{background:#e9fbf1; color:var(--sub-green);}
+  .sub-history-status.pending{background:#fef3c7; color:#b45309;}
+  .sub-history-status.overdue,.sub-history-status.cancelled{background:#fee2e2; color:#dc2626;}
+  .sub-no-history{font-size:.82rem; color:var(--sub-sub); text-align:center; padding:10px 0;}
+
+  .sub-upgrade-item{display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid #f0f2f6;}
+  .sub-upgrade-item:last-child{border-bottom:none;}
+  .sub-upgrade-icon{width:34px; height:34px; border-radius:10px; display:flex; align-items:center;
+    justify-content:center; flex-shrink:0;}
+  .sub-upgrade-icon svg{width:16px; height:16px;}
+  .sub-upgrade-item:nth-child(1) .sub-upgrade-icon{background:#e9fbf1; color:var(--sub-green);}
+  .sub-upgrade-item:nth-child(2) .sub-upgrade-icon{background:var(--sub-purple-light); color:var(--sub-purple);}
+  .sub-upgrade-item:nth-child(3) .sub-upgrade-icon{background:#e0f2fe; color:#0284c7;}
+  .sub-upgrade-item:nth-child(4) .sub-upgrade-icon{background:#fee2e2; color:#dc2626;}
+  .sub-upgrade-title{font-size:.86rem; font-weight:700;}
+  .sub-upgrade-sub{font-size:.78rem; color:var(--sub-sub); margin-top:1px; line-height:1.4;}
+
+  [data-theme="dark"] .sub-card, [data-theme="dark"] .sub-plan-card:not(.popular){
+    background:var(--admio-sidebar-bg,#1e1e2d); border-color:var(--admio-border-color,#2d2d3d);
+  }
+  [data-theme="dark"] .sub-plan-card:not(.popular) h3,
+  [data-theme="dark"] .sub-plan-card:not(.popular) .sub-price{ color:#f3f4f6; }
+  [data-theme="dark"] .sub-plan-card:not(.popular) .sub-feature-list li{ color:#cbd5e1; }
+  [data-theme="dark"] .sub-current-inner{background:rgba(124,58,237,.12);}
+  [data-theme="dark"] .sub-plan-icon{background:#252536;}
+  [data-theme="dark"] .sub-overview-row, [data-theme="dark"] .sub-upgrade-item,
+  [data-theme="dark"] .sub-history-row{border-color:#2d2d3d;}
+  [data-theme="dark"] .sub-modal-feature-list li{ border-color:#2d2d3d; color:#cbd5e1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sub">
+
+  <div class="page-header">
+    <div class="sub-title-group">
+      <div class="sub-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <path d="M2 10h20"/>
+          <path d="M6 15h4"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="page-title mb-0">Subscription</h1>
+        <p class="page-subtitle mb-0">Manage your plan, billing, and available upgrades.</p>
+      </div>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="sub-card"><p style="margin:0;color:var(--sub-sub);">{{ error }}</p></div>
+  {% else %}
+
+  <div class="sub-grid">
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="sub-card">
+        <div class="sub-card-head-row">
+          <h2>Your Current Plan</h2>
+          {% if current_plan.days_remaining is not None %}
+            <span class="sub-days-left {% if current_plan.days_remaining <= 3 %}critical{% elif current_plan.days_remaining <= 7 %}warn{% else %}ok{% endif %}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              {% if current_plan.is_trial %}
+                {{ current_plan.days_remaining }} day{{ current_plan.days_remaining|pluralize }} left in trial
+              {% else %}
+                {{ current_plan.days_remaining }} day{{ current_plan.days_remaining|pluralize }} left
+              {% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <div class="sub-current-inner">
+          <div class="sub-current-left">
+            <div class="sub-plan-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7"/><path d="M5 20h14"/></svg>
+            </div>
+            <div>
+              <div class="sub-plan-name">{{ current_plan.name }}
+                {% if current_plan.is_active %}
+                  <span class="sub-badge-active">{{ current_plan.status_label }}</span>
+                {% else %}
+                  <span class="sub-badge-inactive">{{ current_plan.status_label }}</span>
+                {% endif %}
+              </div>
+              <div class="sub-plan-meta">Next billing date: {{ current_plan.next_billing_date }}</div>
+            </div>
+          </div>
+          <button type="button" class="sub-manage-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Manage Subscription
+          </button>
+        </div>
+
+        <p class="sub-modules-label">Modules included</p>
+        <div class="sub-modules-row">
+          {% for m in current_plan.modules %}
+            <span class="sub-module-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+              {{ m }}
+            </span>
+          {% empty %}
+            <span class="sub-no-modules">No modules included on this plan yet — pick a plan below to unlock features.</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="sub-card sub-plans-head">
+        <h2>Our Plans</h2>
+        <p>Every plan bundles a set of modules tailored to a different stage of running your property. Tap any card to see the full feature list and check out.</p>
+        <div class="sub-plans-grid">
+          {% for plan in plans %}
+          <div class="sub-plan-card {% if plan.is_popular %}popular{% endif %}"
+               data-slot="{{ forloop.counter0 }}"
+               data-plan-index="{{ forloop.counter0 }}"
+               tabindex="0" role="button"
+               aria-label="View details for {{ plan.name }}">
+            {% if plan.is_popular %}
+              <span class="sub-popular-tag">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 6.3L21 9l-4.5 4.3L17.8 20 12 16.8 6.2 20l1.3-6.7L3 9l6.1-.7z"/></svg>
+                Most Popular
+              </span>
+            {% endif %}
+
+            <div class="sub-plan-icon-sm">
+              {% if forloop.counter0 == 0 %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>
+              {% elif forloop.counter0 == 1 %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7"/><path d="M5 20h14"/></svg>
+              {% elif forloop.counter0 == 2 %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M9 8h1M14 8h1M9 12h1M14 12h1"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M2 22h20M9 6h1M14 6h1M9 10h1M14 10h1M9 14h1M14 14h1"/></svg>
+              {% endif %}
+            </div>
+
+            {% if plan.features %}
+              <span class="sub-module-count">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+                {{ plan.features|length }} module{{ plan.features|length|pluralize }} included
+              </span>
+            {% endif %}
+
+            <h3>{{ plan.name }}</h3>
+            <p class="sub-tagline">{{ plan.tagline|default:"Everything your team needs to run this stage of your property, in one place." }}</p>
+            <div class="sub-price">${{ plan.price }}<span>/month</span></div>
+            <ul class="sub-feature-list">
+              {% for feat in plan.features|slice:":4" %}
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>{{ feat }}</li>
+              {% empty %}
+              <div class="sub-feature-empty">No modules configured for this plan yet.</div>
+              {% endfor %}
+            </ul>
+            {% if plan.features|length > 4 %}
+              <div class="sub-feature-more">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                {{ plan.features|length|add:"-4" }} more feature{{ plan.features|length|add:"-4"|pluralize }}
+              </div>
+            {% endif %}
+            {% if plan.is_current %}
+              <button type="button" class="sub-choose-btn current" onclick="event.stopPropagation();">Current Plan</button>
+            {% else %}
+              <button type="button" class="sub-choose-btn" data-plan="{{ plan.key }}" onclick="event.stopPropagation(); openSubPlanModal({{ forloop.counter0 }});">Choose Plan</button>
+            {% endif %}
+          </div>
+          {% empty %}
+          <div class="sub-empty-plans">No subscription plans are available right now. Check back soon, or contact support if you were expecting to see plans here.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div>
+      <div class="sub-card">
+        <h2>Subscription Overview</h2>
+        <div class="sub-overview-row">
+          <div class="sub-overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><div class="sub-overview-label">Plan</div><div class="sub-overview-value">{{ current_plan.name }}</div></div>
+        </div>
+        <div class="sub-overview-row">
+          <div class="sub-overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div><div class="sub-overview-label">Status</div><div class="sub-overview-value">{{ current_plan.status_label }}</div></div>
+        </div>
+        <div class="sub-overview-row">
+          <div class="sub-overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg></div>
+          <div><div class="sub-overview-label">Next Billing Date</div><div class="sub-overview-value">{{ current_plan.next_billing_date }}</div></div>
+        </div>
+        <div class="sub-overview-row">
+          <div class="sub-overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+          <div><div class="sub-overview-label">Last Payment Ref</div><div class="sub-overview-value">{{ current_plan.payment_method }}</div></div>
+        </div>
+        <button type="button" class="sub-billing-btn" onclick="document.getElementById('subBillingHistory').scrollIntoView({behavior:'smooth'})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+          View Billing History
+        </button>
+      </div>
+
+      <div class="sub-card" id="subBillingHistory">
+        <h2>Billing History</h2>
+        {% for pay in payment_history %}
+          <div class="sub-history-row">
+            <div>
+              <div class="sub-history-plan">{{ pay.plan.name|default:"—" }}</div>
+              <div class="sub-history-date">{{ pay.paid_date|default:pay.due_date }}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="sub-history-amount">${{ pay.amount }}</div>
+              <span class="sub-history-status {{ pay.status }}">{{ pay.status }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="sub-no-history">No billing history yet — your first payment will show up here.</div>
+        {% endfor %}
+      </div>
+
+      <div class="sub-card">
+        <h2>Why Upgrade?</h2>
+        <div class="sub-upgrade-item">
+          <div class="sub-upgrade-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+          <div><div class="sub-upgrade-title">Increase Bookings</div><div class="sub-upgrade-sub">Reach more guests with multi-channel distribution across booking platforms.</div></div>
+        </div>
+        <div class="sub-upgrade-item">
+          <div class="sub-upgrade-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div><div class="sub-upgrade-title">Save Time</div><div class="sub-upgrade-sub">Automate routine front-desk and housekeeping tasks so your team can focus on guests.</div></div>
+        </div>
+        <div class="sub-upgrade-item">
+          <div class="sub-upgrade-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div>
+          <div><div class="sub-upgrade-title">Better Insights</div><div class="sub-upgrade-sub">Make confident, data-driven decisions with detailed occupancy and revenue reports.</div></div>
+        </div>
+        <div class="sub-upgrade-item">
+          <div class="sub-upgrade-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>
+          <div><div class="sub-upgrade-title">Dedicated Support</div><div class="sub-upgrade-sub">Get priority help from our team whenever you run into a question or issue.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ══════════ PLAN DETAILS MODAL (checkout-style) ══════════ -->
+<div class="sub-modal-overlay" id="subPlanModalOverlay">
+  <div class="sub-modal">
+    <!-- Left: plan summary -->
+    <div class="sub-modal-head">
+      <button type="button" class="sub-modal-close" id="subPlanModalClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="sub-modal-icon" id="subModalIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7"/><path d="M5 20h14"/></svg>
+      </div>
+      <h3 id="subModalName">Plan Name</h3>
+      <p id="subModalTagline">Plan tagline</p>
+      <div class="sub-modal-price-block">
+        <div class="sub-modal-price-label">Billed monthly</div>
+        <div class="sub-modal-price"><span id="subModalPrice">$0</span><span>/month</span></div>
+        <div class="sub-modal-badge" id="subModalBadge" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 2 7l10 5 10-5-10-5Z"/></svg>
+          Most Popular
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: features + checkout -->
+    <div class="sub-modal-body">
+      <div class="sub-modal-warning" id="subModalWarning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <span id="subModalWarningText"></span>
+      </div>
+
+      <h4>What's included</h4>
+      <ul class="sub-modal-feature-list" id="subModalFeatureList"></ul>
+
+      <div class="sub-modal-error" id="subModalError">
+        Checkout isn't available for this plan right now. Please contact support.
+      </div>
+
+      <div class="sub-modal-checkout-box">
+        <span class="sub-modal-checkout-label">Total due today</span>
+        <span class="sub-modal-checkout-total" id="subModalCheckoutTotal">$0.00</span>
+      </div>
+
+      <button type="button" class="sub-modal-choose" id="subModalChooseBtn">
+        <span id="subModalChooseLabel">Proceed to Checkout</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div class="sub-modal-secure-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        You'll be redirected to our secure checkout page
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Plan data rendered server-side, made available to JS for the modal.
+  // checkoutUrl comes straight from Django's reverse('subscription_checkout', ...)
+  // in the view — it's the ONLY source of truth for where "Proceed to Checkout"
+  // should go. There is intentionally no client-side URL-building fallback:
+  // the checkout route requires a UUID path segment (/subscription/checkout/<uuid>/),
+  // which JS has no way to reconstruct if the server didn't send it. Guessing a
+  // URL here previously produced a dead link that made the button look broken.
+  // Current subscription state for THIS hotel — not per-plan. Used to warn
+  // the person, inside the modal, that picking a different plan while they
+  // already have time left on an active plan/trial will replace it rather
+  // than just add to it.
+  const HOTEL_SUBSCRIPTION = {
+    isActive: {{ current_plan.is_active|yesno:"true,false" }},
+    isTrial: {{ current_plan.is_trial|yesno:"true,false" }},
+    daysRemaining: {{ current_plan.days_remaining|default_if_none:"null" }},
+    planName: "{{ current_plan.name|escapejs }}"
+  };
+
+  const SUB_PLANS = [
+    {% for plan in plans %}
+    {
+      name: "{{ plan.name|escapejs }}",
+      tagline: "{{ plan.tagline|default:"Everything your team needs to run this stage of your property, in one place."|escapejs }}",
+      price: "{{ plan.price }}",
+      isCurrent: {{ plan.is_current|yesno:"true,false" }},
+      isPopular: {{ plan.is_popular|yesno:"true,false" }},
+      key: "{{ plan.key }}",
+      features: [{% for feat in plan.features %}"{{ feat|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+      checkoutUrl: "{{ plan.checkout_url|default:'' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const subOverlay        = document.getElementById('subPlanModalOverlay');
+  const subModalIcon      = document.getElementById('subModalIcon');
+  const subModalName      = document.getElementById('subModalName');
+  const subModalTagline   = document.getElementById('subModalTagline');
+  const subModalPrice     = document.getElementById('subModalPrice');
+  const subModalBadge     = document.getElementById('subModalBadge');
+  const subModalList      = document.getElementById('subModalFeatureList');
+  const subModalTotal     = document.getElementById('subModalCheckoutTotal');
+  const subModalChoose    = document.getElementById('subModalChooseBtn');
+  const subModalChooseLbl = document.getElementById('subModalChooseLabel');
+  const subModalClose     = document.getElementById('subPlanModalClose');
+  const subModalError     = document.getElementById('subModalError');
+  const subModalWarning     = document.getElementById('subModalWarning');
+  const subModalWarningText = document.getElementById('subModalWarningText');
+
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  // Force the button visible with inline styles that beat any external/
+  // conflicting CSS on the page (e.g. a same-named class elsewhere in
+  // base.html, or a framework rule with higher specificity). This is a
+  // deliberate belt-and-braces measure: class-based styling alone has
+  // proven to render this button invisible in production even though the
+  // class rules here look correct, which points to something outside this
+  // file overriding it.
+  function forceButtonVisible(bg, color, border, cursor) {
+    subModalChoose.style.setProperty('display', 'flex', 'important');
+    subModalChoose.style.setProperty('visibility', 'visible', 'important');
+    subModalChoose.style.setProperty('opacity', '1', 'important');
+    subModalChoose.style.setProperty('height', 'auto', 'important');
+    subModalChoose.style.setProperty('min-height', '48px', 'important');
+    subModalChoose.style.setProperty('background', bg, 'important');
+    subModalChoose.style.setProperty('color', color, 'important');
+    subModalChoose.style.setProperty('border', border, 'important');
+    subModalChoose.style.setProperty('cursor', cursor, 'important');
+  }
+
+  function openSubPlanModal(index) {
+    try {
+      const plan = SUB_PLANS[index];
+      if (!plan) {
+        console.error('[subscription] No plan data at index', index);
+        return;
+      }
+
+      subModalName.textContent    = plan.name;
+      subModalTagline.textContent = plan.tagline;
+      subModalPrice.textContent   = '$' + plan.price;
+      subModalTotal.textContent   = '$' + Number(plan.price).toFixed(2);
+      subModalBadge.style.display = plan.isPopular ? 'inline-flex' : 'none';
+      if (subModalError) subModalError.classList.remove('show');
+      if (subModalWarning) subModalWarning.classList.remove('show');
+
+      subModalList.innerHTML = '';
+      if (plan.features && plan.features.length) {
+        plan.features.forEach(f => {
+          const li = document.createElement('li');
+          li.innerHTML = CHECK_SVG + '<span>' + f + '</span>';
+          subModalList.appendChild(li);
+        });
+      } else {
+        subModalList.innerHTML = '<div class="sub-modal-empty">No modules configured for this plan.</div>';
+      }
+
+      subModalChoose.classList.remove('current', 'unavailable');
+      subModalChoose.disabled = false;
+      subModalChoose.onclick = null;
+
+      if (plan.isCurrent) {
+        subModalChooseLbl.textContent = 'Current Plan';
+        subModalChoose.classList.add('current');
+        subModalChoose.disabled = true;
+        forceButtonVisible('#e9fbf1', '#16a34a', 'none', 'default');
+      } else if (!plan.checkoutUrl) {
+        console.warn('[subscription] No checkoutUrl for plan:', plan.name, plan);
+        subModalChooseLbl.textContent = 'Checkout Unavailable';
+        subModalChoose.classList.add('unavailable');
+        subModalChoose.disabled = true;
+        if (subModalError) subModalError.classList.add('show');
+        forceButtonVisible('#fee2e2', '#dc2626', '1.5px solid #fca5a5', 'not-allowed');
+      } else {
+        // Plan is checkout-able and isn't the hotel's current plan. If the
+        // hotel still has an active plan or trial with time left, warn
+        // before they commit — switching here replaces it and restarts
+        // billing (see subscription_checkout view), it doesn't stack.
+        const hasTimeLeft = HOTEL_SUBSCRIPTION.isActive
+          && HOTEL_SUBSCRIPTION.daysRemaining !== null
+          && HOTEL_SUBSCRIPTION.daysRemaining > 0;
+
+        if (hasTimeLeft && subModalWarning && subModalWarningText) {
+          const kind = HOTEL_SUBSCRIPTION.isTrial ? 'free trial' : 'active plan';
+          const dayWord = HOTEL_SUBSCRIPTION.daysRemaining === 1 ? 'day' : 'days';
+          subModalWarningText.innerHTML =
+            'You already have an ' + kind + ' — <strong>' + HOTEL_SUBSCRIPTION.planName + '</strong> — ' +
+            'with <strong>' + HOTEL_SUBSCRIPTION.daysRemaining + ' ' + dayWord + ' left</strong>. ' +
+            'Switching to this plan will replace it now and restart your billing cycle, rather than adding on to it.';
+          subModalWarning.classList.add('show');
+          subModalChooseLbl.textContent = 'Switch Plan Anyway';
+        } else {
+          subModalChooseLbl.textContent = 'Proceed to Checkout';
+        }
+
+        subModalChoose.onclick = function () {
+          window.location.href = plan.checkoutUrl;
+        };
+        forceButtonVisible('#7C3AED', '#fff', 'none', 'pointer');
+      }
+
+      subOverlay.classList.add('open');
+    } catch (err) {
+      console.error('[subscription] openSubPlanModal failed:', err);
+      // Even on error, guarantee the button is visible and points somewhere
+      // useful rather than silently vanishing.
+      forceButtonVisible('#7C3AED', '#fff', 'none', 'pointer');
+      subModalChooseLbl.textContent = 'Proceed to Checkout';
+      subOverlay.classList.add('open');
+    }
+  }
+
+  function closeSubPlanModal() {
+    subOverlay.classList.remove('open');
+  }
+
+  // Click / keyboard-activate any plan card (but not its inner button) opens the modal
+  document.querySelectorAll('.sub-plan-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      openSubPlanModal(parseInt(card.dataset.planIndex, 10));
+    });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openSubPlanModal(parseInt(card.dataset.planIndex, 10));
+      }
+    });
+  });
+
+  subModalClose.addEventListener('click', closeSubPlanModal);
+  subOverlay.addEventListener('click', function (e) {
+    if (e.target === subOverlay) closeSubPlanModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSubPlanModal();
+  });
+</script>
+{% endblock %}

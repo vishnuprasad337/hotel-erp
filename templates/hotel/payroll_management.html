@@ -1,0 +1,991 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Payroll Management{% endblock %}
+
+{% block extra_head %}
+<style>
+  .pm-head { display:flex; align-items:center; justify-content:flex-start; gap:16px; margin-bottom:28px; }
+  .pm-head-ico { width:52px; height:52px; border-radius:14px; background:#efeafd; color:#6d4bf0;
+                 display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pm-head > div:last-child { text-align:left; }
+
+  .pm-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:22px; }
+  .pm-stat { display:flex; align-items:center; gap:14px; padding:20px 22px; border-radius:18px; border:1px solid; }
+  .pm-stat-ico { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .pm-stat .stat-label { font-size:.92rem !important; color:#6b7280; margin-bottom:2px; }
+  .pm-stat .stat-value { font-size:1.7rem !important; line-height:1.1 !important; font-weight:800 !important; }
+  .pm-stat-trend { font-size:.8rem; font-weight:700; margin-top:4px; display:flex; align-items:center; gap:4px; }
+  .pm-stat.c-salary   { background:#ecfaf2; border-color:#cdeedb; } .c-salary   .pm-stat-ico { background:#c9f0da; color:#16a34a; } .c-salary .pm-stat-trend { color:#16a34a; }
+  .pm-stat.c-emp      { background:#eef4ff; border-color:#d6e4ff; } .c-emp      .pm-stat-ico { background:#d4e4ff; color:#1d6fdc; } .c-emp .pm-stat-trend { color:#1d6fdc; }
+  .pm-stat.c-paid     { background:#fff9eb; border-color:#fbe8bf; } .c-paid     .pm-stat-ico { background:#fbe8bf; color:#b45309; } .c-paid .pm-stat-trend { color:#b45309; }
+  .pm-stat.c-pending  { background:#fff0f0; border-color:#ffd6d6; } .c-pending  .pm-stat-ico { background:#fdd0d0; color:#dc2626; } .c-pending .pm-stat-trend { color:#dc2626; }
+  [data-theme="dark"] .pm-stat { background:var(--admio-sidebar-bg,#1e1e2d) !important; border-color:var(--admio-border-color,#2d2d3d) !important; }
+  [data-theme="dark"] .pm-head-ico { background:rgba(124,58,237,.18); }
+  [data-theme="dark"] .pm-stat .stat-label { color:#9ca3af; }
+
+  .pm-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px; }
+  .pm-toolbar-right { margin-left:auto; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .pm-field { height:46px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:10px;
+              background:var(--admio-sidebar-bg,#fff); color:inherit; min-width:0; }
+  .pm-field:focus { outline:none; border-color:#1a65f5; box-shadow:0 0 0 3px rgba(26,101,245,.12); }
+
+  .pm-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 22px; border:1px solid transparent;
+            border-radius:10px; font-size:inherit; font-weight:600; line-height:1.2; cursor:pointer;
+            transition:background .15s, border-color .15s, color .15s; white-space:nowrap; }
+  .pm-btn-sm { padding:6px 12px; border-radius:8px; }
+  .pm-btn-ghost { background:transparent; border-color:var(--admio-border-color,#e5e7eb); color:inherit; }
+  .pm-btn-ghost:hover { border-color:#1a65f5; color:#1a65f5; }
+  .pm-btn-icon { width:36px; height:36px; padding:0; border-radius:8px; }
+  .pm-btn-primary { background:var(--admio-primary, #7C3AED); color:#fff; }
+  .pm-btn-primary:hover { background:var(--admio-primary-dark, #6d28d9); color:#fff; }
+  .pm-btn-primary:disabled { opacity:.55; cursor:not-allowed; }
+  .pm-btn-ok  { background:#16a34a; color:#fff; } .pm-btn-ok:hover  { background:#15803d; color:#fff; }
+
+  .pm-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#e5e7eb; }
+  .pm-avatar-fallback { width:44px; height:44px; border-radius:50%; color:#fff; display:flex; align-items:center;
+                         justify-content:center; flex-shrink:0; font-weight:700; }
+  .pm-cb { width:18px; height:18px; cursor:pointer; }
+  .pm-dot { width:8px; height:8px; border-radius:50%; background:currentColor; display:inline-block; }
+  .pm-plus { color:#16a34a; } .pm-minus { color:#dc2626; }
+
+  .pm-pager .page-link { min-width:34px; height:34px; display:flex; align-items:center; justify-content:center; padding:0 8px; margin:0 3px;
+                         border:1px solid var(--admio-border-color,#e5e7eb); border-radius:8px !important; color:inherit;
+                         background:transparent; font-size:inherit; }
+  .pm-pager .page-item.active .page-link { background:#1a65f5; border-color:#1a65f5; color:#fff; }
+  .pm-pager .page-item.disabled .page-link { opacity:.4; }
+
+  .pm-dropdown { position:relative; display:inline-block; }
+  .pm-dropdown-menu { display:none; position:absolute; right:0; top:calc(100% + 4px); min-width:180px;
+                       background:var(--admio-sidebar-bg,#fff); border:1px solid var(--admio-border-color,#e5e7eb);
+                       border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:50; overflow:hidden; }
+  .pm-dropdown-menu.open { display:block; }
+  .pm-dropdown-menu a, .pm-dropdown-menu button { display:flex; align-items:center; gap:8px; width:100%; padding:10px 14px;
+      background:none; border:0; text-align:left; font-size:.92rem; color:inherit; text-decoration:none; cursor:pointer; }
+  .pm-dropdown-menu a:hover, .pm-dropdown-menu button:hover { background:rgba(26,101,245,.08); }
+
+  /* ── Stacking: modal + backdrop must sit above the sticky top bar ── */
+  .modal { z-index:2147483000 !important; }
+  .modal-backdrop { z-index:2146999000 !important; }
+  .toast-container { z-index:2147483600 !important; }
+
+  /* While any modal is open, drop the layout's top bar / header below the backdrop.
+     (Bootstrap adds .modal-open to <body>.) Covers the usual class names. */
+  body.modal-open header,
+  body.modal-open nav.navbar,
+  body.modal-open .navbar,
+  body.modal-open .topbar,
+  body.modal-open .top-bar,
+  body.modal-open .top-header,
+  body.modal-open .app-header,
+  body.modal-open .admio-topbar,
+  body.modal-open .admio-header,
+  body.modal-open [class*="topbar"],
+  body.modal-open [class*="top-bar"],
+  body.modal-open [class*="navbar"],
+  body.modal-open [class*="main-header"] { z-index:1 !important; }
+
+  /* ── Edit Payroll modal ──
+     FIX: the dialog is now height-limited to the viewport and only the
+     modal BODY scrolls, so the header (title / close) and footer
+     (Cancel / Save Changes) are always visible. */
+  .pep-modal .modal-dialog {
+    max-width:960px;
+    width:calc(100% - 1rem);
+    margin:.5rem auto;
+  }
+  .pep-modal .modal-dialog.modal-dialog-scrollable { height:calc(100% - 1rem); }
+  .pep-modal .modal-content { max-height:100%; overflow:hidden; }
+  .pep-modal .modal-header,
+  .pep-modal .modal-footer { flex-shrink:0; background:inherit; }
+  .pep-modal .modal-header { border-bottom:1px solid var(--admio-border-color,#e5e7eb); }
+  .pep-modal .modal-footer { border-top:1px solid var(--admio-border-color,#e5e7eb); }
+  .pep-modal .modal-body {
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:18px 20px;
+  }
+
+  .pep-grid { display:grid; grid-template-columns:1.6fr 1fr; gap:20px; padding:2px; align-items:start; }
+  .pep-summary-col { position:sticky; top:0; }
+  @media (max-width:820px) {
+    .pep-grid { grid-template-columns:1fr; }
+    .pep-summary-col { position:static; }
+  }
+
+  .pep-emp-card { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px;
+                  background:#f5f3ff; border:1px solid #e5e1fb; margin-bottom:16px; }
+  .pep-emp-avatar { width:48px; height:48px; border-radius:50%; object-fit:cover; background:#e5e7eb; flex-shrink:0; }
+  .pep-emp-name { font-weight:700; }
+  .pep-emp-sub { font-size:.82rem; color:#6b7280; }
+  .pep-emp-card .badge-admio { margin-left:auto; }
+
+  .pep-section { border:1px solid var(--admio-border-color,#e5e7eb); border-radius:14px; padding:16px; margin-bottom:16px; }
+  .pep-section-title { display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:6px; font-size:.95rem; }
+  .pep-section-sub { font-size:.78rem; color:#6b7280; margin-bottom:12px; }
+  .pep-section.earnings { background:#f0fdf4; border-color:#bbf7d0; }
+  .pep-section.deductions { background:#fef2f2; border-color:#fecaca; }
+  .pep-section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+
+  .pep-row { display:grid; grid-template-columns:1.4fr 1fr 1fr 34px; gap:8px; align-items:center; margin-bottom:8px; }
+  .pep-row-labels { display:grid; grid-template-columns:1.4fr 1fr 1fr 34px; gap:8px; font-size:.7rem;
+                     text-transform:uppercase; letter-spacing:.03em; color:#6b7280; font-weight:700; margin-bottom:6px; }
+  .pep-input { height:38px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:8px; padding:0 10px;
+               background:#fff; width:100%; font-size:.88rem; color:inherit; min-width:0; }
+  .pep-input:disabled { background:#f9fafb; color:#6b7280; }
+  .pep-del { width:34px; height:34px; border-radius:8px; border:1px solid #fecaca; background:#fff; color:#dc2626;
+             display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .pep-del:hover { background:#fef2f2; }
+  .pep-lock { width:34px; height:34px; display:flex; align-items:center; justify-content:center; color:#9ca3af; flex-shrink:0; }
+
+  .pep-basic-box, .pep-period-box { border:1px solid var(--admio-border-color,#e5e7eb); border-radius:14px; padding:14px 16px; margin-bottom:16px; }
+  .pep-basic-box .pep-section-title, .pep-period-box .pep-section-title { margin-bottom:10px; }
+
+  .pep-summary-card { border:1px solid var(--admio-border-color,#e5e7eb); border-radius:14px; padding:16px; }
+  .pep-stat-trio { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .pep-stat-trio .label { font-size:.7rem; color:#6b7280; }
+  .pep-stat-trio .val { font-weight:800; font-size:1.05rem; }
+  .pep-kv { display:flex; justify-content:space-between; padding:5px 0; font-size:.86rem; border-bottom:1px dashed var(--admio-border-color,#e5e7eb); }
+  .pep-kv:last-child { border-bottom:0; }
+  .pep-kv .k { color:#6b7280; }
+  .pep-info-banner { display:flex; gap:8px; align-items:flex-start; background:#eff6ff; border:1px solid #bfdbfe;
+                      border-radius:10px; padding:10px 12px; font-size:.8rem; color:#1e40af; margin-top:14px; }
+  .pep-sub-heading { display:flex; align-items:center; gap:6px; font-weight:700; font-size:.88rem; margin:14px 0 6px; }
+  .pep-sub-heading:first-child { margin-top:0; }
+
+  /* ── Detail (view) modal: same scroll fix ── */
+  #mDetail .modal-content { max-height:calc(100vh - 1rem); }
+  #mDetail .modal-body { overflow-y:auto; }
+
+  /* ── Dark mode ── */
+  [data-theme="dark"] .admio-card { background: var(--admio-sidebar-bg, #1e1e2d) !important; border-color: var(--admio-border-color, #2d2d3d) !important; }
+  [data-theme="dark"] .admio-table { color: #e5e7eb !important; }
+  [data-theme="dark"] .admio-table thead th { color: #9ca3af !important; background: transparent !important; border-color: #2d2d3d !important; }
+  [data-theme="dark"] .admio-table tbody td { color: #e5e7eb !important; border-color: #2d2d3d !important; background: transparent !important; }
+  [data-theme="dark"] .admio-table .text-muted { color: #9ca3af !important; }
+  [data-theme="dark"] .admio-table .fw-600 { color: #f3f4f6 !important; }
+  [data-theme="dark"] .pm-btn-ghost { background: transparent !important; border-color: #3a3a4d !important; color: #e5e7eb !important; }
+  [data-theme="dark"] .pm-btn-ghost:hover { border-color: #1a65f5 !important; color: #1a65f5 !important; }
+  [data-theme="dark"] .pm-field { background: #1e1e2d !important; border-color: #3a3a4d !important; color: #e5e7eb !important; }
+  [data-theme="dark"] .pm-field option { background: #1e1e2d; color: #e5e7eb; }
+  [data-theme="dark"] .admio-card-footer { background: transparent !important; border-color: #2d2d3d !important; color: #9ca3af !important; }
+  [data-theme="dark"] .pm-pager .page-link { background: transparent !important; border-color: #3a3a4d !important; color: #e5e7eb !important; }
+  [data-theme="dark"] .pm-pager .page-item.disabled .page-link { color: #6b7280 !important; }
+  [data-theme="dark"] .pm-dropdown-menu { background: var(--admio-sidebar-bg, #1e1e2d) !important; border-color: #3a3a4d !important; }
+  [data-theme="dark"] .badge-admio.bg-success-subtle { background:#14301f !important; color:#86efac !important; }
+  [data-theme="dark"] .badge-admio.bg-danger-subtle  { background:#3a1616 !important; color:#fca5a5 !important; }
+  [data-theme="dark"] .toast.text-bg-dark { background:#1e1e2d !important; border:1px solid #3a3a4d !important; }
+  [data-theme="dark"] .modal-content { background: var(--admio-sidebar-bg, #1e1e2d) !important; border-color: var(--admio-border-color, #2d2d3d) !important; color: #e5e7eb !important; }
+  [data-theme="dark"] .modal-content .border-bottom { border-color: #2d2d3d !important; }
+  [data-theme="dark"] .pep-modal .modal-header,
+  [data-theme="dark"] .pep-modal .modal-footer { border-color:#2d2d3d !important; }
+  [data-theme="dark"] .modal-content input,
+  [data-theme="dark"] .modal-content textarea { background:#1e1e2d !important; border-color:#3a3a4d !important; color:#e5e7eb !important; }
+  [data-theme="dark"] .pep-emp-card { background: rgba(124,58,237,.12) !important; border-color:#3a3a4d !important; }
+  [data-theme="dark"] .pep-section { border-color:#3a3a4d !important; }
+  [data-theme="dark"] .pep-section.earnings { background: rgba(22,163,74,.08) !important; border-color:#245c37 !important; }
+  [data-theme="dark"] .pep-section.deductions { background: rgba(220,38,38,.08) !important; border-color:#5c2424 !important; }
+  [data-theme="dark"] .pep-basic-box, [data-theme="dark"] .pep-period-box, [data-theme="dark"] .pep-summary-card { border-color:#3a3a4d !important; }
+  [data-theme="dark"] .pep-info-banner { background: rgba(59,130,246,.12) !important; border-color:#3a3a4d !important; color:#93c5fd !important; }
+  [data-theme="dark"] .pep-input { background:#1e1e2d !important; border-color:#3a3a4d !important; color:#e5e7eb !important; }
+  [data-theme="dark"] .pep-input:disabled { background:#17171f !important; color:#9ca3af !important; }
+  [data-theme="dark"] .pep-kv { border-color:#2d2d3d !important; }
+
+  @media (max-width:1100px) { .pm-stats { grid-template-columns:repeat(2, 1fr); } .pm-toolbar-right { margin-left:0; } }
+  @media (max-width:560px)  { .pm-stats { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════ HEADER ══════════ -->
+<div class="pm-head">
+  <span class="pm-head-ico">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h.01M11 15h4"/></svg>
+  </span>
+  <div>
+    <h1 class="page-title mb-1">Payroll Management</h1>
+    <p class="page-subtitle text-muted mb-0">Manage salaries, view records and handle payroll operations with ease.</p>
+  </div>
+</div>
+
+<!-- ══════════ STAT CARDS ══════════ -->
+<div class="pm-stats">
+  <div class="pm-stat c-salary">
+    <span class="pm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h.01M11 15h4"/></svg></span>
+    <div>
+      <div class="stat-label">Total Salary (This Month)</div>
+      <div class="stat-value" id="sTotalSalary">₹0</div>
+      <div class="pm-stat-trend" id="sTotalSalaryTrend"></div>
+    </div>
+  </div>
+  <div class="pm-stat c-emp">
+    <span class="pm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+    <div>
+      <div class="stat-label">Total Employees</div>
+      <div class="stat-value" id="sTotalEmp">0</div>
+      <div class="pm-stat-trend" id="sTotalEmpTrend"></div>
+    </div>
+  </div>
+  <div class="pm-stat c-paid">
+    <span class="pm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 17h6M9 13h6"/></svg></span>
+    <div>
+      <div class="stat-label">Paid</div>
+      <div class="stat-value" id="sPaid">0</div>
+      <div class="pm-stat-trend" id="sPaidTrend"></div>
+    </div>
+  </div>
+  <div class="pm-stat c-pending">
+    <span class="pm-stat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+    <div>
+      <div class="stat-label">Pending</div>
+      <div class="stat-value" id="sPending">0</div>
+      <div class="pm-stat-trend" id="sPendingTrend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOOLBAR ══════════ -->
+<div class="pm-toolbar">
+  <input type="month" class="pm-field" id="fMonth" value="{{ today|date:'Y-m' }}">
+
+  <div class="pm-toolbar-right">
+    <select class="pm-field" id="fDept">
+      <option value="">All Departments</option>
+      {% for d in departments %}<option value="{{ d.name }}">{{ d.name }}</option>{% endfor %}
+    </select>
+    <select class="pm-field" id="fEmp">
+      <option value="">All Employees</option>
+      {% for s in hotel_staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+    <input type="search" class="pm-field" id="fSearch" placeholder="Search employee...">
+    <button class="pm-btn pm-btn-ghost" id="btnRefresh" type="button" title="Refresh">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ TABLE ══════════ -->
+<div class="admio-card">
+  <div class="admio-card-header d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-3">
+      <span class="pm-head-ico" style="width:40px;height:40px;border-radius:10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/><path d="M9 17h6M9 13h6"/></svg>
+      </span>
+      <div>
+        <div class="card-title mb-0">Payroll Records</div>
+        <div class="text-xs text-muted">View and manage all payroll details.</div>
+      </div>
+    </div>
+    <a class="pm-btn pm-btn-ghost pm-btn-sm" id="btnExport" href="#">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="admio-table table align-middle mb-0">
+      <thead>
+        <tr>
+          <th style="width:40px"><input type="checkbox" class="pm-cb" id="cbAll" aria-label="Select all"></th>
+          <th>Employee</th><th>Month / Year</th><th>Basic Salary</th><th>+ Additions</th>
+          <th>- Deductions</th><th>Net Pay</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="pmBody">
+        <tr><td colspan="9" class="text-center text-muted">Loading payroll records…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="admio-card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-sm text-muted" id="pmShowing"></span>
+    <ul class="pagination pm-pager mb-0" id="pmPager"></ul>
+  </div>
+</div>
+
+<!-- ══════════ VIEW DETAIL MODAL ══════════ -->
+<div class="modal fade" id="mDetail" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mDetailTitle">Payroll record</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="mDetailBody"></div>
+      <div class="modal-footer" id="mDetailFoot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ EDIT PAYROLL MODAL ══════════ -->
+<div class="modal fade pep-modal" id="mEdit" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="pm-head-ico" style="width:44px;height:44px;border-radius:12px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </span>
+          <div>
+            <h5 class="modal-title mb-0">Edit Payroll</h5>
+            <div class="text-xs text-muted">Update and manage payroll details for selected employee.</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <datalist id="earningTypeList">
+          <option value="Bonus"><option value="Allowance"><option value="Incentive"><option value="Reimbursement">
+        </datalist>
+        <datalist id="deductionTypeList">
+          <option value="PF (Employee 12%)"><option value="ESI (Employee)"><option value="Professional Tax"><option value="Loan Deduction">
+        </datalist>
+
+        <div class="pep-grid">
+          <!-- LEFT COLUMN -->
+          <div>
+            <div class="pep-emp-card">
+              <img class="pep-emp-avatar" id="pepAvatarImg" style="display:none;" alt="">
+              <span class="pep-emp-avatar pm-avatar-fallback" id="pepAvatarFallback"></span>
+              <div>
+                <div class="pep-emp-name" id="pepName"></div>
+                <div class="pep-emp-sub" id="pepSub"></div>
+              </div>
+              <span class="badge badge-admio" id="pepStatusPill"></span>
+            </div>
+
+            <div class="pep-period-box">
+              <div class="pep-section-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Payroll Period
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="text-xs text-muted mb-1 d-block">From Date</label>
+                  <input class="pep-input" id="pepFrom" disabled>
+                </div>
+                <div class="col-6">
+                  <label class="text-xs text-muted mb-1 d-block">To Date</label>
+                  <input class="pep-input" id="pepTo" disabled>
+                </div>
+              </div>
+            </div>
+
+            <div class="pep-basic-box">
+              <div class="pep-section-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M2 10h20M7 15h.01"/></svg>
+                Basic Salary
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted">₹</span>
+                <input class="pep-input" id="pepBasic" disabled style="max-width:160px;">
+                <span class="text-xs text-muted">This is the base salary amount for the employee, calculated from attendance for the period.</span>
+              </div>
+            </div>
+
+            <div class="pep-section earnings">
+              <div class="pep-section-head">
+                <div class="pep-section-title mb-0" style="color:#15803d;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                  Earnings &amp; Additions
+                </div>
+                <button type="button" class="pm-btn pm-btn-ghost pm-btn-sm" id="pepAddEarning">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Item
+                </button>
+              </div>
+              <div class="pep-row-labels">
+                <div>Earning Type</div><div>% of Basic</div><div>Amount (₹)</div><div></div>
+              </div>
+              <div id="pepEarningsRows"></div>
+            </div>
+
+            <div class="pep-section deductions">
+              <div class="pep-section-head">
+                <div class="pep-section-title mb-0" style="color:#b91c1c;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
+                  Deductions
+                </div>
+                <button type="button" class="pm-btn pm-btn-ghost pm-btn-sm" id="pepAddDeduction">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Item
+                </button>
+              </div>
+              <div class="pep-row-labels">
+                <div>Deduction Type</div><div>% of Basic</div><div>Amount (₹)</div><div></div>
+              </div>
+              <div id="pepDeductionsRows"></div>
+            </div>
+
+            <div class="pep-basic-box mb-0">
+              <div class="pep-section-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4Z"/><path d="M8 9h8M8 13h5"/></svg>
+                Internal Notes <span class="text-xs text-muted fw-normal">(Optional)</span>
+              </div>
+              <textarea class="pep-input" id="pepNotes" rows="2" style="height:auto;padding:8px 10px;" placeholder="Add any notes about this payroll..."></textarea>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="pep-summary-col">
+            <div class="pep-summary-card">
+              <div class="pep-section-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+                Payroll Summary
+              </div>
+              <div class="pep-stat-trio">
+                <div><div class="label">Total Earnings</div><div class="val" style="color:#16a34a;" id="pepSumEarnings">₹0.00</div></div>
+                <div><div class="label">Total Deductions</div><div class="val" style="color:#dc2626;" id="pepSumDeductions">₹0.00</div></div>
+                <div><div class="label">Net Pay</div><div class="val" id="pepSumNet">₹0.00</div></div>
+              </div>
+
+              <div class="pep-sub-heading">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+                Employee Details
+              </div>
+              <div class="pep-kv"><span class="k">Employee ID</span><span id="pepKvEmpId"></span></div>
+              <div class="pep-kv"><span class="k">Department</span><span id="pepKvDept"></span></div>
+              <div class="pep-kv"><span class="k">Designation</span><span id="pepKvRole"></span></div>
+
+              <div class="pep-sub-heading">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                Payroll Period
+              </div>
+              <div class="pep-kv"><span class="k">From</span><span id="pepKvFrom"></span></div>
+              <div class="pep-kv"><span class="k">To</span><span id="pepKvTo"></span></div>
+
+              <div class="pep-sub-heading">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Status
+              </div>
+              <span class="badge badge-admio" id="pepKvStatus"></span>
+              <div class="text-xs text-muted mt-1" id="pepKvStatusNote"></div>
+
+              <div class="pep-info-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <span>Make sure to review all details before saving the changes.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="pm-btn pm-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="pm-btn pm-btn-primary" id="pepSave">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="pmToast" class="toast text-bg-dark border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="toast-body" id="pmToastBody"></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const API_DASHBOARD = "{% url 'payroll_dashboard' %}";
+  const API_UPDATE     = id => "{% url 'update_payroll' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_MARK_PAID  = id => "{% url 'mark_payroll_paid' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_DETAIL     = id => "{% url 'payroll_detail' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_RECALC     = id => "{% url 'recalculate_payroll' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_PDF        = id => "{% url 'download_payslip_pdf' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_LINE_ITEMS = id => "{% url 'payroll_line_items' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const API_ITEM       = id => "{% url 'payroll_line_item_detail' 0 %}".replace(/\/0\//, "/" + id + "/");
+  const EXPORT_CSV_BASE = "{% url 'payroll_export_csv' %}";
+  const CSRF = "{{ csrf_token }}";
+  const PAGE_SIZE = 10;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const AVATAR_BG = ["#6d4bf0","#0ea5e9","#16a34a","#f59e0b","#ec4899","#14b8a6","#ef4444","#8b5cf6"];
+  const money = n => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const initials = n => (n || "?").split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+
+  // FIX: move modals + toast to <body> so they aren't trapped inside the page
+  // layout's stacking context (which put the sticky top bar above the modal).
+  ["mDetail", "mEdit"].forEach(id => { const el = $(id); if (el) document.body.appendChild(el); });
+  const toastBox = document.querySelector(".toast-container");
+  if (toastBox) document.body.appendChild(toastBox);
+
+  let all = [], page = 1;
+
+  function toast(msg) {
+    $("pmToastBody").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance($("pmToast"), { delay: 2600 }).show();
+  }
+
+  async function post(url, body) {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "X-CSRFToken": CSRF, "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    return r.json();
+  }
+  async function del(url) {
+    const r = await fetch(url, { method: "DELETE", headers: { "X-CSRFToken": CSRF } });
+    return r.json();
+  }
+
+  function monthYear() {
+    const v = $("fMonth").value;
+    const [y, m] = v.split("-").map(Number);
+    return { month: m, year: y };
+  }
+
+  async function load() {
+    const { month, year } = monthYear();
+    try {
+      const r = await fetch(`${API_DASHBOARD}?month=${month}&year=${year}`, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+      all = await r.json();
+      renderStats();
+      page = 1;
+      render();
+    } catch (e) {
+      $("pmBody").innerHTML = `<tr><td colspan="9" class="text-center text-danger">Could not load payroll records.</td></tr>`;
+    }
+  }
+
+  function renderStats() {
+    const totalSalary = all.reduce((s, r) => s + (r.net_salary || 0), 0);
+    const paidCount = all.filter(r => r.paid_status === "Paid").length;
+    const pendingCount = all.length - paidCount;
+    $("sTotalSalary").textContent = money(totalSalary);
+    $("sTotalEmp").textContent = all.length;
+    $("sPaid").textContent = paidCount;
+    $("sPending").textContent = pendingCount;
+  }
+
+  function filtered() {
+    const dept = $("fDept").value, emp = $("fEmp").value;
+    const q = $("fSearch").value.trim().toLowerCase();
+    return all.filter(r => {
+      if (dept && r.department !== dept) return false;
+      if (emp && String(r.staff_id) !== emp) return false;
+      if (q && !(r.staff || "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    $("cbAll").checked = false;
+    const rows = filtered();
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (page > pages) page = pages;
+    const slice = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    if (!slice.length) {
+      $("pmBody").innerHTML = '<tr><td colspan="9" class="text-center text-muted">No payroll records match these filters.</td></tr>';
+    } else {
+      $("pmBody").innerHTML = slice.map(r => {
+        // Use the line items (what the Edit modal changes) as the source of truth.
+        const hasItems = (r.earnings_items && r.earnings_items.length) || (r.deductions_items && r.deductions_items.length);
+        const additions = hasItems
+          ? Math.max((r.gross_salary || 0) - (r.basic_salary || 0), 0)
+          : (r.overtime_amount || 0) + (r.bonus || 0) + (r.incentive || 0);
+        const deductions = hasItems
+          ? (r.total_deductions || 0)
+          : (r.deductions||0)+(r.pf_amount||0)+(r.esi_amount||0)+(r.loan_deduction||0)+(r.tax_deduction||0);
+        const bg = AVATAR_BG[(r.staff_id || 0) % AVATAR_BG.length];
+        const isPaid = r.paid_status === "Paid";
+        return `<tr>
+          <td><input type="checkbox" class="pm-cb pm-row-cb" aria-label="Select row"></td>
+          <td><div class="d-flex align-items-center gap-3">
+              <span class="pm-avatar-fallback" style="background:${bg}">${esc(initials(r.staff))}</span>
+              <div><div class="fw-600">${esc(r.staff)}</div><div class="text-xs text-muted">${esc(r.employee_id)} · ${esc(r.department)}</div></div>
+          </div></td>
+          <td class="text-nowrap">${esc(r.month_label)} ${r.year}</td>
+          <td class="text-nowrap">${money(r.basic_salary)}</td>
+          <td class="text-nowrap pm-plus">+${money(additions)}</td>
+          <td class="text-nowrap pm-minus">-${money(deductions)}</td>
+          <td class="text-nowrap fw-600">${money(r.net_salary)}</td>
+          <td>${isPaid
+              ? `<span class="badge badge-admio bg-success-subtle text-success-emphasis d-inline-flex align-items-center gap-2"><span class="pm-dot"></span>Paid</span>`
+              : `<span class="badge badge-admio bg-danger-subtle text-danger-emphasis d-inline-flex align-items-center gap-2"><span class="pm-dot"></span>Unpaid</span>`}
+          </td>
+          <td>
+            <div class="d-flex gap-2 align-items-center">
+              <button type="button" class="pm-btn pm-btn-icon pm-btn-ghost" data-view="${r.id}" title="View">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button type="button" class="pm-btn pm-btn-icon pm-btn-ghost" data-edit="${r.id}" title="Edit" ${isPaid ? "disabled" : ""}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+              </button>
+              <div class="pm-dropdown">
+                <button type="button" class="pm-btn pm-btn-icon pm-btn-ghost" data-kebab="${r.id}" title="More">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>
+                </button>
+                <div class="pm-dropdown-menu" id="kebab-${r.id}">
+                  ${!isPaid ? `<button type="button" data-markpaid="${r.id}">Mark as paid</button>` : ""}
+                  <button type="button" data-recalc="${r.id}">Recalculate</button>
+                  <a href="${API_PDF(r.id)}" target="_blank">Download payslip</a>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    const start = rows.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+    const end = rows.length ? start + slice.length - 1 : 0;
+    $("pmShowing").textContent = `Showing ${start}–${end} of ${rows.length} employees`;
+
+    let pager = `<li class="page-item ${page === 1 ? "disabled" : ""}"><button class="page-link" data-page="${page - 1}">‹</button></li>`;
+    for (let p = 1; p <= pages; p++)
+      pager += `<li class="page-item ${p === page ? "active" : ""}"><button class="page-link" data-page="${p}">${p}</button></li>`;
+    pager += `<li class="page-item ${page === pages ? "disabled" : ""}"><button class="page-link" data-page="${page + 1}">›</button></li>`;
+    $("pmPager").innerHTML = pager;
+  }
+
+  function closeAllKebabs() {
+    document.querySelectorAll(".pm-dropdown-menu.open").forEach(m => m.classList.remove("open"));
+  }
+
+  async function openDetail(id) {
+    const r = await (await fetch(API_DETAIL(id))).json();
+    if (!r.success) return toast(r.error || "Could not load record");
+    $("mDetailTitle").textContent = `${r.staff} — ${r.month_label} ${r.year}`;
+    const rows = [
+      ["Employee ID", r.employee_id], ["Department", r.department],
+      ["Basic Salary", money(r.basic_salary)], ["Overtime", money(r.overtime_amount)],
+      ["Bonus", money(r.bonus)], ["Incentive", money(r.incentive)],
+      ["PF", money(r.pf_amount)], ["ESI", money(r.esi_amount)],
+      ["Loan Deduction", money(r.loan_deduction)], ["Tax Deduction", money(r.tax_deduction)],
+      ["Leave/Absent Deduction", money(r.deductions)],
+      ["Gross Salary", money(r.gross_salary)], ["Total Deductions", money(r.total_deductions)],
+      ["Net Salary", money(r.net_salary)], ["Status", r.paid_status],
+      ["Paid At", r.paid_at || "—"], ["Paid By", r.paid_by || "—"],
+    ];
+    $("mDetailBody").innerHTML = `<div class="row g-0">` + rows.map(([k, v]) =>
+      `<div class="col-6 d-flex justify-content-between gap-3 py-2 border-bottom pe-3"><span class="text-muted">${k}</span><span class="fw-600 text-end">${esc(v)}</span></div>`
+    ).join("") + `</div>`;
+    $("mDetailFoot").innerHTML = `<a class="pm-btn pm-btn-ghost" href="${API_PDF(id)}" target="_blank">Download PDF</a>
+      <button type="button" class="pm-btn pm-btn-primary" data-bs-dismiss="modal">Close</button>`;
+    bootstrap.Modal.getOrCreateInstance($("mDetail")).show();
+  }
+
+  async function markPaid(id) {
+    try {
+      const j = await post(API_MARK_PAID(id), { payment_mode: "Bank Transfer", send_email: true });
+      if (!j.success) throw new Error(j.error || "Failed");
+      toast(j.mail_sent ? "Marked paid and payslip emailed" : "Marked paid" + (j.mail_error ? ` (${j.mail_error})` : ""));
+      load();
+    } catch (e) { toast(e.message); }
+  }
+
+  async function recalc(id) {
+    try {
+      const j = await post(API_RECALC(id), {});
+      if (!j.success) throw new Error(j.error || "Failed");
+      toast("Recalculated");
+      load();
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ══════════════ EDIT PAYROLL MODAL ══════════════ */
+  let pep = null; // current edit state
+
+  function fmtDMY(d) {
+    const p = n => String(n).padStart(2, "0");
+    return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()}`;
+  }
+
+  function pepUpdateSummary(gross, totalDeductions, net) {
+    pep.gross = gross; pep.totalDeductions = totalDeductions; pep.net = net;
+    $("pepSumEarnings").textContent = money(gross);
+    $("pepSumDeductions").textContent = money(totalDeductions);
+    $("pepSumNet").textContent = money(net);
+  }
+
+  function pepLocalRecompute() {
+    // immediate visual feedback from local rows before server confirms
+    const sum = arr => arr.reduce((s, it) => s + (parseFloat(it.amount) || 0), 0);
+    const g = sum(pep.earnings) + parseFloat(pep.basic || 0);
+    const d = sum(pep.deductions);
+    $("pepSumEarnings").textContent = money(g);
+    $("pepSumDeductions").textContent = money(d);
+    $("pepSumNet").textContent = money(Math.max(g - d, 0));
+  }
+
+  let pepKeySeq = 0;
+  const pepArr  = type => type === "earning" ? pep.earnings : pep.deductions;
+  const pepFind = (type, key) => pepArr(type).find(i => i._k === key);
+  const pepAllPending = () => Promise.all(
+    [...pep.earnings, ...pep.deductions].map(i => i._q || Promise.resolve())
+  );
+
+  function pepRowHtml(item, type) {
+    const listId = type === "earning" ? "earningTypeList" : "deductionTypeList";
+    if (item.is_auto) {
+      return `<div class="pep-row">
+        <div class="pep-input" style="display:flex;align-items:center;background:#f9fafb;">${esc(item.label)}</div>
+        <div class="pep-input" style="display:flex;align-items:center;background:#f9fafb;">${item.pct ? item.pct + "%" : "—"}</div>
+        <div class="pep-input" style="display:flex;align-items:center;background:#f9fafb;">${money(item.amount)}</div>
+        <div class="pep-lock" title="Auto-calculated, cannot be edited">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+      </div>`;
+    }
+    return `<div class="pep-row" data-row-type="${type}" data-key="${item._k}">
+      <input class="pep-input" data-field="label" list="${listId}" placeholder="Type" value="${esc(item.label || "")}">
+      <input type="number" step="0.01" class="pep-input" data-field="pct" placeholder="e.g. 12" value="${item.pct ?? ""}">
+      <input type="number" step="0.01" class="pep-input" data-field="amount" placeholder="0.00" value="${item.amount ?? ""}">
+      <button type="button" class="pep-del" data-field="delete" title="Remove">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+    </div>`;
+  }
+
+  function pepRenderRows(type) {
+    const arr = pepArr(type);
+    const container = type === "earning" ? $("pepEarningsRows") : $("pepDeductionsRows");
+    container.innerHTML = arr.length
+      ? arr.map(it => pepRowHtml(it, type)).join("")
+      : `<div class="text-xs text-muted">No items yet — click "Add Item" to add one.</div>`;
+  }
+
+  // Update one row's inputs in place (never re-render the list while the user is typing)
+  function pepSyncRow(type, item) {
+    const row = document.querySelector(`.pep-row[data-row-type="${type}"][data-key="${item._k}"]`);
+    if (!row) return;
+    const set = (f, v) => {
+      const el = row.querySelector(`[data-field="${f}"]`);
+      if (el && document.activeElement !== el) el.value = v ?? "";
+    };
+    set("pct", item.pct);
+    set("amount", item.amount);
+  }
+
+  function pepAddRow(type) {
+    pepArr(type).push({ _k: ++pepKeySeq, id: null, label: "", pct: "", amount: "", is_auto: false, line_type: type });
+    pepRenderRows(type);
+    const container = type === "earning" ? $("pepEarningsRows") : $("pepDeductionsRows");
+    const last = container.lastElementChild;
+    if (last) {
+      last.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      const inp = last.querySelector("input");
+      if (inp) inp.focus({ preventScroll: true });
+    }
+  }
+
+  async function pepRemoveRow(type, key) {
+    const item = pepFind(type, key);
+    if (!item) return;
+    await (item._q || Promise.resolve());          // let any in-flight save finish first
+    if (item.id) {
+      try {
+        const j = await del(API_ITEM(item.id));
+        if (!j.success) throw new Error(j.error || "Could not delete item");
+        pepUpdateSummary(j.gross_salary, j.total_deductions, j.net_salary);
+      } catch (e) { toast(e.message); return; }
+    }
+    const arr = pepArr(type);
+    arr.splice(arr.indexOf(item), 1);
+    pepRenderRows(type);
+    pepLocalRecompute();
+  }
+
+  // Runs one save at a time per row, so create -> update never race or duplicate.
+  async function pepPersist(type, item, changed) {
+    const amt = parseFloat(item.amount), pct = parseFloat(item.pct);
+    const hasAmount = amt > 0, hasPct = pct > 0;
+
+    if (!String(item.label || "").trim()) {
+      if (hasAmount || hasPct) toast("Choose an item type to save this row.");
+      pepLocalRecompute();
+      return;
+    }
+
+    try {
+      let j;
+      if (!item.id) {
+        if (!hasAmount && !hasPct) { pepLocalRecompute(); return; }
+        const body = { line_type: item.line_type, source: "custom", label: item.label, pct_base: "basic" };
+        const useAmount = changed === "amount" ? hasAmount : (hasAmount && !hasPct);
+        if (useAmount) body.amount = amt; else body.pct = pct;
+        j = await post(API_LINE_ITEMS(pep.payrollId), body);
+        if (!j.success) throw new Error(j.error || "Could not add item");
+        item.id = j.item.id;
+      } else {
+        const body = { label: item.label, pct_base: "basic" };
+        if (changed === "pct") {
+          if (hasPct) body.pct = pct; else body.amount = amt || 0;   // pct cleared -> keep as fixed amount
+        } else if (changed === "amount") {
+          body.amount = amt || 0;                                     // fixed amount overrides any pct
+        }
+        j = await post(API_ITEM(item.id), body);
+        if (!j.success) throw new Error(j.error || "Could not update item");
+      }
+      item.amount = j.item.amount;
+      item.pct = j.item.pct;
+      pepUpdateSummary(j.gross_salary, j.total_deductions, j.net_salary);
+      pepSyncRow(type, item);
+    } catch (e) {
+      toast(e.message);
+      pepLocalRecompute();
+    }
+  }
+
+  function pepFieldChange(type, key, field, value) {
+    const item = pepFind(type, key);
+    if (!item) return;
+    item[field] = value;
+    item._q = (item._q || Promise.resolve()).then(() => pepPersist(type, item, field));
+    return item._q;
+  }
+
+  async function openEdit(id) {
+    const r = await (await fetch(API_DETAIL(id))).json();
+    if (!r.success) return toast(r.error || "Could not load record");
+
+    const firstDay = new Date(r.year, r.month - 1, 1);
+    const lastDay = new Date(r.year, r.month, 0);
+
+    pep = {
+      payrollId: id,
+      basic: r.basic_salary,
+      earnings: (r.earnings_items || []).map(it => ({ ...it, _k: ++pepKeySeq })),
+      deductions: (r.deductions_items || []).map(it => ({ ...it, _k: ++pepKeySeq })),
+      notes: r.notes || "",
+      isPaid: r.paid_status === "Paid",
+    };
+
+    $("pepAvatarImg").style.display = "none";
+    $("pepAvatarFallback").style.display = "flex";
+    $("pepAvatarFallback").style.background = AVATAR_BG[(r.staff_id || 0) % AVATAR_BG.length];
+    $("pepAvatarFallback").textContent = initials(r.staff);
+    $("pepName").textContent = r.staff;
+    $("pepSub").textContent = `${r.employee_id} · ${r.department}`;
+
+    const isPaid = r.paid_status === "Paid";
+    $("pepStatusPill").className = "badge badge-admio d-inline-flex align-items-center gap-2 " +
+      (isPaid ? "bg-success-subtle text-success-emphasis" : "bg-warning-subtle text-warning-emphasis");
+    $("pepStatusPill").innerHTML = `<span class="pm-dot"></span>${esc(r.paid_status)}`;
+
+    $("pepFrom").value = fmtDMY(firstDay);
+    $("pepTo").value = fmtDMY(lastDay);
+    $("pepBasic").value = Number(r.basic_salary).toFixed(2);
+    $("pepNotes").value = pep.notes;
+
+    pepRenderRows("earning");
+    pepRenderRows("deduction");
+    pepUpdateSummary(r.gross_salary, r.total_deductions, r.net_salary);
+
+    $("pepKvEmpId").textContent = r.employee_id;
+    $("pepKvDept").textContent = r.department;
+    $("pepKvRole").textContent = r.department; // no separate designation field on Payroll model
+    $("pepKvFrom").textContent = fmtDMY(firstDay);
+    $("pepKvTo").textContent = fmtDMY(lastDay);
+    $("pepKvStatus").className = "badge badge-admio d-inline-flex align-items-center gap-2 " +
+      (isPaid ? "bg-success-subtle text-success-emphasis" : "bg-danger-subtle text-danger-emphasis");
+    $("pepKvStatus").innerHTML = `<span class="pm-dot"></span>${esc(r.paid_status)}`;
+    $("pepKvStatusNote").textContent = isPaid ? "Payment already processed." : "Payment not yet processed.";
+
+    $("pepSave").disabled = isPaid;
+
+    // always start at the top of the modal
+    const body = document.querySelector("#mEdit .modal-body");
+    if (body) body.scrollTop = 0;
+
+    bootstrap.Modal.getOrCreateInstance($("mEdit")).show();
+  }
+
+  $("pepAddEarning").addEventListener("click", () => pepAddRow("earning"));
+  $("pepAddDeduction").addEventListener("click", () => pepAddRow("deduction"));
+
+  const pepBody = document.querySelector(".pep-modal .modal-body");
+  pepBody.addEventListener("change", e => {
+    const row = e.target.closest("[data-row-type]");
+    const field = e.target.dataset.field;
+    if (!row || !field || field === "delete") return;
+    pepFieldChange(row.dataset.rowType, +row.dataset.key, field, e.target.value);
+  });
+  pepBody.addEventListener("click", e => {
+    const btn = e.target.closest('[data-field="delete"]');
+    if (!btn) return;
+    const row = btn.closest("[data-row-type]");
+    pepRemoveRow(row.dataset.rowType, +row.dataset.key);
+  });
+
+  $("pepSave").addEventListener("click", async () => {
+    if (!pep) return;
+    const btn = $("pepSave");
+    btn.disabled = true;
+    try {
+      // commit the field being edited, then wait for every in-flight row save
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      await new Promise(r => setTimeout(r, 0));
+      await pepAllPending();
+
+      const incomplete = [...pep.earnings, ...pep.deductions].some(i =>
+        !i.is_auto && !i.id && (parseFloat(i.amount) > 0 || parseFloat(i.pct) > 0));
+      if (incomplete) throw new Error("Some rows have an amount but no type. Choose a type or remove the row.");
+
+      const j = await post(API_UPDATE(pep.payrollId), { notes: $("pepNotes").value });
+      if (!j.success) throw new Error(j.error || "Could not save changes");
+      toast("Payroll updated");
+      bootstrap.Modal.getOrCreateInstance($("mEdit")).hide();   // table reloads on hidden
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      btn.disabled = !!(pep && pep.isPaid);
+    }
+  });
+
+  // Line items save instantly, so refresh the table whenever the modal closes
+  // (Save, Cancel or X) — otherwise the list shows stale numbers.
+  $("mEdit").addEventListener("hidden.bs.modal", () => { load(); });
+
+  $("btnExport").addEventListener("click", (e) => {
+    e.preventDefault();
+    const { month, year } = monthYear();
+    window.open(`${EXPORT_CSV_BASE}?month=${month}&year=${year}`, "_blank");
+  });
+
+  $("btnRefresh").addEventListener("click", load);
+  $("fMonth").addEventListener("change", load);
+  ["fDept","fEmp"].forEach(i => $(i).addEventListener("change", () => { page = 1; render(); }));
+  $("fSearch").addEventListener("input", () => { page = 1; render(); });
+  $("cbAll").addEventListener("change", e =>
+    document.querySelectorAll(".pm-row-cb").forEach(cb => cb.checked = e.target.checked));
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-page],[data-view],[data-edit],[data-kebab],[data-markpaid],[data-recalc]");
+    if (t) {
+      if (t.dataset.page)     { page = +t.dataset.page; return render(); }
+      if (t.dataset.view)     return openDetail(+t.dataset.view);
+      if (t.dataset.edit)     return openEdit(+t.dataset.edit);
+      if (t.dataset.markpaid) { closeAllKebabs(); return markPaid(+t.dataset.markpaid); }
+      if (t.dataset.recalc)   { closeAllKebabs(); return recalc(+t.dataset.recalc); }
+      if (t.dataset.kebab) {
+        const menu = $(`kebab-${t.dataset.kebab}`);
+        const wasOpen = menu.classList.contains("open");
+        closeAllKebabs();
+        if (!wasOpen) menu.classList.add("open");
+        e.stopPropagation();
+        return;
+      }
+    }
+    closeAllKebabs();
+  });
+
+  load();
+})();
+</script>
+{% endblock %}

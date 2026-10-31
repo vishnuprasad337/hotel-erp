@@ -1,0 +1,491 @@
+{% extends "pos/base.html" %}
+{% block title %} My Leave{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Layout + colours only. Sizes come from base (.page-title, .stat-value, .btn-admio, ...) */
+  .lv-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1em;margin-bottom:1.4em}
+  .lv-grid{display:grid;grid-template-columns:5fr 7fr;gap:1.4em;align-items:start}
+  .lv-row{display:grid;grid-template-columns:1fr 1fr;gap:1em}
+  .lv-field{margin-bottom:1em}
+  .lv-field label{display:block;margin-bottom:.35em;font-weight:600}
+  .lv-field .req{color:#dc2626}
+  .form-control-admio,.form-select-admio{width:100%}
+  textarea.form-control-admio{min-height:7em;resize:vertical}
+  .form-control-admio[readonly]{opacity:.75}
+  .lv-flex{display:flex;align-items:center;gap:.8em;flex-wrap:wrap}
+  .lv-spacer{margin-left:auto}
+  .lv-muted{color:#6b7280}
+
+  /* page header: icon + title left, refresh right (overrides .page-header centring) */
+  .page-header.lv-page-head{
+    display:flex !important;flex-wrap:nowrap !important;align-items:center !important;
+    justify-content:flex-start !important;text-align:left !important;gap:.9em !important;
+  }
+  .lv-page-head .lv-titles{flex:1;min-width:0}
+  .lv-page-head .page-title,.lv-page-head .page-subtitle{text-align:left}
+
+  /* card header: icon + title left-aligned */
+  .admio-card-header.lv-flex{
+    display:flex !important;align-items:center !important;
+    justify-content:flex-start !important;gap:.9em !important;text-align:left !important;
+  }
+  .admio-card-header.lv-flex > div{text-align:left}
+  .admio-card-header.lv-flex .lv-spacer{margin-left:auto}
+
+  /* inputs + selects share one look */
+  .form-control-admio,.form-select-admio{
+    border:1px solid var(--admio-border-color,#e5e7eb) !important;
+    border-radius:10px !important;
+    background-color:var(--admio-input-bg,#fff) !important;
+    box-shadow:none !important;
+  }
+  .form-control-admio:focus,.form-select-admio:focus{
+    outline:none;border-color:#7c3aed !important;
+    box-shadow:0 0 0 3px rgba(124,58,237,.12) !important;
+  }
+
+  /* summary cards */
+  .lv-card{display:flex;align-items:center;gap:.9em;padding:1.1em 1.3em;cursor:pointer;
+           border:1px solid;transition:transform .15s,box-shadow .15s;outline:2px solid transparent}
+  .lv-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.08)}
+  .lv-card.selected{outline-color:currentColor}
+  .lv-card .stat-icon{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:50%!important;flex-shrink:0}
+  .lv-card .stat-value{color:inherit}
+  .lv-card .stat-label{font-weight:700;color:var(--admio-heading-color,#111)}
+  .c-pending{background:#fffbeb;border-color:#fde68a;color:#d97706}
+  .c-approved{background:#f0fdf4;border-color:#bbf7d0;color:#16a34a}
+  .c-rejected{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+  .c-total{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
+
+  .lv-bubble{display:flex;align-items:center;justify-content:center;border-radius:50%;
+             width:2.4em;height:2.4em;background:#eef2ff;color:#4f46e5;flex-shrink:0}
+  .lv-bubble.solid{background:#4f46e5;color:#fff;border-radius:.8em;width:2.6em;height:2.6em}
+
+  .lv-tabs{display:flex;gap:.5em;margin-bottom:1em;flex-wrap:wrap}
+  .lv-tab{font:inherit;font-size:.9em;border:none;background:#f3f4f6;color:#374151;border-radius:999px;
+          padding:.35em 1.1em;font-weight:600;cursor:pointer}
+  .lv-tab.active{background:#dbeafe;color:#1d4ed8}
+
+  .btn-admio.lv-light{background:#fff;color:#374151;border:1px solid #e5e7eb}
+  .btn-admio.lv-light:hover{background:#f3f4f6}
+  .btn-admio.lv-danger{background:#dc2626;border-color:#dc2626;color:#fff}
+  .btn-admio.lv-danger:hover{background:#b91c1c}
+  .btn-admio.lv-cancel{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+  .btn-admio.lv-cancel:hover{background:#dc2626;border-color:#dc2626;color:#fff}
+
+  /* status badges */
+  .st-Pending{background:#fef3c7!important;color:#b45309!important}
+  .st-Approved{background:#dcfce7!important;color:#15803d!important}
+  .st-Rejected{background:#fee2e2!important;color:#b91c1c!important}
+
+  /* leave TYPE badges: one colour each */
+  .lv-type{display:inline-flex;align-items:center;gap:.45em;padding:.3em .85em;border-radius:999px;
+           font-weight:600;font-size:.88em;white-space:nowrap}
+  .lv-type .lv-dot{width:.6em;height:.6em;border-radius:50%;background:currentColor;flex-shrink:0}
+  .t-casual{background:#dbeafe;color:#1d4ed8}
+  .t-sick{background:#ffedd5;color:#c2410c}
+  .t-earned{background:#ccfbf1;color:#0f766e}
+  .t-bereavement{background:#e2e8f0;color:#334155}
+  .t-other{background:#ede9fe;color:#6d28d9}
+
+  .lv-reason{color:#6b7280;font-size:.85em;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lv-alert{display:none;border-radius:.6em;padding:.7em 1em;margin-bottom:1em;font-size:.95em}
+  .lv-alert.err{display:block;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+  .lv-alert.ok{display:block;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+  .lv-empty{text-align:center;padding:2.5em 1em}
+  .lv-empty .big{width:4em;height:4em;border-radius:1em;background:#eef2ff;color:#4f46e5;
+                 display:flex;align-items:center;justify-content:center;margin:0 auto .8em;font-size:1.8em}
+
+  /* confirm modal */
+  .cm-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:100000;padding:1em}
+  .cm-backdrop.open{display:flex}
+  .cm-box{background:#fff;border-radius:1em;width:100%;max-width:24em;padding:1.5em;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+  .cm-ico{width:3em;height:3em;border-radius:50%;background:#fef2f2;color:#dc2626;
+    display:flex;align-items:center;justify-content:center;margin-bottom:.8em}
+  .cm-detail{background:#f9fafb;border:1px solid #e5e7eb;border-radius:.6em;padding:.7em .9em;margin:.9em 0 1.2em;font-size:.95em}
+  .cm-detail div{display:flex;justify-content:space-between;align-items:center;gap:1em;padding:.15em 0}
+  .cm-detail > div > span:first-child{color:#6b7280}
+  .cm-detail > div > span:last-child{font-weight:600;text-align:right}
+  .cm-actions{display:flex;gap:.6em;justify-content:flex-end}
+
+  /* ───────── tablet ───────── */
+  @media(max-width:1199px){
+    .lv-cards{grid-template-columns:repeat(2,1fr)}
+    .lv-grid{grid-template-columns:1fr}
+  }
+
+  /* ───────── mobile ───────── */
+  @media(max-width:575px){
+    /* header: icon-only refresh on the right */
+    .lv-page-head .lv-bubble.solid{width:2.4em;height:2.4em}
+    .lv-page-head .page-title{font-size:1.5rem !important}
+    .lv-page-head .page-subtitle{font-size:.95rem !important}
+    #lvRefresh{padding:.6em .8em !important;margin-left:0}
+    #lvRefresh .lv-btn-text{display:none}
+
+    /* summary cards: 2 per row, compact */
+    .lv-cards{grid-template-columns:1fr 1fr;gap:.7em}
+    .lv-card{flex-direction:column;align-items:flex-start;gap:.5em;padding:.9em !important}
+    .lv-card .stat-icon{width:2.6em !important;height:2.6em !important;border-radius:50%!important}
+    .lv-card .stat-icon i{font-size:1.1rem !important}
+    .lv-card .stat-value{font-size:1.6rem !important}
+    .lv-card .text-xs{display:none}
+
+    /* form */
+    .lv-row{grid-template-columns:1fr}
+    .admio-card-header,.admio-card-body{padding:1.1em !important}
+
+    /* card headers: filters go full width below the title */
+    .admio-card-header .lv-flex.lv-spacer{width:100%;margin-left:0;flex-wrap:nowrap}
+    .admio-card-header .lv-flex.lv-spacer select{flex:1;width:auto !important}
+
+    /* search row */
+    #lvSearch{flex-basis:100% !important}
+
+    /* table -> stacked cards */
+    .lv-table thead{display:none}
+    .lv-table,.lv-table tbody,.lv-table tr,.lv-table td{display:block;width:100%}
+    .lv-table tr{border:1px solid var(--admio-border-color,#e5e7eb);border-radius:14px;
+                 padding:.7em 1em;margin-bottom:.8em;background:var(--admio-card-bg,#fff)}
+    .lv-table td{display:flex;justify-content:space-between;align-items:center;gap:1em;
+                 padding:.4em 0 !important;border:none !important;text-align:right}
+    .lv-table td::before{content:attr(data-label);color:#6b7280;font-weight:600;font-size:.85em;
+                         text-align:left;flex-shrink:0}
+    .lv-table td.lv-td-period{display:block;text-align:left;padding-bottom:.6em !important;
+                              border-bottom:1px dashed #e5e7eb !important;margin-bottom:.3em}
+    .lv-table td.lv-td-period::before{display:none}
+    .lv-table td.lv-td-period .lv-reason{max-width:100%;white-space:normal}
+    .lv-table td.lv-td-action{justify-content:stretch;padding-top:.6em !important}
+    .lv-table td.lv-td-action::before{display:none}
+    .lv-table td.lv-td-action .btn-admio{width:100%;justify-content:center}
+    .lv-table td:empty{display:none}
+
+    .cm-actions{flex-direction:column-reverse}
+    .cm-actions .btn-admio{width:100%}
+  }
+
+  /* ───────── dark ───────── */
+  [data-theme="dark"] .lv-tab{background:#252535;color:#d1d5db}
+  [data-theme="dark"] .btn-admio.lv-light{background:#252535;border-color:#2d2d3d;color:#e5e7eb}
+  [data-theme="dark"] .lv-card .stat-icon{background:#252535}
+  [data-theme="dark"] .cm-box{background:#1e1e2d;color:#f3f4f6}
+  [data-theme="dark"] .cm-detail{background:#252535;border-color:#2d2d3d}
+  [data-theme="dark"] .cm-ico{background:#3b1d1d}
+  [data-theme="dark"] .form-control-admio,[data-theme="dark"] .form-select-admio{background-color:#252535 !important}
+  [data-theme="dark"] .lv-table tr{background:#1e1e2d;border-color:#2d2d3d}
+  [data-theme="dark"] .t-casual{background:#1e2a4a;color:#93c5fd}
+  [data-theme="dark"] .t-sick{background:#3b2414;color:#fdba74}
+  [data-theme="dark"] .t-earned{background:#12332f;color:#5eead4}
+  [data-theme="dark"] .t-bereavement{background:#2b3240;color:#cbd5e1}
+  [data-theme="dark"] .t-other{background:#2d2350;color:#c4b5fd}
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="page-header lv-page-head">
+  <div class="lv-bubble solid"><i class="icon-plane"></i></div>
+  <div class="lv-titles">
+    <h1 class="page-title mb-0">My Leave</h1>
+    <p class="page-subtitle mb-0">Apply and track leave requests.</p>
+  </div>
+  <button type="button" class="btn-admio lv-light" id="lvRefresh" aria-label="Refresh">
+    <i class="icon-refresh-cw"></i> <span class="lv-btn-text">Refresh</span>
+  </button>
+</div>
+
+<div class="lv-cards">
+  <div class="admio-card lv-card c-pending" data-tab="Pending">
+    <div class="stat-icon"><i class="icon-hourglass"></i></div>
+    <div><div class="stat-value" id="sPending">0</div><div class="stat-label">Pending</div><div class="text-xs lv-muted">Waiting for approval</div></div>
+  </div>
+  <div class="admio-card lv-card c-approved" data-tab="Approved">
+    <div class="stat-icon"><i class="icon-circle-check"></i></div>
+    <div><div class="stat-value" id="sApproved">0</div><div class="stat-label">Approved</div><div class="text-xs lv-muted">Leave requests approved</div></div>
+  </div>
+  <div class="admio-card lv-card c-rejected" data-tab="Rejected">
+    <div class="stat-icon"><i class="icon-circle-x"></i></div>
+    <div><div class="stat-value" id="sRejected">0</div><div class="stat-label">Rejected</div><div class="text-xs lv-muted">Leave requests rejected</div></div>
+  </div>
+  <div class="admio-card lv-card c-total" data-tab="All">
+    <div class="stat-icon"><i class="icon-list"></i></div>
+    <div><div class="stat-value" id="sTotal">0</div><div class="stat-label">Total</div><div class="text-xs lv-muted">Total leave requests</div></div>
+  </div>
+</div>
+
+<div class="lv-grid">
+
+  <!-- Apply -->
+  <div class="admio-card">
+    <div class="admio-card-header lv-flex">
+      <div class="lv-bubble"><i class="icon-send"></i></div>
+      <div>
+        <h2 class="card-title mb-0">Apply for Leave</h2>
+        <div class="text-sm lv-muted">Submit your leave request and get it approved</div>
+      </div>
+    </div>
+    <div class="admio-card-body">
+      <div class="lv-alert" id="lvAlert"></div>
+      <form id="lvForm" novalidate>
+        <div class="lv-row">
+          <div class="lv-field"><label>From Date <span class="req">*</span></label>
+            <input type="date" class="form-control-admio" id="fFrom" required></div>
+          <div class="lv-field"><label>To Date <span class="req">*</span></label>
+            <input type="date" class="form-control-admio" id="fTo" required></div>
+        </div>
+        <div class="lv-row">
+          <div class="lv-field"><label>Leave Type <span class="req">*</span></label>
+            <select class="form-select-admio" id="fType" required>
+              <option value="">Select Leave Type</option>
+              {% for key, label in leave_types %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+            </select></div>
+          <div class="lv-field"><label>Duration</label>
+            <input type="text" class="form-control-admio" id="fDuration" value="Auto-calculated" readonly></div>
+        </div>
+        <div class="lv-field"><label>Reason <span class="req">*</span></label>
+          <textarea class="form-control-admio" id="fReason" maxlength="500" placeholder="Brief reason for leave..." required></textarea></div>
+        <div class="lv-flex">
+          <button type="submit" class="btn-admio" id="lvSubmit"><i class="icon-send"></i> Submit Request</button>
+          <button type="button" class="btn-admio lv-light" id="lvReset"><i class="icon-refresh-cw"></i> Clear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Requests -->
+  <div class="admio-card">
+    <div class="admio-card-header lv-flex">
+      <div class="lv-bubble"><i class="icon-history"></i></div>
+      <div>
+        <h2 class="card-title mb-0">Leave Requests</h2>
+        <div class="text-sm lv-muted">View and track your leave requests</div>
+      </div>
+      <div class="lv-flex lv-spacer">
+        <select class="form-select-admio" id="fMonth" style="width:auto">
+          <option value="">All Months</option>
+          <option value="1">January</option><option value="2">February</option>
+          <option value="3">March</option><option value="4">April</option>
+          <option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option>
+          <option value="9">September</option><option value="10">October</option>
+          <option value="11">November</option><option value="12">December</option>
+        </select>
+        <select class="form-select-admio" id="fYear" style="width:auto"></select>
+      </div>
+    </div>
+    <div class="admio-card-body">
+      <div class="lv-flex mb-3">
+        <input type="text" class="form-control-admio" id="lvSearch" placeholder="Search leave type or reason..." style="flex:1;min-width:10em;width:auto">
+        <button type="button" class="btn-admio lv-light" id="lvClearSearch">Clear</button>
+        <span class="badge-admio" id="lvCount">0 requests</span>
+      </div>
+      <div class="lv-tabs">
+        <button type="button" class="lv-tab active" data-tab="All">All</button>
+        <button type="button" class="lv-tab" data-tab="Pending">Pending</button>
+        <button type="button" class="lv-tab" data-tab="Approved">Approved</button>
+        <button type="button" class="lv-tab" data-tab="Rejected">Rejected</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="admio-table lv-table w-100">
+          <thead><tr><th>Applied</th><th>Period</th><th>Days</th><th>Type</th><th>Status</th><th></th></tr></thead>
+          <tbody id="lvBody"></tbody>
+        </table>
+      </div>
+      <div class="lv-empty" id="lvEmpty" style="display:none">
+        <div class="big"><i class="icon-file-search"></i></div>
+        <div class="card-title">No leave requests found</div>
+        <div class="text-sm lv-muted">Your leave requests will appear here once you submit them.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel modal -->
+<div class="cm-backdrop" id="cmBackdrop" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+  <div class="cm-box">
+    <div class="cm-ico"><i class="icon-triangle-alert"></i></div>
+    <h3 class="card-title mb-1" id="cmTitle">Cancel leave request?</h3>
+    <div class="text-sm lv-muted">This will withdraw your pending request. This cannot be undone.</div>
+    <div class="cm-detail">
+      <div><span>Period</span><span id="cmPeriod">—</span></div>
+      <div><span>Type</span><span id="cmType">—</span></div>
+      <div><span>Days</span><span id="cmDays">—</span></div>
+    </div>
+    <div class="cm-actions">
+      <button type="button" class="btn-admio lv-light" id="cmKeep">Keep request</button>
+      <button type="button" class="btn-admio lv-danger" id="cmConfirm">Yes, cancel it</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const DATA_URL   = "{% url 'leave_pos_data' %}";
+  const APPLY_URL  = "{% url 'leave_pos_apply' %}";
+  const CANCEL_URL = "{% url 'leave_pos_cancel' 0 %}".replace(/0\/cancel\/$/, "");
+  const CSRF = document.querySelector("[name=csrfmiddlewaretoken]").value;
+  const THIS_YEAR = {{ current_year }};
+
+  let rows = [], tab = "All", pendingCancelId = null;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  /* coloured leave-type badge */
+  const KNOWN_TYPES = ["casual", "sick", "earned", "bereavement", "other"];
+  function typeBadge(type, label) {
+    const t = KNOWN_TYPES.includes(type) ? type : "other";
+    return `<span class="lv-type t-${t}"><i class="lv-dot"></i>${esc(label)}</span>`;
+  }
+
+  (function () {
+    const sel = $("fYear");
+    for (let y = THIS_YEAR + 1; y >= THIS_YEAR - 3; y--) {
+      const o = document.createElement("option");
+      o.value = y; o.textContent = y; if (y === THIS_YEAR) o.selected = true;
+      sel.appendChild(o);
+    }
+  })();
+
+  function flash(msg, ok) {
+    const a = $("lvAlert");
+    a.className = "lv-alert " + (ok ? "ok" : "err");
+    a.textContent = msg;
+    if (ok) setTimeout(() => { a.className = "lv-alert"; }, 4000);
+  }
+
+  function updateDuration() {
+    const f = $("fFrom").value, t = $("fTo").value, out = $("fDuration");
+    if (!f || !t) { out.value = "Auto-calculated"; return; }
+    const d = Math.round((new Date(t) - new Date(f)) / 86400000) + 1;
+    out.value = d < 1 ? "Invalid range" : d + (d === 1 ? " day" : " days");
+  }
+  $("fFrom").addEventListener("change", () => {
+    if (!$("fTo").value || $("fTo").value < $("fFrom").value) $("fTo").value = $("fFrom").value;
+    $("fTo").min = $("fFrom").value; updateDuration();
+  });
+  $("fTo").addEventListener("change", updateDuration);
+  $("fFrom").min = new Date().toISOString().slice(0, 10);
+
+  function resetForm() {
+    $("lvForm").reset(); $("fTo").min = "";
+    $("fDuration").value = "Auto-calculated"; $("lvAlert").className = "lv-alert";
+  }
+  $("lvReset").addEventListener("click", resetForm);
+
+  function visible() {
+    const q = $("lvSearch").value.trim().toLowerCase();
+    return rows.filter(r => (tab === "All" || r.status === tab) &&
+      (!q || r.type_label.toLowerCase().includes(q) || r.reason.toLowerCase().includes(q)));
+  }
+
+  function renderList() {
+    const list = visible();
+    $("lvCount").textContent = list.length + (list.length === 1 ? " request" : " requests");
+    $("lvEmpty").style.display = list.length ? "none" : "block";
+    $("lvBody").innerHTML = list.map(r => `
+      <tr>
+        <td data-label="Applied">${esc(r.applied)}</td>
+        <td class="lv-td-period"><strong>${esc(r.period)}</strong><div class="lv-reason" title="${esc(r.reason)}">${esc(r.reason)}</div></td>
+        <td data-label="Days">${r.days}</td>
+        <td data-label="Type">${typeBadge(r.type, r.type_label)}</td>
+        <td data-label="Status"><span class="badge-admio st-${esc(r.status)}">${esc(r.status)}</span></td>
+        <td class="lv-td-action">${r.status === "Pending"
+          ? `<button type="button" class="btn-admio btn-sm lv-cancel" data-id="${r.id}"><i class="icon-x"></i> Cancel</button>` : ""}</td>
+      </tr>`).join("");
+  }
+
+  function renderSummary(s) {
+    $("sPending").textContent = s.pending; $("sApproved").textContent = s.approved;
+    $("sRejected").textContent = s.rejected; $("sTotal").textContent = s.total;
+  }
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll(".lv-tab").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+    document.querySelectorAll(".lv-card").forEach(c => c.classList.toggle("selected", t !== "All" && c.dataset.tab === t));
+    renderList();
+  }
+  document.querySelectorAll(".lv-tab").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+  document.querySelectorAll(".lv-card").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
+  $("lvSearch").addEventListener("input", renderList);
+  $("lvClearSearch").addEventListener("click", () => { $("lvSearch").value = ""; renderList(); });
+
+  function load() {
+    const p = new URLSearchParams({ year: $("fYear").value, month: $("fMonth").value });
+    return fetch(`${DATA_URL}?${p}`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(d => { rows = d.rows; renderSummary(d.summary); renderList(); })
+      .catch(e => flash("Could not load leave requests (" + e.message + ")", false));
+  }
+  $("fMonth").addEventListener("change", load);
+  $("fYear").addEventListener("change", load);
+  $("lvRefresh").addEventListener("click", load);
+
+  $("lvForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const from = $("fFrom").value, to = $("fTo").value;
+    const type = $("fType").value, reason = $("fReason").value.trim();
+    if (!from || !to) return flash("Please choose both dates.", false);
+    if (to < from)    return flash("End date cannot be before start date.", false);
+    if (!type)        return flash("Please select a leave type.", false);
+    if (!reason)      return flash("Please enter a reason.", false);
+
+    const btn = $("lvSubmit"); btn.disabled = true;
+    fetch(APPLY_URL, {
+      method: "POST",
+      headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" },
+      body: new URLSearchParams({ from_date: from, to_date: to, leave_type: type, reason })
+    })
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok || !j.success) throw new Error(j.error || "Could not submit request");
+        resetForm(); flash("Leave request submitted. Waiting for approval.", true); return load();
+      })
+      .catch(err => flash(err.message, false))
+      .finally(() => { btn.disabled = false; });
+  });
+
+  /* cancel modal */
+  const backdrop = $("cmBackdrop"), btnConfirm = $("cmConfirm"), btnKeep = $("cmKeep");
+  function openModal(id) {
+    const r = rows.find(x => x.id === id); if (!r) return;
+    pendingCancelId = id;
+    $("cmPeriod").textContent = r.period;
+    $("cmType").innerHTML = typeBadge(r.type, r.type_label);
+    $("cmDays").textContent = r.days + (r.days === 1 ? " day" : " days");
+    backdrop.classList.add("open"); btnKeep.focus();
+  }
+  function closeModal() {
+    backdrop.classList.remove("open"); pendingCancelId = null;
+    btnConfirm.disabled = false; btnKeep.disabled = false; btnConfirm.textContent = "Yes, cancel it";
+  }
+  $("lvBody").addEventListener("click", e => {
+    const b = e.target.closest(".lv-cancel"); if (b) openModal(parseInt(b.dataset.id, 10));
+  });
+  btnKeep.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", e => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && backdrop.classList.contains("open")) closeModal(); });
+
+  btnConfirm.addEventListener("click", function () {
+    if (pendingCancelId == null) return;
+    btnConfirm.disabled = true; btnKeep.disabled = true; btnConfirm.textContent = "Cancelling…";
+    fetch(`${CANCEL_URL}${pendingCancelId}/cancel/`, {
+      method: "POST", headers: { "X-CSRFToken": CSRF, "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok || !j.success) throw new Error(j.error || "Could not cancel");
+        closeModal(); flash("Leave request cancelled.", true); return load();
+      })
+      .catch(err => { closeModal(); flash(err.message, false); });
+  });
+
+  load();
+})();
+</script>
+{% endblock %}

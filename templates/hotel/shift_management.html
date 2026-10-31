@@ -1,0 +1,2038 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Shift Management{% endblock %}
+
+{% block content %}
+<style>
+
+  /* =========================================================
+     THEME VARIABLES (light + dark)
+     Dark mode activates on [data-bs-theme="dark"] on <html>/<body>
+     (Bootstrap 5.3 convention) — adjust the selector below if your
+     base.html toggles dark mode a different way.
+  ========================================================= */
+  :root, [data-bs-theme="light"] {
+    --sm-bg: #ffffff;
+    --sm-bg-soft: #f8fafc;
+    --sm-bg-soft-2: #f1f5f9;
+    --sm-border: #e2e8f0;
+    --sm-border-soft: #eef1f5;
+    --sm-text: #0f172a;
+    --sm-text-muted: #475569;
+    --sm-text-muted-2: #64748b;
+    --sm-text-faint: #94a3b8;
+    --sm-shadow: rgba(15, 23, 42, .08);
+    --sm-shadow-modal: rgba(15, 23, 42, .2);
+  }
+  [data-bs-theme="dark"] {
+    --sm-bg: #1e293b;
+    --sm-bg-soft: #17223a;
+    --sm-bg-soft-2: #24314a;
+    --sm-border: #334155;
+    --sm-border-soft: #2b3a52;
+    --sm-text: #e2e8f0;
+    --sm-text-muted: #b6c2d4;
+    --sm-text-muted-2: #94a3b8;
+    --sm-text-faint: #7c8ba3;
+    --sm-shadow: rgba(0, 0, 0, .35);
+    --sm-shadow-modal: rgba(0, 0, 0, .55);
+  }
+
+  /* =========================================================
+     DARK-MODE GATE
+     We don't control base.html, so this matches every common
+     convention (Bootstrap 5.3's data-bs-theme, a plain data-theme
+     attribute, or a .dark/.dark-theme/.dark-mode class on <html>
+     or <body>). Whichever one your layout actually sets will match;
+     the rest are harmless no-ops. If none of these match your setup,
+     tell me the real attribute/class and I'll point this at it directly.
+  ========================================================= */
+  html[data-bs-theme="dark"], body[data-bs-theme="dark"],
+  html[data-theme="dark"], body[data-theme="dark"],
+  html.dark, body.dark, html.dark-theme, body.dark-theme, body.dark-mode {
+    --sm-bg: #1e293b;
+    --sm-bg-soft: #17223a;
+    --sm-bg-soft-2: #24314a;
+    --sm-border: #334155;
+    --sm-border-soft: #2b3a52;
+    --sm-text: #e2e8f0;
+    --sm-text-muted: #b6c2d4;
+    --sm-text-muted-2: #94a3b8;
+    --sm-text-faint: #7c8ba3;
+    --sm-shadow: rgba(0, 0, 0, .35);
+    --sm-shadow-modal: rgba(0, 0, 0, .55);
+  }
+
+  /* Base "admio-*" classes are defined outside this file (base.html) and,
+     as shipped, don't repaint for dark mode — that's what leaves the
+     table/toolbar/card looking like a white panel on a dark page. These
+     rules restyle just the instances rendered by this block. */
+  html[data-bs-theme="dark"] .container-fluid .admio-card,
+  body[data-bs-theme="dark"] .container-fluid .admio-card,
+  html[data-theme="dark"] .container-fluid .admio-card,
+  body[data-theme="dark"] .container-fluid .admio-card,
+  html.dark .container-fluid .admio-card, body.dark .container-fluid .admio-card,
+  html.dark-theme .container-fluid .admio-card, body.dark-theme .container-fluid .admio-card,
+  body.dark-mode .container-fluid .admio-card {
+    background: var(--sm-bg);
+    border-color: var(--sm-border-soft);
+    color: var(--sm-text);
+  }
+  html[data-bs-theme="dark"] .admio-table, body[data-bs-theme="dark"] .admio-table,
+  html[data-theme="dark"] .admio-table, body[data-theme="dark"] .admio-table,
+  html.dark .admio-table, body.dark .admio-table,
+  html.dark-theme .admio-table, body.dark-theme .admio-table,
+  body.dark-mode .admio-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--sm-text);
+    --bs-table-striped-bg: var(--sm-bg-soft);
+    --bs-table-hover-bg: var(--sm-bg-soft);
+    color: var(--sm-text);
+  }
+  html[data-bs-theme="dark"] .admio-table thead th, body[data-bs-theme="dark"] .admio-table thead th,
+  html[data-theme="dark"] .admio-table thead th, body[data-theme="dark"] .admio-table thead th,
+  html.dark .admio-table thead th, body.dark .admio-table thead th,
+  html.dark-theme .admio-table thead th, body.dark-theme .admio-table thead th,
+  body.dark-mode .admio-table thead th {
+    background: var(--sm-bg-soft); color: var(--sm-text-muted-2); border-color: var(--sm-border-soft);
+  }
+  html[data-bs-theme="dark"] .admio-table td, body[data-bs-theme="dark"] .admio-table td,
+  html[data-theme="dark"] .admio-table td, body[data-theme="dark"] .admio-table td,
+  html.dark .admio-table td, body.dark .admio-table td,
+  html.dark-theme .admio-table td, body.dark-theme .admio-table td,
+  body.dark-mode .admio-table td {
+    border-color: var(--sm-border-soft);
+  }
+  html[data-bs-theme="dark"] .form-select-admio, body[data-bs-theme="dark"] .form-select-admio,
+  html[data-bs-theme="dark"] .form-control-admio, body[data-bs-theme="dark"] .form-control-admio,
+  html[data-theme="dark"] .form-select-admio, body[data-theme="dark"] .form-select-admio,
+  html[data-theme="dark"] .form-control-admio, body[data-theme="dark"] .form-control-admio,
+  html.dark .form-select-admio, body.dark .form-select-admio,
+  html.dark .form-control-admio, body.dark .form-control-admio,
+  html.dark-theme .form-select-admio, body.dark-theme .form-select-admio,
+  html.dark-theme .form-control-admio, body.dark-theme .form-control-admio,
+  body.dark-mode .form-select-admio, body.dark-mode .form-control-admio {
+    background-color: var(--sm-bg) !important; color: var(--sm-text) !important; border-color: var(--sm-border) !important;
+  }
+  html[data-bs-theme="dark"] .dropdown-menu, body[data-bs-theme="dark"] .dropdown-menu,
+  html[data-theme="dark"] .dropdown-menu, body[data-theme="dark"] .dropdown-menu,
+  html.dark .dropdown-menu, body.dark .dropdown-menu,
+  html.dark-theme .dropdown-menu, body.dark-theme .dropdown-menu,
+  body.dark-mode .dropdown-menu {
+    background: var(--sm-bg); border-color: var(--sm-border); color: var(--sm-text);
+  }
+  html[data-bs-theme="dark"] .dropdown-menu .dropdown-item, body[data-bs-theme="dark"] .dropdown-menu .dropdown-item,
+  html[data-theme="dark"] .dropdown-menu .dropdown-item, body[data-theme="dark"] .dropdown-menu .dropdown-item,
+  html.dark .dropdown-menu .dropdown-item, body.dark .dropdown-menu .dropdown-item,
+  html.dark-theme .dropdown-menu .dropdown-item, body.dark-theme .dropdown-menu .dropdown-item,
+  body.dark-mode .dropdown-menu .dropdown-item {
+    color: var(--sm-text);
+  }
+  html[data-bs-theme="dark"] .dropdown-menu .dropdown-item:hover, body[data-bs-theme="dark"] .dropdown-menu .dropdown-item:hover,
+  html[data-theme="dark"] .dropdown-menu .dropdown-item:hover, body[data-theme="dark"] .dropdown-menu .dropdown-item:hover,
+  html.dark .dropdown-menu .dropdown-item:hover, body.dark .dropdown-menu .dropdown-item:hover,
+  html.dark-theme .dropdown-menu .dropdown-item:hover, body.dark-theme .dropdown-menu .dropdown-item:hover,
+  body.dark-mode .dropdown-menu .dropdown-item:hover {
+    background: var(--sm-bg-soft);
+  }
+  html[data-bs-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+  html[data-bs-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+  html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+  html[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator,
+  html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+  html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+  body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
+  body.dark-mode input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.7);
+  }
+
+  /* Fonts, colors and buttons come from base.html (admio classes).
+     Only layout helpers below; no font-family is set here. */
+
+  .sm-head-icon {
+    width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+    background: #ede9fe; color: #6d28d9;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* KPI cards (click to filter by shift type) */
+  .admio-card.sm-kpi {
+    display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+    border: 1px solid transparent; height: 100%; cursor: pointer;
+    transition: box-shadow .15s ease, transform .15s ease; position: relative;
+  }
+  .admio-card.sm-kpi:hover { box-shadow: 0 6px 18px var(--sm-shadow); transform: translateY(-1px); }
+  .admio-card.sm-kpi.selected { box-shadow: 0 0 0 2px currentColor; }
+  .sm-kpi .tile { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sm-kpi .num { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+  .sm-kpi .lbl { font-size: .8rem; color: var(--sm-text-muted); }
+  .sm-kpi .chev { margin-left: auto; color: var(--sm-text-faint); line-height: 0; }
+  .admio-card.sm-kpi.total   { background: #eef2ff; border-color: #e0e7ff; color: #4338ca; } .sm-kpi.total   .tile { background: #dbe4ff; color: #4338ca; } .sm-kpi.total   .num { color: #1e293b; }
+  .admio-card.sm-kpi.morning { background: #fffbeb; border-color: #fde68a; color: #d97706; } .sm-kpi.morning .tile { background: #fde68a; color: #d97706; } .sm-kpi.morning .num { color: #b45309; }
+  .admio-card.sm-kpi.evening { background: #eff6ff; border-color: #dbeafe; color: #1d4ed8; } .sm-kpi.evening .tile { background: #bfdbfe; color: #1d4ed8; } .sm-kpi.evening .num { color: #1d4ed8; }
+  .admio-card.sm-kpi.night   { background: #f5f3ff; border-color: #ede9fe; color: #7c3aed; } .sm-kpi.night   .tile { background: #ddd6fe; color: #7c3aed; } .sm-kpi.night   .num { color: #6d28d9; }
+  .admio-card.sm-kpi.custom  { background: #ecfdf5; border-color: #d1fae5; color: #15803d; } .sm-kpi.custom  .tile { background: #bbf7d0; color: #15803d; } .sm-kpi.custom  .num { color: #15803d; }
+
+  /* Toolbar */
+  .sm-range {
+    display: inline-flex; align-items: center; gap: 10px;
+    border: 1px solid var(--sm-border); border-radius: 12px; padding: 8px 14px; background: var(--sm-bg); color: var(--sm-text-muted);
+  }
+  .sm-range input { border: none; outline: none; background: transparent; font-weight: 600; font-size: .9rem; color: var(--sm-text); padding: 0; width: 150px; }
+  .sm-range .sep { color: var(--sm-text-faint); }
+  .sm-select {
+    border: 1px solid var(--sm-border) !important; border-radius: 10px !important;
+    background-color: var(--sm-bg); color: var(--sm-text); min-width: 160px;
+  }
+  .sm-search { position: relative; min-width: 200px; }
+  .sm-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--sm-text-faint); pointer-events: none; }
+  .sm-search input { padding-left: 36px; width: 100%; }
+
+  .sm-toggle { display: inline-flex; gap: 6px; }
+  .sm-toggle button {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--sm-border); background: var(--sm-bg); color: var(--sm-text-muted);
+    border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: .85rem; cursor: pointer;
+    transition: all .15s ease;
+  }
+  .sm-toggle button:hover { background: var(--sm-bg-soft); }
+  .sm-toggle button.active { background: var(--bs-primary, #4f46e5); border-color: var(--bs-primary, #4f46e5); color: #fff; }
+
+  .sm-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sm-pill {
+    border: none; background: #eef1f6; color: var(--sm-text-muted); font-weight: 600; font-size: .85rem;
+    padding: 8px 20px; border-radius: 10px; cursor: pointer; transition: all .15s ease;
+  }
+  .sm-pill:hover { background: #e2e8f0; }
+  .sm-pill.active { background: var(--bs-primary, #4f46e5); color: #fff; }
+
+  /* Table */
+  .sm-table thead th { font-size: .8rem; white-space: nowrap; }
+  .sm-table tbody td { vertical-align: middle; }
+  .sm-emp { display: flex; align-items: center; gap: 12px; }
+  .sm-photo { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; background: #e2e8f0; flex-shrink: 0; }
+  .sm-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sm-photo .ini { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #1d4ed8; background: #dbeafe; }
+  .sm-emp .nm { font-weight: 600; color: var(--sm-text); line-height: 1.2; }
+  .sm-emp .sub { font-size: .76rem; color: var(--sm-text-faint); }
+
+  .sm-shift { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 10px; font-size: .82rem; font-weight: 600; white-space: nowrap; }
+  .sm-time { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--sm-text); white-space: nowrap; }
+  .sm-face-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+  .sm-thumb { width: 24px; height: 24px; border-radius: 6px; overflow: hidden; background: #e2e8f0; flex-shrink: 0; }
+  .sm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sm-thumb .ini { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: #1d4ed8; background: #dbeafe; }
+  .sm-face { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .sm-face.ok { background: #dcfce7; color: #15803d; }
+  .sm-face.manual { background: var(--sm-bg-soft-2); color: var(--sm-text-muted-2); }
+
+  .sm-status { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 999px; font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .sm-status i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  .sm-view-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--sm-border); background: var(--sm-bg); color: #4f46e5;
+    border-radius: 10px 0 0 10px; padding: 7px 13px; font-weight: 600; font-size: .82rem; cursor: pointer;
+  }
+  .sm-view-caret {
+    border: 1px solid var(--sm-border); border-left: none; background: var(--sm-bg); color: var(--sm-text-muted-2);
+    border-radius: 0 10px 10px 0; padding: 7px 9px; cursor: pointer; line-height: 0;
+  }
+  .sm-view-btn:hover, .sm-view-caret:hover { background: var(--sm-bg-soft); }
+  .sm-kebab { border: none; background: transparent; color: var(--sm-text-faint); padding: 7px; border-radius: 8px; cursor: pointer; line-height: 0; }
+  .sm-kebab:hover { background: var(--sm-bg-soft-2); color: var(--sm-text-muted); }
+  .sm-view-caret.dropdown-toggle::after, .sm-kebab.dropdown-toggle::after { display: none; }
+
+  .sm-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--sm-border-soft); }
+  .sm-pager { display: flex; gap: 6px; }
+  .sm-pager button {
+    min-width: 34px; height: 34px; border: 1px solid var(--sm-border); background: var(--sm-bg); color: var(--sm-text-muted);
+    border-radius: 8px; font-weight: 600; font-size: .85rem; cursor: pointer;
+  }
+  .sm-pager button:disabled { opacity: .45; cursor: default; }
+  .sm-pager button.active { background: var(--bs-primary, #4f46e5); border-color: var(--bs-primary, #4f46e5); color: #fff; }
+
+  .sm-bulk { display: none; align-items: center; gap: 12px; padding: 10px 18px; background: #eef2ff; border-bottom: 1px solid #e0e7ff; font-size: .85rem; }
+  .sm-bulk.show { display: flex; }
+
+  /* Calendar chips */
+  .sm-chip { display: block; width: 100%; text-align: left; border: 1px solid var(--sm-border); background: var(--sm-bg); border-radius: 8px; padding: 5px 8px; font-size: .78rem; cursor: pointer; }
+  .sm-chip:hover { background: var(--sm-bg-soft); }
+  .sm-chip .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .sm-chip small { display: block; color: var(--sm-text-faint); }
+  .sm-weeknav { display: none; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--sm-border-soft); }
+  .sm-weeknav.show { display: flex; }
+  .sm-empty { text-align: center; padding: 3rem 1rem; color: var(--sm-text-faint); }
+
+  /* Modals above the app layout */
+  #assignShiftModal, #detailsModal, #timingModal, #confirmDeleteModal { z-index: 10500; }
+  .modal-backdrop.show { z-index: 10490; }
+
+  /* =========================================================
+     TOAST NOTIFICATIONS  (replaces the browser alert())
+     Sits above every modal (modals are z-index 10500).
+  ========================================================= */
+  .sm-toast-host {
+    position: fixed; top: 20px; right: 20px; z-index: 11000;
+    display: flex; flex-direction: column; gap: 10px;
+    width: 380px; max-width: calc(100vw - 24px); pointer-events: none;
+  }
+  .sm-toast {
+    --tc: #16a34a; --tc-bg: #dcfce7;
+    pointer-events: auto; position: relative; overflow: hidden;
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--sm-bg); color: var(--sm-text);
+    border: 1px solid var(--sm-border); border-left: 4px solid var(--tc);
+    border-radius: 14px; padding: 13px 14px 14px 14px;
+    box-shadow: 0 14px 34px var(--sm-shadow-modal);
+    opacity: 0; transform: translateX(24px);
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .sm-toast.show { opacity: 1; transform: translateX(0); }
+  .sm-toast.hide { opacity: 0; transform: translateX(24px); }
+  .sm-toast.error   { --tc: #dc2626; --tc-bg: #fee2e2; }
+  .sm-toast.warning { --tc: #d97706; --tc-bg: #fef3c7; }
+  .sm-toast.info    { --tc: #4f46e5; --tc-bg: #e0e7ff; }
+  .sm-toast .t-ic {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tc-bg); color: var(--tc);
+  }
+  .sm-toast .t-body { flex: 1; min-width: 0; }
+  .sm-toast .t-title { font-weight: 700; font-size: .88rem; line-height: 1.25; }
+  .sm-toast .t-msg { font-size: .84rem; color: var(--sm-text-muted); margin-top: 2px; word-break: break-word; }
+  .sm-toast .t-close {
+    border: none; background: transparent; color: var(--sm-text-faint);
+    padding: 2px; border-radius: 6px; cursor: pointer; line-height: 0; flex-shrink: 0;
+  }
+  .sm-toast .t-close:hover { background: var(--sm-bg-soft-2); color: var(--sm-text-muted); }
+  .sm-toast .t-bar {
+    position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+    background: var(--tc); opacity: .55; transform-origin: left center;
+    animation: smToastBar var(--dur, 4200ms) linear forwards;
+  }
+  .sm-toast:hover .t-bar { animation-play-state: paused; }
+  @keyframes smToastBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+  @media (max-width: 575.98px) {
+    .sm-toast-host { top: 10px; right: 12px; left: 12px; width: auto; max-width: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sm-toast { transition: opacity .01s; transform: none; }
+    .sm-toast .t-bar { animation: none; display: none; }
+  }
+
+  /* =========================================================
+     SHARED MODAL STYLE  (Shift Timings + Shift Details)
+  ========================================================= */
+  .sm-dialog { max-width: 880px; }
+  .sm-modal { border: 0; border-radius: 20px; box-shadow: 0 24px 60px var(--sm-shadow-modal); overflow: hidden; }
+  .sm-m-head { display: flex; align-items: flex-start; gap: 14px; padding: 22px 26px 14px; }
+  .sm-m-icon {
+    width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+    background: #ede9fe; color: #6d28d9; display: flex; align-items: center; justify-content: center;
+  }
+  .sm-m-title { font-size: 1.2rem; font-weight: 700; color: var(--sm-text); margin: 0; line-height: 1.25; }
+  .sm-m-sub { font-size: .86rem; color: var(--sm-text-muted-2); margin: 3px 0 0; }
+  .sm-m-body { padding: 6px 26px 22px; }
+  .sm-m-foot {
+    display: flex; justify-content: flex-end; align-items: center; gap: 10px;
+    padding: 14px 26px; border-top: 1px solid var(--sm-border-soft); background: var(--sm-bg);
+  }
+  .sm-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 10px; padding: 9px 20px; font-size: .9rem; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--sm-border); background: var(--sm-bg); color: var(--sm-text-muted); transition: background .15s ease;
+  }
+  .sm-btn:hover { background: var(--sm-bg-soft); }
+  .sm-btn.primary { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+  .sm-btn.primary:hover { background: #6d28d9; }
+  .sm-btn.primary:disabled { opacity: .6; cursor: default; }
+  .sm-btn.danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .sm-btn.danger:hover { background: #b91c1c; }
+  .sm-btn.danger-link { border: none; background: transparent; color: #dc2626; padding-left: 0; margin-right: auto; }
+  .sm-btn.danger-link:hover { background: transparent; text-decoration: underline; }
+  .sm-btn.sm { padding: 7px 14px; font-size: .84rem; }
+
+  /* ----- Confirm Delete modal ----- */
+  .sm-confirm-icon {
+    width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+    background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ----- Shift Timings modal ----- */
+  .sm-tm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .sm-switch { display: inline-flex; align-items: center; gap: 12px; font-weight: 600; font-size: .9rem; color: var(--sm-text); cursor: pointer; margin: 0; }
+  .sm-switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .sm-switch .track { width: 42px; height: 24px; border-radius: 999px; background: #cbd5e1; position: relative; transition: background .15s ease; flex-shrink: 0; }
+  .sm-switch .track::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s ease;
+  }
+  .sm-switch input:checked + .track { background: #7c3aed; }
+  .sm-switch input:checked + .track::after { transform: translateX(18px); }
+  .sm-switch input:focus-visible + .track { outline: 2px solid #7c3aed; outline-offset: 2px; }
+
+  .sm-tm-wrap { border: 1px solid var(--sm-border); border-radius: 14px; padding: 0 4px 4px; }
+  .sm-tm-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .sm-tm-table th { font-size: .8rem; font-weight: 600; color: var(--sm-text-muted-2); padding: 14px 12px; background: var(--sm-bg-soft); text-align: left; }
+  .sm-tm-table th:first-child { border-top-left-radius: 12px; }
+  .sm-tm-table th:last-child { border-top-right-radius: 12px; }
+  .sm-tm-table td { padding: 10px 12px; vertical-align: middle; border-top: 1px solid var(--sm-border-soft); }
+  .sm-tm-table tbody tr:first-child td { border-top: none; }
+  .sm-tm-shift { display: flex; align-items: center; gap: 12px; font-weight: 600; color: var(--sm-text); }
+  .sm-tm-shift .ic { width: 22px; display: inline-flex; justify-content: center; }
+  .sm-time-input {
+    width: 100%; min-width: 130px; border: 1px solid var(--sm-border); border-radius: 10px;
+    padding: 8px 12px; font-size: .9rem; font-weight: 500; color: var(--sm-text); background: var(--sm-bg);
+  }
+  .sm-time-input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, .12); }
+  .sm-dur { font-weight: 600; color: var(--sm-text); white-space: nowrap; }
+  .sm-swatch {
+    display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; position: relative;
+    color: var(--sm-text-faint); padding: 4px; border-radius: 8px;
+  }
+  .sm-swatch:hover { background: var(--sm-bg-soft-2); }
+  .sm-swatch .sw { width: 28px; height: 20px; border-radius: 6px; background: var(--c, #64748b); display: inline-block; }
+  .sm-swatch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .sm-tm-table.is-off tbody { opacity: .5; }
+  .sm-tm-table.is-off tbody td { pointer-events: none; }
+
+  /* ----- Shift Details modal ----- */
+  .sm-dt-grid { display: grid; grid-template-columns: 270px 1fr; gap: 16px; }
+  @media (max-width: 767px) { .sm-dt-grid { grid-template-columns: 1fr; } }
+  .sm-dt-side { border: 1px solid var(--sm-border-soft); background: var(--sm-bg-soft); border-radius: 14px; padding: 18px; }
+  .sm-dt-person { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .sm-dt-photo { width: 68px; height: 68px; border-radius: 14px; overflow: hidden; background: #e2e8f0; flex-shrink: 0; }
+  .sm-dt-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sm-dt-photo .ini { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #1d4ed8; background: #dbeafe; }
+  .sm-dt-name { font-weight: 700; color: var(--sm-text); line-height: 1.2; }
+  .sm-dt-role { font-size: .84rem; color: var(--sm-text-muted); margin: 2px 0 6px; }
+  .sm-chip-id { display: inline-block; font-size: .72rem; font-weight: 700; color: #6d28d9; background: #ede9fe; border-radius: 6px; padding: 2px 8px; }
+  .sm-dt-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid var(--sm-border-soft); }
+  .sm-dt-row:first-of-type { border-top: none; }
+  .sm-dt-row .ic { width: 32px; height: 32px; border-radius: 9px; background: #ede9fe; color: #6d28d9; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sm-dt-row .lb { font-size: .76rem; color: var(--sm-text-muted-2); }
+  .sm-dt-row .vl { font-weight: 600; color: var(--sm-text); font-size: .92rem; }
+
+  .sm-dt-card { border: 1px solid var(--sm-border-soft); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+  .sm-dt-card:last-child { margin-bottom: 0; }
+  .sm-dt-card .hd { display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: #f5f3ff; color: #6d28d9; font-weight: 700; font-size: .9rem; }
+  .sm-dt-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; padding: 16px; }
+  .sm-dt-info .lb { font-size: .78rem; color: var(--sm-text-muted-2); margin-bottom: 3px; }
+  .sm-dt-info .vl { font-weight: 700; color: var(--sm-text); }
+  .sm-inline-select {
+    border: 1px solid var(--sm-border); border-radius: 8px; padding: 4px 28px 4px 10px; font-weight: 700; color: var(--sm-text);
+    background-color: var(--sm-bg); font-size: .95rem;
+  }
+  .sm-inline-select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, .12); }
+  .sm-remarks { padding: 14px 16px; color: var(--sm-text-muted-2); font-size: .88rem; }
+  .sm-remarks textarea {
+    width: 100%; border: 1px solid var(--sm-border); border-radius: 10px; padding: 9px 12px; font-size: .9rem; color: var(--sm-text); resize: vertical; min-height: 64px;
+  }
+  .sm-remarks textarea:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, .12); }
+
+
+  /* =========================================================
+     ASSIGN SHIFT MODAL (redesigned)
+  ========================================================= */
+  .sm-dialog-md { max-width: 640px; }
+
+  .sm-field-label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: .86rem; color: var(--sm-text); margin-bottom: 6px; }
+  .sm-field-label svg { color: var(--sm-text-faint); flex-shrink: 0; }
+  .sm-field-hint { font-size: .76rem; color: var(--sm-text-muted-2); margin: -2px 0 10px; }
+
+  .sm-field-icon { position: relative; }
+  .sm-field-icon > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--sm-text-faint); pointer-events: none; }
+  .sm-select-field {
+    width: 100%; border: 1px solid var(--sm-border); background: var(--sm-bg); color: var(--sm-text);
+    border-radius: 10px; padding: 9px 14px 9px 38px; font-size: .9rem;
+  }
+  .sm-select-field:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, .12); }
+
+  .sm-shift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sm-shift-card {
+    position: relative; text-align: left; border: 1.5px solid var(--sm-border); background: var(--sm-bg);
+    border-radius: 14px; padding: 12px 14px; cursor: pointer; transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .sm-shift-card:hover { box-shadow: 0 4px 14px var(--sm-shadow); }
+  .sm-shift-card .ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; background: var(--sm-bg-soft-2); color: var(--sm-text-muted-2); }
+  .sm-shift-card .nm { font-weight: 700; font-size: .9rem; color: var(--sm-text); }
+  .sm-shift-card .tm { font-size: .72rem; color: var(--sm-text-muted-2); margin-top: 2px; }
+  .sm-shift-card .dot {
+    position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--sm-border); background: var(--sm-bg); display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .sm-shift-card .dot svg { display: none; width: 11px; height: 11px; }
+  .sm-shift-card.active .dot { background: currentColor; border-color: currentColor; }
+  .sm-shift-card.active .dot svg { display: block; }
+
+  .sm-shift-card.morning { color: #d97706; }
+  .sm-shift-card.morning.active { border-color: #d97706; background: #fffbeb; }
+  .sm-shift-card.morning .ic { background: #fde68a; color: #d97706; }
+  .sm-shift-card.evening { color: #1d4ed8; }
+  .sm-shift-card.evening.active { border-color: #1d4ed8; background: #eff6ff; }
+  .sm-shift-card.evening .ic { background: #bfdbfe; color: #1d4ed8; }
+  .sm-shift-card.night { color: #7c3aed; }
+  .sm-shift-card.night.active { border-color: #7c3aed; background: #f5f3ff; }
+  .sm-shift-card.night .ic { background: #ddd6fe; color: #7c3aed; }
+  .sm-shift-card.custom { color: #15803d; }
+  .sm-shift-card.custom.active { border-color: #15803d; background: #ecfdf5; }
+  .sm-shift-card.custom .ic { background: #bbf7d0; color: #15803d; }
+
+  .sm-date-box { display: flex; align-items: center; gap: 8px; border: 1px solid var(--sm-border); border-radius: 10px; padding: 9px 12px; background: var(--sm-bg); }
+  .sm-date-box svg { color: var(--sm-text-faint); flex-shrink: 0; }
+  .sm-date-box input { border: none; outline: none; background: transparent; width: 100%; color: var(--sm-text); font-weight: 500; font-size: .9rem; }
+  .sm-date-box input::-webkit-calendar-picker-indicator { cursor: pointer; }
+
+  .sm-info-banner { display: flex; gap: 12px; align-items: flex-start; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 12px 14px; }
+  .sm-info-banner .ic { width: 26px; height: 26px; border-radius: 50%; background: #c7d2fe; color: #4338ca; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sm-info-banner .t { font-weight: 700; font-size: .86rem; color: #312e81; }
+  .sm-info-banner .s { font-size: .78rem; color: #4338ca; margin-top: 2px; }
+
+  /* =========================================================
+     MOBILE FIXES (all modals + toolbar)
+  ========================================================= */
+  @media (max-width: 767.98px) {
+    .page-header .d-flex.flex-wrap.gap-2 { width: 100%; }
+    .page-header .d-flex.flex-wrap.gap-2 .btn-admio { flex: 1 1 auto; justify-content: center; }
+    .sm-range, .sm-select, .sm-search { width: 100%; min-width: 0; }
+    .sm-toggle { width: 100%; }
+    .sm-toggle button { flex: 1 1 auto; justify-content: center; }
+  }
+
+  @media (max-width: 575.98px) {
+    .modal-dialog { margin: .5rem; }
+    .sm-dialog { max-width: 100%; }
+
+    .sm-m-head { padding: 16px 16px 10px; gap: 10px; }
+    .sm-m-icon, .sm-confirm-icon { width: 40px; height: 40px; border-radius: 10px; }
+    .sm-m-title { font-size: 1.05rem; }
+    .sm-m-sub { font-size: .8rem; }
+    .sm-m-body { padding: 6px 16px 16px; }
+    .sm-m-foot { padding: 12px 16px; flex-wrap: wrap; }
+    .sm-m-foot .sm-btn { flex: 1 1 auto; justify-content: center; }
+    .sm-m-foot .sm-btn.danger-link { flex: 1 1 100%; margin-right: 0; order: 3; text-align: center; }
+
+    .sm-tm-wrap { overflow-x: auto; border-radius: 12px; }
+    .sm-tm-table { min-width: 560px; }
+
+    .sm-dt-grid { gap: 12px; }
+    .sm-dt-info { grid-template-columns: 1fr; gap: 12px; }
+    .sm-dt-side { padding: 14px; }
+
+    .sm-shift-grid { grid-template-columns: repeat(2, 1fr); }
+    .sm-shift-card { padding: 10px 12px; }
+    .sm-info-banner { padding: 10px 12px; }
+
+    .sm-kpi .num { font-size: 1.3rem; }
+    .sm-kpi { padding: 12px 14px; }
+  }
+</style>
+
+<div class="container-fluid px-0">
+
+  <!-- ================= HEADER ================= -->
+  <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <span class="sm-head-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M12 14v3l2 1"></path></svg>
+      </span>
+      <div>
+        <h1 class="page-title mb-1">Shift Management</h1>
+        <p class="page-subtitle text-muted mb-0">Plan schedules, manage assignments and monitor shift coverage.</p>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-admio btn-outline-secondary" onclick="openTimingModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>Shift Timings
+      </button>
+      <button type="button" class="btn btn-admio btn-primary" onclick="openAssignModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Assign Shift
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= KPI (shift counts for the selected range) ================= -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl">
+      <div class="admio-card sm-kpi total" data-kpi="all" onclick="kpiFilter('all')">
+        <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
+        <div><div class="num" id="kpiTotal">0</div><div class="lbl">Total Shifts</div></div>
+        <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="admio-card sm-kpi morning" data-kpi="Morning" onclick="kpiFilter('Morning')">
+        <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></span>
+        <div><div class="num" id="kpiMorning">0</div><div class="lbl">Morning</div></div>
+        <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="admio-card sm-kpi evening" data-kpi="Evening" onclick="kpiFilter('Evening')">
+        <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="4"></line><line x1="4.2" y1="11.2" x2="5.6" y2="12.6"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.4" y1="12.6" x2="19.8" y2="11.2"></line><line x1="1" y1="22" x2="23" y2="22"></line></svg></span>
+        <div><div class="num" id="kpiEvening">0</div><div class="lbl">Evening</div></div>
+        <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="admio-card sm-kpi night" data-kpi="Night" onclick="kpiFilter('Night')">
+        <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></span>
+        <div><div class="num" id="kpiNight">0</div><div class="lbl">Night</div></div>
+        <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="admio-card sm-kpi custom" data-kpi="Custom" onclick="kpiFilter('Custom')">
+        <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+        <div><div class="num" id="kpiCustom">0</div><div class="lbl">Custom</div></div>
+        <span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOOLBAR ================= -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <label class="sm-range">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      <input type="date" id="dateFrom" aria-label="From date" onchange="onRangeChange()">
+      <span class="sep">–</span>
+      <input type="date" id="dateTo" aria-label="To date" onchange="onRangeChange()">
+    </label>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <select id="departmentFilter" class="form-select-admio sm-select" onchange="onFilterChange()">
+        <option value="">All Departments</option>
+        {% for department in departments %}
+        <option value="{{ department.name }}">{{ department.name }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="employeeFilter" class="form-select-admio sm-select" onchange="onFilterChange()">
+        <option value="">All Employees</option>
+        {% for employee in hotel_staff %}
+        <option value="{{ employee.id }}">{{ employee.name }}</option>
+        {% endfor %}
+      </select>
+
+      <div class="sm-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="search" id="searchInput" class="form-control-admio" placeholder="Search employee..." oninput="onFilterChange()">
+      </div>
+
+      <div class="sm-toggle">
+        <button type="button" onclick="goToday()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>Today
+        </button>
+        <button type="button" id="calendarBtn" onclick="setView('calendar')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>Calendar
+        </button>
+        <button type="button" id="listBtn" class="active" onclick="setView('list')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1"></circle><circle cx="4" cy="12" r="1"></circle><circle cx="4" cy="18" r="1"></circle></svg>List
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sm-pills mb-3">
+    <button type="button" class="sm-pill active" data-shift="all" onclick="setShiftFilter('all', this)">All</button>
+    <button type="button" class="sm-pill" data-shift="Morning" onclick="setShiftFilter('Morning', this)">Morning</button>
+    <button type="button" class="sm-pill" data-shift="Evening" onclick="setShiftFilter('Evening', this)">Evening</button>
+    <button type="button" class="sm-pill" data-shift="Night" onclick="setShiftFilter('Night', this)">Night</button>
+    <button type="button" class="sm-pill" data-shift="Custom" onclick="setShiftFilter('Custom', this)">Custom</button>
+  </div>
+
+  <!-- ================= MAIN CARD ================= -->
+  <div class="admio-card">
+
+    <div class="sm-weeknav" id="weekNav">
+      <button type="button" class="btn btn-admio btn-outline-secondary" onclick="changeWeek(-1)" aria-label="Previous week">&lsaquo;</button>
+      <strong id="weekLabel"></strong>
+      <button type="button" class="btn btn-admio btn-outline-secondary" onclick="changeWeek(1)" aria-label="Next week">&rsaquo;</button>
+    </div>
+
+    <div class="sm-bulk" id="bulkBar">
+      <strong><span id="bulkCount">0</span> selected</strong>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSelected()">Delete selected</button>
+      <button type="button" class="btn btn-sm btn-light" onclick="clearSelection()">Clear</button>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div id="listView">
+      <div class="table-responsive">
+        <table class="admio-table table sm-table align-middle mb-0">
+          <thead>
+            <tr>
+              <th style="width:40px;"><input type="checkbox" id="checkAll" class="form-check-input" onchange="toggleAll(this.checked)"></th>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Shift</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Working Hours</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dailyBody">
+            <tr><td colspan="10" class="sm-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sm-footer">
+        <span class="text-muted text-sm" id="showingText">Showing 0 of 0 shifts</span>
+        <div class="sm-pager" id="pager"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR VIEW (weekly) -->
+    <div id="calendarView" class="d-none">
+      <div class="table-responsive">
+        <table class="admio-table table sm-table align-middle mb-0">
+          <thead><tr id="calendarHeader"><th>Employee</th></tr></thead>
+          <tbody id="calendarBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ ASSIGN SHIFT MODAL ============ -->
+<div class="modal fade" id="assignShiftModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered sm-dialog sm-dialog-md">
+    <div class="modal-content sm-modal">
+
+      <div class="sm-m-head">
+        <span class="sm-m-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M12 14v3l2 1"></path></svg>
+        </span>
+        <div>
+          <h5 class="sm-m-title">Assign Shift</h5>
+          <p class="sm-m-sub">Create a new employee shift assignment.</p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="sm-m-body">
+        <input type="hidden" id="assignShiftType" value="Morning">
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="sm-field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              Employee
+            </label>
+            <div class="sm-field-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              <select id="assignEmployee" class="sm-select-field">
+                <option value="">Select employee</option>
+                {% for employee in hotel_staff %}
+                <option value="{{ employee.id }}" data-department="{% if employee.department %}{{ employee.department.id }}{% endif %}">
+                  {{ employee.name }}{% if employee.department %} — {{ employee.department.name }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="sm-field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg>
+              Department
+            </label>
+            <div class="sm-field-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg>
+              <select id="assignDepartment" class="sm-select-field">
+                <option value="">Select department</option>
+                {% for department in departments %}
+                <option value="{{ department.id }}">{{ department.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="sm-field-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>
+            Shift Type
+          </label>
+          <p class="sm-field-hint">Choose the type of shift for this assignment.</p>
+          <div class="sm-shift-grid" id="assignTypeGrid"><!-- rendered by renderAssignTypeCards() --></div>
+        </div>
+
+        <div id="customShiftArea" class="border rounded-3 p-3 mb-3 d-none">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">Custom Shift</h6>
+            <span id="customDuration" class="badge text-bg-light">8 hours</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Shift Name</label>
+              <input id="customName" class="form-control" placeholder="Example: Mid Shift">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Color</label>
+              <input id="customColor" type="color" class="form-control form-control-color w-100" value="#0d9488">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Start Time</label>
+              <input id="customStart" type="time" class="form-control" value="09:00" onchange="calculateCustomDuration()">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">End Time</label>
+              <input id="customEnd" type="time" class="form-control" value="17:00" onchange="calculateCustomDuration()">
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="sm-field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              From Date
+            </label>
+            <div class="sm-date-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <input id="assignFromDate" type="date" onchange="updateDaysPreview()">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="sm-field-label">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              To Date
+            </label>
+            <div class="sm-date-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <input id="assignToDate" type="date" onchange="updateDaysPreview()">
+            </div>
+          </div>
+        </div>
+
+        <div class="sm-info-banner">
+          <span class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span>
+          <div>
+            <div class="t" id="daysPreviewTitle">Select a date range.</div>
+            <div class="s">The selected employee will be assigned to the chosen shift type for the specified date range.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sm-m-foot">
+        <button type="button" class="sm-btn" data-bs-dismiss="modal">Cancel</button>
+        <button id="assignSubmitBtn" type="button" class="sm-btn primary" onclick="submitShift()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="16" y1="11" x2="22" y2="11"></line></svg>
+          Assign Shift
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ SHIFT DETAILS MODAL ============ -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered sm-dialog">
+    <div class="modal-content sm-modal">
+
+      <div class="sm-m-head">
+        <span class="sm-m-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        </span>
+        <div>
+          <h5 class="sm-m-title">Shift Details</h5>
+          <p class="sm-m-sub">View and manage shift information for the selected employee.</p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="sm-m-body">
+        <input type="hidden" id="detailShiftId">
+
+        <div class="sm-dt-grid">
+
+          <!-- LEFT: employee -->
+          <aside class="sm-dt-side">
+            <div class="sm-dt-person">
+              <span class="sm-dt-photo" id="dtPhoto"></span>
+              <div>
+                <div class="sm-dt-name" id="dtName">—</div>
+                <div class="sm-dt-role" id="dtRole"></div>
+                <span class="sm-chip-id" id="dtEmpId">—</span>
+              </div>
+            </div>
+
+            <div class="sm-dt-row">
+              <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg></span>
+              <div><div class="lb">Department</div><div class="vl" id="dtDept">—</div></div>
+            </div>
+            <div class="sm-dt-row">
+              <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
+              <div><div class="lb">Date</div><div class="vl" id="dtDateSide">—</div></div>
+            </div>
+            <div class="sm-dt-row">
+              <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></span>
+              <div><div class="lb">Shift</div><div class="vl" id="dtShiftSide">—</div></div>
+            </div>
+            <div class="sm-dt-row">
+              <span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg></span>
+              <div><div class="lb">Working Time</div><div class="vl" id="dtTimeSide">—</div></div>
+            </div>
+          </aside>
+
+          <!-- RIGHT: shift information + remarks -->
+          <section>
+            <div class="sm-dt-card">
+              <div class="hd">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+                Shift Information
+              </div>
+              <div class="sm-dt-info">
+                <div>
+                  <div class="lb">Shift Name</div>
+                  <select id="detailShiftType" class="sm-inline-select" onchange="refreshDetailTimes()">
+                    <option>Morning</option><option>Evening</option><option>Night</option><option>Custom</option>
+                  </select>
+                </div>
+                <div><div class="lb">Working Hours</div><div class="vl" id="dtHours">—</div></div>
+                <div><div class="lb">Start Time</div><div class="vl" id="dtStart">—</div></div>
+                <div><div class="lb">Date</div><div class="vl" id="dtDate">—</div></div>
+                <div><div class="lb">End Time</div><div class="vl" id="dtEnd">—</div></div>
+                <div><div class="lb">Status</div><div id="dtStatus">—</div></div>
+              </div>
+            </div>
+
+            <div class="sm-dt-card">
+              <div class="hd">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                Shift Remarks
+              </div>
+              <div class="sm-remarks">
+                <div id="dtRemarksText">No special remarks for this shift.</div>
+                <textarea id="detailRemarks" class="d-none" placeholder="Add a remark for this shift (optional)"></textarea>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="sm-m-foot">
+        <button type="button" class="sm-btn danger-link" onclick="deleteCurrentShift()">Delete shift</button>
+        <button type="button" class="sm-btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="sm-btn primary" id="detailSaveBtn" onclick="updateCurrentShift()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ SHIFT TIMINGS MODAL ============ -->
+<div class="modal fade" id="timingModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered sm-dialog">
+    <div class="modal-content sm-modal">
+
+      <div class="sm-m-head">
+        <span class="sm-m-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>
+        </span>
+        <div>
+          <h5 class="sm-m-title">Shift Timings</h5>
+          <p class="sm-m-sub">Configure standard shift hours and timings.</p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="sm-m-body">
+        <div class="sm-tm-bar">
+          <label class="sm-switch">
+            <span>Enable Shift Timings</span>
+            <input type="checkbox" id="tplEnabled" checked onchange="applyEnabledState()">
+            <span class="track"></span>
+          </label>
+          <button type="button" class="sm-btn sm" onclick="resetAllTemplates()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            Reset to Default
+          </button>
+        </div>
+
+        <div class="sm-tm-wrap">
+          <table class="sm-tm-table" id="tplTable">
+            <thead>
+              <tr>
+                <th style="width:22%;">Shift</th>
+                <th style="width:24%;">Start Time</th>
+                <th style="width:24%;">End Time</th>
+                <th style="width:14%;">Duration</th>
+                <th style="width:12%;">Color</th>
+                <th style="width:4%;"></th>
+              </tr>
+            </thead>
+            <tbody id="tplBody"></tbody>
+          </table>
+        </div>
+        <p class="text-muted mt-3 mb-0" style="font-size:.8rem;">
+          Morning, Evening and Night times apply to every shift of that type. The Custom row sets the default times when you assign a Custom shift.
+        </p>
+      </div>
+
+      <div class="sm-m-foot">
+        <button type="button" class="sm-btn" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="sm-btn primary" id="tplSaveBtn" onclick="saveTemplates()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Save Timings
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ CONFIRM DELETE MODAL ============ -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered sm-dialog" style="max-width:440px;">
+    <div class="modal-content sm-modal">
+      <div class="sm-m-head">
+        <span class="sm-confirm-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </span>
+        <div>
+          <h5 class="sm-m-title">Delete shift?</h5>
+          <p class="sm-m-sub" id="confirmDeleteText">This action cannot be undone.</p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="sm-m-foot">
+        <button type="button" class="sm-btn" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="sm-btn danger" id="confirmDeleteBtn" onclick="runConfirmedDelete()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* =============================================================
+   ENDPOINTS
+============================================================= */
+const URLS = {
+  weekly: "{% url 'weekly_schedule' %}",
+  all: "{% url 'get_shifts' %}",
+  assign: "{% url 'assign_shift' %}",
+  update: "{% url 'update_shift' %}",
+  remove: "{% url 'delete_shift' %}",
+  templates: "{% url 'get_shift_templates' %}",
+  saveTemplate: "{% url 'save_shift_template' %}"
+};
+
+const PAGE_SIZE = 10;
+const MAX_RANGE_DAYS = 366;
+
+let dateFrom = "";
+let dateTo = "";
+let rangeShifts = [];      // every shift in [dateFrom, dateTo] (with attendance)
+let weeklyShifts = [];
+let currentView = "list";
+let shiftFilter = "all";
+let selectedIds = new Set();
+let page = 1;
+let detailItem = null;
+
+/* Shift timing templates */
+const TPL_NAMES = ["Morning", "Evening", "Night", "Custom"];
+const TPL_DEFAULTS = {
+  Morning: { start: "06:00", end: "14:00", color: "#d97706" },
+  Evening: { start: "14:00", end: "22:00", color: "#1a65f5" },
+  Night:   { start: "22:00", end: "06:00", color: "#7c3aed" },
+  Custom:  { start: "09:00", end: "17:00", color: "#64748b" }
+};
+let tplServer = cloneTpl(TPL_DEFAULTS);   // last values loaded from the server
+let tplEnabled = true;                    // "Enable Shift Timings"
+let tplDraft = cloneTpl(TPL_DEFAULTS);    // values being edited in the modal
+
+function cloneTpl(o) { return JSON.parse(JSON.stringify(o)); }
+
+/* =============================================================
+   HELPERS
+============================================================= */
+function getCookie(name) {
+  let value = null;
+  document.cookie.split(";").forEach(function (c) {
+    c = c.trim();
+    if (c.startsWith(name + "=")) value = decodeURIComponent(c.substring(name.length + 1));
+  });
+  return value;
+}
+
+function escapeHtml(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function isoDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function parseISO(s) { return new Date(s + "T00:00:00"); }
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function getMonday(d) {
+  const r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = r.getDay();
+  r.setDate(r.getDate() + (day === 0 ? -6 : 1 - day));
+  return r;
+}
+function formatDate(s) {
+  if (!s) return "—";
+  return parseISO(s).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
+function to12(hhmm) {
+  if (!hhmm) return "";
+  const p = hhmm.split(":");
+  let h = parseInt(p[0], 10);
+  const m = p[1] || "00";
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return h + ":" + m + " " + suffix;
+}
+function timeRange(item) {
+  const s = item.start_time || item.custom_start || "";
+  const e = item.end_time || item.custom_end || "";
+  return s && e ? to12(s) + " – " + to12(e) : (s ? to12(s) : "—");
+}
+// "8h 00m" between two HH:MM values (handles shifts that cross midnight)
+function durationText(start, end) {
+  if (!start || !end) return "—";
+  const sp = start.split(":").map(Number), ep = end.split(":").map(Number);
+  let mins = (ep[0] * 60 + ep[1]) - (sp[0] * 60 + sp[1]);
+  if (mins <= 0) mins += 1440;
+  return Math.floor(mins / 60) + "h " + String(mins % 60).padStart(2, "0") + "m";
+}
+
+/* =============================================================
+   TOAST NOTIFICATIONS  (in-page replacement for alert())
+   showMessage(msg)              -> type is guessed from the text
+   showMessage(msg, "error")     -> "success" | "error" | "warning" | "info"
+============================================================= */
+const TOAST_ICONS = {
+  success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+  error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+  warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+};
+const TOAST_TITLES = { success: "Success", error: "Something went wrong", warning: "Please check", info: "Notice" };
+
+function guessToastType(msg) {
+  const m = String(msg || "").toLowerCase();
+  if (/unable|failed|error|could not|couldn't|not allowed|denied/.test(m)) return "error";
+  if (/^select|^choose|^complete|cannot|can't|must |set a |please|range of/.test(m)) return "warning";
+  return "success";
+}
+
+function getToastHost() {
+  let host = document.getElementById("smToastHost");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "smToastHost";
+    host.className = "sm-toast-host";
+    host.setAttribute("aria-live", "polite");
+    host.setAttribute("aria-atomic", "false");
+    document.body.appendChild(host);
+  }
+  return host;
+}
+
+function dismissToast(el) {
+  if (!el || el.dataset.closing) return;
+  el.dataset.closing = "1";
+  clearTimeout(Number(el.dataset.timer));
+  el.classList.remove("show");
+  el.classList.add("hide");
+  setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+}
+
+function showMessage(msg, type, opts) {
+  opts = opts || {};
+  type = type || guessToastType(msg);
+  if (!TOAST_ICONS[type]) type = "info";
+  const duration = opts.duration || (type === "error" ? 6000 : 4200);
+  const host = getToastHost();
+
+  // Keep the stack tidy: at most 4 toasts visible
+  while (host.children.length >= 4) dismissToast(host.firstElementChild);
+
+  const el = document.createElement("div");
+  el.className = "sm-toast " + type;
+  el.setAttribute("role", type === "error" ? "alert" : "status");
+  el.style.setProperty("--dur", duration + "ms");
+  el.innerHTML =
+    '<span class="t-ic">' + TOAST_ICONS[type] + '</span>' +
+    '<div class="t-body"><div class="t-title">' + escapeHtml(opts.title || TOAST_TITLES[type]) + '</div>' +
+    '<div class="t-msg">' + escapeHtml(msg) + '</div></div>' +
+    '<button type="button" class="t-close" aria-label="Dismiss">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+    '</button>' +
+    '<span class="t-bar"></span>';
+
+  el.querySelector(".t-close").addEventListener("click", function () { dismissToast(el); });
+  host.appendChild(el);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add("show"); }); });
+
+  let timer = setTimeout(function () { dismissToast(el); }, duration);
+  el.dataset.timer = String(timer);
+  // Pause auto-dismiss while hovering (the progress bar pauses too)
+  el.addEventListener("mouseenter", function () { clearTimeout(Number(el.dataset.timer)); });
+  el.addEventListener("mouseleave", function () {
+    el.dataset.timer = String(setTimeout(function () { dismissToast(el); }, 1800));
+    const bar = el.querySelector(".t-bar");
+    if (bar) { bar.style.animation = "none"; void bar.offsetWidth; bar.style.animation = "smToastBar 1800ms linear forwards"; }
+  });
+}
+
+async function requestJSON(url, options) {
+  const response = await fetch(url, Object.assign({ credentials: "same-origin" }, options || {}));
+  let data = {};
+  try { data = await response.json(); } catch (e) {}
+  if (!response.ok) throw new Error(data.error || data.message || "Request failed.");
+  return data;
+}
+
+/* =============================================================
+   ICONS / STYLES
+============================================================= */
+const ICON = {
+  sun: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>',
+  moon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>',
+  sliders: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>',
+  clockIn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>',
+  clockOut: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>',
+  eye: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+  caret: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+  dots: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="12" cy="19" r="1.6"></circle></svg>',
+  warn: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  gear: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'
+};
+
+// 20px icons for the Shift Timings modal
+const TPL_ICON = {
+  Morning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>',
+  Evening: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="4"></line><line x1="4.2" y1="11.2" x2="5.6" y2="12.6"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.4" y1="12.6" x2="19.8" y2="11.2"></line><line x1="1" y1="22" x2="23" y2="22"></line></svg>',
+  Night: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>',
+  Custom: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'
+};
+
+function shiftStyle(item) {
+  // Colours follow the Shift Timings settings (item.color comes from the server).
+  const c = item.custom_color && item.shift === "Custom" ? item.custom_color : (item.color || "");
+  const icon = item.shift === "Morning" ? ICON.sun
+             : (item.shift === "Evening" || item.shift === "Night") ? ICON.moon : ICON.sliders;
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return { bg: c + "1f", fg: c, icon: icon };
+  return { bg: "var(--sm-bg-soft)", fg: "var(--sm-text-muted)", icon: icon };
+}
+function shiftColor(item) {
+  if (item.color) return item.color;
+  if (item.shift === "Morning") return "#d97706";
+  if (item.shift === "Evening") return "#7c3aed";
+  if (item.shift === "Night") return "#1a65f5";
+  return item.custom_color || "#0d9488";
+}
+
+const STATUS = {
+  "Present":   { bg: "#dcfce7", fg: "#15803d" },
+  "Late":      { bg: "#fef3c7", fg: "#b45309" },
+  "Half Day":  { bg: "#ede9fe", fg: "#7c3aed" },
+  "Absent":    { bg: "#fee2e2", fg: "#dc2626" },
+  "Scheduled": { bg: "var(--sm-bg-soft)", fg: "var(--sm-text-muted)" }
+};
+function attendanceStatus(item) {
+  // The server sends attendance_status; this fallback only covers old responses.
+  if (item.attendance_status) return item.attendance_status;
+  return item.date >= isoDate(new Date()) ? "Scheduled" : "Absent";
+}
+function statusPill(status) {
+  const c = STATUS[status] || STATUS["Absent"];
+  return '<span class="sm-status" style="background:' + c.bg + ';color:' + c.fg + ';"><i style="background:' + c.fg + ';"></i>' + escapeHtml(status) + '</span>';
+}
+
+/* =============================================================
+   LOADING
+============================================================= */
+async function loadRange() {
+  try {
+    const qs = "?date_from=" + encodeURIComponent(dateFrom) + "&date_to=" + encodeURIComponent(dateTo);
+    const data = await requestJSON(URLS.all + qs);
+    rangeShifts = Array.isArray(data) ? data : (data.shifts || []);
+  } catch (e) {
+    console.error(e);
+    rangeShifts = [];
+    showMessage(e.message || "Unable to load shifts.", "error");
+  }
+  selectedIds.clear();
+  updateKpis();
+  if (currentView === "list") renderList();
+}
+
+async function loadWeekly() {
+  const start = isoDate(getMonday(parseISO(dateFrom)));
+  document.getElementById("weekLabel").textContent =
+    formatDate(start) + " — " + formatDate(isoDate(addDays(parseISO(start), 6)));
+  try {
+    const data = await requestJSON(URLS.weekly + "?start_date=" + encodeURIComponent(start));
+    weeklyShifts = [];
+    Object.entries(data.schedule || {}).forEach(function (entry) {
+      (entry[1] || []).forEach(function (s) { weeklyShifts.push(Object.assign({}, s, { date: entry[0] })); });
+    });
+  } catch (e) {
+    console.error(e);
+    weeklyShifts = [];
+    showMessage("Unable to load weekly schedule.", "error");
+  }
+  if (currentView === "calendar") renderCalendar();
+}
+
+async function refreshPageData() {
+  const jobs = [loadRange()];
+  if (currentView === "calendar") jobs.push(loadWeekly());
+  await Promise.all(jobs);
+}
+
+/* =============================================================
+   DATE RANGE / VIEW / FILTERS
+============================================================= */
+function setRange(from, to) {
+  dateFrom = from;
+  dateTo = to;
+  document.getElementById("dateFrom").value = from;
+  document.getElementById("dateTo").value = to;
+}
+
+function onRangeChange() {
+  let from = document.getElementById("dateFrom").value;
+  let to = document.getElementById("dateTo").value;
+  if (!from && !to) return;
+  if (!from) from = to;
+  if (!to) to = from;
+  if (parseISO(to) < parseISO(from)) to = from;       // keep the range valid
+  if ((parseISO(to) - parseISO(from)) / 86400000 > MAX_RANGE_DAYS) {
+    showMessage("Please choose a range of " + MAX_RANGE_DAYS + " days or less.", "warning");
+    to = isoDate(addDays(parseISO(from), MAX_RANGE_DAYS));
+  }
+  setRange(from, to);
+  page = 1;
+  refreshPageData();
+}
+
+function goToday() {
+  const t = isoDate(new Date());
+  setRange(t, t);
+  page = 1;
+  refreshPageData();
+}
+
+function changeWeek(dir) {
+  setRange(isoDate(addDays(parseISO(dateFrom), dir * 7)), isoDate(addDays(parseISO(dateTo), dir * 7)));
+  refreshPageData();
+}
+
+function setView(view) {
+  currentView = view;
+  document.getElementById("listView").classList.toggle("d-none", view !== "list");
+  document.getElementById("calendarView").classList.toggle("d-none", view !== "calendar");
+  document.getElementById("weekNav").classList.toggle("show", view === "calendar");
+  document.getElementById("listBtn").classList.toggle("active", view === "list");
+  document.getElementById("calendarBtn").classList.toggle("active", view === "calendar");
+  if (view === "calendar") { loadWeekly(); } else { renderList(); }
+  updateBulkBar();
+}
+
+function setShiftFilter(type, btn) {
+  shiftFilter = type;
+  document.querySelectorAll(".sm-pill").forEach(function (b) { b.classList.remove("active"); });
+  if (btn) btn.classList.add("active");
+  document.querySelectorAll(".sm-kpi").forEach(function (k) {
+    k.classList.toggle("selected", type !== "all" && k.dataset.kpi === type);
+  });
+  page = 1;
+  renderCurrent();
+}
+
+// KPI card click = same as choosing that shift pill
+function kpiFilter(type) {
+  const pill = document.querySelector('.sm-pill[data-shift="' + type + '"]');
+  setShiftFilter(type, pill);
+}
+
+function onFilterChange() { page = 1; updateKpis(); renderCurrent(); }
+function renderCurrent() { if (currentView === "list") renderList(); else renderCalendar(); }
+
+function passesFilters(item, ignoreShift) {
+  const dept = document.getElementById("departmentFilter").value;
+  const emp = document.getElementById("employeeFilter").value;
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  if (!ignoreShift && shiftFilter !== "all" && item.shift !== shiftFilter) return false;
+  if (dept && item.department !== dept) return false;
+  if (emp && String(item.staff_id) !== String(emp)) return false;
+  if (q && (String(item.staff || "") + " " + String(item.employee_id || "")).toLowerCase().indexOf(q) === -1) return false;
+  return true;
+}
+
+/* =============================================================
+   KPI  (shift counts for the selected range)
+============================================================= */
+function updateKpis() {
+  const counts = { Morning: 0, Evening: 0, Night: 0, Custom: 0 };
+  let total = 0;
+  rangeShifts.forEach(function (s) {
+    if (!passesFilters(s, true)) return;   // respect dept/employee/search, not the shift pill
+    total++;
+    if (counts[s.shift] !== undefined) counts[s.shift]++;
+  });
+  document.getElementById("kpiTotal").textContent = total;
+  document.getElementById("kpiMorning").textContent = counts.Morning;
+  document.getElementById("kpiEvening").textContent = counts.Evening;
+  document.getElementById("kpiNight").textContent = counts.Night;
+  document.getElementById("kpiCustom").textContent = counts.Custom;
+}
+
+/* =============================================================
+   LIST VIEW
+============================================================= */
+function avatar(item) {
+  if (item.photo) return '<img src="' + escapeHtml(item.photo) + '" alt="">';
+  return '<span class="ini">' + escapeHtml((item.staff || "?").charAt(0).toUpperCase()) + '</span>';
+}
+
+function punchCell(kind, item) {
+  const time = kind === "in" ? item.check_in : item.check_out;
+  if (!time) return '<span class="text-muted">—</span>';
+  const verified = kind === "in" ? item.in_verified : item.out_verified;
+  return '<div class="sm-time">' + (kind === "in" ? ICON.clockIn : ICON.clockOut) + '<span>' + escapeHtml(time) + '</span></div>' +
+    '<div class="sm-face-row"><span class="sm-thumb">' + avatar(item) + '</span>' +
+    (verified ? '<span class="sm-face ok">Face Recognized</span>' : '<span class="sm-face manual">Manual</span>') + '</div>';
+}
+
+function dailyRow(item) {
+  const ss = shiftStyle(item);
+  const name = item.custom_name || item.shift || "—";
+  const checked = selectedIds.has(Number(item.id)) ? " checked" : "";
+  return '<tr>' +
+    '<td><input type="checkbox" class="form-check-input row-check" data-id="' + item.id + '"' + checked + ' onchange="toggleRow(' + item.id + ', this.checked)"></td>' +
+    '<td><div class="sm-emp"><span class="sm-photo">' + avatar(item) + '</span>' +
+      '<div><div class="nm">' + escapeHtml(item.staff || "N/A") + '</div><div class="sub">' + escapeHtml(item.employee_id || "") + '</div></div></div></td>' +
+    '<td>' + escapeHtml(item.department || "N/A") + '</td>' +
+    '<td><span class="sm-shift" style="background:' + ss.bg + ';color:' + ss.fg + ';">' + ss.icon + escapeHtml(name) + '</span>' +
+      '<div class="text-muted" style="font-size:.72rem;margin-top:3px;">' + escapeHtml(timeRange(item)) + '</div></td>' +
+    '<td>' + punchCell("in", item) + '</td>' +
+    '<td>' + punchCell("out", item) + '</td>' +
+    '<td><strong>' + escapeHtml(item.working_hours || "—") + '</strong></td>' +
+    '<td class="text-muted">' + escapeHtml(formatDate(item.date)) + '</td>' +
+    '<td>' + statusPill(attendanceStatus(item)) + '</td>' +
+    '<td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1">' +
+      '<div class="btn-group">' +
+        '<button type="button" class="sm-view-btn" onclick="openDetails(' + item.id + ')">' + ICON.eye + 'View</button>' +
+        '<button type="button" class="sm-view-caret dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More">' + ICON.caret + '</button>' +
+        '<ul class="dropdown-menu dropdown-menu-end">' +
+          '<li><button type="button" class="dropdown-item" onclick="openDetails(' + item.id + ')">Edit shift</button></li>' +
+          '<li><button type="button" class="dropdown-item text-danger" onclick="deleteShiftById(' + item.id + ')">Delete shift</button></li>' +
+        '</ul>' +
+      '</div>' +
+      '<div class="dropdown">' +
+        '<button type="button" class="sm-kebab dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">' + ICON.dots + '</button>' +
+        '<ul class="dropdown-menu dropdown-menu-end">' +
+          '<li><button type="button" class="dropdown-item" onclick="openDetails(' + item.id + ')">Shift details</button></li>' +
+          '<li><button type="button" class="dropdown-item text-danger" onclick="deleteShiftById(' + item.id + ')">Delete shift</button></li>' +
+        '</ul>' +
+      '</div>' +
+    '</div></td>' +
+  '</tr>';
+}
+
+function initFixedDropdowns(root) {
+  root.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (el) {
+    bootstrap.Dropdown.getOrCreateInstance(el, {
+      popperConfig: function (def) { return Object.assign({}, def, { strategy: "fixed" }); }
+    });
+  });
+}
+
+function renderList() {
+  const body = document.getElementById("dailyBody");
+  const data = rangeShifts.filter(function (s) { return passesFilters(s); });
+  const total = data.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (page > pages) page = pages;
+  const slice = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  if (!slice.length) {
+    body.innerHTML = '<tr><td colspan="10"><div class="sm-empty">No shifts in this date range. Use Assign Shift to add one.</div></td></tr>';
+  } else {
+    body.innerHTML = slice.map(dailyRow).join("");
+    initFixedDropdowns(body);   // keep menus from being clipped by the scrolling table
+  }
+
+  document.getElementById("showingText").textContent =
+    "Showing " + slice.length + " of " + total + " shift" + (total === 1 ? "" : "s");
+  renderPager(pages);
+
+  const all = document.getElementById("checkAll");
+  all.checked = slice.length > 0 && slice.every(function (s) { return selectedIds.has(Number(s.id)); });
+  updateBulkBar();
+}
+
+function renderPager(pages) {
+  const el = document.getElementById("pager");
+  if (pages <= 1) {
+    el.innerHTML = '<button type="button" disabled>&lsaquo;</button><button type="button" class="active">1</button><button type="button" disabled>&rsaquo;</button>';
+    return;
+  }
+  let html = '<button type="button" ' + (page === 1 ? "disabled" : "") + ' onclick="goPage(' + (page - 1) + ')">&lsaquo;</button>';
+  for (let p = 1; p <= pages; p++) {
+    if (pages > 7 && Math.abs(p - page) > 2 && p !== 1 && p !== pages) continue;
+    html += '<button type="button" class="' + (p === page ? "active" : "") + '" onclick="goPage(' + p + ')">' + p + '</button>';
+  }
+  html += '<button type="button" ' + (page === pages ? "disabled" : "") + ' onclick="goPage(' + (page + 1) + ')">&rsaquo;</button>';
+  el.innerHTML = html;
+}
+function goPage(p) { page = p; renderList(); }
+
+/* =============================================================
+   SELECTION / BULK
+============================================================= */
+function currentPageRows() {
+  return rangeShifts.filter(function (s) { return passesFilters(s); }).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+}
+function toggleRow(id, checked) {
+  if (checked) selectedIds.add(Number(id)); else selectedIds.delete(Number(id));
+  const rows = currentPageRows();
+  document.getElementById("checkAll").checked = rows.length > 0 && rows.every(function (s) { return selectedIds.has(Number(s.id)); });
+  updateBulkBar();
+}
+function toggleAll(checked) {
+  currentPageRows().forEach(function (s) {
+    if (checked) selectedIds.add(Number(s.id)); else selectedIds.delete(Number(s.id));
+  });
+  document.querySelectorAll(".row-check").forEach(function (c) { c.checked = checked; });
+  updateBulkBar();
+}
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll(".row-check").forEach(function (c) { c.checked = false; });
+  document.getElementById("checkAll").checked = false;
+  updateBulkBar();
+}
+function updateBulkBar() {
+  document.getElementById("bulkCount").textContent = selectedIds.size;
+  document.getElementById("bulkBar").classList.toggle("show", selectedIds.size > 0 && currentView === "list");
+}
+function deleteSelected() {
+  if (!selectedIds.size) return;
+  const count = selectedIds.size;
+  openConfirmDelete(
+    "Delete " + count + " selected shift assignment" + (count === 1 ? "" : "s") + "? This cannot be undone.",
+    async function () {
+      try {
+        for (const id of Array.from(selectedIds)) { await postDelete(id); }
+        showMessage("Selected shifts deleted.", "success");
+      } catch (e) {
+        showMessage(e.message || "Unable to delete some shifts.", "error");
+      }
+      selectedIds.clear();
+      await refreshPageData();
+    }
+  );
+}
+
+/* =============================================================
+   CALENDAR (WEEKLY) VIEW
+============================================================= */
+function renderCalendar() {
+  const monday = getMonday(parseISO(dateFrom));
+  const dates = Array.from({ length: 7 }, function (_, i) { return isoDate(addDays(monday, i)); });
+  const header = document.getElementById("calendarHeader");
+  const body = document.getElementById("calendarBody");
+  const todayIso = isoDate(new Date());
+
+  header.innerHTML = "<th>Employee</th>" + dates.map(function (d) {
+    const dt = parseISO(d);
+    return '<th class="' + (d === todayIso ? "table-primary" : "") + '"><div>' +
+      dt.toLocaleDateString("en-US", { weekday: "short" }) + '</div><small class="text-muted">' +
+      dt.toLocaleDateString("en-US", { day: "2-digit", month: "short" }) + '</small></th>';
+  }).join("");
+
+  const shifts = weeklyShifts.filter(function (s) { return passesFilters(s); });
+  if (!shifts.length) {
+    body.innerHTML = '<tr><td colspan="8"><div class="sm-empty">No shifts match the selected filters.</div></td></tr>';
+    return;
+  }
+
+  const employees = {};
+  shifts.forEach(function (item) {
+    const key = item.staff_id || item.staff;
+    if (!employees[key]) employees[key] = { name: item.staff, department: item.department, shifts: {} };
+    (employees[key].shifts[item.date] = employees[key].shifts[item.date] || []).push(item);
+  });
+
+  body.innerHTML = Object.values(employees).map(function (emp) {
+    const cells = dates.map(function (d) {
+      const list = emp.shifts[d] || [];
+      if (!list.length) return '<td><span class="text-muted">—</span></td>';
+      return '<td><div class="d-flex flex-column gap-1">' + list.map(function (it) {
+        return '<button type="button" class="sm-chip" onclick="openDetails(' + it.id + ')">' +
+          '<span class="dot" style="background:' + escapeHtml(shiftColor(it)) + ';"></span>' + escapeHtml(it.custom_name || it.shift) +
+          '<small>' + escapeHtml(timeRange(it)) + '</small></button>';
+      }).join("") + '</div></td>';
+    }).join("");
+    return '<tr><td><div class="fw-semibold">' + escapeHtml(emp.name) + '</div><small class="text-muted">' +
+      escapeHtml(emp.department) + '</small></td>' + cells + '</tr>';
+  }).join("");
+}
+
+/* =============================================================
+   ASSIGN MODAL
+============================================================= */
+const ASSIGN_TYPE_CLASS = { Morning: "morning", Evening: "evening", Night: "night", Custom: "custom" };
+function assignTypeIcon(name) {
+  if (name === "Morning") return ICON.sun;
+  if (name === "Evening" || name === "Night") return ICON.moon;
+  return ICON.gear;
+}
+function assignTypeSubtitle(name) {
+  if (name === "Custom") return "Set your own time";
+  const t = effectiveTemplate(name);
+  return to12(t.start) + " – " + to12(t.end);
+}
+function renderAssignTypeCards() {
+  const active = document.getElementById("assignShiftType").value || "Morning";
+  const grid = document.getElementById("assignTypeGrid");
+  grid.innerHTML = TPL_NAMES.map(function (n) {
+    return '<button type="button" class="sm-shift-card ' + ASSIGN_TYPE_CLASS[n] + (n === active ? " active" : "") +
+      '" data-type="' + n + '" onclick="chooseAssignType(\'' + n + '\', this)">' +
+      '<span class="ic">' + assignTypeIcon(n) + '</span>' +
+      '<div class="nm">' + n + '</div>' +
+      '<div class="tm">' + escapeHtml(assignTypeSubtitle(n)) + '</div>' +
+      '<span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>' +
+    '</button>';
+  }).join("");
+}
+
+async function openAssignModal() {
+  document.getElementById("assignEmployee").value = "";
+  document.getElementById("assignDepartment").value = "";
+  document.getElementById("assignShiftType").value = "Morning";
+  document.getElementById("assignFromDate").value = dateFrom;
+  document.getElementById("assignToDate").value = dateFrom;
+  document.getElementById("customShiftArea").classList.add("d-none");
+  await loadTemplates();   // keep card subtitles in sync with Shift Timings
+  renderAssignTypeCards();
+  updateDaysPreview();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("assignShiftModal")).show();
+}
+
+function chooseAssignType(type, btn) {
+  document.getElementById("assignShiftType").value = type;
+  document.querySelectorAll("#assignTypeGrid .sm-shift-card").forEach(function (b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  document.getElementById("customShiftArea").classList.toggle("d-none", type !== "Custom");
+  if (type === "Custom") {
+    // Pre-fill from the Custom row in Shift Timings
+    const t = effectiveTemplate("Custom");
+    document.getElementById("customStart").value = t.start;
+    document.getElementById("customEnd").value = t.end;
+    document.getElementById("customColor").value = t.color;
+    calculateCustomDuration();
+  }
+}
+
+function updateDaysPreview() {
+  const from = document.getElementById("assignFromDate").value;
+  const to = document.getElementById("assignToDate").value;
+  const el = document.getElementById("daysPreviewTitle");
+  if (!from || !to) { el.textContent = "Select a date range."; return; }
+  const days = Math.floor((parseISO(to) - parseISO(from)) / 86400000) + 1;
+  el.textContent = days > 0 ? days + " day" + (days !== 1 ? "s" : "") + " will be assigned." : "Select a valid date range.";
+}
+
+function calculateCustomDuration() {
+  const s = document.getElementById("customStart").value;
+  const e = document.getElementById("customEnd").value;
+  if (!s || !e) return;
+  const sp = s.split(":").map(Number), ep = e.split(":").map(Number);
+  let mins = (ep[0] * 60 + ep[1]) - (sp[0] * 60 + sp[1]);
+  if (mins <= 0) mins += 1440;
+  const h = mins / 60;
+  document.getElementById("customDuration").textContent = (Number.isInteger(h) ? h : h.toFixed(1)) + " hours";
+}
+
+async function submitShift() {
+  const employee = document.getElementById("assignEmployee").value;
+  const department = document.getElementById("assignDepartment").value;
+  const shift = document.getElementById("assignShiftType").value;
+  const from = document.getElementById("assignFromDate").value;
+  const to = document.getElementById("assignToDate").value;
+
+  if (!employee) return showMessage("Select an employee.", "warning");
+  if (!shift) return showMessage("Select a shift.", "warning");
+  if (!from || !to) return showMessage("Select the date range.", "warning");
+  if (parseISO(to) < parseISO(from)) return showMessage("To date cannot be before From date.", "warning");
+
+  const form = new FormData();
+  form.append("staff", employee);
+  form.append("department", department);
+  form.append("shift", shift);
+  form.append("from_date", from);
+  form.append("to_date", to);
+
+  if (shift === "Custom") {
+    const name = document.getElementById("customName").value.trim();
+    const start = document.getElementById("customStart").value;
+    const end = document.getElementById("customEnd").value;
+    if (!name || !start || !end) return showMessage("Complete the custom shift details.", "warning");
+    form.append("custom_name", name);
+    form.append("custom_start", start);
+    form.append("custom_end", end);
+    form.append("custom_color", document.getElementById("customColor").value);
+  }
+
+  const btn = document.getElementById("assignSubmitBtn");
+  btn.disabled = true;
+  try {
+    const result = await requestJSON(URLS.assign, {
+      method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }, body: form
+    });
+    const inst = bootstrap.Modal.getInstance(document.getElementById("assignShiftModal"));
+    if (inst) inst.hide();
+    showMessage(result.message || "Shift assigned successfully.", "success", { title: "Shift assigned" });
+    await refreshPageData();
+  } catch (e) {
+    console.error(e);
+    showMessage(e.message || "Unable to assign shift.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("assignEmployee").addEventListener("change", function () {
+  const opt = this.options[this.selectedIndex];
+  const dep = opt && opt.dataset ? opt.dataset.department : "";
+  if (dep) document.getElementById("assignDepartment").value = dep;
+});
+
+/* =============================================================
+   SHIFT DETAILS MODAL
+============================================================= */
+function findShift(id) {
+  return rangeShifts.find(function (s) { return Number(s.id) === Number(id); }) ||
+         weeklyShifts.find(function (s) { return Number(s.id) === Number(id); });
+}
+
+function setText(id, value) {
+  document.getElementById(id).textContent = (value === null || value === undefined || value === "") ? "—" : value;
+}
+
+function openDetails(id) {
+  const item = findShift(id);
+  if (!item) return;
+  detailItem = item;
+
+  document.getElementById("detailShiftId").value = item.id;
+  document.getElementById("dtPhoto").innerHTML = avatar(item);
+  setText("dtName", item.staff || "N/A");
+  document.getElementById("dtRole").textContent = item.designation || "";
+  setText("dtEmpId", item.employee_id);
+  setText("dtDept", item.department);
+  setText("dtDateSide", item.date);
+  setText("dtDate", item.date);
+  document.getElementById("dtStatus").innerHTML = statusPill(attendanceStatus(item));
+  document.getElementById("detailShiftType").value = item.shift || "Morning";
+
+  // Remarks: editable only when the backend sends a "remarks" field
+  const ta = document.getElementById("detailRemarks");
+  const txt = document.getElementById("dtRemarksText");
+  if (item.remarks !== undefined) {
+    ta.value = item.remarks || "";
+    ta.classList.remove("d-none");
+    txt.classList.add("d-none");
+  } else {
+    ta.classList.add("d-none");
+    txt.classList.remove("d-none");
+    txt.textContent = "No special remarks for this shift.";
+  }
+
+  refreshDetailTimes();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("detailsModal")).show();
+}
+
+// Recalculates times / hours when the shift type is changed in the modal
+function refreshDetailTimes() {
+  if (!detailItem) return;
+  const name = document.getElementById("detailShiftType").value;
+  let start, end;
+
+  if (name === detailItem.shift) {
+    start = detailItem.start_time; end = detailItem.end_time;
+  } else if (name === "Custom" && detailItem.custom_start && detailItem.custom_end) {
+    start = detailItem.custom_start; end = detailItem.custom_end;
+  } else {
+    const t = effectiveTemplate(name);
+    start = t.start; end = t.end;
+  }
+
+  const label = (name === detailItem.shift && detailItem.custom_name) ? detailItem.custom_name : name;
+  setText("dtStart", to12(start));
+  setText("dtEnd", to12(end));
+  setText("dtHours", durationText(start, end));
+  setText("dtShiftSide", label);
+  setText("dtTimeSide", start && end ? to12(start) + " - " + to12(end) : "");
+}
+
+async function updateCurrentShift() {
+  const id = document.getElementById("detailShiftId").value;
+  const shift = document.getElementById("detailShiftType").value;
+  if (!id || !shift) return;
+  const form = new FormData();
+  form.append("shift_id", id);
+  form.append("shift", shift);
+  if (detailItem && detailItem.remarks !== undefined) {
+    form.append("remarks", document.getElementById("detailRemarks").value.trim());
+  }
+  const btn = document.getElementById("detailSaveBtn");
+  btn.disabled = true;
+  try {
+    await requestJSON(URLS.update, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }, body: form });
+    const inst = bootstrap.Modal.getInstance(document.getElementById("detailsModal"));
+    if (inst) inst.hide();
+    showMessage("Shift updated successfully.", "success");
+    await refreshPageData();
+  } catch (e) {
+    console.error(e);
+    showMessage(e.message || "Unable to update shift.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function postDelete(id) {
+  const form = new FormData();
+  form.append("shift_id", id);
+  return requestJSON(URLS.remove, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }, body: form });
+}
+
+function deleteShiftById(id) {
+  openConfirmDelete("Delete this shift assignment? This cannot be undone.", async function () {
+    try {
+      await postDelete(id);
+      showMessage("Shift deleted successfully.", "success");
+      await refreshPageData();
+    } catch (e) {
+      console.error(e);
+      showMessage(e.message || "Unable to delete shift.", "error");
+    }
+  });
+}
+
+function deleteCurrentShift() {
+  const id = document.getElementById("detailShiftId").value;
+  if (!id) return;
+  openConfirmDelete("Delete this shift assignment? This cannot be undone.", async function () {
+    try {
+      await postDelete(id);
+      const inst = bootstrap.Modal.getInstance(document.getElementById("detailsModal"));
+      if (inst) inst.hide();
+      showMessage("Shift deleted successfully.", "success");
+      await refreshPageData();
+    } catch (e) {
+      console.error(e);
+      showMessage(e.message || "Unable to delete shift.", "error");
+    }
+  });
+}
+
+/* =============================================================
+   CONFIRM DELETE MODAL (replaces window.confirm())
+============================================================= */
+let pendingDeleteAction = null;
+
+function openConfirmDelete(message, onConfirm) {
+  pendingDeleteAction = onConfirm;
+  document.getElementById("confirmDeleteText").textContent = message;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("confirmDeleteModal")).show();
+}
+
+async function runConfirmedDelete() {
+  const action = pendingDeleteAction;
+  pendingDeleteAction = null;
+  const btn = document.getElementById("confirmDeleteBtn");
+  const inst = bootstrap.Modal.getInstance(document.getElementById("confirmDeleteModal"));
+  if (!action) { if (inst) inst.hide(); return; }
+  btn.disabled = true;
+  try {
+    await action();
+  } finally {
+    btn.disabled = false;
+    if (inst) inst.hide();
+  }
+}
+
+document.getElementById("confirmDeleteModal").addEventListener("hidden.bs.modal", function () {
+  pendingDeleteAction = null;
+});
+
+/* =============================================================
+   SHIFT TIMINGS MODAL
+============================================================= */
+
+// Times that are actually in effect (defaults when timings are switched off)
+function effectiveTemplate(name) {
+  const src = tplEnabled ? tplServer : TPL_DEFAULTS;
+  return src[name] || TPL_DEFAULTS[name] || { start: "09:00", end: "17:00", color: "#64748b" };
+}
+
+async function loadTemplates() {
+  try {
+    const result = await requestJSON(URLS.templates);
+    let list = result.templates || result.data || result;
+    if (!Array.isArray(list)) list = Object.values(list || {});
+    const merged = cloneTpl(TPL_DEFAULTS);
+    list.forEach(function (t) {
+      const name = t && (t.shift_name || t.name);
+      if (!name || !merged[name]) return;
+      if (t.start_time) merged[name].start = String(t.start_time).substring(0, 5);
+      if (t.end_time) merged[name].end = String(t.end_time).substring(0, 5);
+      if (t.color) merged[name].color = t.color;
+    });
+    tplServer = merged;
+    tplEnabled = result.enabled !== false;
+  } catch (e) {
+    console.error("Template load error:", e);
+  }
+}
+
+async function openTimingModal() {
+  await loadTemplates();
+  tplDraft = cloneTpl(tplServer);
+  document.getElementById("tplEnabled").checked = tplEnabled;
+  renderTemplateRows();
+  applyEnabledState();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("timingModal")).show();
+}
+
+function renderTemplateRows() {
+  const body = document.getElementById("tplBody");
+  body.innerHTML = TPL_NAMES.map(function (n) {
+    const t = tplDraft[n];
+    return '<tr data-name="' + n + '">' +
+      '<td><div class="sm-tm-shift"><span class="ic" id="tplIc' + n + '" style="color:' + escapeHtml(t.color) + ';">' + TPL_ICON[n] + '</span><span>' + n + '</span></div></td>' +
+      '<td><input type="time" class="sm-time-input" value="' + escapeHtml(t.start) + '" aria-label="' + n + ' start time" oninput="onTplInput(\'' + n + '\',\'start\',this.value)"></td>' +
+      '<td><input type="time" class="sm-time-input" value="' + escapeHtml(t.end) + '" aria-label="' + n + ' end time" oninput="onTplInput(\'' + n + '\',\'end\',this.value)"></td>' +
+      '<td><span class="sm-dur" id="tplDur' + n + '">' + durationText(t.start, t.end) + '</span></td>' +
+      '<td><label class="sm-swatch" id="tplSw' + n + '" style="--c:' + escapeHtml(t.color) + ';" title="Choose colour">' +
+        '<span class="sw"></span>' + ICON.caret +
+        '<input type="color" value="' + escapeHtml(t.color) + '" aria-label="' + n + ' colour" oninput="onTplInput(\'' + n + '\',\'color\',this.value)">' +
+      '</label></td>' +
+      '<td class="text-end"><div class="dropdown">' +
+        '<button type="button" class="sm-kebab dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="' + n + ' options">' + ICON.dots + '</button>' +
+        '<ul class="dropdown-menu dropdown-menu-end">' +
+          '<li><button type="button" class="dropdown-item" onclick="resetTplRow(\'' + n + '\')">Reset to default</button></li>' +
+        '</ul></div></td>' +
+    '</tr>';
+  }).join("");
+  initFixedDropdowns(body);
+}
+
+function onTplInput(name, field, value) {
+  tplDraft[name][field] = value;
+  if (field === "color") {
+    document.getElementById("tplSw" + name).style.setProperty("--c", value);
+    document.getElementById("tplIc" + name).style.color = value;
+  } else {
+    document.getElementById("tplDur" + name).textContent = durationText(tplDraft[name].start, tplDraft[name].end);
+  }
+}
+
+function resetTplRow(name) {
+  tplDraft[name] = Object.assign({}, TPL_DEFAULTS[name]);
+  renderTemplateRows();
+  applyEnabledState();
+}
+
+function resetAllTemplates() {
+  tplDraft = cloneTpl(TPL_DEFAULTS);
+  document.getElementById("tplEnabled").checked = true;
+  renderTemplateRows();
+  applyEnabledState();
+}
+
+function applyEnabledState() {
+  const on = document.getElementById("tplEnabled").checked;
+  document.getElementById("tplTable").classList.toggle("is-off", !on);
+  document.querySelectorAll("#tplBody input").forEach(function (i) { i.disabled = !on; });
+}
+
+async function saveTemplates() {
+  const enabled = document.getElementById("tplEnabled").checked;
+
+  for (const n of TPL_NAMES) {
+    const t = tplDraft[n];
+    if (!t.start || !t.end) return showMessage(n + ": set a start and end time.", "warning");
+    if (t.start === t.end) return showMessage(n + ": start and end time cannot be the same.", "warning");
+  }
+
+  const btn = document.getElementById("tplSaveBtn");
+  btn.disabled = true;
+  try {
+    for (const n of TPL_NAMES) {
+      await requestJSON(URLS.saveTemplate, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+        body: JSON.stringify({
+          shift_name: n,
+          start_time: tplDraft[n].start,
+          end_time: tplDraft[n].end,
+          color: tplDraft[n].color,
+          is_active: enabled
+        })
+      });
+    }
+    await loadTemplates();
+    const inst = bootstrap.Modal.getInstance(document.getElementById("timingModal"));
+    if (inst) inst.hide();
+    showMessage("Shift timings saved successfully.", "success");
+    await refreshPageData();
+  } catch (e) {
+    console.error(e);
+    showMessage(e.message || "Unable to save shift timings.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* =============================================================
+   START
+============================================================= */
+document.addEventListener("DOMContentLoaded", function () {
+  // Move modals to <body> so they sit above the app layout
+  ["assignShiftModal", "detailsModal", "timingModal", "confirmDeleteModal"].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) document.body.appendChild(el);
+  });
+
+  getToastHost();           // make sure the toast container lives on <body>
+
+  // Default range: the current month
+  const now = new Date();
+  setRange(
+    isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+  );
+  calculateCustomDuration();
+  loadTemplates();          // fire and forget: needed for previews and the Custom pre-fill
+  refreshPageData();
+});
+</script>
+{% endblock %}

@@ -70,20 +70,21 @@ urlpatterns =[
     path("leave/apply/", apply_leave, name="apply_leave"),
     path('dashboard/leave/requests/',              admin_leave_requests, name='admin_leave_requests'),
 path('dashboard/leave/update/<int:leave_id>/', admin_leave_update,   name='admin_leave_update'),
-   path('payroll/generate/',                     generate_payroll),
-     path('payroll/dashboard/',                    payroll_dashboard),
-     path('payroll/update/<int:payroll_id>/',      update_payroll),
-     path('payroll/mark-paid/<int:payroll_id>/',   mark_payroll_paid),
-     path('payroll/payslip/<int:payroll_id>/',     payslip),
-     path('payroll/payslip/<int:payroll_id>/pdf/', download_payslip_pdf),
-     path('payroll/<int:payroll_id>/',                      payroll_detail),
-path('payroll/<int:payroll_id>/line-items/',           payroll_line_items),
-path('payroll/line-items/<int:item_id>/',              payroll_line_item_detail),
-path('payroll/<int:payroll_id>/recalculate/',          recalculate_payroll),
-path('payroll/staff/<int:staff_id>/history/',          staff_payroll_history),
-path('payroll/staff/<int:staff_id>/financial-account/', financial_account),
-path('payroll/monthly-summary/',                       hotel_monthly_summary),
-path('payroll/export/csv/',                            payroll_export_csv),
+    path('payroll/',                                        payroll_management_page, name='payroll_management_page'),
+    path('payroll/generate/',                                generate_payroll,        name='generate_payroll'),
+    path('payroll/dashboard/',                                payroll_dashboard,       name='payroll_dashboard'),
+    path('payroll/update/<int:payroll_id>/',                  update_payroll,          name='update_payroll'),
+    path('payroll/mark-paid/<int:payroll_id>/',                mark_payroll_paid,       name='mark_payroll_paid'),
+    path('payroll/payslip/<int:payroll_id>/',                  payslip,                 name='payslip'),
+    path('payroll/payslip/<int:payroll_id>/pdf/',              download_payslip_pdf,    name='download_payslip_pdf'),
+    path('payroll/<int:payroll_id>/',                          payroll_detail,          name='payroll_detail'),
+    path('payroll/<int:payroll_id>/line-items/',               payroll_line_items,      name='payroll_line_items'),
+    path('payroll/line-items/<int:item_id>/',                  payroll_line_item_detail, name='payroll_line_item_detail'),
+    path('payroll/<int:payroll_id>/recalculate/',              recalculate_payroll,     name='recalculate_payroll'),
+    path('payroll/staff/<int:staff_id>/history/',              staff_payroll_history,   name='staff_payroll_history'),
+    path('payroll/staff/<int:staff_id>/financial-account/',    financial_account,       name='financial_account'),
+    path('payroll/monthly-summary/',                           hotel_monthly_summary,   name='hotel_monthly_summary'),
+    path('payroll/export/csv/',                                payroll_export_csv,      name='payroll_export_csv'),
 path('payroll/settlements/',                           final_settlements),
 path('payroll/settlements/<int:settlement_id>/',       final_settlement_detail),
 path('attendance/today/', today_attendance),  
@@ -93,6 +94,8 @@ path(
     name="staff_attendance_dashboard"
 ),
 path("staff/attendance/history/", get_attendance_history, name="attendance_history"),
+ 
+path("staff/leave-management/", leave_management_page, name="leave_management_page"),
  path(
         'email/recipients/',
         get_email_recipients,
@@ -157,7 +160,15 @@ path(
 ),
 path('attendance/face-lookup/', face_attendance_lookup, name='face_attendance_lookup'),
 path('attendance/mark-with-face/', verify_face_and_mark_attendance, name='verify_face_and_mark_attendance'),
+path("staff/attendance/daily-modal/", attendance_daily_modal_api, name="attendance_daily_modal_api"),
+ path(
+        "staff/attendance-management/",
+        attendance_management_page,
+        name="attendance_management_page",
+    ),
 
+path("attendance/staff/<int:staff_id>/history/", staff_attendance_history_api, name="staff_attendance_history_api"),
+path("attendance/export/", attendance_export_csv, name="attendance_export_csv"),
  # ── Staff list ─────────────────────────────────────────────────
     path('messages/staff-list/', StaffListView.as_view()),
 
@@ -171,7 +182,11 @@ path('attendance/mark-with-face/', verify_face_and_mark_attendance, name='verify
         thread_messages_view,
         name='thread_messages'
     ),
-
+path(
+    "staff/shifts/",
+    shift_management_page,
+    name="shift_management_page",
+),
     path('messages/threads/<int:thread_id>/members/', ThreadMembersView.as_view()),
     path('messages/threads/<int:thread_id>/mark-read/', MarkThreadReadView.as_view()),
     path('messages/threads/<int:thread_id>/pinned/', PinnedMessagesView.as_view()),

@@ -1,0 +1,390 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Webhook Events{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Layout, colour and control styling only — fonts come from the base template. */
+  .wh-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+  .wh-head-left { display:flex; align-items:center; gap:16px; }
+  .wh-head-ico { width:52px; height:52px; border-radius:14px; background:#efeafd; color:#6d4bf0;
+                 display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .wh-head-right { display:flex; align-items:center; gap:10px; }
+
+  .wh-field { height:44px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb); border-radius:10px;
+              background:var(--admio-sidebar-bg,#fff); color:inherit; min-width:0; }
+  .wh-field:focus { outline:none; border-color:#6d4bf0; box-shadow:0 0 0 3px rgba(109,75,240,.12); }
+  .wh-range { display:flex; align-items:center; gap:8px; height:44px; padding:0 14px; border:1px solid var(--admio-border-color,#e5e7eb);
+              border-radius:10px; background:var(--admio-sidebar-bg,#fff); color-scheme: light; }
+  [data-theme="dark"] .wh-range { color-scheme: dark; }
+  .wh-range input { border:0; background:transparent; color:inherit; min-width:0; width:150px;
+                     font-variant-numeric: tabular-nums; color-scheme: inherit; }
+  .wh-range input:focus { outline:none; }
+  .wh-range input::-webkit-calendar-picker-indicator { margin-left:6px; cursor:pointer; }
+  .wh-range input::-webkit-datetime-edit-fields-wrapper,
+  .wh-range input::-webkit-datetime-edit-text,
+  .wh-range input::-webkit-datetime-edit-day-field,
+  .wh-range input::-webkit-datetime-edit-month-field,
+  .wh-range input::-webkit-datetime-edit-year-field { color: var(--admio-heading-color, #111); }
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-fields-wrapper,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-text,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-day-field,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-month-field,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-year-field { color: #f3f4f6; }
+
+  .wh-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 20px; border:1px solid transparent;
+            border-radius:10px; font-size:inherit; font-weight:600; line-height:1.2; cursor:pointer;
+            transition:background .15s, border-color .15s, color .15s; white-space:nowrap; }
+  .wh-btn-primary { background:#6d4bf0; color:#fff; } .wh-btn-primary:hover { background:#5b3ce0; color:#fff; }
+  .wh-btn-ghost { background:transparent; border-color:var(--admio-border-color,#e5e7eb); color:inherit; }
+  .wh-btn-ghost:hover { border-color:#6d4bf0; color:#6d4bf0; }
+  .wh-btn-sm { padding:6px 14px; border-radius:8px; }
+
+  /* stat cards */
+  .wh-stats { display:grid; grid-template-columns:repeat(5, 1fr); gap:16px; margin-bottom:20px; }
+  .wh-stat { display:flex; flex-direction:column; gap:14px; padding:18px 20px; border-radius:16px; border:1px solid; }
+  .wh-stat-top { display:flex; align-items:center; justify-content:space-between; }
+  .wh-stat-ico { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .wh-stat-trend { font-size:.78rem; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .wh-stat.c-total  { background:#eef4ff; border-color:#d6e4ff; } .c-total  .wh-stat-ico { background:#d4e4ff; color:#1d6fdc; } .c-total  .wh-stat-trend { background:#d4e4ff; color:#1d6fdc; }
+  .wh-stat.c-pending{ background:#e8fbf7; border-color:#c7f1e8; } .c-pending .wh-stat-ico{ background:#c7f1e8; color:#0d9488; } .c-pending .wh-stat-trend{ background:#c7f1e8; color:#0d9488; }
+  .wh-stat.c-done   { background:#ecfaf2; border-color:#cdeedb; } .c-done   .wh-stat-ico { background:#c9f0da; color:#16a34a; } .c-done   .wh-stat-trend { background:#c9f0da; color:#16a34a; }
+  .wh-stat.c-failed { background:#fff0f0; border-color:#ffd6d6; } .c-failed .wh-stat-ico { background:#fdd0d0; color:#dc2626; } .c-failed .wh-stat-trend { background:#fdd0d0; color:#dc2626; }
+  .wh-stat.c-ignored{ background:#fff8ec; border-color:#fbe8c6; } .c-ignored .wh-stat-ico{ background:#fbe8c6; color:#b45309; } .c-ignored .wh-stat-trend{ background:#fbe8c6; color:#b45309; }
+  [data-theme="dark"] .wh-stat { background:var(--admio-sidebar-bg,#1e1e2d) !important; border-color:var(--admio-border-color,#2d2d3d) !important; }
+  [data-theme="dark"] .wh-head-ico { background:rgba(124,58,237,.18); }
+
+  /* toolbar */
+  .wh-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px; }
+  .wh-toolbar > * { flex:0 0 auto; }
+  .wh-toolbar .wh-search { flex:1 1 200px; min-width:180px; }
+
+  /* table */
+  .wh-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; font-size:.82rem; font-weight:600; white-space:nowrap; }
+  .wh-dot { width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block; }
+  .wh-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:64px 24px; gap:8px; }
+  .wh-empty-ico { width:64px; height:64px; border-radius:16px; background:#efeafd; color:#6d4bf0; display:flex; align-items:center; justify-content:center; margin-bottom:8px; }
+
+  @media (max-width:1200px) { .wh-stats { grid-template-columns:repeat(3, 1fr); } }
+  @media (max-width:700px)  { .wh-stats { grid-template-columns:repeat(2, 1fr); } .wh-head { flex-direction:column; } }
+
+  /* ── DARK THEME ──
+     Native form controls (select, input[type=date], button) carry their own
+     UA background regardless of the CSS custom properties above, so force
+     it explicitly here instead of relying on var() fallbacks alone. */
+  [data-theme="dark"] .wh-field,
+  [data-theme="dark"] .wh-range {
+    background:#1e1e2d !important;
+    border-color:#2d2d3d !important;
+    color:#f3f4f6 !important;
+  }
+  [data-theme="dark"] .wh-field option { background:#1e1e2d; color:#f3f4f6; }
+  [data-theme="dark"] .wh-field::placeholder { color:#6b7280; }
+
+  [data-theme="dark"] .wh-range input {
+    background:transparent !important;
+    color:#f3f4f6 !important;
+  }
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-fields-wrapper { background:transparent !important; }
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-text,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-day-field,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-month-field,
+  [data-theme="dark"] .wh-range input::-webkit-datetime-edit-year-field { color:#f3f4f6 !important; }
+  [data-theme="dark"] .wh-range input::-webkit-calendar-picker-indicator { filter:invert(1) brightness(1.6); }
+
+  [data-theme="dark"] .wh-btn-ghost {
+    background:transparent !important;
+    border-color:#2d2d3d !important;
+    color:#d1d5db !important;
+  }
+  [data-theme="dark"] .wh-btn-ghost:hover { border-color:#6d4bf0 !important; color:#a78bfa !important; }
+
+  [data-theme="dark"] .wh-empty .fw-700 { color:#f3f4f6 !important; }
+  [data-theme="dark"] .wh-empty .text-muted { color:#9ca3af !important; }
+  [data-theme="dark"] .wh-empty-ico { background:rgba(124,58,237,.18) !important; }
+
+  /* The shared card/table component doesn't switch on its own in this view —
+     force it dark explicitly so the empty-state text isn't sitting on a
+     leftover light background. */
+  [data-theme="dark"] .admio-card,
+  [data-theme="dark"] .admio-table,
+  [data-theme="dark"] .table-responsive {
+    background:#1e1e2d !important;
+    border-color:#2d2d3d !important;
+  }
+  [data-theme="dark"] .admio-table tbody tr,
+  [data-theme="dark"] .admio-table td {
+    background:#1e1e2d !important;
+    border-color:#2d2d3d !important;
+    color:#e5e7eb;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════ HEADER ══════════ -->
+<div class="wh-head">
+  <div class="wh-head-left">
+    <span class="wh-head-ico">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </span>
+    <div>
+      <h1 class="page-title mb-1">Webhook Events</h1>
+      <p class="page-subtitle text-muted mb-0">Track and manage incoming webhook events from external systems.</p>
+    </div>
+  </div>
+  <div class="wh-head-right">
+    <div class="wh-range">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <input type="date" id="fFrom" value="{{ default_from }}" aria-label="From date">
+      <span class="text-muted">–</span>
+      <input type="date" id="fTo" value="{{ default_to }}" aria-label="To date">
+    </div>
+    <button class="wh-btn wh-btn-ghost" id="btnRefresh" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ STAT CARDS ══════════ -->
+<div class="wh-stats">
+  <div class="wh-stat c-total" data-status="">
+    <div class="wh-stat-top"><span class="wh-stat-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span><span class="wh-stat-trend">↗ 0%</span></div>
+    <div><div class="stat-value" id="cTotal">0</div><div class="stat-label text-muted">Total</div><div class="text-xs text-muted">Total webhook events</div></div>
+  </div>
+  <div class="wh-stat c-pending" data-status="pending">
+    <div class="wh-stat-top"><span class="wh-stat-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="wh-stat-trend">↗ 0%</span></div>
+    <div><div class="stat-value" id="cPending">0</div><div class="stat-label text-muted">Pending</div><div class="text-xs text-muted">Awaiting processing</div></div>
+  </div>
+  <div class="wh-stat c-done" data-status="done">
+    <div class="wh-stat-top"><span class="wh-stat-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></span><span class="wh-stat-trend">↗ 0%</span></div>
+    <div><div class="stat-value" id="cProcessed">0</div><div class="stat-label text-muted">Processed</div><div class="text-xs text-muted">Successfully processed</div></div>
+  </div>
+  <div class="wh-stat c-failed" data-status="failed">
+    <div class="wh-stat-top"><span class="wh-stat-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg></span><span class="wh-stat-trend">↗ 0%</span></div>
+    <div><div class="stat-value" id="cFailed">0</div><div class="stat-label text-muted">Failed</div><div class="text-xs text-muted">Failed to process</div></div>
+  </div>
+  <div class="wh-stat c-ignored" data-status="ignored">
+    <div class="wh-stat-top"><span class="wh-stat-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span><span class="wh-stat-trend">↗ 0%</span></div>
+    <div><div class="stat-value" id="cIgnored">0</div><div class="stat-label text-muted">Ignored</div><div class="text-xs text-muted">Ignored events</div></div>
+  </div>
+</div>
+
+<!-- ══════════ TOOLBAR ══════════ -->
+<div class="wh-toolbar">
+  <select class="wh-field" id="fStatus">
+    <option value="">All Status</option>
+    <option value="pending">Pending</option>
+    <option value="processing">Processing</option>
+    <option value="done">Processed</option>
+    <option value="failed">Failed</option>
+    <option value="ignored">Ignored</option>
+  </select>
+  <select class="wh-field" id="fType"><option value="">All Event Types</option></select>
+  <select class="wh-field" id="fChannel">
+    <option value="">All Source Channels</option>
+    {% for c in website_channels %}<option value="website:{{ c.id }}">{{ c.site_name }} (Website)</option>{% endfor %}
+    {% for c in ota_channels %}<option value="ota:{{ c.id }}">{{ c.name }} (OTA)</option>{% endfor %}
+  </select>
+  <input type="search" class="wh-field wh-search" id="fSearch" placeholder="Search by event ID, channel, or type...">
+  <button class="wh-btn wh-btn-ghost wh-btn-sm" id="btnClear" type="button">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    Clear Filters
+  </button>
+</div>
+
+<!-- ══════════ TABLE / EMPTY STATE ══════════ -->
+<div class="admio-card">
+  <div class="admio-card-header d-flex align-items-center gap-2">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <h2 class="card-title mb-0">Webhook Events</h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="admio-table table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Event ID</th><th>Type</th><th>Source Channel</th><th>Status</th>
+          <th>Received At</th><th>Booking</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="whBody">
+        <tr><td colspan="7" class="text-center text-muted">Loading webhook events…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ DETAILS MODAL ══════════ -->
+<div class="modal fade" id="mDetail" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Webhook event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="mDetailBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="wh-btn wh-btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const API_LIST = "{% url 'webhook-event-list' %}";
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  let all = [];
+
+  const STATUS_INFO = {
+    pending:    ["warning",   "Pending"],
+    processing: ["info",      "Processing"],
+    done:       ["success",   "Processed"],
+    failed:     ["danger",    "Failed"],
+    ignored:    ["secondary", "Ignored"],
+  };
+  const pill = (color, text) =>
+    `<span class="badge badge-admio bg-${color}-subtle text-${color}-emphasis d-inline-flex align-items-center gap-2"><span class="wh-dot"></span>${esc(text)}</span>`;
+
+  const fmtDate = iso => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+
+  function qs() {
+    const p = new URLSearchParams();
+    if ($("fFrom").value) p.set("date_from", $("fFrom").value);
+    if ($("fTo").value)   p.set("date_to", $("fTo").value);
+    if ($("fStatus").value)  p.set("status", $("fStatus").value);
+    if ($("fType").value)    p.set("event_type", $("fType").value);
+    if ($("fChannel").value) p.set("channel", $("fChannel").value);
+    if ($("fSearch").value.trim()) p.set("q", $("fSearch").value.trim());
+    return p.toString();
+  }
+
+  async function load() {
+    $("whBody").innerHTML = '<tr><td colspan="7" class="text-center text-muted">Loading webhook events…</td></tr>';
+    try {
+      const r = await fetch(`${API_LIST}?${qs()}`, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+      const j = await r.json();
+      all = j.results || [];
+      const s = j.stats || {};
+      $("cTotal").textContent     = s.total || 0;
+      $("cPending").textContent   = s.pending || 0;
+      $("cProcessed").textContent = s.processed || 0;
+      $("cFailed").textContent    = s.failed || 0;
+      $("cIgnored").textContent   = s.ignored || 0;
+
+      const types = [...new Set(all.map(e => e.event_type).filter(Boolean))].sort();
+      const currentType = $("fType").value;
+      $("fType").innerHTML = '<option value="">All Event Types</option>' +
+        types.map(t => `<option value="${esc(t)}" ${t === currentType ? "selected" : ""}>${esc(t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()))}</option>`).join("");
+
+      render();
+    } catch (e) {
+      $("whBody").innerHTML = `<tr><td colspan="7" class="text-center text-danger">Could not load webhook events. ${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  function render() {
+    if (!all.length) {
+      $("whBody").innerHTML = `<tr><td colspan="7">
+        <div class="wh-empty">
+          <span class="wh-empty-ico">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </span>
+          <div class="fw-700">No webhook events yet</div>
+          <div class="text-muted text-sm" style="max-width:360px;">Configure webhooks from integrations to start receiving events like bookings, cancellations, and updates.</div>
+          <button class="wh-btn wh-btn-primary mt-2" id="btnAddEmpty" type="button">+ Add Webhook</button>
+        </div>
+      </td></tr>`;
+      const btn = $("btnAddEmpty");
+      if (btn) btn.onclick = goAddWebhook;
+      return;
+    }
+
+    $("whBody").innerHTML = all.map(e => {
+      const [color, label] = STATUS_INFO[e.status] || ["secondary", e.status];
+      const typeLabel = (e.event_type || "—").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const channelBadge = e.channel_kind === "ota" ? "OTA" : e.channel_kind === "website" ? "Website" : "";
+      return `<tr>
+        <td class="text-nowrap fw-600">EVT-${String(e.id).padStart(6, "0")}</td>
+        <td>${esc(typeLabel)}</td>
+        <td>${esc(e.channel_name)}${channelBadge ? ` <span class="text-xs text-muted">(${channelBadge})</span>` : ""}</td>
+        <td>${pill(color, label)}</td>
+        <td class="text-muted text-nowrap">${fmtDate(e.received_at)}</td>
+        <td>${e.booking_code ? `#${esc(e.booking_code)}` : "—"}</td>
+        <td><button type="button" class="wh-btn wh-btn-sm wh-btn-ghost" data-view="${e.id}">View</button></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function goAddWebhook() {
+    // Adjust this target to wherever channels are configured in your app.
+    window.location.href = "{% url 'website-channels-page' %}";
+  }
+
+  function openDetail(id) {
+    const e = all.find(x => x.id === id);
+    if (!e) return;
+    const [color, label] = STATUS_INFO[e.status] || ["secondary", e.status];
+    let html = [
+      ["Event ID", `EVT-${String(e.id).padStart(6, "0")}`],
+      ["Type", (e.event_type || "—").replace(/_/g, " ")],
+      ["Source channel", `${e.channel_name}${e.channel_kind ? " (" + (e.channel_kind === "ota" ? "OTA" : "Website") + ")" : ""}`],
+      ["Status", label],
+      ["Attempts", e.attempts],
+      ["Received at", fmtDate(e.received_at)],
+      ["Processed at", fmtDate(e.processed_at)],
+      ["Booking", e.booking_code || "—"],
+    ].map(([k, v]) => `<div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+        <span class="text-muted">${k}</span><span class="fw-600 text-end">${esc(v)}</span></div>`).join("");
+
+    if (e.last_error) {
+      html += `<div class="py-2"><div class="text-muted mb-1">Last error</div>
+        <div class="text-danger" style="white-space:pre-wrap;">${esc(e.last_error)}</div></div>`;
+    }
+    if (e.payload) {
+      html += `<div class="py-2"><div class="text-muted mb-1">Payload</div>
+        <pre class="text-xs" style="white-space:pre-wrap; background:rgba(107,114,128,.08); padding:12px; border-radius:8px; max-height:260px; overflow:auto;">${esc(JSON.stringify(e.payload, null, 2))}</pre></div>`;
+    }
+    $("mDetailBody").innerHTML = html;
+    bootstrap.Modal.getOrCreateInstance($("mDetail")).show();
+  }
+
+  document.addEventListener("click", e => {
+    const statCard = e.target.closest(".wh-stat");
+    if (statCard && statCard.dataset.status !== undefined) {
+      $("fStatus").value = statCard.dataset.status;
+      return load();
+    }
+    const viewBtn = e.target.closest("[data-view]");
+    if (viewBtn) return openDetail(+viewBtn.dataset.view);
+  });
+
+  ["fStatus", "fType", "fChannel", "fFrom", "fTo"].forEach(id => $(id).addEventListener("change", load));
+  let searchTimer;
+  $("fSearch").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300); });
+  $("btnRefresh").onclick = load;
+  $("btnClear").onclick = () => {
+    $("fFrom").value = "{{ default_from }}";
+    $("fTo").value = "{{ default_to }}";
+    ["fStatus", "fType", "fChannel"].forEach(id => $(id).value = "");
+    $("fSearch").value = "";
+    load();
+  };
+
+  load();
+})();
+</script>
+{% endblock %}

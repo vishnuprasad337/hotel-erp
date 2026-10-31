@@ -83,6 +83,14 @@ class RestaurantOrder(models.Model):
     served_status_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    preparing_by_user = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders_marked_preparing_admin'
+    )
+    served_status_by_user = models.ForeignKey(
+        'accounts.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='orders_marked_served_admin'
+    )
 
     def save(self, *args, **kwargs):
         if not self.order_number:

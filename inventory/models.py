@@ -56,6 +56,7 @@ class InventoryItem(models.Model):
     minimum_stock = models.DecimalField(max_digits=10, decimal_places=2, default=10)
     cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     vendor        = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True)
+    image        = models.ImageField(upload_to='inventory_items/', null=True, blank=True)  
     created_at    = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -230,103 +231,201 @@ class AssetCategory(models.Model):
 
 
 class HotelAsset(models.Model):
-
     STATUS = [
-        ('active',      'Active'),
-        ('maintenance', 'Under Maintenance'),
-        ('inactive',     'Inactive'),  
-        ('disposed',    'Disposed'),  
+        ("active", "Active"),
+        ("maintenance", "Under Maintenance"),
+        ("inactive", "Inactive"),
+        ("disposed", "Disposed"),
     ]
 
-    
-    name           = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+
     asset_category = models.ForeignKey(
-        AssetCategory, on_delete=models.SET_NULL, null=True
+        AssetCategory,
+        on_delete=models.SET_NULL,
+        null=True,
     )
-    serial_number  = models.CharField(max_length=100, blank=True)
 
-   
+    serial_number = models.CharField(
+        max_length=100,
+        blank=True,
+    )
 
+    # Retained for compatibility with existing views.
+    # Multiple locations are stored in AssetLocation.
     room_unit = models.ForeignKey(
         RoomUnit,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='assets',
-        help_text="Specific room unit the asset is installed in (e.g. Room 101)"
+        null=True,
+        blank=True,
+        related_name="assets",
+        help_text="Specific room unit for a single-room assignment.",
     )
+
     room = models.ForeignKey(
         Room,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='assets',
-        help_text="Room type when the asset is shared across a type, not a single unit"
+        null=True,
+        blank=True,
+        related_name="assets",
+        help_text="Room type when no specific room unit is selected.",
     )
+
     area = models.CharField(
-        max_length=200, blank=True,
-        help_text="Non-room location: Lobby, Pool House, Laundry Room, Parking Lot …"
+        max_length=200,
+        blank=True,
+        help_text="Non-room location: Lobby, Laundry Room, Parking Lot…",
     )
 
-   
     department = models.ForeignKey(
-        'accounts.Department',
+        "accounts.Department",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='assets'
+        null=True,
+        blank=True,
+        related_name="assets",
     )
 
-   
-    status = models.CharField(max_length=20, choices=STATUS, default='active')
-
-   
-    purchase_date = models.DateField(null=True, blank=True)
-    purchase_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    vendor        = models.ForeignKey(
-        Vendor, on_delete=models.SET_NULL, null=True, blank=True
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS,
+        default="active",
     )
 
-    
-    warranty_end     = models.DateField(null=True, blank=True)
-    next_maintenance = models.DateField(null=True, blank=True)
+    purchase_date = models.DateField(
+        null=True,
+        blank=True,
+    )
 
-   
+    purchase_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+
+    vendor = models.ForeignKey(
+        Vendor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    warranty_end = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    next_maintenance = models.DateField(
+        null=True,
+        blank=True,
+    )
+
     assigned_to = models.ForeignKey(
-        'accounts.Staff',
+        "accounts.Staff",
         on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='assigned_assets'
+        null=True,
+        blank=True,
+        related_name="assigned_assets",
     )
 
-    notes      = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+
+    image = models.ImageField(
+        upload_to="hotel_assets/",
+        null=True,
+        blank=True,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
- 
+    @staticmethod
+    def _location_label(room=None, room_unit=None, area=""):
+        if room_unit is not None:
+            # Use the room type belonging to the actual room unit.
+            room_type = room_unit.room.display_type()
+
+            return (
+                f"Room {room_unit.room_number} — {room_type}"
+            )
+
+        if room is not None:
+            return (
+                f"{room.display_type()} — room number not assigned"
+            )
+
+        return (area or "").strip()
+
+    @property
+    def current_location_labels(self):
+        """
+        Return every distinct current location as a list.
+
+        Example:
+        [
+            "Room DL1 — Deluxe",
+            "Room DL2 — Deluxe",
+            "Lobby",
+        ]
+        """
+        labels = []
+
+        if not self._state.adding:
+            current_locations = (
+                self.location_history
+                .filter(is_current=True)
+                .select_related(
+                    "room",
+                    "room_unit",
+                    "room_unit__room",
+                )
+                .order_by("assigned_at", "pk")
+            )
+
+            for location in current_locations:
+                label = self._location_label(
+                    room=location.room,
+                    room_unit=location.room_unit,
+                    area=location.area,
+                )
+
+                if label and label not in labels:
+                    labels.append(label)
+
+        # Support older assets stored using the direct fields.
+        if not labels:
+            fallback = self._location_label(
+                room=self.room,
+                room_unit=self.room_unit,
+                area=self.area,
+            )
+
+            if fallback:
+                labels.append(fallback)
+
+        return labels
 
     @property
     def location_display(self):
-       
-        if self.room_unit_id:
-            return f"Room {self.room_unit.room_number}"
-        if self.room_id:
-            return f"{self.room.room_type} (no specific unit)"
-        return self.area or "—"
+        return ", ".join(self.current_location_labels) or "—"
 
     @property
     def is_warranty_active(self):
         if not self.warranty_end:
             return False
+
         return self.warranty_end >= timezone.now().date()
 
     @property
     def maintenance_due(self):
         if not self.next_maintenance:
             return False
+
         return self.next_maintenance <= timezone.now().date()
 
     def __str__(self):
         return f"{self.name} ({self.location_display})"
 
     class Meta:
-        ordering = ['name']
+        ordering = ["name"]
 
 
 class MaintenanceLog(models.Model):
@@ -685,7 +784,13 @@ class AssetLocation(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["asset"],
-                condition=models.Q(is_current=True),
-                name="unique_current_asset_location",
-            )]
+                fields=["asset", "room_unit"],
+                condition=models.Q(is_current=True, room_unit__isnull=False),
+                name="unique_current_asset_room_unit",
+            ),
+            models.UniqueConstraint(
+                fields=["asset", "area"],
+                condition=models.Q(is_current=True) & ~models.Q(area=""),
+                name="unique_current_asset_area",
+            ),
+        ]

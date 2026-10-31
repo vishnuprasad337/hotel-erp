@@ -1,0 +1,661 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}OTA Channels · {{ hotel.hotel_name }}{% endblock %}
+
+{% block channels_open %}open{% endblock %}
+{% block nav_ota_channel_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  .modal { z-index: 10100; }
+  .modal-backdrop { z-index: 10090; }
+
+  .cm-tint-blue   { --cm-c: 47, 107, 255; }
+  .cm-tint-purple { --cm-c: 124, 58, 237; }
+  .cm-tint-green  { --cm-c: 22, 168, 112; }
+  .cm-tint-red    { --cm-c: 229, 72, 77; }
+  .cm-tint-amber  { --cm-c: 217, 138, 0; }
+  .cm-tint-grey   { --cm-c: 107, 113, 148; }
+
+  .cm-tint { background: rgba(var(--cm-c), .09) !important; border-color: rgba(var(--cm-c), .2) !important; }
+  .cm-c    { color: rgb(var(--cm-c)); }
+
+  .cm-svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .cm-ico { width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: #fff; color: rgb(var(--cm-c)); }
+  [data-theme="dark"] .cm-ico { background: rgba(255, 255, 255, .1); }
+  .cm-ico .cm-svg { width: 22px; height: 22px; }
+  .cm-ico.cm-soft { background: rgba(var(--cm-c), .12); }
+  .cm-ico.cm-sq { width: 40px; height: 40px; border-radius: 10px; }
+  .cm-ico.cm-sq .cm-svg { width: 19px; height: 19px; }
+
+  .cm-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; white-space: nowrap; background: rgba(var(--cm-c), .12); color: rgb(var(--cm-c)); }
+  .cm-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
+  .cm-avatar { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1rem; flex: none; }
+
+  .cm-thead th { background: rgba(124, 58, 237, .07) !important; white-space: nowrap; }
+  .cm-iconbtn { width: 40px; height: 40px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+  .cm-iconbtn .cm-svg { width: 18px; height: 18px; }
+
+  .ota-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ota-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border: 1px solid transparent; border-radius: 12px;
+    background: transparent; color: var(--admio-nav-color, #6b7280);
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .ota-tab:hover { background: rgba(124, 58, 237, .06); color: #7C3AED; }
+  .ota-tab.active { background: rgba(124, 58, 237, .1); border-color: rgba(124, 58, 237, .25); color: #7C3AED; }
+  .ota-tab .cm-dot { width: 8px; height: 8px; }
+  .ota-tab .ota-count { font-size: .82rem; padding: 1px 8px; border-radius: 999px; background: rgba(124, 58, 237, .12); }
+
+  .ota-info { display: flex; align-items: center; gap: 10px; padding: 16px 30px; border-top: 1px solid var(--admio-border-color, #e5e7eb); background: rgba(124, 58, 237, .04); font-size: .98rem; color: var(--admio-nav-color, #6b7280); }
+  .ota-info .cm-svg { color: #7C3AED; width: 18px; height: 18px; }
+
+  #otaModal .modal-header { border-bottom: 1px solid var(--admio-border-color, #e5e7eb); }
+  #otaModal .modal-body { padding-top: 20px; padding-bottom: 20px; }
+
+  .ota-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--admio-body-bg, #f3f4f6); margin-bottom: 20px; }
+  .ota-seg-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border: 0; border-radius: 9px;
+    background: transparent; color: var(--admio-nav-color, #6b7280); font-weight: 600; font-size: .95rem; cursor: pointer;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .ota-seg-btn .cm-svg { width: 16px; height: 16px; }
+  .ota-seg-btn.active { background: #fff; color: #7C3AED; box-shadow: 0 1px 3px rgba(17, 24, 39, .12); }
+  [data-theme="dark"] .ota-seg-btn.active { background: rgba(255, 255, 255, .08); }
+  .ota-seg-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+  .ota-modal-grid { display: grid; grid-template-columns: 1fr 260px; gap: 24px; align-items: start; }
+  @media (max-width: 767px) { .ota-modal-grid { grid-template-columns: 1fr; } }
+
+  .ota-field-label { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 6px; }
+  .ota-field-label .cm-svg { width: 15px; height: 15px; color: #7C3AED; }
+  .ota-field-hint { font-size: .78rem; color: var(--admio-nav-color, #6b7280); margin-top: 4px; }
+
+  .ota-select-wrap { position: relative; }
+  .ota-select-wrap .ota-select-badge {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: .78rem; pointer-events: none;
+  }
+  .ota-select-wrap select { padding-left: 44px !important; }
+
+  .input-icon-wrap { position: relative; }
+  .input-icon-wrap .cm-svg {
+    position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; color: var(--admio-nav-color, #9ca3af);
+  }
+  .input-icon-wrap input { padding-left: 38px !important; }
+
+  .ota-side-panel {
+    border-radius: 16px; padding: 22px 18px; text-align: center;
+    background: linear-gradient(180deg, rgba(124, 58, 237, .08), rgba(124, 58, 237, .02));
+    border: 1px solid rgba(124, 58, 237, .14);
+  }
+  .ota-side-illust { position: relative; height: 92px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; }
+  .ota-side-illust .ota-side-card {
+    width: 92px; height: 70px; border-radius: 12px; background: #fff; box-shadow: 0 10px 24px rgba(76, 29, 149, .14);
+    display: flex; align-items: center; justify-content: center;
+  }
+  [data-theme="dark"] .ota-side-illust .ota-side-card { background: rgba(255, 255, 255, .08); }
+  .ota-side-illust .ota-side-card .cm-ico { width: 40px; height: 40px; }
+  .ota-side-illust .ota-side-badge {
+    position: absolute; right: calc(50% - 62px); bottom: 4px;
+    width: 28px; height: 28px; border-radius: 50%; background: #7C3AED; color: #fff;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(124, 58, 237, .4);
+  }
+  .ota-side-illust .ota-side-badge .cm-svg { width: 14px; height: 14px; }
+  .ota-side-panel h4 { font-size: 1.02rem; font-weight: 700; margin-bottom: 6px; }
+  .ota-side-panel p { font-size: .85rem; color: var(--admio-nav-color, #6b7280); margin-bottom: 16px; }
+
+  .ota-benefits { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+  .ota-benefits li { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 600; }
+  .ota-benefits .cm-ico { width: 20px; height: 20px; background: #7C3AED; color: #fff; }
+  .ota-benefits .cm-ico .cm-svg { width: 11px; height: 11px; stroke-width: 3; }
+
+  .ota-tip { display: flex; gap: 8px; text-align: left; padding: 12px; border-radius: 10px; background: rgba(124, 58, 237, .1); font-size: .78rem; color: var(--admio-nav-color, #6b7280); }
+  .ota-tip .cm-svg { width: 15px; height: 15px; color: #7C3AED; flex: none; margin-top: 1px; }
+
+  /* NEW: setup hints + one-time secret box */
+  .ota-missing { font-size: .78rem; color: #b45309; max-width: 280px; margin-top: 2px; }
+  .ota-secret { display: none; margin: 0 30px 16px; }
+  .ota-secret code { word-break: break-all; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cm-i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></symbol>
+  <symbol id="cm-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="cm-i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="cm-i-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="cm-i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="cm-i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M17 6l3 3"/><path d="M14 9l2 2"/></symbol>
+  <symbol id="cm-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="cm-i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="cm-i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+  <symbol id="cm-i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="cm-i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></symbol>
+  <symbol id="cm-i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="cm-i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+</svg>
+
+<!-- PAGE HEADER -->
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px">
+      <svg class="cm-svg"><use href="#cm-i-share"/></svg>
+    </span>
+    <div>
+      <h1 class="page-title mb-1">OTA Channels</h1>
+      <p class="page-subtitle text-muted mb-0">Connect Online Travel Agencies to manage room rates, availability and bookings.</p>
+    </div>
+  </div>
+  <button type="button" class="btn btn-admio btn-primary" data-ota-add>
+    <svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel
+  </button>
+</div>
+
+<!-- LIST CARD -->
+<div class="admio-card">
+  <div class="admio-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="ota-tabs" id="otaTabs" role="tablist">
+      <button type="button" class="ota-tab active" data-tab="all" role="tab"><svg class="cm-svg"><use href="#cm-i-globe"/></svg> All Channels <span class="ota-count" id="otaCntAll">0</span></button>
+      <button type="button" class="ota-tab" data-tab="active" role="tab"><span class="cm-dot cm-c cm-tint-green"></span> Active <span class="ota-count" id="otaCntActive">0</span></button>
+      <button type="button" class="ota-tab" data-tab="inactive" role="tab"><span class="cm-dot cm-c cm-tint-red"></span> Inactive <span class="ota-count" id="otaCntInactive">0</span></button>
+    </div>
+
+    <div class="d-flex flex-wrap gap-3">
+      <div class="input-group" style="width:340px;max-width:100%">
+        <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-search"/></svg></span>
+        <input type="search" class="form-control form-control-admio" id="otaSearch" placeholder="Search by channel name or hotel ID…" aria-label="Search channels">
+      </div>
+      <div class="dropdown">
+        <button class="btn btn-admio btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <svg class="cm-svg me-1"><use href="#cm-i-filter"/></svg> <span id="otaFilterLabel">Filter</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="otaAuthFilter">
+          <li><a class="dropdown-item active" href="#" data-auth="all">All auth types</a></li>
+          <li><a class="dropdown-item" href="#" data-auth="api_key">API key</a></li>
+          <li><a class="dropdown-item" href="#" data-auth="oauth2">OAuth 2.0</a></li>
+          <li><a class="dropdown-item" href="#" data-auth="webhook">Webhook only</a></li>
+          <li><a class="dropdown-item" href="#" data-auth="ical">iCal</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- One-time webhook secret -->
+  <div class="alert alert-warning ota-secret" id="otaSecretBox" role="alert">
+    <strong>Copy these now — the secret is shown only once.</strong>
+    <div class="mt-2">Webhook URL: <code id="otaSecretUrl"></code></div>
+    <div>Header <code>X-Webhook-Secret</code>: <code id="otaSecretVal"></code></div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table admio-table align-middle mb-0">
+      <thead class="cm-thead">
+        <tr>
+          <th>Channel</th>
+          <th>Auth</th>
+          <th>Hotel ID</th>
+          <th>Sync range</th>
+          <th>Status</th>
+          <th>Last sync</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="otaRows"></tbody>
+    </table>
+  </div>
+
+  <div class="text-center py-5 d-none" id="otaEmpty">
+    <svg viewBox="0 0 220 120" style="width:220px;max-width:100%" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="30" y="12" width="140" height="94" rx="10" fill="#fff" fill-opacity=".85" stroke="#7C3AED" stroke-opacity=".35"/>
+      <path d="M30 22a10 10 0 0 1 10-10h120a10 10 0 0 1 10 10v8H30z" fill="#7C3AED" fill-opacity=".14"/>
+      <circle cx="42" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".55"/><circle cx="51" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".35"/><circle cx="60" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".2"/>
+      <use href="#cm-i-link" x="86" y="44" width="48" height="48" stroke="#7C3AED" stroke-width="1.5"/>
+    </svg>
+    <h2 class="fs-5 fw-700 mt-3 mb-1">No OTA Channels Yet</h2>
+    <p class="text-muted text-sm mb-3 mx-auto" style="max-width:360px">Connect your Online Travel Agencies (OTAs) to manage room rates, availability and bookings seamlessly.</p>
+    <button type="button" class="btn btn-admio btn-primary" data-ota-add><svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel</button>
+  </div>
+
+  <div class="text-center text-muted py-5 d-none" id="otaNoMatch">No channels match your search or filter.</div>
+
+  <div class="ota-info">
+    <svg class="cm-svg"><use href="#cm-i-info"/></svg>
+    A channel can be switched on only after its setup checklist is complete. Use the ✓ button on a row to see what is missing.
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal fade" id="otaModal" tabindex="-1" aria-labelledby="otaModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 overflow-hidden">
+      <div class="modal-header align-items-center gap-3 px-4 py-3">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+        <div class="flex-grow-1">
+          <h3 class="modal-title fs-4 fw-700 mb-0" id="otaModalTitle">Add Channel</h3>
+          <div class="text-muted text-sm" id="otaModalSub">Connect a new distribution channel to manage your bookings and reach more guests.</div>
+        </div>
+        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body px-4">
+        <div class="ota-seg" role="tablist" aria-label="Channel category">
+          <button type="button" class="ota-seg-btn" disabled title="Manage website channels from the Booking Engine page">
+            <svg class="cm-svg"><use href="#cm-i-globe"/></svg> Website
+          </button>
+          <button type="button" class="ota-seg-btn active" aria-selected="true">
+            <svg class="cm-svg"><use href="#cm-i-share"/></svg> OTA
+          </button>
+        </div>
+
+        <div class="alert alert-danger d-none" id="otaFormError" role="alert"></div>
+
+        <div class="ota-modal-grid">
+          <div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="ota-field-label" for="otaFType"><svg class="cm-svg"><use href="#cm-i-share"/></svg> Channel <span class="text-danger">*</span></label>
+                <div class="ota-select-wrap">
+                  <span class="ota-select-badge" id="otaFNameBadge" style="background:#6c3df4">?</span>
+                  <select class="form-select form-select-admio" id="otaFType">
+                    <option value="">Select a channel…</option>
+                    <option value="booking_com">Booking.com</option>
+                    <option value="expedia">Expedia</option>
+                    <option value="agoda">Agoda</option>
+                    <option value="airbnb">Airbnb</option>
+                    <option value="mmt">MakeMyTrip</option>
+                    <option value="goibibo">Goibibo</option>
+                    <option value="ical">iCal (generic)</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="ota-field-hint">Cannot be changed after the channel is created.</div>
+              </div>
+
+              <div class="col-md-6 ota-cred">
+                <label class="ota-field-label" for="otaFAuth"><svg class="cm-svg"><use href="#cm-i-key"/></svg> Authentication <span class="text-danger">*</span></label>
+                <select class="form-select form-select-admio" id="otaFAuth">
+                  <option value="api_key">API key</option>
+                  <option value="oauth2">OAuth 2.0</option>
+                  <option value="webhook">Webhook only</option>
+                </select>
+                <div class="ota-field-hint">How this OTA authenticates your requests.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="ota-field-label" for="otaFProp"><svg class="cm-svg"><use href="#cm-i-globe"/></svg> <span id="otaFPropLabel">Hotel ID on OTA</span> <span class="text-danger">*</span></label>
+                <div class="input-icon-wrap">
+                  <svg class="cm-svg"><use href="#cm-i-globe"/></svg>
+                  <input class="form-control form-control-admio" id="otaFProp" placeholder="Enter your hotel ID">
+                </div>
+                <div class="ota-field-hint" id="otaFPropHint">Your property ID as shown by the OTA.</div>
+              </div>
+
+              <div class="col-md-6 ota-cred">
+                <label class="ota-field-label" for="otaFApiKey"><svg class="cm-svg"><use href="#cm-i-key"/></svg> API key</label>
+                <div class="input-icon-wrap">
+                  <svg class="cm-svg"><use href="#cm-i-key"/></svg>
+                  <input class="form-control form-control-admio" id="otaFApiKey" autocomplete="off" placeholder="Enter your API key">
+                </div>
+                <div class="ota-field-hint" id="otaFKeyHint">Provided by the channel.</div>
+              </div>
+
+              <div class="col-md-6 ota-cred">
+                <label class="ota-field-label" for="otaFSecret"><svg class="cm-svg"><use href="#cm-i-key"/></svg> API secret</label>
+                <div class="input-icon-wrap">
+                  <svg class="cm-svg"><use href="#cm-i-key"/></svg>
+                  <input class="form-control form-control-admio" id="otaFSecret" type="password" autocomplete="new-password" placeholder="Enter your API secret">
+                </div>
+                <div class="ota-field-hint" id="otaFSecretHint">Keep this information secure.</div>
+              </div>
+
+              <div class="col-md-6 ota-ical">
+                <label class="ota-field-label" for="otaFIcal"><svg class="cm-svg"><use href="#cm-i-link"/></svg> iCal URL <span id="otaFIcalReq" class="text-danger d-none">*</span></label>
+                <div class="input-icon-wrap">
+                  <svg class="cm-svg"><use href="#cm-i-link"/></svg>
+                  <input class="form-control form-control-admio" id="otaFIcal" placeholder="https://.../calendar.ics">
+                </div>
+                <div class="ota-field-hint">Optional. Used to import blocked dates where supported.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="ota-field-label" for="otaFRange"><svg class="cm-svg"><use href="#cm-i-clock"/></svg> Sync range (days ahead) <span class="text-danger">*</span></label>
+                <input class="form-control form-control-admio" id="otaFRange" type="number" min="1" max="730" value="365">
+                <div class="ota-field-hint">How far ahead rates and availability are sent.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="ota-field-label" for="otaFInterval"><svg class="cm-svg"><use href="#cm-i-clock"/></svg> Sync interval (minutes) <span class="text-danger">*</span></label>
+                <input class="form-control form-control-admio" id="otaFInterval" type="number" min="5" max="1440" value="15">
+                <div class="ota-field-hint">How often to poll the channel for new bookings.</div>
+              </div>
+
+              <!-- Booking.com only -->
+              <div class="col-12 d-none" id="otaBookingBox">
+                <div class="alert alert-info mb-0">
+                  <strong>Booking.com uses your ERP provider's connection, not per-hotel keys.</strong>
+                  <ol class="mb-2 mt-2 ps-3">
+                    <li>In the Booking.com Extranet go to <em>Account → Connectivity provider</em> and select your ERP provider.</li>
+                    <li>Confirm the request, then tick the box below.</li>
+                  </ol>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="otaFExtranet">
+                    <label class="form-check-label" for="otaFExtranet">I have authorized the provider in the Booking.com Extranet</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ota-side-panel">
+            <div class="ota-side-illust">
+              <div class="ota-side-card">
+                <span class="cm-ico cm-soft cm-tint-purple"><svg class="cm-svg"><use href="#cm-i-globe"/></svg></span>
+              </div>
+              <span class="ota-side-badge"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span>
+            </div>
+            <h4>OTA Channel</h4>
+            <p>Connect with popular online travel agencies and expand your reach to millions of travelers.</p>
+            <ul class="ota-benefits">
+              <li><span class="cm-ico"><svg class="cm-svg"><use href="#cm-i-check"/></svg></span> Increase your visibility</li>
+              <li><span class="cm-ico"><svg class="cm-svg"><use href="#cm-i-check"/></svg></span> Manage rates &amp; inventory</li>
+              <li><span class="cm-ico"><svg class="cm-svg"><use href="#cm-i-check"/></svg></span> Receive more bookings</li>
+              <li><span class="cm-ico"><svg class="cm-svg"><use href="#cm-i-check"/></svg></span> Avoid overbooking</li>
+            </ul>
+            <div class="ota-tip">
+              <svg class="cm-svg"><use href="#cm-i-info"/></svg>
+              <span>After saving, map your room types, then switch the channel on.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer px-4 d-flex justify-content-between">
+        <button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-admio btn-primary" id="otaSave"><svg class="cm-svg me-1"><use href="#cm-i-save"/></svg> <span id="otaSaveLabel">Save channel</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="otaToast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="otaToastBody"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var URLS = {
+    list:   "{% url 'ota-channel-list' %}",
+    detail: "{% url 'ota-channel-detail' 0 %}",
+    toggle: "{% url 'ota-channel-toggle' 0 %}",
+    check:  "{% url 'ota-channel-check' 0 %}"
+  };
+  function withPk(tpl, pk) { return tpl.replace("/0/", "/" + pk + "/"); }
+
+  var CSRF = "{{ csrf_token }}";
+  var state = { channels: [], editId: null, tab: "all", auth: "all" };
+  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("otaModal"));
+  var AUTH_LABEL = { api_key: "API key", oauth2: "OAuth 2.0", webhook: "Webhook only", ical: "iCal" };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function toast(msg) {
+    $("otaToastBody").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance($("otaToast"), { delay: 5000 }).show();
+  }
+  function fmtDate(iso) {
+    if (!iso) return "Never";
+    return new Date(iso).toLocaleString([], { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  var COLORS = ["#2f6bff", "#6c3df4", "#16a870", "#e5484d", "#d98a00", "#0ea5b7"];
+  function colorFor(name) {
+    name = String(name || "?");
+    var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return COLORS[h % COLORS.length];
+  }
+  function avatar(name) {
+    return '<span class="cm-avatar" style="background:' + colorFor(name) + '">' + esc(String(name || "?").charAt(0).toUpperCase()) + '</span>';
+  }
+  function selectedLabel() {
+    var sel = $("otaFType");
+    return sel.value ? sel.options[sel.selectedIndex].text : "";
+  }
+  function dotPill(text, color) { return '<span class="cm-pill cm-tint-' + color + '"><span class="cm-dot"></span>' + esc(text) + '</span>'; }
+  function api(url, opts) {
+    opts = opts || {};
+    opts.credentials = "same-origin";
+    opts.headers = Object.assign({ "X-CSRFToken": CSRF }, opts.headers || {});
+    if (opts.body) opts.headers["Content-Type"] = "application/json";
+    return fetch(url, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) throw new Error(data.error || data.detail || ("Request failed (" + r.status + ")"));
+        return data;
+      });
+    });
+  }
+  function iconBtn(act, icon, title, danger) {
+    return '<button type="button" class="btn btn-admio btn-outline-' + (danger ? "danger" : "secondary") + ' cm-iconbtn" data-act="' + act + '" title="' + title + '" aria-label="' + title + '"><svg class="cm-svg"><use href="#cm-i-' + icon + '"/></svg></button>';
+  }
+
+  // ── Data ────────────────────────────────────────────────────────
+  function load() {
+    return api(URLS.list).then(function (res) {
+      state.channels = res.results || [];
+      render();
+    }).catch(function (e) {
+      $("otaRows").innerHTML = '<tr><td colspan="7" class="text-center text-danger">Could not load channels: ' + esc(e.message) + '</td></tr>';
+    });
+  }
+
+  // ── Render ──────────────────────────────────────────────────────
+  function filtered() {
+    var q = $("otaSearch").value.trim().toLowerCase();
+    return state.channels.filter(function (c) {
+      if (state.tab === "active" && !c.is_active) return false;
+      if (state.tab === "inactive" && c.is_active) return false;
+      if (state.auth !== "all" && c.auth_method !== state.auth) return false;
+      if (q && (c.name + " " + c.hotel_id_on_ota).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function statusCell(c) {
+    if (c.is_active) return dotPill("Active", "green");
+    if (!c.ready) {
+      return dotPill("Setup needed", "amber") +
+        '<div class="ota-missing">' + c.missing.map(esc).join(" · ") + '</div>';
+    }
+    return dotPill("Ready · off", "grey");
+  }
+
+  function render() {
+    var all = state.channels, list = filtered();
+    $("otaCntAll").textContent = all.length;
+    $("otaCntActive").textContent = all.filter(function (c) { return c.is_active; }).length;
+    $("otaCntInactive").textContent = all.filter(function (c) { return !c.is_active; }).length;
+
+    $("otaEmpty").classList.toggle("d-none", all.length > 0);
+    $("otaNoMatch").classList.toggle("d-none", !(all.length > 0 && list.length === 0));
+
+    $("otaRows").innerHTML = list.map(function (c) {
+      return '<tr data-id="' + c.id + '">' +
+        '<td><div class="d-flex align-items-center gap-2">' + avatar(c.name) +
+          '<div><div class="fw-700">' + esc(c.name) + '</div>' +
+          '<div class="text-muted text-xs">' + esc(c.mapped_rooms) + ' room type(s) mapped</div>' +
+          (c.sync_error ? '<div class="text-danger text-xs" style="max-width:260px">' + esc(c.sync_error) + '</div>' : '') +
+        '</div></div></td>' +
+        '<td>' + esc(AUTH_LABEL[c.auth_method] || c.auth_method || "—") + '</td>' +
+        '<td><code>' + esc(c.hotel_id_on_ota || "—") + '</code></td>' +
+        '<td>' + (c.sync_days_ahead ? "Next " + esc(c.sync_days_ahead) + " days" : "—") + '</td>' +
+        '<td>' + statusCell(c) + '</td>' +
+        '<td>' + fmtDate(c.last_sync) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2">' +
+          '<div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" data-act="toggle" aria-label="Enable or disable channel"' + (c.is_active ? " checked" : "") + '></div>' +
+          iconBtn("check", "check", "Check setup") +
+          iconBtn("edit", "pencil", "Edit channel") +
+          iconBtn("delete", "trash", "Delete channel", true) +
+        '</div></td>' +
+        '</tr>';
+    }).join("");
+  }
+
+  // ── Tabs, search, filter ────────────────────────────────────────
+  $("otaTabs").addEventListener("click", function (e) {
+    var t = e.target.closest("[data-tab]"); if (!t) return;
+    state.tab = t.getAttribute("data-tab");
+    document.querySelectorAll(".ota-tab").forEach(function (b) { b.classList.toggle("active", b === t); });
+    render();
+  });
+  $("otaSearch").addEventListener("input", render);
+  $("otaAuthFilter").addEventListener("click", function (e) {
+    var a = e.target.closest("[data-auth]"); if (!a) return;
+    e.preventDefault();
+    state.auth = a.getAttribute("data-auth");
+    document.querySelectorAll("#otaAuthFilter .dropdown-item").forEach(function (i) { i.classList.toggle("active", i === a); });
+    $("otaFilterLabel").textContent = state.auth === "all" ? "Filter" : a.textContent;
+    render();
+  });
+
+  // ── Row actions ─────────────────────────────────────────────────
+  $("otaRows").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-act]"); if (!btn) return;
+    var id = btn.closest("tr").getAttribute("data-id");
+    var ch = state.channels.find(function (c) { return String(c.id) === id; });
+    var act = btn.getAttribute("data-act");
+
+    if (act === "toggle") {
+      api(withPk(URLS.toggle, id), { method: "PATCH" })
+        .then(function (r) { toast(r.is_active ? "Channel enabled" : "Channel disabled"); return load(); })
+        .catch(function (err) { toast(err.message); return load(); });
+    }
+    if (act === "check") {
+      api(withPk(URLS.check, id))
+        .then(function (r) { toast(r.ready ? "Setup complete — ready to enable." : "Still missing: " + r.missing.join("; ")); });
+    }
+    if (act === "edit" && ch) openModal(ch);
+    if (act === "delete") {
+      if (!confirm("Delete this OTA channel? This cannot be undone.")) return;
+      api(withPk(URLS.detail, id), { method: "DELETE" })
+        .then(function () { toast("Channel deleted"); return load(); })
+        .catch(function (err) { toast(err.message); });
+    }
+  });
+
+  // ── Modal: type-dependent fields ────────────────────────────────
+  function showError(msg) { var el = $("otaFormError"); el.textContent = msg; el.classList.remove("d-none"); }
+
+  function applyType() {
+    var t = $("otaFType").value;
+    var isBooking = t === "booking_com", isIcal = t === "ical";
+    document.querySelectorAll(".ota-cred").forEach(function (el) { el.classList.toggle("d-none", isBooking || isIcal); });
+    document.querySelectorAll(".ota-ical").forEach(function (el) { el.classList.toggle("d-none", isBooking); });
+    $("otaBookingBox").classList.toggle("d-none", !isBooking);
+    $("otaFIcalReq").classList.toggle("d-none", !isIcal);
+    $("otaFProp").closest(".col-md-6").classList.toggle("d-none", isIcal);
+    $("otaFPropLabel").textContent = isBooking ? "Booking.com Hotel ID" : "Hotel ID on OTA";
+    $("otaFPropHint").textContent = isBooking
+      ? "Shown at the top of the Extranet (property ID)."
+      : "Your property ID as shown by the OTA.";
+    var badge = $("otaFNameBadge"), label = selectedLabel();
+    badge.style.background = colorFor(label);
+    badge.textContent = label ? label.charAt(0).toUpperCase() + "." : "?";
+  }
+  $("otaFType").addEventListener("change", applyType);
+
+  function openModal(ch) {
+    state.editId = ch ? ch.id : null;
+    $("otaFormError").classList.add("d-none");
+    $("otaModalTitle").textContent = ch ? "Edit Channel" : "Add Channel";
+    $("otaModalSub").textContent = ch
+      ? "Update the details for this distribution channel."
+      : "Connect a new distribution channel to manage your bookings and reach more guests.";
+    $("otaSaveLabel").textContent = ch ? "Save changes" : "Save channel";
+    $("otaFType").value = ch ? ch.channel_type : "";
+    $("otaFType").disabled = !!ch;
+    $("otaFAuth").value = ch && ch.auth_method !== "ical" ? ch.auth_method : "api_key";
+    $("otaFProp").value = ch ? ch.hotel_id_on_ota : "";
+    $("otaFApiKey").value = "";
+    $("otaFSecret").value = "";
+    $("otaFKeyHint").textContent = ch && ch.has_credentials ? "A key is saved. Leave blank to keep it." : "Provided by the channel.";
+    $("otaFSecretHint").textContent = ch && ch.has_credentials ? "Leave blank to keep the current secret." : "Keep this information secure.";
+    $("otaFIcal").value = ch ? (ch.ical_url || "") : "";
+    $("otaFRange").value = ch ? ch.sync_days_ahead : 365;
+    $("otaFInterval").value = ch ? ch.sync_interval_minutes : 15;
+    $("otaFExtranet").checked = ch ? !!ch.extranet_authorized : false;
+    applyType();
+    modal.show();
+  }
+
+  $("otaSave").addEventListener("click", function () {
+    $("otaFormError").classList.add("d-none");
+    var editing = state.editId !== null;
+    var type = $("otaFType").value;
+    var isBooking = type === "booking_com", isIcal = type === "ical";
+
+    var body = {
+      hotel_id_on_ota: $("otaFProp").value.trim(),
+      sync_days_ahead: parseInt($("otaFRange").value, 10) || 0,
+      sync_interval_minutes: parseInt($("otaFInterval").value, 10) || 0,
+      ical_url: $("otaFIcal").value.trim()
+    };
+    if (!editing) { body.channel_type = type; body.name = selectedLabel(); }
+    if (isIcal) body.auth_method = "ical";
+    else if (!isBooking) body.auth_method = $("otaFAuth").value;
+    if (isBooking) body.extranet_authorized = $("otaFExtranet").checked;
+
+    if (!isBooking && !isIcal) {
+      var k = $("otaFApiKey").value, s = $("otaFSecret").value;
+      if (k) body.api_key = k;
+      if (s) body.api_secret = s;
+    }
+
+    if (!type) { showError("Please choose a channel."); return; }
+    if (!isIcal && !body.hotel_id_on_ota) { showError("Hotel ID is required."); return; }
+    if (isIcal && !body.ical_url) { showError("iCal URL is required for iCal channels."); return; }
+    if (body.sync_days_ahead < 1 || body.sync_days_ahead > 730) { showError("Sync range must be 1–730 days."); return; }
+    if (body.sync_interval_minutes < 5) { showError("Sync interval must be at least 5 minutes."); return; }
+
+    var btn = $("otaSave"), original = btn.innerHTML;
+    btn.disabled = true; btn.textContent = "Saving…";
+
+    api(editing ? withPk(URLS.detail, state.editId) : URLS.list, { method: editing ? "PATCH" : "POST", body: JSON.stringify(body) })
+      .then(function (res) {
+        modal.hide();
+        if (res.webhook_secret) {
+          $("otaSecretUrl").textContent = res.inbound_webhook_url;
+          $("otaSecretVal").textContent = res.webhook_secret;
+          $("otaSecretBox").style.display = "block";
+        }
+        toast(editing ? "Channel updated" : "Channel added — now map rooms and enable it");
+        return load();
+      })
+      .catch(function (e) { showError(e.message); })
+      .then(function () { btn.disabled = false; btn.innerHTML = original; });
+  });
+
+  document.querySelectorAll("[data-ota-add]").forEach(function (el) { el.addEventListener("click", function () { openModal(null); }); });
+
+  load();
+})();
+</script>
+{% endblock %}
