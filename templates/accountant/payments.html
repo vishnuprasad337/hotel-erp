@@ -1,0 +1,2348 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}
+Payments | Hotel ERP
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   PAYMENTS PAGE
+============================================================ */
+
+.payment-page {
+    width: 100%;
+}
+
+
+/* ============================================================
+   HERO
+============================================================ */
+
+.payment-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 22px 24px;
+    margin-bottom: 24px;
+
+    border-radius: 16px;
+
+    color: #fff;
+
+    background:
+        linear-gradient(
+            115deg,
+            #7c2cff 0%,
+            #5c25d9 48%,
+            #172554 100%
+        );
+}
+
+
+.payment-hero::after {
+    content: "";
+
+    position: absolute;
+
+    right: 8%;
+    top: -60px;
+
+    width: 190px;
+    height: 190px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+
+.payment-hero-left {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+}
+
+
+.payment-hero-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background:
+        rgba(255,255,255,.14);
+
+    font-size: 22px;
+}
+
+
+.payment-hero h2 {
+    margin: 0 0 4px;
+
+    font-size: 21px;
+    font-weight: 700;
+}
+
+
+.payment-hero p {
+    margin: 0;
+
+    color:
+        rgba(255,255,255,.80);
+}
+
+
+.payment-refresh {
+    position: relative;
+    z-index: 1;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    min-height: 42px;
+
+    padding: 0 15px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.25);
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,.08);
+
+    color: #fff;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   PAGE HEADER
+============================================================ */
+
+.payment-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+}
+
+
+.payment-title {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 27px;
+    font-weight: 750;
+}
+
+
+.payment-subtitle {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 14px;
+}
+
+
+.payment-header-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.payment-btn {
+    min-height: 42px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 9px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+
+.payment-btn:hover {
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-text);
+}
+
+
+.payment-btn-primary {
+    border-color:
+        var(--acc-primary);
+
+    background:
+        var(--acc-primary);
+
+    color: #fff;
+}
+
+
+.payment-btn-primary:hover {
+    background:
+        var(--acc-primary-hover);
+
+    color: #fff;
+}
+
+
+/* ============================================================
+   SUMMARY CARDS
+============================================================ */
+
+.payment-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+
+.payment-stat {
+    min-width: 0;
+
+    padding: 19px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 13px;
+
+    background:
+        var(--acc-card);
+
+    box-shadow:
+        var(--acc-shadow-sm);
+}
+
+
+.payment-stat-icon {
+    width: 45px;
+    height: 45px;
+
+    flex: 0 0 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+
+    font-size: 18px;
+}
+
+
+.payment-stat-content {
+    min-width: 0;
+}
+
+
+.payment-stat-label {
+    margin-bottom: 5px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.payment-stat-value {
+    overflow: hidden;
+
+    color:
+        var(--acc-text);
+
+    font-size: 21px;
+    font-weight: 750;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+.payment-stat-meta {
+    margin-top: 3px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   PANEL
+============================================================ */
+
+.payment-panel {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 13px;
+
+    background:
+        var(--acc-card);
+
+    box-shadow:
+        var(--acc-shadow-sm);
+}
+
+
+.payment-panel-header {
+    min-height: 62px;
+
+    padding: 14px 18px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.payment-panel-title {
+    margin: 0;
+
+    color:
+        var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   FILTERS
+============================================================ */
+
+.payment-filters {
+    padding: 16px 18px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(220px, 2fr)
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        auto
+        auto;
+
+    gap: 10px;
+
+    align-items: end;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.payment-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.payment-control {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 11px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 8px;
+
+    outline: none;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+
+    font-size: 13px;
+}
+
+
+.payment-control:focus {
+    border-color:
+        var(--acc-primary);
+
+    box-shadow:
+        0 0 0 3px
+        var(--acc-primary-soft);
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.payment-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.payment-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.payment-table th {
+    padding: 13px 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+
+.payment-table td {
+    padding: 14px 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+
+    color:
+        var(--acc-text);
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+
+.payment-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+.payment-table tbody tr:hover {
+    background:
+        var(--acc-primary-soft);
+}
+
+
+/* ============================================================
+   PAYMENT REFERENCE
+============================================================ */
+
+.payment-reference {
+    color:
+        var(--acc-primary);
+
+    font-weight: 700;
+}
+
+
+.payment-muted {
+    margin-top: 3px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   GUEST
+============================================================ */
+
+.payment-guest-name {
+    color:
+        var(--acc-text);
+
+    font-weight: 650;
+}
+
+
+/* ============================================================
+   METHOD BADGES
+============================================================ */
+
+.payment-method {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+
+.payment-amount {
+    color:
+        var(--acc-text);
+
+    font-weight: 750;
+}
+
+
+/* ============================================================
+   ACTION BUTTON
+============================================================ */
+
+.payment-row-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.payment-icon-btn {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 8px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-muted);
+
+    cursor: pointer;
+}
+
+
+.payment-icon-btn:hover {
+    border-color:
+        var(--acc-primary);
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+}
+
+
+/* ============================================================
+   EMPTY
+============================================================ */
+
+.payment-empty {
+    padding: 55px 20px;
+
+    text-align: center;
+}
+
+
+.payment-empty-icon {
+    width: 58px;
+    height: 58px;
+
+    margin:
+        0 auto
+        14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+
+    font-size: 23px;
+}
+
+
+.payment-empty h3 {
+    margin:
+        0 0 5px;
+
+    color:
+        var(--acc-text);
+
+    font-size: 15px;
+}
+
+
+.payment-empty p {
+    margin: 0;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   REAL PAYMENT MODAL
+============================================================ */
+
+.payment-modal-backdrop {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9998;
+
+    display: none;
+
+    background:
+        rgba(15, 23, 42, .58);
+
+    backdrop-filter:
+        blur(3px);
+}
+
+
+.payment-modal-backdrop.show {
+    display: block;
+}
+
+
+.payment-modal {
+    position: fixed;
+
+    left: 50%;
+    top: 50%;
+
+    z-index: 9999;
+
+    width:
+        min(
+            650px,
+            calc(100% - 30px)
+        );
+
+    max-height:
+        calc(100vh - 50px);
+
+    overflow-y: auto;
+
+    transform:
+        translate(
+            -50%,
+            -50%
+        );
+
+    display: none;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 15px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+
+    box-shadow:
+        0 25px 75px
+        rgba(0,0,0,.25);
+}
+
+
+.payment-modal.show {
+    display: block;
+}
+
+
+.payment-modal-header {
+    min-height: 65px;
+
+    padding: 14px 19px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.payment-modal-header h3 {
+    margin: 0;
+
+    color:
+        var(--acc-text);
+
+    font-size: 17px;
+}
+
+
+.payment-modal-close {
+    width: 34px;
+    height: 34px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-text);
+
+    cursor: pointer;
+}
+
+
+.payment-modal-body {
+    padding: 19px;
+}
+
+
+.payment-detail-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0,1fr)
+        );
+
+    gap: 12px;
+}
+
+
+.payment-detail {
+    padding: 13px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 9px;
+}
+
+
+.payment-detail-label {
+    margin-bottom: 5px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.payment-detail-value {
+    color:
+        var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+
+    word-break:
+        break-word;
+}
+
+
+.payment-modal-amount {
+    margin-top: 15px;
+
+    padding: 17px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-radius: 10px;
+
+    background:
+        var(--acc-primary-soft);
+}
+
+
+.payment-modal-amount span {
+    color:
+        var(--acc-muted);
+
+    font-weight: 650;
+}
+
+
+.payment-modal-amount strong {
+    color:
+        var(--acc-primary);
+
+    font-size: 23px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1150px) {
+
+    .payment-stats {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+    }
+
+
+    .payment-filters {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .payment-hero,
+    .payment-page-header {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+
+    .payment-header-actions {
+        width: 100%;
+    }
+
+
+    .payment-header-actions .payment-btn {
+        flex: 1;
+    }
+
+
+    .payment-stats,
+    .payment-filters,
+    .payment-detail-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+}
+
+</style>
+
+
+<div class="payment-page">
+
+
+    <!-- ====================================================
+         HERO
+    ===================================================== -->
+
+    <div class="payment-hero">
+
+        <div class="payment-hero-left">
+
+            <div class="payment-hero-icon">
+
+                <i class="fas fa-credit-card"></i>
+
+            </div>
+
+
+            <div>
+
+                <h2>
+                    Payment Management
+                </h2>
+
+                <p>
+                    Track hotel payments,
+                    payment methods and collections.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="payment-refresh"
+            onclick="window.location.reload()"
+        >
+
+            <i class="fas fa-sync-alt"></i>
+
+            Refresh Data
+
+        </button>
+
+    </div>
+
+
+    <!-- ====================================================
+         HEADER
+    ===================================================== -->
+
+    <div class="payment-page-header">
+
+        <div>
+
+            <h1 class="payment-title">
+                Payments
+            </h1>
+
+            <p class="payment-subtitle">
+                Review all payment transactions received by the hotel.
+            </p>
+
+        </div>
+
+
+        <div class="payment-header-actions">
+
+            <button
+                type="button"
+                class="payment-btn"
+                onclick="window.print()"
+            >
+
+                <i class="fas fa-print"></i>
+
+                Print
+
+            </button>
+
+
+            <button
+                type="button"
+                class="payment-btn payment-btn-primary"
+                onclick="exportPayments()"
+            >
+
+                <i class="fas fa-download"></i>
+
+                Export
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================================
+         STATS
+    ===================================================== -->
+
+    <div class="payment-stats">
+
+
+        <div class="payment-stat">
+
+            <div class="payment-stat-icon">
+                <i class="fas fa-wallet"></i>
+            </div>
+
+            <div class="payment-stat-content">
+
+                <div class="payment-stat-label">
+                    Total Received
+                </div>
+
+                <div class="payment-stat-value">
+                    ₹{{ total_received|floatformat:2 }}
+                </div>
+
+                <div class="payment-stat-meta">
+
+                    {{ total_transactions }}
+                    transaction{{ total_transactions|pluralize }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="payment-stat">
+
+            <div class="payment-stat-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+
+            <div class="payment-stat-content">
+
+                <div class="payment-stat-label">
+                    Cash
+                </div>
+
+                <div class="payment-stat-value">
+                    ₹{{ cash_total|floatformat:2 }}
+                </div>
+
+                <div class="payment-stat-meta">
+                    Cash collections
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="payment-stat">
+
+            <div class="payment-stat-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+
+            <div class="payment-stat-content">
+
+                <div class="payment-stat-label">
+                    Card
+                </div>
+
+                <div class="payment-stat-value">
+                    ₹{{ card_total|floatformat:2 }}
+                </div>
+
+                <div class="payment-stat-meta">
+                    Card collections
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="payment-stat">
+
+            <div class="payment-stat-icon">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+
+            <div class="payment-stat-content">
+
+                <div class="payment-stat-label">
+                    UPI
+                </div>
+
+                <div class="payment-stat-value">
+                    ₹{{ upi_total|floatformat:2 }}
+                </div>
+
+                <div class="payment-stat-meta">
+                    UPI collections
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================================
+         PAYMENTS PANEL
+    ===================================================== -->
+
+    <div class="payment-panel">
+
+
+        <div class="payment-panel-header">
+
+            <h2 class="payment-panel-title">
+                Payment Transactions
+            </h2>
+
+        </div>
+
+
+        <!-- =================================================
+             FILTERS
+        ================================================== -->
+
+        <form
+            method="get"
+            class="payment-filters"
+        >
+
+
+            <div class="payment-field">
+
+                <label>
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="search"
+                    class="payment-control"
+                    value="{{ search }}"
+                    placeholder="Guest, room or reference..."
+                >
+
+            </div>
+
+
+            <div class="payment-field">
+
+                <label>
+                    Payment Method
+                </label>
+
+                <select
+                    name="method"
+                    class="payment-control"
+                >
+
+                    <option value="">
+                        All Methods
+                    </option>
+
+                    <option
+                        value="cash"
+                        {% if method_filter|lower == "cash" %}
+                            selected
+                        {% endif %}
+                    >
+                        Cash
+                    </option>
+
+                    <option
+                        value="card"
+                        {% if method_filter|lower == "card" %}
+                            selected
+                        {% endif %}
+                    >
+                        Card
+                    </option>
+
+                    <option
+                        value="upi"
+                        {% if method_filter|lower == "upi" %}
+                            selected
+                        {% endif %}
+                    >
+                        UPI
+                    </option>
+
+                    <option
+                        value="bank_transfer"
+                        {% if method_filter|lower == "bank_transfer" %}
+                            selected
+                        {% endif %}
+                    >
+                        Bank Transfer
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="payment-field">
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    name="date"
+                    class="payment-control"
+                    value="{{ date_filter }}"
+                >
+
+            </div>
+
+
+            <div class="payment-field">
+
+                <label>
+                    Month
+                </label>
+
+                <input
+                    type="month"
+                    name="month"
+                    class="payment-control"
+                    value="{{ month_filter }}"
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="payment-btn payment-btn-primary"
+            >
+
+                <i class="fas fa-filter"></i>
+
+                Apply
+
+            </button>
+
+
+            <a
+                href="{% url 'accountant_payments' %}"
+                class="payment-btn"
+            >
+
+                <i class="fas fa-times"></i>
+
+                Clear
+
+            </a>
+
+        </form>
+
+
+        <!-- =================================================
+             TABLE
+        ================================================== -->
+
+        <div class="payment-table-wrap">
+
+            <table
+                class="payment-table"
+                id="paymentsTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Reference
+                        </th>
+
+                        <th>
+                            Guest
+                        </th>
+
+                        <th>
+                            Room
+                        </th>
+
+                        <th>
+                            Method
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <th>
+                            Received By
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for payment in payments %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="payment-reference">
+
+                                {{ payment.reference_number }}
+
+                            </div>
+
+                            <div class="payment-muted">
+
+                                Payment #{{ payment.id }}
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="payment-guest-name">
+
+                                {{ payment.guest_name }}
+
+                            </div>
+
+                            {% if payment.guest_email %}
+
+                                <div class="payment-muted">
+
+                                    {{ payment.guest_email }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ payment.room_number }}
+
+                            <div class="payment-muted">
+
+                                {{ payment.room_type }}
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="payment-method">
+
+                                {% if payment.method|lower == "cash" %}
+
+                                    <i class="fas fa-money-bill-wave"></i>
+
+                                {% elif payment.method|lower == "card" %}
+
+                                    <i class="fas fa-credit-card"></i>
+
+                                {% elif payment.method|lower == "upi" %}
+
+                                    <i class="fas fa-mobile-alt"></i>
+
+                                {% else %}
+
+                                    <i class="fas fa-building-columns"></i>
+
+                                {% endif %}
+
+                                {{ payment.method }}
+
+                            </span>
+
+                        </td>
+
+
+                        <td class="payment-amount">
+
+                            ₹{{ payment.amount|floatformat:2 }}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ payment.received_by }}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if payment.received_at %}
+
+                                {{ payment.received_at|date:"d M Y" }}
+
+                                <div class="payment-muted">
+
+                                    {{ payment.received_at|date:"h:i A" }}
+
+                                </div>
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="payment-row-actions">
+
+                                <button
+                                    type="button"
+                                    class="payment-icon-btn"
+                                    title="View payment"
+                                    onclick="openPaymentModal(
+                                        '{{ payment.reference_number|escapejs }}',
+                                        '{{ payment.guest_name|escapejs }}',
+                                        '{{ payment.guest_email|escapejs }}',
+                                        '{{ payment.room_number|escapejs }}',
+                                        '{{ payment.room_type|escapejs }}',
+                                        '{{ payment.method|escapejs }}',
+                                        '{{ payment.amount }}',
+                                        '{{ payment.received_by|escapejs }}',
+                                        '{{ payment.received_at|date:"d M Y, h:i A"|escapejs }}',
+                                        '{{ payment.note|escapejs }}'
+                                    )"
+                                >
+
+                                    <i class="fas fa-eye"></i>
+
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="payment-icon-btn"
+                                    title="Print receipt"
+                                    onclick="printPaymentReceipt(
+                                        '{{ payment.reference_number|escapejs }}',
+                                        '{{ payment.guest_name|escapejs }}',
+                                        '{{ payment.room_number|escapejs }}',
+                                        '{{ payment.method|escapejs }}',
+                                        '{{ payment.amount }}',
+                                        '{{ payment.received_by|escapejs }}',
+                                        '{{ payment.received_at|date:"d M Y, h:i A"|escapejs }}'
+                                    )"
+                                >
+
+                                    <i class="fas fa-print"></i>
+
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td colspan="8">
+
+                            <div class="payment-empty">
+
+                                <div class="payment-empty-icon">
+
+                                    <i class="fas fa-credit-card"></i>
+
+                                </div>
+
+                                <h3>
+                                    No payments found
+                                </h3>
+
+                                <p>
+                                    No payment transactions match the selected filters.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================================
+     PAYMENT DETAILS MODAL
+========================================================= -->
+
+<div
+    class="payment-modal-backdrop"
+    id="paymentModalBackdrop"
+    onclick="closePaymentModal()"
+></div>
+
+
+<div
+    class="payment-modal"
+    id="paymentModal"
+>
+
+    <div class="payment-modal-header">
+
+        <h3>
+            Payment Details
+        </h3>
+
+
+        <button
+            type="button"
+            class="payment-modal-close"
+            onclick="closePaymentModal()"
+        >
+
+            <i class="fas fa-times"></i>
+
+        </button>
+
+    </div>
+
+
+    <div class="payment-modal-body">
+
+        <div class="payment-detail-grid">
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Reference
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalReference"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Payment Method
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalMethod"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Guest
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalGuest"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Email
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalEmail"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Room
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalRoom"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Received By
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalReceiver"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Received At
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalDate"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="payment-detail">
+
+                <div class="payment-detail-label">
+                    Note
+                </div>
+
+                <div
+                    class="payment-detail-value"
+                    id="paymentModalNote"
+                >
+                    —
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="payment-modal-amount">
+
+            <span>
+                Amount Received
+            </span>
+
+            <strong id="paymentModalAmount">
+                ₹0.00
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* ============================================================
+   MONEY FORMAT
+============================================================ */
+
+function paymentMoney(value) {
+
+    const number =
+        Number(value || 0);
+
+    return (
+        "₹" +
+        number.toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        )
+    );
+}
+
+
+/* ============================================================
+   OPEN DETAILS MODAL
+============================================================ */
+
+function openPaymentModal(
+    reference,
+    guest,
+    email,
+    roomNumber,
+    roomType,
+    method,
+    amount,
+    receiver,
+    date,
+    note
+) {
+
+    document.getElementById(
+        "paymentModalReference"
+    ).textContent =
+        reference || "—";
+
+
+    document.getElementById(
+        "paymentModalGuest"
+    ).textContent =
+        guest || "—";
+
+
+    document.getElementById(
+        "paymentModalEmail"
+    ).textContent =
+        email || "—";
+
+
+    document.getElementById(
+        "paymentModalRoom"
+    ).textContent =
+        (roomNumber || "—")
+        +
+        " · "
+        +
+        (roomType || "—");
+
+
+    document.getElementById(
+        "paymentModalMethod"
+    ).textContent =
+        method || "—";
+
+
+    document.getElementById(
+        "paymentModalAmount"
+    ).textContent =
+        paymentMoney(amount);
+
+
+    document.getElementById(
+        "paymentModalReceiver"
+    ).textContent =
+        receiver || "—";
+
+
+    document.getElementById(
+        "paymentModalDate"
+    ).textContent =
+        date || "—";
+
+
+    document.getElementById(
+        "paymentModalNote"
+    ).textContent =
+        note || "No note";
+
+
+    document.getElementById(
+        "paymentModalBackdrop"
+    ).classList.add("show");
+
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.add("show");
+
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+
+/* ============================================================
+   CLOSE DETAILS MODAL
+============================================================ */
+
+function closePaymentModal() {
+
+    document.getElementById(
+        "paymentModalBackdrop"
+    ).classList.remove("show");
+
+
+    document.getElementById(
+        "paymentModal"
+    ).classList.remove("show");
+
+
+    document.body.style.overflow =
+        "";
+}
+
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key === "Escape") {
+
+            closePaymentModal();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   PRINT PAYMENT RECEIPT
+============================================================ */
+
+function printPaymentReceipt(
+    reference,
+    guest,
+    room,
+    method,
+    amount,
+    receiver,
+    date
+) {
+
+    const receiptWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=720,height=700"
+        );
+
+
+    if (!receiptWindow) {
+        return;
+    }
+
+
+    receiptWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Payment Receipt
+            </title>
+
+            <style>
+
+                body {
+                    margin: 0;
+                    padding: 40px;
+
+                    font-family:
+                        Arial,
+                        sans-serif;
+
+                    color: #111827;
+
+                    background: #ffffff;
+                }
+
+                .receipt {
+                    max-width: 620px;
+
+                    margin: auto;
+
+                    border:
+                        1px solid
+                        #e5e7eb;
+
+                    border-radius:
+                        14px;
+
+                    overflow: hidden;
+                }
+
+                .header {
+                    padding: 25px;
+
+                    background:
+                        #6d28d9;
+
+                    color: white;
+                }
+
+                .header h2 {
+                    margin: 0;
+                }
+
+                .body {
+                    padding: 25px;
+                }
+
+                .row {
+                    display: flex;
+                    justify-content: space-between;
+
+                    gap: 20px;
+
+                    padding:
+                        12px 0;
+
+                    border-bottom:
+                        1px solid
+                        #e5e7eb;
+                }
+
+                .row:last-child {
+                    border-bottom: 0;
+                }
+
+                .label {
+                    color:
+                        #64748b;
+                }
+
+                .amount {
+                    margin-top: 20px;
+
+                    padding: 18px;
+
+                    display: flex;
+                    justify-content: space-between;
+
+                    background:
+                        #f5f3ff;
+
+                    border-radius:
+                        10px;
+                }
+
+                .amount strong {
+                    color:
+                        #6d28d9;
+
+                    font-size:
+                        22px;
+                }
+
+            </style>
+
+        </head>
+
+
+        <body>
+
+            <div class="receipt">
+
+                <div class="header">
+
+                    <h2>
+                        Payment Receipt
+                    </h2>
+
+                </div>
+
+
+                <div class="body">
+
+                    <div class="row">
+
+                        <span class="label">
+                            Reference
+                        </span>
+
+                        <strong>
+                            ${reference || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <span class="label">
+                            Guest
+                        </span>
+
+                        <strong>
+                            ${guest || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <span class="label">
+                            Room
+                        </span>
+
+                        <strong>
+                            ${room || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <span class="label">
+                            Method
+                        </span>
+
+                        <strong>
+                            ${method || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <span class="label">
+                            Received By
+                        </span>
+
+                        <strong>
+                            ${receiver || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <span class="label">
+                            Date
+                        </span>
+
+                        <strong>
+                            ${date || "—"}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="amount">
+
+                        <span>
+                            Amount Received
+                        </span>
+
+                        <strong>
+                            ${paymentMoney(amount)}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    receiptWindow.document.close();
+
+    receiptWindow.focus();
+
+
+    setTimeout(
+        function() {
+
+            receiptWindow.print();
+
+        },
+        250
+    );
+
+}
+
+
+/* ============================================================
+   CSV EXPORT
+============================================================ */
+
+function exportPayments() {
+
+    const table =
+        document.getElementById(
+            "paymentsTable"
+        );
+
+
+    if (!table) {
+        return;
+    }
+
+
+    const rows = [];
+
+
+    table.querySelectorAll(
+        "tr"
+    ).forEach(
+        function(row) {
+
+            const values = [];
+
+
+            row.querySelectorAll(
+                "th, td"
+            ).forEach(
+                function(cell, index) {
+
+                    /*
+                     * Skip the final Actions column.
+                     */
+
+                    if (
+                        index ===
+                        row.children.length - 1
+                    ) {
+                        return;
+                    }
+
+
+                    let text =
+                        cell.innerText
+                            .replace(
+                                /\n+/g,
+                                " "
+                            )
+                            .trim();
+
+
+                    text =
+                        '"' +
+                        text.replace(
+                            /"/g,
+                            '""'
+                        )
+                        +
+                        '"';
+
+
+                    values.push(
+                        text
+                    );
+
+                }
+            );
+
+
+            if (values.length) {
+
+                rows.push(
+                    values.join(",")
+                );
+
+            }
+
+        }
+    );
+
+
+    const blob =
+        new Blob(
+            [
+                "\uFEFF" +
+                rows.join("\n")
+            ],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href = url;
+
+    link.download =
+        "hotel-payments.csv";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+    link.remove();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,2024 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+{% block title %}My Payroll | Front Office{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+.payroll-page {
+    width: 100%;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.payroll-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.payroll-header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: #202224;
+}
+
+.payroll-header p {
+    margin: 7px 0 0;
+    font-size: 14px;
+    color: #7c8798;
+}
+
+.payroll-refresh {
+    height: 40px;
+    padding: 0 15px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    border: 1px solid #dfe4ec;
+    border-radius: 9px;
+
+    background: #fff;
+    color: #475467;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   KPI
+   ========================================================= */
+
+.payroll-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 17px;
+    margin-bottom: 22px;
+}
+
+.payroll-kpi {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 20px;
+
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 14px;
+
+    box-shadow:
+        0 4px 18px rgba(0,0,0,.035);
+}
+
+.payroll-kpi-label {
+    margin-bottom: 7px;
+
+    color: #7c8798;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.payroll-kpi-value {
+    color: #202224;
+
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.payroll-kpi-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    font-size: 18px;
+}
+
+.payroll-green {
+    background: #eaf9f0;
+    color: #16884f;
+}
+
+.payroll-blue {
+    background: #eef4ff;
+    color: #4880ff;
+}
+
+.payroll-amber {
+    background: #fff4e6;
+    color: #d97706;
+}
+
+
+/* =========================================================
+   CURRENT PAYSLIP
+   ========================================================= */
+
+.payroll-current {
+    margin-bottom: 22px;
+
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 4px 18px rgba(0,0,0,.035);
+}
+
+.payroll-current-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    background: #202938;
+    color: #fff;
+}
+
+.payroll-current-title {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.payroll-current-subtitle {
+    margin-top: 3px;
+
+    color: rgba(255,255,255,.55);
+
+    font-size: 11px;
+}
+
+.payroll-status {
+    display: inline-flex;
+
+    padding: 6px 11px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.payroll-status-paid {
+    background: #dcfce7;
+    color: #16884f;
+}
+
+.payroll-status-pending {
+    background: #fff4e6;
+    color: #c77800;
+}
+
+
+/* =========================================================
+   PAYSLIP BODY
+   ========================================================= */
+
+.payroll-slip-body {
+    padding: 20px;
+}
+
+.payroll-slip-grid {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 20px;
+}
+
+.payroll-breakdown {
+    border: 1px solid #edf0f5;
+    border-radius: 11px;
+
+    overflow: hidden;
+}
+
+.payroll-breakdown-title {
+    padding: 12px 14px;
+
+    background: #f8f9fb;
+
+    border-bottom: 1px solid #edf0f5;
+
+    color: #344054;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.payroll-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 10px 14px;
+
+    border-bottom: 1px solid #f0f2f5;
+
+    color: #667085;
+
+    font-size: 12px;
+}
+
+.payroll-line:last-child {
+    border-bottom: 0;
+}
+
+.payroll-line strong {
+    color: #344054;
+}
+
+
+/* =========================================================
+   NET PAY
+   ========================================================= */
+
+.payroll-net-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+
+    margin-top: 18px;
+
+    padding: 17px 18px;
+
+    border-radius: 11px;
+
+    background: #eef8f2;
+
+    border: 1px solid #d8f0e1;
+}
+
+.payroll-net-label {
+    color: #16884f;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.payroll-net-value {
+    color: #107c46;
+
+    font-size: 24px;
+    font-weight: 900;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.payroll-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+
+    margin-top: 16px;
+}
+
+.payroll-btn {
+    height: 38px;
+
+    padding: 0 13px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    border-radius: 8px;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.payroll-btn-outline {
+    border: 1px solid #dfe4ec;
+
+    background: #fff;
+
+    color: #475467;
+}
+
+.payroll-btn-primary {
+    border: 1px solid #4880ff;
+
+    background: #4880ff;
+
+    color: #fff;
+}
+
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+
+.payroll-history {
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 4px 18px rgba(0,0,0,.035);
+}
+
+.payroll-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+.payroll-history-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #202224;
+
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.payroll-history-title i {
+    color: #4880ff;
+}
+
+.payroll-filter {
+    min-height: 36px;
+
+    padding: 6px 10px;
+
+    border: 1px solid #dfe4ec;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #475467;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.payroll-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.payroll-table {
+    width: 100%;
+
+    min-width: 1100px;
+
+    border-collapse: collapse;
+}
+
+.payroll-table th {
+    padding: 13px 14px;
+
+    background: #f8f9fb;
+
+    border-bottom: 1px solid #edf0f5;
+
+    color: #667085;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    text-align: right;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.payroll-table th:first-child {
+    text-align: left;
+}
+
+.payroll-table td {
+    padding: 14px;
+
+    border-bottom: 1px solid #f0f2f5;
+
+    color: #475467;
+
+    font-size: 12px;
+
+    text-align: right;
+
+    white-space: nowrap;
+}
+
+.payroll-table td:first-child {
+    text-align: left;
+}
+
+.payroll-month {
+    color: #202224;
+    font-weight: 800;
+}
+
+.payroll-money-positive {
+    color: #16884f;
+}
+
+.payroll-money-negative {
+    color: #dc2626;
+}
+
+.payroll-net-cell {
+    color: #202224;
+
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   TOTALS
+   ========================================================= */
+
+.payroll-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, 1fr);
+
+    gap: 12px;
+
+    padding: 18px;
+
+    background: #fafbfc;
+
+    border-top: 1px solid #edf0f5;
+}
+
+.payroll-summary-card {
+    padding: 13px;
+
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 9px;
+}
+
+.payroll-summary-label {
+    margin-bottom: 5px;
+
+    color: #8a94a4;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.payroll-summary-value {
+    color: #202224;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.payroll-empty {
+    padding: 45px 20px;
+
+    text-align: center;
+
+    color: #98a2b3;
+}
+
+.payroll-empty i {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 30px;
+}
+
+
+/* =========================================================
+   DARK
+   ========================================================= */
+
+[data-bs-theme="dark"] .payroll-kpi,
+[data-bs-theme="dark"] .payroll-current,
+[data-bs-theme="dark"] .payroll-history,
+[data-bs-theme="dark"] .payroll-summary-card,
+[data-bs-theme="dark"] .payroll-breakdown,
+[data-bs-theme="dark"] .payroll-refresh,
+[data-bs-theme="dark"] .payroll-filter,
+[data-bs-theme="dark"] .payroll-btn-outline {
+
+    background: #1d2531;
+
+    border-color: #303a49;
+
+    color: #d7dde7;
+}
+
+[data-bs-theme="dark"] .payroll-header h1,
+[data-bs-theme="dark"] .payroll-kpi-value,
+[data-bs-theme="dark"] .payroll-history-title,
+[data-bs-theme="dark"] .payroll-month,
+[data-bs-theme="dark"] .payroll-net-cell,
+[data-bs-theme="dark"] .payroll-summary-value {
+
+    color: #f4f6f8;
+}
+
+[data-bs-theme="dark"] .payroll-breakdown-title,
+[data-bs-theme="dark"] .payroll-table th,
+[data-bs-theme="dark"] .payroll-summary {
+
+    background: #222b38;
+
+    border-color: #303a49;
+}
+
+[data-bs-theme="dark"] .payroll-line,
+[data-bs-theme="dark"] .payroll-table td,
+[data-bs-theme="dark"] .payroll-history-header {
+
+    border-color: #303a49;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:1000px) {
+
+    .payroll-summary {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+}
+
+@media(max-width:800px) {
+
+    .payroll-kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .payroll-slip-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media(max-width:600px) {
+
+    .payroll-header,
+    .payroll-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .payroll-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .payroll-actions {
+        flex-direction: column;
+    }
+
+    .payroll-btn {
+        width: 100%;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="payroll-page">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="payroll-header">
+
+        <div>
+
+            <h1>My Payroll</h1>
+
+            <p>
+                Salary details and payment history.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="payroll-refresh"
+            onclick="window.location.reload();"
+        >
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+        </button>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         CURRENT MONTH KPI
+         ===================================================== -->
+
+    <div class="payroll-kpis">
+
+
+        <div class="payroll-kpi">
+
+            <div>
+
+                <div class="payroll-kpi-label">
+                    Net Salary
+                    ({{ payroll_month_label }} {{ payroll_year }})
+                </div>
+
+                <div class="payroll-kpi-value">
+
+                    {% if current_payroll %}
+
+                        ₹{{ current_payroll.net_salary|floatformat:2 }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="
+                    payroll-kpi-icon
+                    payroll-green
+                "
+            >
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+
+        </div>
+
+
+
+        <div class="payroll-kpi">
+
+            <div>
+
+                <div class="payroll-kpi-label">
+                    Basic Salary
+                </div>
+
+                <div class="payroll-kpi-value">
+
+                    {% if current_payroll %}
+
+                        ₹{{ current_payroll.basic_salary|floatformat:2 }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="
+                    payroll-kpi-icon
+                    payroll-blue
+                "
+            >
+                <i class="fas fa-wallet"></i>
+            </div>
+
+        </div>
+
+
+
+        <div class="payroll-kpi">
+
+            <div>
+
+                <div class="payroll-kpi-label">
+                    Payment Status
+                </div>
+
+                <div class="payroll-kpi-value">
+
+                    {% if current_payroll %}
+
+                        {{ current_payroll.paid_status }}
+
+                    {% else %}
+
+                        —
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="
+                    payroll-kpi-icon
+                    {% if current_payroll and current_payroll.paid_status == 'Paid' %}
+                        payroll-green
+                    {% else %}
+                        payroll-amber
+                    {% endif %}
+                "
+            >
+
+                {% if current_payroll and current_payroll.paid_status == "Paid" %}
+
+                    <i class="fas fa-check-circle"></i>
+
+                {% else %}
+
+                    <i class="fas fa-clock"></i>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         CURRENT PAYSLIP
+         ===================================================== -->
+
+    {% if current_payroll %}
+
+    <div
+        class="payroll-current"
+        id="currentPayslip"
+    >
+
+
+        <div class="payroll-current-header">
+
+
+            <div>
+
+                <div class="payroll-current-title">
+
+                    {{ current_payroll.month_label }}
+                    {{ current_payroll.year }}
+                    Salary Slip
+
+                </div>
+
+                <div class="payroll-current-subtitle">
+
+                    {{ staff.name }}
+
+                    {% if staff.employee_id %}
+                        · {{ staff.employee_id }}
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <span
+                class="
+                    payroll-status
+
+                    {% if current_payroll.paid_status == 'Paid' %}
+                        payroll-status-paid
+                    {% else %}
+                        payroll-status-pending
+                    {% endif %}
+                "
+            >
+                {{ current_payroll.paid_status }}
+            </span>
+
+
+        </div>
+
+
+
+        <div class="payroll-slip-body">
+
+
+            <div class="payroll-slip-grid">
+
+
+                <!-- EARNINGS -->
+
+                <div class="payroll-breakdown">
+
+
+                    <div class="payroll-breakdown-title">
+
+                        <i class="fas fa-plus-circle"></i>
+
+                        Earnings
+
+                    </div>
+
+
+                    {% for item in current_payroll.earnings_items %}
+
+                        <div class="payroll-line">
+
+                            <span>
+                                {{ item.label }}
+                            </span>
+
+                            <strong>
+                                ₹{{ item.amount|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+                    {% empty %}
+
+                        <div class="payroll-line">
+
+                            <span>
+                                Basic Salary
+                            </span>
+
+                            <strong>
+                                ₹{{ current_payroll.basic_salary|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+                        {% if current_payroll.overtime_amount %}
+
+                            <div class="payroll-line">
+
+                                <span>Overtime</span>
+
+                                <strong>
+                                    ₹{{ current_payroll.overtime_amount|floatformat:2 }}
+                                </strong>
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if current_payroll.bonus %}
+
+                            <div class="payroll-line">
+
+                                <span>Bonus</span>
+
+                                <strong>
+                                    ₹{{ current_payroll.bonus|floatformat:2 }}
+                                </strong>
+
+                            </div>
+
+                        {% endif %}
+
+
+                        {% if current_payroll.incentive %}
+
+                            <div class="payroll-line">
+
+                                <span>Incentive</span>
+
+                                <strong>
+                                    ₹{{ current_payroll.incentive|floatformat:2 }}
+                                </strong>
+
+                            </div>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+
+                </div>
+
+
+
+                <!-- DEDUCTIONS -->
+
+                <div class="payroll-breakdown">
+
+
+                    <div class="payroll-breakdown-title">
+
+                        <i class="fas fa-minus-circle"></i>
+
+                        Deductions
+
+                    </div>
+
+
+                    {% for item in current_payroll.deductions_items %}
+
+                        <div class="payroll-line">
+
+                            <span>
+                                {{ item.label }}
+                            </span>
+
+                            <strong>
+                                ₹{{ item.amount|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+                    {% empty %}
+
+                        <div class="payroll-line">
+
+                            <span>PF</span>
+
+                            <strong>
+                                ₹{{ current_payroll.pf_amount|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="payroll-line">
+
+                            <span>ESI</span>
+
+                            <strong>
+                                ₹{{ current_payroll.esi_amount|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="payroll-line">
+
+                            <span>Loan</span>
+
+                            <strong>
+                                ₹{{ current_payroll.loan_deduction|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="payroll-line">
+
+                            <span>Tax</span>
+
+                            <strong>
+                                ₹{{ current_payroll.tax_deduction|floatformat:2 }}
+                            </strong>
+
+                        </div>
+
+                    {% endfor %}
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- NET -->
+
+            <div class="payroll-net-banner">
+
+                <div>
+
+                    <div class="payroll-net-label">
+                        NET PAY
+                    </div>
+
+                    {% if current_payroll.paid_at %}
+
+                        <div
+                            style="
+                                font-size:11px;
+                                color:#667085;
+                                margin-top:3px;
+                            "
+                        >
+                            Paid:
+                            {{ current_payroll.paid_at }}
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="payroll-net-value">
+
+                    ₹{{ current_payroll.net_salary|floatformat:2 }}
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ACTION -->
+
+            <div class="payroll-actions">
+
+
+                {% if current_payroll.paid_status == "Paid" %}
+
+                    <button
+                        type="button"
+                        class="
+                            payroll-btn
+                            payroll-btn-outline
+                        "
+                        onclick="printPayslip();"
+                    >
+                        <i class="fas fa-print"></i>
+
+                        Print Payslip
+                    </button>
+
+                {% endif %}
+
+
+                <button
+                    type="button"
+                    class="
+                        payroll-btn
+                        payroll-btn-primary
+                    "
+                    onclick="exportPayrollCSV();"
+                >
+                    <i class="fas fa-download"></i>
+
+                    Export CSV
+                </button>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    {% else %}
+
+
+        <div class="payroll-current">
+
+            <div class="payroll-empty">
+
+                <i class="fas fa-file-invoice-dollar"></i>
+
+                No payroll has been generated for
+                {{ payroll_month_label }}
+                {{ payroll_year }}.
+
+            </div>
+
+        </div>
+
+
+    {% endif %}
+
+
+
+    <!-- =====================================================
+         HISTORY
+         ===================================================== -->
+
+    <div class="payroll-history">
+
+
+        <div class="payroll-history-header">
+
+
+            <div class="payroll-history-title">
+
+                <i class="fas fa-chart-bar"></i>
+
+                Payroll History
+
+            </div>
+
+
+            <select
+                id="payrollHistoryFilter"
+                class="payroll-filter"
+                onchange="filterPayrollHistory();"
+            >
+
+                <option value="all">
+                    All Years
+                </option>
+
+
+                {% for year in available_years %}
+
+                    <option value="{{ year }}">
+                        {{ year }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+
+        </div>
+
+
+
+        <div class="payroll-table-wrap">
+
+
+            <table
+                class="payroll-table"
+                id="payrollHistoryTable"
+            >
+
+
+                <thead>
+
+                    <tr>
+
+                        <th>Month</th>
+
+                        <th>Gross</th>
+
+                        <th>PF</th>
+
+                        <th>ESI</th>
+
+                        <th>Bonus</th>
+
+                        <th>Overtime</th>
+
+                        <th>Deductions</th>
+
+                        <th>Net Salary</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+
+
+                <tbody id="payrollHistoryBody">
+
+
+                    {% for payroll in payroll_history %}
+
+                    <tr
+                        data-year="{{ payroll.year }}"
+
+                        data-gross="{{ payroll.gross_salary }}"
+
+                        data-pf="{{ payroll.pf_amount }}"
+
+                        data-esi="{{ payroll.esi_amount }}"
+
+                        data-bonus="{{ payroll.bonus }}"
+
+                        data-overtime="{{ payroll.overtime_amount }}"
+
+                        data-deductions="{{ payroll.deductions }}"
+
+                        data-net="{{ payroll.net_salary }}"
+                    >
+
+
+                        <td>
+
+                            <span class="payroll-month">
+
+                                {{ payroll.month_label }}
+                                {{ payroll.year }}
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            ₹{{ payroll.gross_salary|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-money-negative">
+
+                            ₹{{ payroll.pf_amount|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-money-negative">
+
+                            ₹{{ payroll.esi_amount|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-money-positive">
+
+                            ₹{{ payroll.bonus|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-money-positive">
+
+                            ₹{{ payroll.overtime_amount|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-money-negative">
+
+                            ₹{{ payroll.deductions|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="payroll-net-cell">
+
+                            ₹{{ payroll.net_salary|floatformat:2 }}
+
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    payroll-status
+
+                                    {% if payroll.paid_status == 'Paid' %}
+                                        payroll-status-paid
+                                    {% else %}
+                                        payroll-status-pending
+                                    {% endif %}
+                                "
+                            >
+                                {{ payroll.paid_status }}
+                            </span>
+
+                        </td>
+
+
+                    </tr>
+
+
+                    {% empty %}
+
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="payroll-empty"
+                        >
+
+                            No payroll records found.
+
+                        </td>
+
+                    </tr>
+
+
+                    {% endfor %}
+
+
+                </tbody>
+
+
+            </table>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+             TOTALS
+             ================================================= -->
+
+        <div class="payroll-summary">
+
+
+            <div class="payroll-summary-card">
+
+                <div class="payroll-summary-label">
+                    Total PF
+                </div>
+
+                <div
+                    class="payroll-summary-value"
+                    id="totalPF"
+                >
+                    ₹0.00
+                </div>
+
+            </div>
+
+
+
+            <div class="payroll-summary-card">
+
+                <div class="payroll-summary-label">
+                    Total ESI
+                </div>
+
+                <div
+                    class="payroll-summary-value"
+                    id="totalESI"
+                >
+                    ₹0.00
+                </div>
+
+            </div>
+
+
+
+            <div class="payroll-summary-card">
+
+                <div class="payroll-summary-label">
+                    Total Bonus
+                </div>
+
+                <div
+                    class="payroll-summary-value"
+                    id="totalBonus"
+                >
+                    ₹0.00
+                </div>
+
+            </div>
+
+
+
+            <div class="payroll-summary-card">
+
+                <div class="payroll-summary-label">
+                    Total Overtime
+                </div>
+
+                <div
+                    class="payroll-summary-value"
+                    id="totalOvertime"
+                >
+                    ₹0.00
+                </div>
+
+            </div>
+
+
+
+            <div class="payroll-summary-card">
+
+                <div class="payroll-summary-label">
+                    Total Deductions
+                </div>
+
+                <div
+                    class="payroll-summary-value"
+                    id="totalDeductions"
+                >
+                    ₹0.00
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* =========================================================
+   MONEY FORMAT
+   ========================================================= */
+
+function payrollMoney(value) {
+
+    const amount =
+        Number(value) || 0;
+
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    ).format(amount);
+
+}
+
+
+
+/* =========================================================
+   FILTER HISTORY
+   ========================================================= */
+
+function filterPayrollHistory() {
+
+    const filter =
+        document.getElementById(
+            "payrollHistoryFilter"
+        ).value;
+
+
+    document
+        .querySelectorAll(
+            "#payrollHistoryBody tr[data-year]"
+        )
+        .forEach(
+            function(row) {
+
+                const visible =
+                    filter === "all"
+                    ||
+                    row.dataset.year === filter;
+
+
+                row.style.display =
+                    visible
+                    ? ""
+                    : "none";
+
+            }
+        );
+
+
+    calculatePayrollTotals();
+
+}
+
+
+
+/* =========================================================
+   CALCULATE VISIBLE TOTALS
+   ========================================================= */
+
+function calculatePayrollTotals() {
+
+    let pf = 0;
+
+    let esi = 0;
+
+    let bonus = 0;
+
+    let overtime = 0;
+
+    let deductions = 0;
+
+
+    document
+        .querySelectorAll(
+            "#payrollHistoryBody tr[data-year]"
+        )
+        .forEach(
+            function(row) {
+
+                if (
+                    row.style.display === "none"
+                ) {
+                    return;
+                }
+
+
+                pf +=
+                    Number(
+                        row.dataset.pf
+                    ) || 0;
+
+
+                esi +=
+                    Number(
+                        row.dataset.esi
+                    ) || 0;
+
+
+                bonus +=
+                    Number(
+                        row.dataset.bonus
+                    ) || 0;
+
+
+                overtime +=
+                    Number(
+                        row.dataset.overtime
+                    ) || 0;
+
+
+                deductions +=
+                    Number(
+                        row.dataset.deductions
+                    ) || 0;
+
+            }
+        );
+
+
+    document.getElementById(
+        "totalPF"
+    ).textContent =
+        payrollMoney(pf);
+
+
+    document.getElementById(
+        "totalESI"
+    ).textContent =
+        payrollMoney(esi);
+
+
+    document.getElementById(
+        "totalBonus"
+    ).textContent =
+        payrollMoney(bonus);
+
+
+    document.getElementById(
+        "totalOvertime"
+    ).textContent =
+        payrollMoney(overtime);
+
+
+    document.getElementById(
+        "totalDeductions"
+    ).textContent =
+        payrollMoney(deductions);
+
+}
+
+
+
+/* =========================================================
+   PRINT CURRENT PAYSLIP
+   ========================================================= */
+
+function printPayslip() {
+
+    const payrollCard =
+        document.getElementById(
+            "currentPayslip"
+        );
+
+
+    if (!payrollCard) {
+
+        alert(
+            "Current payslip is not available."
+        );
+
+        return;
+    }
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=900,height=700"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Please allow pop-ups to print the payslip."
+        );
+
+        return;
+    }
+
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Salary Slip
+            </title>
+
+            <style>
+
+                body {
+                    font-family:
+                        Arial,
+                        sans-serif;
+
+                    padding: 35px;
+
+                    color: #111827;
+                }
+
+                .payroll-current {
+                    border:
+                        1px solid #ddd;
+
+                    border-radius:
+                        10px;
+
+                    overflow:
+                        hidden;
+                }
+
+                .payroll-current-header {
+                    padding:
+                        18px;
+
+                    background:
+                        #202938;
+
+                    color:
+                        white;
+                }
+
+                .payroll-slip-body {
+                    padding:
+                        20px;
+                }
+
+                .payroll-slip-grid {
+                    display:
+                        grid;
+
+                    grid-template-columns:
+                        1fr 1fr;
+
+                    gap:
+                        20px;
+                }
+
+                .payroll-breakdown {
+                    border:
+                        1px solid #ddd;
+                }
+
+                .payroll-breakdown-title {
+                    padding:
+                        10px;
+
+                    background:
+                        #f4f4f4;
+
+                    font-weight:
+                        bold;
+                }
+
+                .payroll-line {
+                    display:
+                        flex;
+
+                    justify-content:
+                        space-between;
+
+                    padding:
+                        9px 10px;
+
+                    border-bottom:
+                        1px solid #eee;
+                }
+
+                .payroll-net-banner {
+                    display:
+                        flex;
+
+                    justify-content:
+                        space-between;
+
+                    margin-top:
+                        18px;
+
+                    padding:
+                        15px;
+
+                    background:
+                        #eef8f2;
+                }
+
+                .payroll-actions {
+                    display:
+                        none !important;
+                }
+
+                .payroll-status {
+                    display:
+                        inline-block;
+
+                    margin-top:
+                        8px;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <h2>
+                {% if hotel %}
+                    {{ hotel.name|escapejs }}
+                {% else %}
+                    Hotel ERP
+                {% endif %}
+            </h2>
+
+            <p>
+                Salary Slip
+            </p>
+
+            ${payrollCard.outerHTML}
+
+            <p
+                style="
+                    margin-top:25px;
+                    font-size:11px;
+                    color:#777;
+                    text-align:center;
+                "
+            >
+                Computer-generated salary slip.
+                No signature required.
+            </p>
+
+        </body>
+
+        </html>
+    `);
+
+
+    printWindow.document.close();
+
+
+    setTimeout(
+        function() {
+
+            printWindow.print();
+
+        },
+        400
+    );
+
+}
+
+
+
+/* =========================================================
+   EXPORT CSV
+   ========================================================= */
+
+function exportPayrollCSV() {
+
+    const rows = [];
+
+
+    rows.push([
+        "Month",
+        "Gross Salary",
+        "PF",
+        "ESI",
+        "Bonus",
+        "Overtime",
+        "Deductions",
+        "Net Salary"
+    ]);
+
+
+    document
+        .querySelectorAll(
+            "#payrollHistoryBody tr[data-year]"
+        )
+        .forEach(
+            function(row) {
+
+                if (
+                    row.style.display === "none"
+                ) {
+                    return;
+                }
+
+
+                const cells =
+                    row.querySelectorAll(
+                        "td"
+                    );
+
+
+                rows.push([
+                    cells[0]
+                        ?.innerText
+                        .trim()
+                        || "",
+
+                    row.dataset.gross
+                        || "0",
+
+                    row.dataset.pf
+                        || "0",
+
+                    row.dataset.esi
+                        || "0",
+
+                    row.dataset.bonus
+                        || "0",
+
+                    row.dataset.overtime
+                        || "0",
+
+                    row.dataset.deductions
+                        || "0",
+
+                    row.dataset.net
+                        || "0"
+                ]);
+
+            }
+        );
+
+
+    if (
+        rows.length === 1
+    ) {
+
+        alert(
+            "No payroll records available to export."
+        );
+
+        return;
+    }
+
+
+    const csv =
+        rows
+            .map(
+                row =>
+                    row.map(
+                        value =>
+                            `"${String(value).replace(/"/g, '""')}"`
+                    ).join(",")
+            )
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        "my-payroll.csv";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        calculatePayrollTotals();
+
+    }
+);
+
+</script>
+
+{% endblock %}

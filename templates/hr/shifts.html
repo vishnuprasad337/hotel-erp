@@ -1,0 +1,920 @@
+{% extends "hr/base.html" %}
+{% load static %}
+
+{% block title %}Shifts | HR{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'hr/assets/css/shifts.css' %}">
+{% endblock %}
+
+
+{% block content %}
+
+<div class="hr-shifts-page">
+
+    <!-- =========================================================
+         PAGE HEADER
+    ========================================================== -->
+
+    <div class="hr-page-header">
+
+        <div>
+            <h1>Shifts</h1>
+            <p id="shiftWeekRangeLabel">
+                Loading week...
+            </p>
+        </div>
+
+        <div class="shift-header-actions">
+
+            <div class="shift-view-switch">
+
+                <button
+                    type="button"
+                    id="shiftViewCalBtn"
+                    class="shift-view-btn active"
+                    onclick="setShiftView('calendar', this)"
+                >
+                    <i class="fas fa-calendar-week"></i>
+                    Calendar
+                </button>
+
+                <button
+                    type="button"
+                    id="shiftViewListBtn"
+                    class="shift-view-btn"
+                    onclick="setShiftView('list', this)"
+                >
+                    <i class="fas fa-list"></i>
+                    List
+                </button>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="shift-icon-btn"
+                onclick="changeShiftWeek(-1)"
+                title="Previous week"
+            >
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+
+            <button
+                type="button"
+                class="shift-today-btn"
+                onclick="resetShiftWeek()"
+            >
+                Today
+            </button>
+
+
+            <button
+                type="button"
+                class="shift-icon-btn"
+                onclick="changeShiftWeek(1)"
+                title="Next week"
+            >
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+
+            <button
+                type="button"
+                class="shift-secondary-btn"
+                onclick="openShiftSettings()"
+            >
+                <i class="fas fa-clock"></i>
+                Timings
+            </button>
+
+
+            <button
+                type="button"
+                class="shift-primary-btn"
+                onclick="openShiftModal()"
+            >
+                <i class="fas fa-plus"></i>
+                Assign Shift
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+     KPI CARDS - DASHBOARD STYLE
+========================================================== -->
+
+<div class="shift-stats-grid">
+
+
+    <!-- TOTAL SHIFTS -->
+
+    <article class="shift-stat-card blue">
+
+        <div class="shift-stat-top">
+
+            <div class="shift-stat-icon blue">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+
+            <span class="shift-stat-chip blue">
+                <i class="fas fa-calendar-week"></i>
+                Weekly
+            </span>
+
+        </div>
+
+
+        <div
+            class="shift-stat-number"
+            id="shiftKpi-total"
+        >
+            0
+        </div>
+
+
+        <div class="shift-stat-label">
+            Shifts This Week
+        </div>
+
+
+        <div class="shift-mini-chart">
+
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- MORNING -->
+
+    <article class="shift-stat-card green">
+
+        <div class="shift-stat-top">
+
+            <div class="shift-stat-icon green">
+                <i class="fas fa-sun"></i>
+            </div>
+
+            <span class="shift-stat-chip green">
+                <i class="fas fa-sun"></i>
+                Morning
+            </span>
+
+        </div>
+
+
+        <div
+            class="shift-stat-number"
+            id="shiftKpi-morning"
+        >
+            0
+        </div>
+
+
+        <div class="shift-stat-label">
+            Morning Shifts
+        </div>
+
+
+        <div class="shift-mini-chart">
+
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- EVENING -->
+
+    <article class="shift-stat-card amber">
+
+        <div class="shift-stat-top">
+
+            <div class="shift-stat-icon amber">
+                <i class="fas fa-cloud-sun"></i>
+            </div>
+
+            <span class="shift-stat-chip amber">
+                <i class="fas fa-cloud-sun"></i>
+                Evening
+            </span>
+
+        </div>
+
+
+        <div
+            class="shift-stat-number"
+            id="shiftKpi-evening"
+        >
+            0
+        </div>
+
+
+        <div class="shift-stat-label">
+            Evening Shifts
+        </div>
+
+
+        <div class="shift-mini-chart">
+
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- NIGHT -->
+
+    <article class="shift-stat-card purple">
+
+        <div class="shift-stat-top">
+
+            <div class="shift-stat-icon purple">
+                <i class="fas fa-moon"></i>
+            </div>
+
+            <span class="shift-stat-chip purple">
+                <i class="fas fa-moon"></i>
+                Night
+            </span>
+
+        </div>
+
+
+        <div
+            class="shift-stat-number"
+            id="shiftKpi-night"
+        >
+            0
+        </div>
+
+
+        <div class="shift-stat-label">
+            Night Shifts
+        </div>
+
+
+        <div class="shift-mini-chart">
+
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+            <span class="shift-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+</div>
+
+
+    <!-- =========================================================
+         FILTERS
+    ========================================================== -->
+
+    <div class="shift-filter-card">
+
+        <div class="shift-filter-left">
+
+            <button
+                type="button"
+                class="shift-filter-chip active"
+                data-filter="all"
+                onclick="setShiftFilter('all', this)"
+            >
+                All
+            </button>
+
+            <button
+                type="button"
+                class="shift-filter-chip morning"
+                data-filter="Morning"
+                onclick="setShiftFilter('Morning', this)"
+            >
+                Morning
+            </button>
+
+            <button
+                type="button"
+                class="shift-filter-chip evening"
+                data-filter="Evening"
+                onclick="setShiftFilter('Evening', this)"
+            >
+                Evening
+            </button>
+
+            <button
+                type="button"
+                class="shift-filter-chip night"
+                data-filter="Night"
+                onclick="setShiftFilter('Night', this)"
+            >
+                Night
+            </button>
+
+            <button
+                type="button"
+                class="shift-filter-chip custom"
+                data-filter="Custom"
+                onclick="setShiftFilter('Custom', this)"
+            >
+                Custom
+            </button>
+
+        </div>
+
+
+        <div class="shift-filter-right">
+
+            <select
+                id="shiftDeptFilterSel"
+                class="shift-select"
+                onchange="renderShiftView()"
+            >
+                <option value="">All Departments</option>
+            </select>
+
+
+            <select
+                id="shiftEmpFilterSel"
+                class="shift-select"
+                onchange="renderShiftView()"
+            >
+                <option value="">All Employees</option>
+            </select>
+
+
+            <button
+                type="button"
+                class="shift-reset-btn"
+                onclick="resetShiftFilters()"
+            >
+                <i class="fas fa-rotate-left"></i>
+                Reset
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CALENDAR
+    ========================================================== -->
+
+    <div
+        id="shiftCalendarView"
+        class="shift-content-card"
+    >
+
+        <div class="shift-card-header">
+
+            <div>
+                <h3>Weekly Schedule</h3>
+                <p>Employee shift assignments for the selected week</p>
+            </div>
+
+        </div>
+
+
+        <div
+            id="shiftCalendarGrid"
+            class="shift-calendar-grid"
+        >
+
+            <div class="shift-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading schedule...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         LIST VIEW
+    ========================================================== -->
+
+    <div
+        id="shiftListView"
+        class="shift-content-card"
+        style="display:none;"
+    >
+
+        <div class="shift-card-header">
+
+            <div>
+                <h3>Shift Assignments</h3>
+                <p>Complete shift assignment list</p>
+            </div>
+
+            <div class="shift-search">
+
+                <i class="fas fa-search"></i>
+
+                <input
+                    id="shiftTableSearch"
+                    type="text"
+                    placeholder="Search shifts..."
+                    oninput="filterShiftTable()"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="shift-table-wrap">
+
+            <table class="shift-table">
+
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Shift</th>
+                        <th>Time</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="shift-tbody">
+
+                    <tr>
+                        <td colspan="6">
+
+                            <div class="shift-loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                Loading shifts...
+                            </div>
+
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CUSTOM TEMPLATES
+    ========================================================== -->
+
+    <div
+        id="shiftTemplatesWrap"
+        class="shift-content-card"
+        style="display:none;"
+    >
+
+        <div class="shift-card-header">
+
+            <div>
+                <h3>
+                    <i class="fas fa-layer-group"></i>
+                    Custom Shift Templates
+                </h3>
+
+                <p>
+                    Reusable custom shift timings
+                </p>
+            </div>
+
+        </div>
+
+        <div
+            id="shiftTemplatesGrid"
+            class="shift-template-grid"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     ASSIGN SHIFT MODAL
+============================================================= -->
+
+<div
+    id="addShiftModal"
+    class="shift-modal-backdrop"
+>
+
+    <div class="shift-modal">
+
+        <div class="shift-modal-header">
+
+            <div>
+                <h3>Assign Shift</h3>
+                <p>Assign working hours to employees</p>
+            </div>
+
+            <button
+                type="button"
+                class="shift-modal-close"
+                onclick="closeShiftModal('addShiftModal')"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="shift-modal-body">
+
+            <input
+                type="hidden"
+                id="shiftType"
+            >
+
+
+            <!-- SHIFT TYPES -->
+
+            <div class="shift-form-group">
+
+                <label>
+                    Shift Type
+                </label>
+
+                <div class="shift-type-grid">
+
+                    <button
+                        type="button"
+                        class="shift-type-btn-modal morning"
+                        data-type="Morning"
+                        onclick="selectModalShiftType('Morning', this)"
+                    >
+                        <i class="fas fa-sun"></i>
+                        <strong>Morning</strong>
+                        <small>06:00 – 14:00</small>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="shift-type-btn-modal evening"
+                        data-type="Evening"
+                        onclick="selectModalShiftType('Evening', this)"
+                    >
+                        <i class="fas fa-cloud-sun"></i>
+                        <strong>Evening</strong>
+                        <small>14:00 – 22:00</small>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="shift-type-btn-modal night"
+                        data-type="Night"
+                        onclick="selectModalShiftType('Night', this)"
+                    >
+                        <i class="fas fa-moon"></i>
+                        <strong>Night</strong>
+                        <small>22:00 – 06:00</small>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="shift-type-btn-modal custom"
+                        data-type="Custom"
+                        onclick="selectModalShiftType('Custom', this)"
+                    >
+                        <i class="fas fa-sliders"></i>
+                        <strong>Custom</strong>
+                        <small>Set hours</small>
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- EMPLOYEE -->
+
+            <div class="shift-form-group">
+
+                <label>
+                    Employee
+                </label>
+
+                <select
+                    id="shiftStaff"
+                    class="shift-form-control"
+                >
+                    <option value="">
+                        Select employee
+                    </option>
+                </select>
+
+            </div>
+
+
+            <!-- DATE -->
+
+            <div class="shift-form-row">
+
+    <div class="shift-form-group">
+
+        <label>
+            From Date
+        </label>
+
+        <input
+            id="shiftFromDate"
+            type="date"
+            class="shift-form-control"
+        >
+
+    </div>
+
+
+    <div class="shift-form-group">
+
+        <label>
+            To Date
+        </label>
+
+        <input
+            id="shiftToDate"
+            type="date"
+            class="shift-form-control"
+        >
+
+    </div>
+
+</div>
+
+
+            <!-- CUSTOM BUILDER -->
+
+            <div
+                id="customShiftBuilder"
+                class="custom-shift-builder"
+                style="display:none;"
+            >
+
+                <div class="shift-form-group">
+
+                    <label>
+                        Custom Shift Name
+                    </label>
+
+                    <input
+                        id="customShiftName"
+                        type="text"
+                        class="shift-form-control"
+                        placeholder="Example: Split Shift"
+                    >
+
+                </div>
+
+
+                <div class="shift-form-group">
+
+                    <label>
+                        Color
+                    </label>
+
+                    <input
+                        id="customShiftColor"
+                        type="color"
+                        value="#0891b2"
+                    >
+
+                </div>
+
+
+                <div class="shift-form-group">
+
+                    <label>
+                        Start Time
+                    </label>
+
+                    <div class="shift-range-row">
+
+                        <input
+                            id="startTimeRange"
+                            type="range"
+                            min="0"
+                            max="1439"
+                            step="15"
+                            value="540"
+                            oninput="updateShiftTime('start',this.value)"
+                        >
+
+                        <span id="startTimeDisplay">
+                            09:00
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="shift-form-group">
+
+                    <label>
+                        End Time
+                    </label>
+
+                    <div class="shift-range-row">
+
+                        <input
+                            id="endTimeRange"
+                            type="range"
+                            min="0"
+                            max="1439"
+                            step="15"
+                            value="1020"
+                            oninput="updateShiftTime('end',this.value)"
+                        >
+
+                        <span id="endTimeDisplay">
+                            17:00
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="customDurationBadge"
+                    class="shift-duration"
+                >
+                    Duration: 8h
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="shift-modal-footer">
+
+            <button
+                type="button"
+                class="shift-secondary-btn"
+                onclick="closeShiftModal('addShiftModal')"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="shift-primary-btn"
+                onclick="submitShift()"
+            >
+                <i class="fas fa-check"></i>
+                Assign Shift
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     SHIFT DETAIL
+============================================================= -->
+
+<div
+    id="shiftDetailModal"
+    class="shift-modal-backdrop"
+>
+
+    <div class="shift-modal shift-modal-small">
+
+        <div class="shift-modal-header">
+
+            <div>
+                <h3>Shift Details</h3>
+                <p id="sdModalSub"></p>
+            </div>
+
+            <button
+                class="shift-modal-close"
+                onclick="closeShiftModal('shiftDetailModal')"
+            >
+                &times;
+            </button>
+
+        </div>
+
+        <div
+            id="sdModalBody"
+            class="shift-modal-body"
+        ></div>
+
+
+        <div class="shift-modal-footer">
+
+            <button
+                type="button"
+                class="shift-danger-btn"
+                onclick="removeShiftFromDetail()"
+            >
+                <i class="fas fa-trash"></i>
+                Remove Shift
+            </button>
+
+            <button
+                type="button"
+                class="shift-secondary-btn"
+                onclick="closeShiftModal('shiftDetailModal')"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+window.SHIFT_CONFIG = {
+    urls: {
+        weeklySchedule: "{% url 'weekly_schedule' %}",
+        getShifts: "{% url 'get_shifts' %}",
+        assignShift: "{% url 'assign_shift' %}",
+        updateShift: "{% url 'update_shift' %}",
+        deleteShift: "{% url 'delete_shift' %}",
+        getTemplates: "{% url 'get_shift_templates' %}",
+        saveTemplate: "{% url 'save_shift_template' %}",
+        staffByShift: "{% url 'staff_by_shift' %}"
+    },
+
+    employees: [
+        {% for employee in employees %}
+        {
+            id: {{ employee.id }},
+            name: "{{ employee.name|escapejs }}",
+            departmentId: {% if employee.department_id %}{{ employee.department_id }}{% else %}null{% endif %},
+            department: "{% if employee.department %}{{ employee.department.name|escapejs }}{% endif %}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+
+    departments: [
+        {% for department in departments %}
+        {
+            id: {{ department.id }},
+            name: "{{ department.name|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+};
+</script>
+
+<script src="{% static 'hr/assets/js/shifts.js' %}"></script>
+
+{% endblock %}

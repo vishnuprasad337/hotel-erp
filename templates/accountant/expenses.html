@@ -1,0 +1,3685 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}
+Expenses | Hotel ERP
+{% endblock %}
+
+{% block nav_expenses %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.exp-page {
+    width: 100%;
+}
+
+.exp-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding: 28px 30px;
+    border-radius: 18px;
+    background: linear-gradient(120deg,#7028f4,#3b207b 70%,#182441);
+    color: #fff;
+    box-shadow: 0 16px 38px rgba(91,33,182,.14);
+}
+
+.exp-hero::after {
+    content: "";
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    right: -45px;
+    top: -75px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+}
+
+.exp-hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.exp-hero-icon {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(255,255,255,.12);
+    font-size: 22px;
+}
+
+.exp-hero h2 {
+    margin: 0 0 5px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.exp-hero p {
+    margin: 0;
+    color: rgba(255,255,255,.75);
+    font-size: 13px;
+}
+
+.exp-hero-actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 10px;
+}
+
+.exp-btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+    background: var(--acc-surface, #fff);
+    color: var(--acc-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.exp-btn:hover {
+    transform: translateY(-1px);
+}
+
+.exp-btn-primary {
+    border-color: #7c3aed;
+    background: linear-gradient(135deg,#7c3aed,#9333ea);
+    color: #fff;
+}
+
+.exp-btn-hero {
+    border-color: rgba(255,255,255,.2);
+    background: rgba(255,255,255,.12);
+    color: #fff;
+}
+
+.exp-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.exp-heading h1 {
+    margin: 0 0 6px;
+    color: var(--acc-text);
+    font-size: 30px;
+    font-weight: 750;
+}
+
+.exp-heading p {
+    margin: 0;
+    color: var(--acc-muted);
+    font-size: 14px;
+}
+
+.exp-stats {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.exp-stat {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--acc-border);
+    border-radius: 16px;
+    background: var(--acc-surface,#fff);
+    box-shadow: 0 3px 12px rgba(15,23,42,.04);
+}
+
+.exp-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.exp-stat-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    font-size: 19px;
+}
+
+.exp-purple {
+    background: #f0e8ff;
+    color: #7c3aed;
+}
+
+.exp-blue {
+    background: #e1f7fb;
+    color: #0891b2;
+}
+
+.exp-green {
+    background: #dcf8eb;
+    color: #059669;
+}
+
+.exp-orange {
+    background: #fff1d6;
+    color: #d97706;
+}
+
+.exp-stat-value {
+    margin-bottom: 5px;
+    color: var(--acc-text);
+    font-size: 29px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.exp-stat-label {
+    color: var(--acc-text);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.exp-stat-meta {
+    margin-top: 4px;
+    color: var(--acc-muted);
+    font-size: 11px;
+}
+
+.exp-card {
+    overflow: hidden;
+    margin-bottom: 22px;
+    border: 1px solid var(--acc-border);
+    border-radius: 15px;
+    background: var(--acc-surface,#fff);
+    box-shadow: 0 3px 12px rgba(15,23,42,.04);
+}
+
+.exp-card-header {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--acc-border);
+}
+
+.exp-card-title {
+    margin: 0;
+    color: var(--acc-text);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.exp-card-subtitle {
+    margin-top: 3px;
+    color: var(--acc-muted);
+    font-size: 11px;
+}
+
+.exp-card-body {
+    padding: 20px;
+}
+
+.exp-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr)) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.exp-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--acc-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.exp-control {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+    outline: 0;
+    background: var(--acc-surface,#fff);
+    color: var(--acc-text);
+    font: inherit;
+    font-size: 13px;
+}
+
+textarea.exp-control {
+    min-height: 95px;
+    padding: 12px;
+    resize: vertical;
+}
+
+.exp-control:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.10);
+}
+
+.exp-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.exp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.exp-table th {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--acc-border);
+    background: var(--acc-bg);
+    color: var(--acc-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.exp-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--acc-border);
+    color: var(--acc-text);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.exp-table tbody tr:hover {
+    background: rgba(124,58,237,.025);
+}
+
+.exp-source {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.exp-source-manual {
+    background: #f0e8ff;
+    color: #7c3aed;
+}
+
+.exp-source-purchase_order {
+    background: #e1f7fb;
+    color: #0891b2;
+}
+
+.exp-source-maintenance {
+    background: #fff1d6;
+    color: #d97706;
+}
+
+.exp-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.exp-action {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--acc-border);
+    border-radius: 8px;
+    background: var(--acc-surface,#fff);
+    color: var(--acc-muted);
+    cursor: pointer;
+}
+
+.exp-action:hover {
+    border-color: #7c3aed;
+    color: #7c3aed;
+}
+
+.exp-action-danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.exp-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--acc-muted);
+}
+
+/* MODAL */
+
+.exp-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15,23,42,.58);
+    backdrop-filter: blur(5px);
+}
+
+.exp-modal.open {
+    display: flex;
+}
+
+.exp-modal-dialog {
+    width: min(620px,100%);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    border: 1px solid rgba(255,255,255,.5);
+    border-radius: 18px;
+    background: #fff !important;
+    box-shadow: 0 25px 70px rgba(15,23,42,.30);
+    animation: expPop .18s ease;
+}
+
+@keyframes expPop {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.exp-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px;
+    background: linear-gradient(135deg,#7c3aed,#5b21b6);
+    color: #fff;
+}
+
+.exp-modal-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+}
+
+.exp-modal-header p {
+    margin: 4px 0 0;
+    color: rgba(255,255,255,.75);
+    font-size: 11px;
+}
+
+.exp-modal-close {
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 9px;
+    background: rgba(255,255,255,.10);
+    color: #fff;
+    cursor: pointer;
+}
+
+.exp-modal-body {
+    padding: 22px;
+    background: #fff !important;
+}
+
+.exp-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 14px;
+}
+
+.exp-modal-full {
+    grid-column: 1 / -1;
+}
+
+.exp-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 22px;
+    border-top: 1px solid #e5e7eb;
+    background: #fff !important;
+}
+
+.exp-toast {
+    position: fixed;
+    z-index: 100000;
+    right: 24px;
+    bottom: 24px;
+    display: none;
+    min-width: 260px;
+    max-width: 390px;
+    padding: 14px 16px;
+    border-radius: 11px;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 16px 40px rgba(0,0,0,.22);
+    font-size: 13px;
+}
+
+.exp-toast.show {
+    display: block;
+}
+
+.exp-toast.error {
+    background: #b91c1c;
+}
+
+@media(max-width:1100px) {
+    .exp-stats {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+
+    .exp-filter-grid {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+}
+
+@media(max-width:650px) {
+    .exp-hero,
+    .exp-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .exp-hero-actions {
+        width: 100%;
+    }
+
+    .exp-stats,
+    .exp-filter-grid,
+    .exp-modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .exp-modal-full {
+        grid-column: auto;
+    }
+}
+
+
+{% comment %} category css modal start {% endcomment %}
+/* ============================================================
+   FIX EXPENSE MODAL SELECTS
+============================================================ */
+
+.expense-field {
+    min-width: 0;
+}
+
+.expense-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--acc-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* ALL MODAL INPUTS */
+
+.expense-control {
+    display: block;
+    width: 100%;
+    height: 46px;
+
+    padding: 0 14px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 10px;
+
+    background: #ffffff;
+    color: var(--acc-text);
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+
+    outline: none;
+
+    box-sizing: border-box;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+
+/* SELECT */
+
+select.expense-control {
+    width: 100% !important;
+    height: 46px !important;
+
+    padding: 0 40px 0 14px !important;
+
+    border: 1px solid var(--acc-border) !important;
+    border-radius: 10px !important;
+
+    background-color: #ffffff !important;
+
+    color: var(--acc-text) !important;
+
+    font-family: inherit !important;
+    font-size: 14px !important;
+
+    appearance: auto;
+    -webkit-appearance: auto;
+
+    box-sizing: border-box;
+}
+
+
+/* SELECT WRAPPER */
+
+.expense-select-wrap {
+    width: 100%;
+}
+
+
+/* FOCUS */
+
+.expense-control:focus {
+
+    border-color: var(--acc-primary) !important;
+
+    box-shadow:
+        0 0 0 3px var(--acc-primary-soft) !important;
+
+    outline: none;
+}
+
+
+/* PLACEHOLDER */
+
+.expense-control::placeholder {
+    color: var(--acc-muted);
+}
+
+
+/* TEXTAREA */
+
+textarea.expense-control {
+
+    height: 102px;
+
+    padding: 13px 14px;
+
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+/* DARK MODE */
+
+[data-theme="dark"] .expense-control,
+[data-theme="dark"] select.expense-control {
+
+    background-color: var(--acc-surface) !important;
+
+    color: var(--acc-text) !important;
+
+    border-color: var(--acc-border) !important;
+}
+{% comment %} category modal css end {% endcomment %}
+
+
+
+{% comment %} add expense modal csss start {% endcomment %}
+/* ============================================================
+   PREMIUM EXPENSE MODAL
+============================================================ */
+
+#expenseModal {
+    padding: 28px;
+    background: rgba(15, 23, 42, .55);
+    backdrop-filter: blur(5px);
+}
+
+.expense-premium-dialog {
+    width: min(1040px, 96vw);
+    max-height: calc(100vh - 56px);
+
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-surface, #fff);
+
+    box-shadow:
+        0 30px 80px rgba(15, 23, 42, .30);
+
+    animation: expPremiumOpen .18s ease;
+}
+
+@keyframes expPremiumOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.expense-premium-header {
+
+    height: 76px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 22px;
+
+    border-bottom: 1px solid var(--acc-border);
+
+    background: var(--acc-surface, #fff);
+}
+
+.expense-header-left {
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+}
+
+.expense-header-icon {
+
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 42px;
+
+    border-radius: 10px;
+
+    background: #f1eafe;
+
+    color: #7c3aed;
+
+    font-size: 18px;
+}
+
+.expense-premium-header h3 {
+
+    margin: 0 0 3px;
+
+    color: var(--acc-text);
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.expense-premium-header p {
+
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+.expense-premium-close {
+
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: var(--acc-muted);
+
+    font-size: 20px;
+
+    cursor: pointer;
+}
+
+.expense-premium-close:hover {
+
+    background: var(--acc-bg);
+
+    color: var(--acc-text);
+}
+
+
+/* ============================================================
+   CONTENT
+============================================================ */
+
+.expense-premium-content {
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.7fr)
+        minmax(280px, .85fr);
+
+    gap: 20px;
+
+    padding: 20px;
+
+    max-height: calc(100vh - 190px);
+
+    overflow-y: auto;
+
+    background: var(--acc-bg);
+}
+
+.expense-form-column {
+
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+
+/* ============================================================
+   TOP EXPENSE CARD
+============================================================ */
+
+.expense-employee-card {
+
+    min-height: 72px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 14px 16px;
+
+    border: 1px solid #ddd6fe;
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #faf8ff,
+            #f5f1ff
+        );
+}
+
+.expense-avatar {
+
+    width: 44px;
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 44px;
+
+    border-radius: 50%;
+
+    background: #7c3aed;
+
+    color: #fff;
+
+    font-size: 18px;
+}
+
+.expense-employee-info {
+
+    min-width: 0;
+
+    margin-left: 12px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.expense-employee-info strong {
+
+    color: var(--acc-text);
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.expense-employee-info span {
+
+    margin-top: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+.expense-source-badge {
+
+    margin-left: auto;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 6px 12px;
+
+    border-radius: 20px;
+
+    background: #fef3c7;
+
+    color: #92400e;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.expense-source-badge span {
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #d97706;
+}
+
+
+/* ============================================================
+   SECTION CARDS
+============================================================ */
+
+.expense-section-card {
+
+    padding: 16px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-surface, #fff);
+}
+
+.expense-section-title {
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 14px;
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.expense-section-title i {
+
+    color: var(--acc-muted);
+}
+
+
+/* ============================================================
+   GRID
+============================================================ */
+
+.expense-premium-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+}
+
+.expense-premium-field {
+
+    min-width: 0;
+}
+
+.expense-premium-field label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.expense-premium-field label span {
+
+    color: #ef4444;
+}
+
+
+/* ============================================================
+   INPUTS
+============================================================ */
+
+.expense-premium-control {
+
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 8px;
+
+    outline: none;
+
+    background: var(--acc-surface, #fff);
+
+    color: var(--acc-text);
+
+    font: inherit;
+    font-size: 12px;
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+.expense-premium-control:focus {
+
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124, 58, 237, .10);
+}
+
+.expense-description {
+
+    height: 94px;
+
+    padding: 11px 12px;
+
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   MONEY INPUT
+============================================================ */
+
+.expense-money-input {
+
+    position: relative;
+}
+
+.expense-money-input > span {
+
+    position: absolute;
+
+    left: 12px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: var(--acc-muted);
+
+    z-index: 2;
+}
+
+.expense-money-input input {
+
+    padding-left: 29px;
+}
+
+
+/* ============================================================
+   INFO BOX
+============================================================ */
+
+.expense-info-box {
+
+    display: flex;
+
+    gap: 11px;
+
+    padding: 13px 14px;
+
+    border: 1px solid #bfdbfe;
+    border-radius: 9px;
+
+    background: #eff6ff;
+
+    color: #1d4ed8;
+}
+
+.expense-info-box > i {
+
+    margin-top: 2px;
+}
+
+.expense-info-box strong {
+
+    display: block;
+
+    margin-bottom: 3px;
+
+    font-size: 11px;
+}
+
+.expense-info-box p {
+
+    margin: 0;
+
+    color: #3b64a1;
+
+    font-size: 10px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+
+.expense-summary-column {
+
+    min-width: 0;
+}
+
+.expense-summary-card {
+
+    position: sticky;
+
+    top: 0;
+
+    padding: 17px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-surface, #fff);
+}
+
+.expense-summary-title,
+.expense-summary-heading {
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    color: var(--acc-text);
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.expense-summary-title {
+
+    margin-bottom: 16px;
+
+    font-size: 13px;
+}
+
+.expense-summary-heading {
+
+    margin-bottom: 10px;
+}
+
+.expense-summary-amount {
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 12px;
+}
+
+.expense-summary-amount span {
+
+    color: var(--acc-muted);
+
+    font-size: 10px;
+}
+
+.expense-summary-amount strong {
+
+    color: #059669;
+
+    font-size: 20px;
+    font-weight: 750;
+}
+
+.expense-summary-divider {
+
+    height: 1px;
+
+    margin: 14px 0;
+
+    background: var(--acc-border);
+}
+
+.expense-summary-row {
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    min-height: 29px;
+
+    border-bottom: 1px dashed var(--acc-border);
+}
+
+.expense-summary-row:last-child {
+
+    border-bottom: 0;
+}
+
+.expense-summary-row span {
+
+    color: var(--acc-muted);
+
+    font-size: 10px;
+}
+
+.expense-summary-row strong {
+
+    max-width: 58%;
+
+    overflow: hidden;
+
+    color: var(--acc-text);
+
+    font-size: 10px;
+    font-weight: 600;
+
+    text-align: right;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   RECORDED USER
+============================================================ */
+
+.expense-recorded-user {
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+}
+
+.expense-small-avatar {
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 34px;
+
+    border-radius: 50%;
+
+    background: #ede9fe;
+
+    color: #7c3aed;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.expense-recorded-user > div:last-child {
+
+    display: flex;
+    flex-direction: column;
+}
+
+.expense-recorded-user strong {
+
+    color: var(--acc-text);
+
+    font-size: 11px;
+}
+
+.expense-recorded-user span {
+
+    color: var(--acc-muted);
+
+    font-size: 9px;
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.expense-status-badge {
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 6px 11px;
+
+    border-radius: 20px;
+
+    background: #dcfce7;
+
+    color: #166534;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.expense-status-badge span {
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #16a34a;
+}
+
+
+/* ============================================================
+   SUMMARY NOTE
+============================================================ */
+
+.expense-summary-note {
+
+    display: flex;
+
+    gap: 8px;
+
+    margin-top: 14px;
+
+    padding: 10px;
+
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 9px;
+
+    line-height: 1.5;
+}
+
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+.expense-premium-footer {
+
+    min-height: 70px;
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 9px;
+
+    padding: 0 20px;
+
+    border-top: 1px solid var(--acc-border);
+
+    background: var(--acc-surface, #fff);
+}
+
+.expense-cancel-btn,
+.expense-save-btn {
+
+    height: 40px;
+
+    padding: 0 17px;
+
+    border-radius: 8px;
+
+    font: inherit;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    cursor: pointer;
+}
+
+.expense-cancel-btn {
+
+    border: 1px solid var(--acc-border);
+
+    background: var(--acc-surface, #fff);
+
+    color: var(--acc-text);
+}
+
+.expense-save-btn {
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    min-width: 135px;
+
+    border: 1px solid #7c3aed;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #fff;
+}
+
+.expense-save-btn:hover {
+
+    filter: brightness(.98);
+}
+
+.expense-save-btn:disabled {
+
+    opacity: .65;
+
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   DARK MODE
+============================================================ */
+
+[data-theme="dark"] .expense-employee-card {
+
+    border-color: rgba(124, 58, 237, .35);
+
+    background:
+        rgba(124, 58, 237, .08);
+}
+
+[data-theme="dark"] .expense-info-box,
+[data-theme="dark"] .expense-summary-note {
+
+    border-color: rgba(59, 130, 246, .25);
+
+    background: rgba(59, 130, 246, .08);
+}
+
+[data-theme="dark"] .expense-info-box p {
+
+    color: var(--acc-muted);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 850px) {
+
+    #expenseModal {
+
+        padding: 12px;
+    }
+
+    .expense-premium-dialog {
+
+        width: 100%;
+
+        max-height: calc(100vh - 24px);
+    }
+
+    .expense-premium-content {
+
+        grid-template-columns: 1fr;
+    }
+
+    .expense-summary-card {
+
+        position: static;
+    }
+}
+
+
+@media (max-width: 560px) {
+
+    .expense-premium-grid {
+
+        grid-template-columns: 1fr;
+    }
+
+    .expense-premium-header {
+
+        padding: 0 15px;
+    }
+
+    .expense-premium-content {
+
+        padding: 14px;
+    }
+
+    .expense-premium-footer {
+
+        padding: 12px 14px;
+    }
+
+    .expense-cancel-btn,
+    .expense-save-btn {
+
+        flex: 1;
+    }
+}
+
+{% comment %} add expense modal csss end  {% endcomment %}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="exp-page">
+
+    <section class="exp-hero">
+
+        <div class="exp-hero-content">
+
+            <div class="exp-hero-icon">
+                <i class="icon-receipt"></i>
+            </div>
+
+            <div>
+                <h2>Expense Management</h2>
+                <p>
+                    Track manual expenses, purchase orders and maintenance costs.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="exp-hero-actions">
+
+            <button
+                type="button"
+                class="exp-btn exp-btn-hero"
+                id="expenseRefresh"
+            >
+                <i class="icon-refresh-cw"></i>
+                Refresh
+            </button>
+
+            <button
+                type="button"
+                class="exp-btn exp-btn-hero"
+                id="expenseAddButton"
+            >
+                <i class="icon-plus"></i>
+                Add Expense
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <div class="exp-heading">
+
+        <div>
+            <h1>Expenses</h1>
+
+            <p>
+                Monitor and manage hotel operating expenses.
+            </p>
+        </div>
+
+        <a
+            href="#"
+            class="exp-btn"
+            id="expenseExport"
+        >
+            <i class="icon-download"></i>
+            Export CSV
+        </a>
+
+    </div>
+
+
+    <section class="exp-stats">
+
+        <div class="exp-stat">
+
+            <div class="exp-stat-top">
+                <div class="exp-stat-icon exp-purple">
+                    <i class="icon-wallet"></i>
+                </div>
+            </div>
+
+            <div
+                class="exp-stat-value"
+                id="totalExpenses"
+            >
+                ₹0.00
+            </div>
+
+            <div class="exp-stat-label">
+                Total Expenses
+            </div>
+
+            <div class="exp-stat-meta">
+                Selected period
+            </div>
+
+        </div>
+
+
+        <div class="exp-stat">
+
+            <div class="exp-stat-top">
+                <div class="exp-stat-icon exp-blue">
+                    <i class="icon-shopping-cart"></i>
+                </div>
+            </div>
+
+            <div
+                class="exp-stat-value"
+                id="purchaseExpenses"
+            >
+                ₹0.00
+            </div>
+
+            <div class="exp-stat-label">
+                Purchase Orders
+            </div>
+
+            <div
+                class="exp-stat-meta"
+                id="purchaseCount"
+            >
+                0 records
+            </div>
+
+        </div>
+
+
+        <div class="exp-stat">
+
+            <div class="exp-stat-top">
+                <div class="exp-stat-icon exp-orange">
+                    <i class="icon-settings"></i>
+                </div>
+            </div>
+
+            <div
+                class="exp-stat-value"
+                id="maintenanceExpenses"
+            >
+                ₹0.00
+            </div>
+
+            <div class="exp-stat-label">
+                Maintenance
+            </div>
+
+            <div
+                class="exp-stat-meta"
+                id="maintenanceCount"
+            >
+                0 records
+            </div>
+
+        </div>
+
+
+        <div class="exp-stat">
+
+            <div class="exp-stat-top">
+                <div class="exp-stat-icon exp-green">
+                    <i class="icon-file-text"></i>
+                </div>
+            </div>
+
+            <div
+                class="exp-stat-value"
+                id="manualExpenses"
+            >
+                ₹0.00
+            </div>
+
+            <div class="exp-stat-label">
+                Manual Expenses
+            </div>
+
+            <div
+                class="exp-stat-meta"
+                id="manualCount"
+            >
+                0 records
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- FILTERS -->
+
+    <section class="exp-card">
+
+        <div class="exp-card-header">
+
+            <div>
+                <h2 class="exp-card-title">
+                    Expense Filters
+                </h2>
+
+                <div class="exp-card-subtitle">
+                    Filter expenses by period, department and source.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="exp-card-body">
+
+            <form
+                id="expenseFilterForm"
+                class="exp-filter-grid"
+            >
+
+                <div class="exp-field">
+                    <label>Date</label>
+
+                    <input
+                        type="date"
+                        id="expenseDateFilter"
+                        class="exp-control"
+                    >
+                </div>
+
+
+                <div class="exp-field">
+                    <label>Month</label>
+
+                    <input
+                        type="month"
+                        id="expenseMonthFilter"
+                        class="exp-control"
+                    >
+                </div>
+
+
+                <div class="exp-field">
+                    <label>Department</label>
+
+                    <select
+                        id="expenseDepartmentFilter"
+                        class="exp-control"
+                    >
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        {% for department in departments %}
+                        <option value="{{ department.id }}">
+                            {{ department.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+
+                <div class="exp-field">
+                    <label>Source</label>
+
+                    <select
+                        id="expenseSourceFilter"
+                        class="exp-control"
+                    >
+                        <option value="">All Sources</option>
+                        <option value="manual">Manual</option>
+                        <option value="purchase_order">Purchase Order</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="exp-btn exp-btn-primary"
+                >
+                    <i class="icon-filter"></i>
+                    Apply
+                </button>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- TABLE -->
+
+    <section class="exp-card">
+
+        <div class="exp-card-header">
+
+            <div>
+                <h2 class="exp-card-title">
+                    Expense Transactions
+                </h2>
+
+                <div
+                    class="exp-card-subtitle"
+                    id="expenseTransactionCount"
+                >
+                    Loading records...
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="exp-table-wrap">
+
+            <table class="exp-table">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Department</th>
+                        <th>Category</th>
+                        <th>Source</th>
+                        <th>Reference</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Recorded By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="expenseTableBody">
+
+                    <tr>
+                        <td colspan="9">
+                            <div class="exp-empty">
+                                Loading expenses...
+                            </div>
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =========================================================
+     ADD / EDIT EXPENSE MODAL
+========================================================= -->
+
+<div class="exp-modal" id="expenseModal">
+
+    <div class="expense-premium-dialog">
+
+        <!-- ================= HEADER ================= -->
+
+        <div class="expense-premium-header">
+
+            <div class="expense-header-left">
+
+                <div class="expense-header-icon">
+                    <i class="icon-edit-3"></i>
+                </div>
+
+                <div>
+                    <h3 id="expenseModalTitle">
+                        Add Expense
+                    </h3>
+
+                    <p id="expenseModalSubtitle">
+                        Record and manage hotel expense details.
+                    </p>
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="expense-premium-close"
+                data-exp-close
+                aria-label="Close"
+            >
+                <i class="icon-x"></i>
+            </button>
+
+        </div>
+
+
+        <!-- ================= FORM ================= -->
+
+        <form id="expenseForm">
+
+            <input
+                type="hidden"
+                id="expenseId"
+            >
+
+
+            <div class="expense-premium-content">
+
+                <!-- =================================
+                     LEFT SIDE
+                ================================== -->
+
+                <div class="expense-form-column">
+
+
+                    <!-- EXPENSE INFO -->
+
+                    <div class="expense-employee-card">
+
+                        <div class="expense-avatar">
+                            <i class="icon-receipt"></i>
+                        </div>
+
+                        <div class="expense-employee-info">
+
+                            <strong id="expensePreviewTitle">
+                                New Expense
+                            </strong>
+
+                            <span id="expensePreviewSubtitle">
+                                Manual expense entry
+                            </span>
+
+                        </div>
+
+                        <span class="expense-source-badge">
+                            <span></span>
+                            Manual
+                        </span>
+
+                    </div>
+
+
+                    <!-- =================================
+                         EXPENSE DETAILS
+                    ================================== -->
+
+                    <div class="expense-section-card">
+
+                        <div class="expense-section-title">
+                            <i class="icon-file-text"></i>
+                            Expense Details
+                        </div>
+
+
+                        <div class="expense-premium-grid">
+
+                            <!-- DEPARTMENT -->
+
+                            <div class="expense-premium-field">
+
+                                <label for="expenseDepartment">
+                                    Department
+                                    <span>*</span>
+                                </label>
+
+                                <select
+                                    id="expenseDepartment"
+                                    class="expense-premium-control"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Select department
+                                    </option>
+
+                                    {% for department in departments %}
+
+                                    <option
+                                        value="{{ department.id }}"
+                                        data-name="{{ department.name }}"
+                                    >
+                                        {{ department.name }}
+                                    </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- CATEGORY -->
+
+                            <div class="expense-premium-field">
+
+                                <label for="expenseCategory">
+                                    Category
+                                    <span>*</span>
+                                </label>
+
+                                <select
+                                    id="expenseCategory"
+                                    class="expense-premium-control"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Select category
+                                    </option>
+
+                                    {% for category in categories %}
+
+                                    <option
+                                        value="{{ category.id }}"
+                                        data-name="{{ category.name }}"
+                                    >
+                                        {{ category.name }}
+                                    </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- DATE -->
+
+                            <div class="expense-premium-field">
+
+                                <label for="expenseDate">
+                                    Expense Date
+                                    <span>*</span>
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="expenseDate"
+                                    class="expense-premium-control"
+                                    value="{{ today|date:'Y-m-d' }}"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- AMOUNT -->
+
+                            <div class="expense-premium-field">
+
+                                <label for="expenseAmount">
+                                    Amount
+                                    <span>*</span>
+                                </label>
+
+                                <div class="expense-money-input">
+
+                                    <span>₹</span>
+
+                                    <input
+                                        type="number"
+                                        id="expenseAmount"
+                                        class="expense-premium-control"
+                                        min="0.01"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        required
+                                    >
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================
+                         DESCRIPTION
+                    ================================== -->
+
+                    <div class="expense-section-card">
+
+                        <div class="expense-section-title">
+                            <i class="icon-align-left"></i>
+                            Description
+                        </div>
+
+                        <div class="expense-premium-field">
+
+                            <label for="expenseDescription">
+                                Expense Description
+                                <span>*</span>
+                            </label>
+
+                            <textarea
+                                id="expenseDescription"
+                                class="expense-premium-control expense-description"
+                                placeholder="Enter expense details, purpose, invoice information or additional notes..."
+                                required
+                            ></textarea>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================
+                         ADDITIONAL INFORMATION
+                    ================================== -->
+
+                    <div class="expense-info-box">
+
+                        <i class="icon-info"></i>
+
+                        <div>
+                            <strong>Manual Expense</strong>
+
+                            <p>
+                                This expense will be recorded as a manual
+                                transaction and added to the selected
+                                department's expense report.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================
+                     RIGHT SIDE SUMMARY
+                ================================== -->
+
+                <aside class="expense-summary-column">
+
+                    <div class="expense-summary-card">
+
+
+                        <div class="expense-summary-title">
+
+                            <i class="icon-clipboard"></i>
+
+                            Expense Summary
+
+                        </div>
+
+
+                        <!-- AMOUNT -->
+
+                        <div class="expense-summary-amount">
+
+                            <span>Total Amount</span>
+
+                            <strong id="expenseSummaryAmount">
+                                ₹0.00
+                            </strong>
+
+                        </div>
+
+
+                        <div class="expense-summary-divider"></div>
+
+
+                        <!-- DETAILS -->
+
+                        <div class="expense-summary-heading">
+
+                            <i class="icon-file-text"></i>
+
+                            Expense Details
+
+                        </div>
+
+
+                        <div class="expense-summary-row">
+
+                            <span>Department</span>
+
+                            <strong id="expenseSummaryDepartment">
+                                —
+                            </strong>
+
+                        </div>
+
+
+                        <div class="expense-summary-row">
+
+                            <span>Category</span>
+
+                            <strong id="expenseSummaryCategory">
+                                —
+                            </strong>
+
+                        </div>
+
+
+                        <div class="expense-summary-row">
+
+                            <span>Source</span>
+
+                            <strong>
+                                Manual Entry
+                            </strong>
+
+                        </div>
+
+
+                        <div class="expense-summary-divider"></div>
+
+
+                        <!-- DATE -->
+
+                        <div class="expense-summary-heading">
+
+                            <i class="icon-calendar"></i>
+
+                            Expense Date
+
+                        </div>
+
+
+                        <div class="expense-summary-row">
+
+                            <span>Date</span>
+
+                            <strong id="expenseSummaryDate">
+                                —
+                            </strong>
+
+                        </div>
+
+
+                        <div class="expense-summary-divider"></div>
+
+
+                        <!-- RECORDED BY -->
+
+                        <div class="expense-summary-heading">
+
+                            <i class="icon-user"></i>
+
+                            Recorded By
+
+                        </div>
+
+
+                        <div class="expense-recorded-user">
+
+                            <div class="expense-small-avatar">
+
+                                {{ staff.name|default:"A"|slice:":1"|upper }}
+
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    {{ staff.name|default:"Accountant" }}
+                                </strong>
+
+                                <span>
+                                    Current user
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- STATUS -->
+
+                        <div class="expense-summary-divider"></div>
+
+
+                        <div class="expense-summary-heading">
+
+                            <i class="icon-activity"></i>
+
+                            Status
+
+                        </div>
+
+
+                        <div class="expense-status-badge">
+
+                            <span></span>
+
+                            Ready to Save
+
+                        </div>
+
+
+                        <!-- NOTE -->
+
+                        <div class="expense-summary-note">
+
+                            <i class="icon-info"></i>
+
+                            <span>
+                                Make sure to review all expense
+                                details before saving the changes.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </aside>
+
+            </div>
+
+
+
+            <!-- ================= FOOTER ================= -->
+
+            <div class="expense-premium-footer">
+
+                <button
+                    type="button"
+                    class="expense-cancel-btn"
+                    data-exp-close
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="expense-save-btn"
+                    id="expenseSaveButton"
+                >
+
+                    <i class="icon-save"></i>
+
+                    <span id="expenseSaveButtonText">
+                        Save Expense
+                    </span>
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- DELETE -->
+
+<div
+    class="exp-modal"
+    id="expenseDeleteModal"
+>
+
+    <div
+        class="exp-modal-dialog"
+        style="max-width:440px"
+    >
+
+        <div class="exp-modal-header">
+
+            <div>
+                <h3>Delete Expense</h3>
+
+                <p>
+                    This action cannot be undone.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="exp-modal-close"
+                data-delete-close
+            >
+                ✕
+            </button>
+
+        </div>
+
+        <div class="exp-modal-body">
+
+            <p style="margin:0;color:#475569;">
+                Are you sure you want to permanently delete this expense?
+            </p>
+
+        </div>
+
+        <div class="exp-modal-footer">
+
+            <button
+                type="button"
+                class="exp-btn"
+                data-delete-close
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="exp-btn"
+                id="expenseConfirmDelete"
+                style="background:#dc2626;border-color:#dc2626;color:#fff"
+            >
+                Delete Expense
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="exp-toast"
+    id="expenseToast"
+></div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const API_URL =
+        "{% url 'expense_report_api' %}";
+
+    const ADD_URL =
+        "{% url 'expense_add' %}";
+
+    const EXPORT_URL =
+        "{% url 'expense_export_csv' %}";
+
+    const UPDATE_TEMPLATE =
+        "{% url 'expense_update' 999999 %}";
+
+    const DELETE_TEMPLATE =
+        "{% url 'expense_delete' 999999 %}";
+
+
+    const modal =
+        document.getElementById("expenseModal");
+
+    const deleteModal =
+        document.getElementById("expenseDeleteModal");
+
+    const form =
+        document.getElementById("expenseForm");
+
+    const tbody =
+        document.getElementById("expenseTableBody");
+
+    let transactions = [];
+
+    let deleteId = null;
+
+
+    function csrfToken() {
+
+        const name = "csrftoken=";
+
+        const cookies =
+            document.cookie.split(";");
+
+        for (let cookie of cookies) {
+
+            cookie = cookie.trim();
+
+            if (cookie.startsWith(name)) {
+
+                return decodeURIComponent(
+                    cookie.substring(name.length)
+                );
+            }
+        }
+
+        return "";
+    }
+
+
+    function money(value) {
+
+        return "₹" +
+            Number(value || 0).toLocaleString(
+                "en-IN",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+    }
+
+
+    function escapeHtml(value) {
+
+        const div =
+            document.createElement("div");
+
+        div.textContent =
+            value == null ? "" : String(value);
+
+        return div.innerHTML;
+    }
+
+
+    function toast(message, error=false) {
+
+        const box =
+            document.getElementById("expenseToast");
+
+        box.textContent = message;
+
+        box.className =
+            "exp-toast show" +
+            (error ? " error" : "");
+
+        window.clearTimeout(box._timer);
+
+        box._timer =
+            window.setTimeout(function () {
+
+                box.className = "exp-toast";
+
+            }, 3000);
+    }
+
+
+    function filters() {
+
+        const params =
+            new URLSearchParams();
+
+        const date =
+            document.getElementById(
+                "expenseDateFilter"
+            ).value;
+
+        const month =
+            document.getElementById(
+                "expenseMonthFilter"
+            ).value;
+
+        const department =
+            document.getElementById(
+                "expenseDepartmentFilter"
+            ).value;
+
+        const source =
+            document.getElementById(
+                "expenseSourceFilter"
+            ).value;
+
+
+        /*
+         * Date has priority over month,
+         * matching your old backend.
+         */
+
+        if (date) {
+            params.set("date", date);
+        }
+        else if (month) {
+            params.set("month", month);
+        }
+
+
+        if (department) {
+            params.set(
+                "department_id",
+                department
+            );
+        }
+
+
+        if (source) {
+            params.set(
+                "source",
+                source
+            );
+        }
+
+
+        return params;
+    }
+
+
+    function renderSummary(summary) {
+
+        summary = summary || {};
+
+        document.getElementById(
+            "totalExpenses"
+        ).textContent =
+            money(summary.total);
+
+        document.getElementById(
+            "purchaseExpenses"
+        ).textContent =
+            money(summary.po_total);
+
+        document.getElementById(
+            "maintenanceExpenses"
+        ).textContent =
+            money(summary.maintenance_total);
+
+        document.getElementById(
+            "manualExpenses"
+        ).textContent =
+            money(summary.manual_total);
+
+        document.getElementById(
+            "purchaseCount"
+        ).textContent =
+            (summary.po_count || 0) +
+            " records";
+
+        document.getElementById(
+            "maintenanceCount"
+        ).textContent =
+            (summary.maintenance_count || 0) +
+            " records";
+
+        document.getElementById(
+            "manualCount"
+        ).textContent =
+            (summary.manual_count || 0) +
+            " records";
+    }
+
+
+    function sourceLabel(source) {
+
+        if (source === "purchase_order") {
+            return "Purchase Order";
+        }
+
+        if (source === "maintenance") {
+            return "Maintenance";
+        }
+
+        return "Manual";
+    }
+
+
+    function renderTable() {
+
+        document.getElementById(
+            "expenseTransactionCount"
+        ).textContent =
+            transactions.length +
+            " transaction" +
+            (transactions.length === 1 ? "" : "s");
+
+
+        if (!transactions.length) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+                        <div class="exp-empty">
+                            No expenses found for this period.
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        tbody.innerHTML =
+            transactions.map(function (row) {
+
+                const manual =
+                    row.source === "manual";
+
+                return `
+                    <tr>
+
+                        <td>
+                            ${escapeHtml(row.date)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(row.department)}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(row.category)}
+                        </td>
+
+                        <td>
+                            <span class="
+                                exp-source
+                                exp-source-${escapeHtml(row.source)}
+                            ">
+                                ${escapeHtml(sourceLabel(row.source))}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${escapeHtml(row.ref || "—")}
+                        </td>
+
+                        <td>
+                            ${escapeHtml(row.description || "—")}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${money(row.amount)}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${escapeHtml(row.recorded_by || "—")}
+                        </td>
+
+                        <td>
+
+                            ${
+                                manual
+                                ? `
+                                    <div class="exp-actions">
+
+                                        <button
+                                            type="button"
+                                            class="exp-action"
+                                            data-edit="${row.id}"
+                                            title="Edit"
+                                        >
+                                            <i class="icon-pencil"></i>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="
+                                                exp-action
+                                                exp-action-danger
+                                            "
+                                            data-delete="${row.id}"
+                                            title="Delete"
+                                        >
+                                            <i class="icon-trash-2"></i>
+                                        </button>
+
+                                    </div>
+                                `
+                                : `
+                                    <span style="
+                                        color:var(--acc-muted);
+                                        font-size:11px;
+                                    ">
+                                        System generated
+                                    </span>
+                                `
+                            }
+
+                        </td>
+
+                    </tr>
+                `;
+
+            }).join("");
+    }
+
+
+    async function loadExpenses() {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9">
+                    <div class="exp-empty">
+                        Loading expenses...
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        try {
+
+            const params =
+                filters();
+
+            const response =
+                await fetch(
+                    API_URL +
+                    "?" +
+                    params.toString(),
+                    {
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+                        }
+                    }
+                );
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok || !data.success) {
+
+                throw new Error(
+                    data.error ||
+                    "Unable to load expenses."
+                );
+            }
+
+
+            transactions =
+                data.transactions || [];
+
+            renderSummary(
+                data.summary
+            );
+
+            renderTable();
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+                        <div class="exp-empty">
+                            Unable to load expenses.
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            toast(
+                error.message,
+                true
+            );
+        }
+    }
+
+
+    function openAddModal() {
+
+        form.reset();
+
+        document.getElementById(
+            "expenseId"
+        ).value = "";
+
+        document.getElementById(
+            "expenseDate"
+        ).value =
+            "{{ today|date:'Y-m-d' }}";
+
+        document.getElementById(
+            "expenseModalTitle"
+        ).textContent =
+            "Add Expense";
+
+        document.getElementById(
+            "expenseModalSubtitle"
+        ).textContent =
+            "Record a new manual expense.";
+
+        document.getElementById(
+            "expenseSaveButtonText"
+        ).textContent =
+            "Save Expense";
+
+        modal.classList.add("open");
+    }
+
+
+    function openEditModal(id) {
+
+        const row =
+            transactions.find(
+                item =>
+                    String(item.id) ===
+                    String(id)
+            );
+
+        if (!row) {
+            toast(
+                "Expense record not found.",
+                true
+            );
+            return;
+        }
+
+
+        /*
+         * We intentionally only edit manual expenses.
+         * PO and maintenance expenses originate from
+         * their respective modules.
+         */
+
+        if (row.source !== "manual") {
+
+            toast(
+                "System-generated expenses must be edited in their source module.",
+                true
+            );
+
+            return;
+        }
+
+
+        document.getElementById(
+            "expenseId"
+        ).value =
+            row.id;
+
+        document.getElementById(
+            "expenseDate"
+        ).value =
+            row.date || "";
+
+        document.getElementById(
+            "expenseAmount"
+        ).value =
+            row.amount || "";
+
+        document.getElementById(
+            "expenseDescription"
+        ).value =
+            row.description || "";
+
+
+        /*
+         * API currently gives names rather than IDs
+         * for department/category.
+         */
+
+        const departmentSelect =
+            document.getElementById(
+                "expenseDepartment"
+            );
+
+        Array.from(
+            departmentSelect.options
+        ).forEach(option => {
+
+            option.selected =
+                option.text.trim() ===
+                String(row.department).trim();
+
+        });
+
+
+        const categorySelect =
+            document.getElementById(
+                "expenseCategory"
+            );
+
+        Array.from(
+            categorySelect.options
+        ).forEach(option => {
+
+            option.selected =
+                option.text.trim() ===
+                String(row.category).trim();
+
+        });
+
+
+        document.getElementById(
+            "expenseModalTitle"
+        ).textContent =
+            "Edit Expense";
+
+        document.getElementById(
+            "expenseModalSubtitle"
+        ).textContent =
+            "Update manual expense details.";
+
+        document.getElementById(
+            "expenseSaveButtonText"
+        ).textContent =
+            "Update Expense";
+
+        modal.classList.add("open");
+    }
+
+
+    function closeModal() {
+        modal.classList.remove("open");
+    }
+
+
+    function closeDeleteModal() {
+        deleteModal.classList.remove("open");
+        deleteId = null;
+    }
+
+
+    document.getElementById(
+        "expenseAddButton"
+    ).addEventListener(
+        "click",
+        openAddModal
+    );
+
+
+    document.querySelectorAll(
+        "[data-exp-close]"
+    ).forEach(button => {
+
+        button.addEventListener(
+            "click",
+            closeModal
+        );
+
+    });
+
+
+    document.querySelectorAll(
+        "[data-delete-close]"
+    ).forEach(button => {
+
+        button.addEventListener(
+            "click",
+            closeDeleteModal
+        );
+
+    });
+
+
+    modal.addEventListener(
+        "click",
+        function (event) {
+
+            if (event.target === modal) {
+                closeModal();
+            }
+
+        }
+    );
+
+
+    deleteModal.addEventListener(
+        "click",
+        function (event) {
+
+            if (event.target === deleteModal) {
+                closeDeleteModal();
+            }
+
+        }
+    );
+
+
+    document.getElementById(
+        "expenseFilterForm"
+    ).addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            loadExpenses();
+
+        }
+    );
+
+
+    document.getElementById(
+        "expenseRefresh"
+    ).addEventListener(
+        "click",
+        loadExpenses
+    );
+
+
+    document.getElementById(
+        "expenseExport"
+    ).addEventListener(
+        "click",
+        function (event) {
+
+            event.preventDefault();
+
+            const params =
+                filters();
+
+            window.location.href =
+                EXPORT_URL +
+                "?" +
+                params.toString();
+        }
+    );
+
+
+    tbody.addEventListener(
+        "click",
+        function (event) {
+
+            const edit =
+                event.target.closest(
+                    "[data-edit]"
+                );
+
+            const remove =
+                event.target.closest(
+                    "[data-delete]"
+                );
+
+
+            if (edit) {
+
+                openEditModal(
+                    edit.dataset.edit
+                );
+
+                return;
+            }
+
+
+            if (remove) {
+
+                deleteId =
+                    remove.dataset.delete;
+
+                deleteModal.classList.add(
+                    "open"
+                );
+            }
+
+        }
+    );
+
+
+    form.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+            const id =
+                document.getElementById(
+                    "expenseId"
+                ).value;
+
+            const payload = {
+
+                department_id:
+                    document.getElementById(
+                        "expenseDepartment"
+                    ).value,
+
+                expense_category_id:
+                    document.getElementById(
+                        "expenseCategory"
+                    ).value,
+
+                source:
+                    "manual",
+
+                expense_date:
+                    document.getElementById(
+                        "expenseDate"
+                    ).value,
+
+                amount:
+                    document.getElementById(
+                        "expenseAmount"
+                    ).value,
+
+                description:
+                    document.getElementById(
+                        "expenseDescription"
+                    ).value.trim()
+            };
+
+
+            if (
+                !payload.department_id ||
+                !payload.expense_category_id ||
+                !payload.expense_date ||
+                !payload.amount ||
+                !payload.description
+            ) {
+
+                toast(
+                    "Please complete all required fields.",
+                    true
+                );
+
+                return;
+            }
+
+
+            const button =
+                document.getElementById(
+                    "expenseSaveButton"
+                );
+
+            button.disabled = true;
+
+
+            try {
+
+                const url =
+                    id
+                    ? UPDATE_TEMPLATE.replace(
+                        "999999",
+                        id
+                    )
+                    : ADD_URL;
+
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                "X-CSRFToken":
+                                    csrfToken(),
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest"
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+
+                    throw new Error(
+                        data.error ||
+                        "Unable to save expense."
+                    );
+                }
+
+
+                closeModal();
+
+                toast(
+                    id
+                    ? "Expense updated successfully."
+                    : "Expense added successfully."
+                );
+
+                await loadExpenses();
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                toast(
+                    error.message,
+                    true
+                );
+            }
+            finally {
+
+                button.disabled = false;
+            }
+
+        }
+    );
+
+
+    document.getElementById(
+        "expenseConfirmDelete"
+    ).addEventListener(
+        "click",
+        async function () {
+
+            if (!deleteId) {
+                return;
+            }
+
+
+            const button = this;
+
+            button.disabled = true;
+
+
+            try {
+
+                const url =
+                    DELETE_TEMPLATE.replace(
+                        "999999",
+                        deleteId
+                    );
+
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "X-CSRFToken":
+                                    csrfToken(),
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest"
+                            }
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+
+                    throw new Error(
+                        data.error ||
+                        "Unable to delete expense."
+                    );
+                }
+
+
+                closeDeleteModal();
+
+                toast(
+                    "Expense deleted successfully."
+                );
+
+                await loadExpenses();
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                toast(
+                    error.message,
+                    true
+                );
+            }
+            finally {
+
+                button.disabled = false;
+            }
+
+        }
+    );
+
+
+    /*
+     * Use current month by default.
+     */
+
+    const now = new Date();
+
+    document.getElementById(
+        "expenseMonthFilter"
+    ).value =
+        now.getFullYear() +
+        "-" +
+        String(
+            now.getMonth() + 1
+        ).padStart(2,"0");
+
+
+    /*
+     * Clear date because date takes priority.
+     */
+
+    document.getElementById(
+        "expenseDateFilter"
+    ).value = "";
+
+
+    loadExpenses();
+
+});
+
+</script>
+
+
+<script>
+/* ============================================================
+   EXPENSE MODAL LIVE SUMMARY
+============================================================ */
+
+function getSelectedExpenseText(selectId) {
+
+    const select =
+        document.getElementById(selectId);
+
+    if (
+        !select ||
+        !select.value ||
+        select.selectedIndex < 0
+    ) {
+        return "—";
+    }
+
+    const option =
+        select.options[select.selectedIndex];
+
+    return (
+        option.dataset.name ||
+        option.textContent.trim() ||
+        "—"
+    );
+}
+
+
+/* ============================================================
+   FORMAT MONEY
+============================================================ */
+
+function formatExpenseMoney(value) {
+
+    const amount =
+        Number(value || 0);
+
+    return new Intl.NumberFormat(
+        "en-IN",
+        {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2
+        }
+    ).format(
+        Number.isFinite(amount)
+            ? amount
+            : 0
+    );
+}
+
+
+/* ============================================================
+   FORMAT DATE
+============================================================ */
+
+function formatExpenseModalDate(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+    const date =
+        new Date(value + "T00:00:00");
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return value;
+    }
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        }
+    );
+}
+
+
+/* ============================================================
+   UPDATE SUMMARY
+============================================================ */
+
+function updateExpenseModalSummary() {
+
+    const department =
+        getSelectedExpenseText(
+            "expenseDepartment"
+        );
+
+    const category =
+        getSelectedExpenseText(
+            "expenseCategory"
+        );
+
+    const amount =
+        document.getElementById(
+            "expenseAmount"
+        )?.value || 0;
+
+    const date =
+        document.getElementById(
+            "expenseDate"
+        )?.value || "";
+
+
+    const departmentOutput =
+        document.getElementById(
+            "expenseSummaryDepartment"
+        );
+
+    const categoryOutput =
+        document.getElementById(
+            "expenseSummaryCategory"
+        );
+
+    const amountOutput =
+        document.getElementById(
+            "expenseSummaryAmount"
+        );
+
+    const dateOutput =
+        document.getElementById(
+            "expenseSummaryDate"
+        );
+
+
+    if (departmentOutput) {
+
+        departmentOutput.textContent =
+            department;
+    }
+
+
+    if (categoryOutput) {
+
+        categoryOutput.textContent =
+            category;
+    }
+
+
+    if (amountOutput) {
+
+        amountOutput.textContent =
+            formatExpenseMoney(
+                amount
+            );
+    }
+
+
+    if (dateOutput) {
+
+        dateOutput.textContent =
+            formatExpenseModalDate(
+                date
+            );
+    }
+}
+
+
+/* ============================================================
+   LISTEN FOR CHANGES
+============================================================ */
+
+[
+    "expenseDepartment",
+    "expenseCategory",
+    "expenseDate",
+    "expenseAmount"
+
+].forEach(function(id) {
+
+    const field =
+        document.getElementById(id);
+
+    if (!field) {
+        return;
+    }
+
+    field.addEventListener(
+        "input",
+        updateExpenseModalSummary
+    );
+
+    field.addEventListener(
+        "change",
+        updateExpenseModalSummary
+    );
+
+});
+
+
+/* ============================================================
+   UPDATE WHEN MODAL OPENS
+============================================================ */
+
+const expenseModalObserver =
+    new MutationObserver(
+        function() {
+
+            const modal =
+                document.getElementById(
+                    "expenseModal"
+                );
+
+            if (
+                modal &&
+                modal.classList.contains(
+                    "open"
+                )
+            ) {
+
+                setTimeout(
+                    updateExpenseModalSummary,
+                    10
+                );
+            }
+        }
+    );
+
+
+const expenseModalElement =
+    document.getElementById(
+        "expenseModal"
+    );
+
+
+if (expenseModalElement) {
+
+    expenseModalObserver.observe(
+        expenseModalElement,
+        {
+            attributes: true,
+            attributeFilter: [
+                "class"
+            ]
+        }
+    );
+}
+</script>
+{% endblock %}

@@ -698,77 +698,339 @@ def _send_invoice_email_helper(invoice):
     msg.send()
 
     return True, guest.email
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def generate_invoice(request):
-   
+
+    # =========================================================
+    # READ JSON
+    # =========================================================
+
     try:
         data = json.loads(request.body)
     except Exception:
-        return _json_error("Invalid JSON")
+        return _json_error(
+            "Invalid JSON",
+            400
+        )
+
+
+    # =========================================================
+    # INPUT
+    # =========================================================
 
     folio_id = data.get("folio_id")
-    discount = Decimal(str(data.get("discount", 0)))
-    send_email = data.get("send_email", True)  # default True
 
-    if not folio_id:
-        return _json_error("folio_id is required")
-
-    folio = GuestFolio.objects.prefetch_related("charges").filter(id=folio_id).first()
-    if not folio:
-        return _json_error(f"Folio {folio_id} not found", 404)
-
-    subtotal = sum(Decimal(str(c.amount)) for c in folio.charges.all())
-    tax_total = sum(Decimal(str(c.tax_amount)) for c in folio.charges.all())
-    grand_total = (subtotal + tax_total) - discount
-    staff = Staff.objects.filter(user=request.user).first()
-    invoice, _ = Invoice.objects.update_or_create(
-        folio=folio,
-        defaults={
-            "subtotal": subtotal,
-            "tax_total": tax_total,
-            "discount": discount,
-            "grand_total": grand_total,
-            "status": "paid" if folio.is_settled else (
-                "partial" if folio.total_paid > 0 else "pending"
-            ),
-            "notes": data.get("notes", ""),
-            "generated_by":staff
-        },
+    send_email = data.get(
+        "send_email",
+        False
     )
 
-    folio.status = "closed"
-    folio.save()
+    notes = (
+        data.get("notes")
+        or ""
+    ).strip()
+
+
+    # =========================================================
+    # VALIDATE FOLIO
+    # =========================================================
+
+    if not folio_id:
+        return _json_error(
+            "folio_id is required",
+            400
+        )
+
+
+    folio = (
+        GuestFolio.objects
+        .select_related(
+            "booking",
+            "booking__guest",
+            "booking__room",
+            "booking__room_unit",
+        )
+        .prefetch_related(
+            "charges",
+            "payments",
+        )
+        .filter(
+            id=folio_id
+        )
+        .first()
+    )
+
+
+    if not folio:
+        return _json_error(
+            f"Folio {folio_id} not found",
+            404
+        )
+
+
+    # =========================================================
+    # DISCOUNT
+    # =========================================================
+
+    try:
+
+        discount = Decimal(
+            str(
+                data.get(
+                    "discount",
+                    0
+                )
+                or 0
+            )
+        )
+
+    except Exception:
+
+        return _json_error(
+            "Invalid discount amount",
+            400
+        )
+
+
+    if discount < 0:
+        return _json_error(
+            "Discount cannot be negative",
+            400
+        )
+
+
+    # =========================================================
+    # CALCULATE INVOICE TOTALS
+    # =========================================================
+
+    subtotal = Decimal("0.00")
+    tax_total = Decimal("0.00")
+
+
+    for charge in folio.charges.all():
+
+        subtotal += (
+            charge.amount
+            or Decimal("0.00")
+        )
+
+        tax_total += (
+            charge.tax_amount
+            or Decimal("0.00")
+        )
+
+
+    total_before_discount = (
+        subtotal
+        +
+        tax_total
+    )
+
+
+    if discount > total_before_discount:
+
+        return _json_error(
+            "Discount cannot be greater than invoice total",
+            400
+        )
+
+
+    grand_total = (
+        total_before_discount
+        -
+        discount
+    )
+
+
+    # =========================================================
+    # PAYMENT STATUS
+    # =========================================================
+
+    total_paid = Decimal(
+        str(
+            folio.total_paid
+            or 0
+        )
+    )
+
+
+    if total_paid >= grand_total:
+
+        invoice_status = "paid"
+
+    elif total_paid > 0:
+
+        invoice_status = "partial"
+
+    else:
+
+        invoice_status = "pending"
+
+
+    # =========================================================
+    # CURRENT STAFF
+    # =========================================================
+
+    staff = _get_staff(request)
+
+
+    # =========================================================
+    # CREATE / UPDATE INVOICE
+    # =========================================================
+
+    invoice, created = (
+        Invoice.objects
+        .update_or_create(
+
+            folio=folio,
+
+            defaults={
+
+                "subtotal":
+                    subtotal,
+
+                "tax_total":
+                    tax_total,
+
+                "discount":
+                    discount,
+
+                "grand_total":
+                    grand_total,
+
+                "status":
+                    invoice_status,
+
+                "notes":
+                    notes,
+
+                "generated_by":
+                    staff,
+            }
+        )
+    )
+
+
+    # IMPORTANT:
+    # DO NOT close folio here.
+    #
+    # The folio should be closed by
+    # the actual checkout process.
+    #
+    # Therefore DO NOT do:
+    #
+    # folio.status = "closed"
+    # folio.save()
+
+
+    # =========================================================
+    # OPTIONAL EMAIL
+    # =========================================================
 
     email_sent = False
     email_address = ""
     email_error = ""
 
+
     if send_email:
+
         try:
-            email_sent, result = _send_invoice_email_helper(invoice)
+
+            email_sent, result = (
+                _send_invoice_email_helper(
+                    invoice
+                )
+            )
+
+
             if email_sent:
+
                 email_address = result
+
             else:
+
                 email_error = result
-        except Exception as e:
-            email_error = str(e)
+
+
+        except Exception as exc:
+
+            email_error = str(exc)
+
+
+    # =========================================================
+    # RESPONSE
+    # =========================================================
 
     return JsonResponse({
+
         "success": True,
+
+        "created": created,
+
         "invoice": {
-            "id": invoice.pk,
-            "invoice_number": invoice.invoice_number,
-            "subtotal": float(invoice.subtotal),
-            "tax_total": float(invoice.tax_total),
-            "discount": float(invoice.discount),
-            "grand_total": float(invoice.grand_total),
-            "status": invoice.status,
-            "generated_at": invoice.generated_at.isoformat(),
+
+            "id":
+                invoice.pk,
+
+            "invoice_number":
+                invoice.invoice_number,
+
+            "folio_id":
+                folio.id,
+
+            "booking_id":
+                folio.booking_id,
+
+            "subtotal":
+                float(
+                    invoice.subtotal
+                ),
+
+            "tax_total":
+                float(
+                    invoice.tax_total
+                ),
+
+            "discount":
+                float(
+                    invoice.discount
+                ),
+
+            "grand_total":
+                float(
+                    invoice.grand_total
+                ),
+
+            "total_paid":
+                float(
+                    total_paid
+                ),
+
+            "balance_due":
+                float(
+                    grand_total
+                    -
+                    total_paid
+                ),
+
+            "status":
+                invoice.status,
+
+            "generated_at":
+                invoice.generated_at.isoformat(),
         },
-        "email_sent": email_sent,
-        "email_address": email_address,
-        "email_error": email_error,
+
+        "email_sent":
+            email_sent,
+
+        "email_address":
+            email_address,
+
+        "email_error":
+            email_error,
     })
 
 

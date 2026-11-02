@@ -1,0 +1,2806 @@
+{% extends "housekeeping/base.html" %}
+
+{% block title %}
+Room Status | Housekeeping
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* ============================================================
+   HOUSEKEEPING ROOMS PAGE
+   ============================================================ */
+
+.hk-rooms-page {
+    width: 100%;
+}
+
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.hk-rooms-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.hk-rooms-heading {
+    min-width: 0;
+}
+
+.hk-rooms-heading .hk-eyebrow {
+    margin-bottom: 7px;
+}
+
+.hk-rooms-heading h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--hk-text, #101828);
+}
+
+.hk-rooms-heading p {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--hk-muted, #667085);
+}
+
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.hk-room-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.hk-room-summary-card {
+    min-width: 0;
+    min-height: 116px;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    padding: 20px;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e4e7ec);
+    border-radius: 16px;
+
+    box-shadow:
+        0 1px 2px rgba(16, 24, 40, 0.03),
+        0 4px 12px rgba(16, 24, 40, 0.025);
+}
+
+.hk-room-summary-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+    font-size: 19px;
+}
+
+.hk-room-summary-icon.all {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+.hk-room-summary-icon.clean {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.hk-room-summary-icon.dirty {
+    background: #fff1dc;
+    color: #ea7600;
+}
+
+.hk-room-summary-icon.cleaning {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.hk-room-summary-content {
+    min-width: 0;
+}
+
+.hk-room-summary-content strong {
+    display: block;
+
+    margin: 0 0 3px;
+
+    color: var(--hk-text, #101828);
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 750;
+}
+
+.hk-room-summary-content span {
+    display: block;
+
+    color: var(--hk-muted, #667085);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   TOOLBAR
+   ============================================================ */
+
+.hk-room-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+
+    padding: 14px 16px;
+    margin-bottom: 22px;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e4e7ec);
+    border-radius: 15px;
+
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.03);
+}
+
+
+/* ============================================================
+   FILTER TABS
+   ============================================================ */
+
+.hk-room-tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.hk-room-tabs button {
+    appearance: none;
+    border: 0;
+    outline: none;
+
+    min-height: 38px;
+
+    padding: 8px 14px;
+
+    border-radius: 9px;
+
+    background: transparent;
+
+    color: var(--hk-muted, #667085);
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background .18s ease,
+        color .18s ease,
+        box-shadow .18s ease;
+}
+
+.hk-room-tabs button:hover {
+    background: #f8f5ff;
+    color: #7c3aed;
+}
+
+.hk-room-tabs button.active {
+    background: #f1eafe;
+    color: #7c3aed;
+    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, .05);
+}
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.hk-room-search {
+    position: relative;
+    width: min(330px, 100%);
+    flex: 0 0 330px;
+}
+
+.hk-room-search > i {
+    position: absolute;
+
+    left: 14px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #98a2b3;
+    font-size: 13px;
+
+    pointer-events: none;
+}
+
+.hk-room-search input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 14px 0 39px;
+
+    border: 1px solid var(--hk-border, #dfe3ea);
+    border-radius: 10px;
+
+    background: var(--hk-card, #ffffff);
+    color: var(--hk-text, #101828);
+
+    font-size: 13px;
+
+    outline: none;
+
+    transition:
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+.hk-room-search input::placeholder {
+    color: #98a2b3;
+}
+
+.hk-room-search input:focus {
+    border-color: #9b6cff;
+
+    box-shadow:
+        0 0 0 3px rgba(124, 58, 237, .10);
+}
+
+
+/* ============================================================
+   ROOM GRID
+   ============================================================ */
+
+.hk-room-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+
+/* ============================================================
+   ROOM CARD
+   ============================================================ */
+
+.hk-room-card {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+    min-height: 255px;
+
+    padding: 20px;
+
+    background: var(--hk-card, #ffffff);
+
+    border: 1px solid var(--hk-border, #e4e7ec);
+    border-radius: 16px;
+
+    box-shadow:
+        0 1px 2px rgba(16, 24, 40, .025),
+        0 5px 14px rgba(16, 24, 40, .025);
+
+    transition:
+        transform .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease;
+}
+
+.hk-room-card:hover {
+    transform: translateY(-2px);
+
+    border-color: #d8c9fa;
+
+    box-shadow:
+        0 10px 25px rgba(16, 24, 40, .07);
+}
+
+
+/* coloured top line */
+
+.hk-room-card::before {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 3px;
+
+    background: #d0d5dd;
+}
+
+.hk-room-card[data-status="available"]::before {
+    background: #10b981;
+}
+
+.hk-room-card[data-status="dirty"]::before {
+    background: #f59e0b;
+}
+
+.hk-room-card[data-status="cleaning"]::before {
+    background: #0ea5e9;
+}
+
+.hk-room-card[data-status="maintenance"]::before {
+    background: #ef4444;
+}
+
+
+/* ============================================================
+   CARD HEADER
+   ============================================================ */
+
+.hk-room-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.hk-room-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.hk-room-card-icon {
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: #f4f1ff;
+    color: #7c3aed;
+
+    font-size: 16px;
+}
+
+.hk-room-label {
+    display: block;
+
+    margin-bottom: 2px;
+
+    color: #98a2b3;
+
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 700;
+
+    letter-spacing: .09em;
+}
+
+.hk-room-card h3 {
+    margin: 0;
+
+    color: var(--hk-text, #101828);
+
+    font-size: 21px;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+.hk-room-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    flex: 0 0 auto;
+
+    padding: 6px 9px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.hk-room-status::before {
+    content: "";
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+.hk-room-status.available {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.hk-room-status.dirty {
+    background: #fff3df;
+    color: #c65d00;
+}
+
+.hk-room-status.cleaning {
+    background: #e0f2fe;
+    color: #0277ad;
+}
+
+.hk-room-status.maintenance {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hk-room-status.occupied {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.hk-room-status.default {
+    background: #f2f4f7;
+    color: #667085;
+}
+
+
+/* ============================================================
+   ROOM INFORMATION
+   ============================================================ */
+
+.hk-room-meta {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    margin-top: 20px;
+
+    color: var(--hk-muted, #667085);
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.hk-room-meta i {
+    width: 18px;
+
+    color: #7c3aed;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   CURRENT TASK
+   ============================================================ */
+
+.hk-room-task {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-height: 48px;
+
+    margin-top: 15px;
+    padding: 10px 12px;
+
+    border-radius: 10px;
+
+    background: #f8f9fc;
+    border: 1px solid #f0f1f5;
+}
+
+.hk-room-task-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #ede9fe;
+    color: #7c3aed;
+
+    font-size: 12px;
+}
+
+.hk-room-task-content {
+    min-width: 0;
+}
+
+.hk-room-task-content span {
+    display: block;
+
+    margin-bottom: 1px;
+
+    color: #98a2b3;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.hk-room-task-content strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: var(--hk-text, #344054);
+
+    font-size: 12px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* placeholder maintains equal card height */
+
+.hk-room-task-empty {
+    flex: 1;
+    min-height: 63px;
+}
+
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+
+.hk-room-actions {
+    display: flex;
+    gap: 8px;
+
+    margin-top: auto;
+    padding-top: 18px;
+}
+
+.hk-room-actions .btn {
+    min-height: 39px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    border-radius: 9px;
+
+    padding: 8px 13px;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    box-shadow: none;
+}
+
+.hk-room-actions .hk-main-action {
+    flex: 1;
+}
+
+.hk-room-actions .btn-primary {
+    background: #7c3aed;
+    border-color: #7c3aed;
+}
+
+.hk-room-actions .btn-primary:hover {
+    background: #6d28d9;
+    border-color: #6d28d9;
+}
+
+.hk-room-actions .btn-success {
+    background: #059669;
+    border-color: #059669;
+}
+
+.hk-room-actions .btn-success:hover {
+    background: #047857;
+    border-color: #047857;
+}
+
+.hk-room-actions .btn-light {
+    color: #667085;
+
+    background: #f8fafc;
+
+    border: 1px solid #e4e7ec;
+}
+
+
+/* ============================================================
+   NO RESULTS
+   ============================================================ */
+
+.hk-room-no-results {
+    display: none;
+
+    grid-column: 1 / -1;
+
+    padding: 65px 20px;
+
+    text-align: center;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px dashed var(--hk-border, #d0d5dd);
+    border-radius: 16px;
+}
+
+.hk-room-no-results.show {
+    display: block;
+}
+
+.hk-room-no-results-icon {
+    width: 52px;
+    height: 52px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 14px;
+
+    border-radius: 14px;
+
+    background: #f4f1ff;
+    color: #7c3aed;
+
+    font-size: 20px;
+}
+
+.hk-room-no-results h3 {
+    margin: 0 0 5px;
+
+    color: var(--hk-text, #101828);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.hk-room-no-results p {
+    margin: 0;
+
+    color: var(--hk-muted, #667085);
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+[data-bs-theme="dark"] .hk-room-summary-card,
+[data-bs-theme="dark"] .hk-room-toolbar,
+[data-bs-theme="dark"] .hk-room-card,
+[data-bs-theme="dark"] .hk-room-no-results {
+
+    background: #151923;
+    border-color: #272c38;
+}
+
+[data-bs-theme="dark"] .hk-room-task {
+    background: #1c212c;
+    border-color: #292f3b;
+}
+
+[data-bs-theme="dark"] .hk-room-search input {
+    background: #171b25;
+    border-color: #303644;
+    color: #f2f4f7;
+}
+
+[data-bs-theme="dark"] .hk-room-tabs button:hover {
+    background: rgba(124, 58, 237, .13);
+}
+
+[data-bs-theme="dark"] .hk-room-tabs button.active {
+    background: rgba(124, 58, 237, .18);
+    color: #b89cff;
+}
+
+[data-bs-theme="dark"] .hk-room-actions .btn-light {
+    background: #202631;
+    border-color: #303744;
+    color: #d0d5dd;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .hk-room-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 900px) {
+
+    .hk-room-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .hk-room-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .hk-room-search {
+        width: 100%;
+        flex-basis: auto;
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .hk-rooms-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .hk-room-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 10px;
+    }
+
+    .hk-room-summary-card {
+        min-height: 100px;
+        padding: 14px;
+    }
+
+    .hk-room-summary-icon {
+        width: 40px;
+        height: 40px;
+        flex-basis: 40px;
+    }
+
+    .hk-room-summary-content strong {
+        font-size: 21px;
+    }
+
+    .hk-room-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hk-room-toolbar {
+        padding: 12px;
+    }
+
+    .hk-room-tabs {
+        display: grid;
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        width: 100%;
+    }
+
+    .hk-room-tabs button {
+        width: 100%;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .hk-room-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .hk-room-tabs {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+
+
+
+{% comment %} pop up css start {% endcomment %}
+
+/* ============================================================
+   CUSTOM CONFIRM MODAL
+   ============================================================ */
+
+.hk-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(3px);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+        opacity .18s ease,
+        visibility .18s ease;
+}
+
+.hk-confirm-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+
+/* MODAL */
+
+.hk-confirm-modal {
+    position: relative;
+
+    width: 100%;
+    max-width: 430px;
+
+    padding: 28px;
+
+    background: var(--hk-card, #ffffff);
+
+    border:
+        1px solid
+        var(--hk-border, #e4e7ec);
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 24px 60px
+        rgba(15, 23, 42, .20);
+
+    transform: translateY(10px) scale(.98);
+
+    transition:
+        transform .18s ease;
+}
+
+.hk-confirm-backdrop.show
+.hk-confirm-modal {
+    transform:
+        translateY(0)
+        scale(1);
+}
+
+
+/* CLOSE */
+
+.hk-confirm-close {
+    position: absolute;
+
+    top: 16px;
+    right: 16px;
+
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: transparent;
+
+    color: #98a2b3;
+
+    cursor: pointer;
+
+    transition:
+        background .18s ease,
+        color .18s ease;
+}
+
+.hk-confirm-close:hover {
+    background: #f2f4f7;
+    color: #344054;
+}
+
+
+/* ICON */
+
+.hk-confirm-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border-radius: 13px;
+
+    background: #d1fae5;
+    color: #059669;
+
+    font-size: 19px;
+}
+
+.hk-confirm-icon.start {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+/* CONTENT */
+
+.hk-confirm-content h3 {
+    margin: 0 40px 8px 0;
+
+    color: var(--hk-text, #101828);
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.hk-confirm-content p {
+    margin: 0;
+
+    color: var(--hk-muted, #667085);
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* ACTIONS */
+
+.hk-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    margin-top: 25px;
+}
+
+.hk-confirm-actions .btn {
+    min-height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 8px 16px;
+
+    border-radius: 9px;
+
+    font-size: 13px;
+    font-weight: 650;
+}
+
+
+/* DARK MODE */
+
+[data-bs-theme="dark"]
+.hk-confirm-backdrop {
+    background:
+        rgba(0, 0, 0, .62);
+}
+
+[data-bs-theme="dark"]
+.hk-confirm-modal {
+    background: #151923;
+    border-color: #292f3b;
+}
+
+[data-bs-theme="dark"]
+.hk-confirm-close:hover {
+    background: #202631;
+    color: #f2f4f7;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 480px) {
+
+    .hk-confirm-modal {
+        padding: 23px;
+    }
+
+    .hk-confirm-actions {
+        flex-direction: column-reverse;
+    }
+
+    .hk-confirm-actions .btn {
+        width: 100%;
+    }
+}
+{% comment %} pop up css end  {% endcomment %}
+</style>
+
+{% endblock %}
+
+{% block content %}
+
+<div class="hk-page hk-rooms-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="hk-rooms-header">
+
+        <div class="hk-rooms-heading">
+
+            <div class="hk-eyebrow">
+                HOUSEKEEPING
+            </div>
+
+            <h1>
+                Room Status
+            </h1>
+
+            <p>
+                Track room readiness and manage cleaning
+                progress across the property.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SUMMARY
+         ===================================================== -->
+
+    <div class="hk-room-summary">
+
+        <!-- ALL -->
+
+        <div
+            class="hk-room-summary-card"
+            role="button"
+            tabindex="0"
+            data-summary-filter="all"
+        >
+
+            <div class="hk-room-summary-icon all">
+                <i class="fa-solid fa-hotel"></i>
+            </div>
+
+            <div class="hk-room-summary-content">
+
+                <strong>
+                    {{ total_rooms|default:0 }}
+                </strong>
+
+                <span>
+                    All Rooms
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- READY -->
+
+        <div
+            class="hk-room-summary-card"
+            role="button"
+            tabindex="0"
+            data-summary-filter="available"
+        >
+
+            <div class="hk-room-summary-icon clean">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div class="hk-room-summary-content">
+
+                <strong>
+                    {{ clean_rooms|default:0 }}
+                </strong>
+
+                <span>
+                    Clean & Ready
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- DIRTY -->
+
+        <div
+            class="hk-room-summary-card"
+            role="button"
+            tabindex="0"
+            data-summary-filter="dirty"
+        >
+
+            <div class="hk-room-summary-icon dirty">
+                <i class="fa-solid fa-broom"></i>
+            </div>
+
+            <div class="hk-room-summary-content">
+
+                <strong>
+                    {{ dirty_rooms|default:0 }}
+                </strong>
+
+                <span>
+                    Need Cleaning
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- CLEANING -->
+
+        <div
+            class="hk-room-summary-card"
+            role="button"
+            tabindex="0"
+            data-summary-filter="cleaning"
+        >
+
+            <div class="hk-room-summary-icon cleaning">
+                <i class="fa-solid fa-spray-can-sparkles"></i>
+            </div>
+
+            <div class="hk-room-summary-content">
+
+                <strong>
+                    {{ cleaning_rooms|default:0 }}
+                </strong>
+
+                <span>
+                    Cleaning Now
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         FILTER TOOLBAR
+         ===================================================== -->
+
+    <div class="hk-room-toolbar">
+
+        <div
+            class="hk-room-tabs"
+            id="roomStatusTabs"
+        >
+
+            <button
+                type="button"
+                class="active"
+                data-filter="all"
+            >
+                All
+            </button>
+
+            <button
+                type="button"
+                data-filter="dirty"
+            >
+                Dirty
+            </button>
+
+            <button
+                type="button"
+                data-filter="cleaning"
+            >
+                Cleaning
+            </button>
+
+            <button
+                type="button"
+                data-filter="available"
+            >
+                Ready
+            </button>
+
+            <button
+                type="button"
+                data-filter="maintenance"
+            >
+                Maintenance
+            </button>
+
+            <button
+                type="button"
+                data-filter="occupied"
+            >
+                Occupied
+            </button>
+
+        </div>
+
+
+        <!-- SEARCH -->
+
+        <div class="hk-room-search">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input
+                id="roomSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Search room number or type..."
+            >
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ROOM GRID
+         ===================================================== -->
+
+    <div
+        class="hk-room-grid"
+        id="roomGrid"
+    >
+
+        {% for room in rooms %}
+
+        <article
+            class="hk-room-card"
+            data-room-id="{{ room.id }}"
+            data-status="{{ room.status|lower }}"
+            data-search="{{ room.number|lower }} {{ room.room_type|lower }}"
+        >
+
+            <!-- =================================================
+                 ROOM HEADER
+                 ================================================= -->
+
+            <div class="hk-room-card-header">
+
+                <div class="hk-room-title-wrap">
+
+                    <div class="hk-room-card-icon">
+                        <i class="fa-solid fa-bed"></i>
+                    </div>
+
+                    <div>
+
+                        <span class="hk-room-label">
+                            ROOM
+                        </span>
+
+                        <h3>
+                            {{ room.number }}
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                {% if room.status == "available" %}
+
+                <span class="hk-room-status available">
+                    Ready
+                </span>
+
+
+                {% elif room.status == "dirty" %}
+
+                <span class="hk-room-status dirty">
+                    Dirty
+                </span>
+
+
+                {% elif room.status == "cleaning" %}
+
+                <span class="hk-room-status cleaning">
+                    Cleaning
+                </span>
+
+
+                {% elif room.status == "maintenance" %}
+
+                <span class="hk-room-status maintenance">
+                    Maintenance
+                </span>
+
+
+                {% elif room.status == "occupied" %}
+
+                <span class="hk-room-status occupied">
+                    Occupied
+                </span>
+
+
+                {% else %}
+
+                <span class="hk-room-status default">
+                    {{ room.status_display }}
+                </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- =================================================
+                 ROOM TYPE
+                 ================================================= -->
+
+            <div class="hk-room-meta">
+
+                <i class="fa-solid fa-door-open"></i>
+
+                <span>
+                    {{ room.room_type|default:"Standard" }}
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 CURRENT TASK
+                 ================================================= -->
+
+            {% if room.task_title %}
+
+            <div class="hk-room-task">
+
+                <div class="hk-room-task-icon">
+
+                    {% if room.status == "cleaning" %}
+
+                    <i class="fa-solid fa-broom"></i>
+
+                    {% else %}
+
+                    <i class="fa-solid fa-list-check"></i>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="hk-room-task-content">
+
+                    <span>
+                        Current task
+                    </span>
+
+                    <strong>
+                        {{ room.task_title }}
+                    </strong>
+
+                    {% if room.task_status %}
+
+                    <small>
+                        {{ room.task_status }}
+                    </small>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            {% else %}
+
+            <div class="hk-room-task-empty"></div>
+
+            {% endif %}
+
+
+            <!-- =================================================
+                 ACTION BUTTONS
+                 ================================================= -->
+
+            <div class="hk-room-actions">
+
+
+                <!-- DIRTY ROOM -->
+
+                {% if room.status == "dirty" %}
+
+                <button
+                    type="button"
+                    class="btn btn-primary hk-main-action"
+                    onclick="startCleaning(
+                        {{ room.id }},
+                        this
+                    )"
+                >
+
+                    <i class="fa-solid fa-broom"></i>
+
+                    <span>
+                        Start Cleaning
+                    </span>
+
+                </button>
+
+
+                <!-- CLEANING ROOM -->
+
+                {% elif room.status == "cleaning" %}
+
+                <button
+                    type="button"
+                    class="btn btn-success hk-main-action"
+                    onclick="completeCleaning(
+                        {{ room.id }},
+                        {{ room.task_id|default:'null' }},
+                        this
+                    )"
+                >
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <span>
+                        Complete Cleaning
+                    </span>
+
+                </button>
+
+
+                <!-- READY ROOM -->
+
+                {% elif room.status == "available" %}
+
+                <button
+                    type="button"
+                    class="btn btn-light hk-main-action"
+                    disabled
+                >
+
+                    <i class="fa-solid fa-circle-check"></i>
+
+                    <span>
+                        Room Ready
+                    </span>
+
+                </button>
+
+
+                <!-- MAINTENANCE -->
+
+                {% elif room.status == "maintenance" %}
+
+                <button
+                    type="button"
+                    class="btn btn-light hk-main-action"
+                    disabled
+                >
+
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+
+                    <span>
+                        Under Maintenance
+                    </span>
+
+                </button>
+
+
+                <!-- OCCUPIED -->
+
+                {% elif room.status == "occupied" %}
+
+                <button
+                    type="button"
+                    class="btn btn-light hk-main-action"
+                    disabled
+                >
+
+                    <i class="fa-solid fa-user"></i>
+
+                    <span>
+                        Room Occupied
+                    </span>
+
+                </button>
+
+
+                <!-- OTHER STATUS -->
+
+                {% else %}
+
+                <button
+                    type="button"
+                    class="btn btn-light hk-main-action"
+                    disabled
+                >
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    <span>
+                        {{ room.status_display }}
+                    </span>
+
+                </button>
+
+                {% endif %}
+
+            </div>
+
+        </article>
+
+
+        {% empty %}
+
+        <!-- =================================================
+             DATABASE HAS NO ROOMS
+             ================================================= -->
+
+        <div class="hk-room-no-results show">
+
+            <div class="hk-room-no-results-icon">
+                <i class="fa-solid fa-bed"></i>
+            </div>
+
+            <h3>
+                No rooms found
+            </h3>
+
+            <p>
+                Room units will appear here when they
+                are available.
+            </p>
+
+        </div>
+
+        {% endfor %}
+
+
+        <!-- =================================================
+             SEARCH / FILTER HAS NO RESULTS
+             ================================================= -->
+
+        {% if rooms %}
+
+        <div
+            class="hk-room-no-results"
+            id="roomNoResults"
+        >
+
+            <div class="hk-room-no-results-icon">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+
+            <h3>
+                No matching rooms
+            </h3>
+
+            <p>
+                Try another room number,
+                room type or status.
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+
+
+
+    <!-- =========================================================
+     HOUSEKEEPING CONFIRM MODAL
+     ========================================================= -->
+
+<div class="hk-confirm-backdrop" id="hkConfirmModal" aria-hidden="true">
+
+    <div
+        class="hk-confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hkConfirmTitle"
+    >
+
+        <button
+            type="button"
+            class="hk-confirm-close"
+            id="hkConfirmClose"
+            aria-label="Close"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div
+            class="hk-confirm-icon"
+            id="hkConfirmIcon"
+        >
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+
+        <div class="hk-confirm-content">
+
+            <h3 id="hkConfirmTitle">
+                Complete Cleaning?
+            </h3>
+
+            <p id="hkConfirmMessage">
+                This room will be marked as clean and ready.
+            </p>
+
+        </div>
+
+        <div class="hk-confirm-actions">
+
+            <button
+                type="button"
+                class="btn btn-light"
+                id="hkConfirmCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-success"
+                id="hkConfirmAction"
+            >
+                <i class="fa-solid fa-circle-check"></i>
+
+                <span>
+                    Complete Cleaning
+                </span>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+
+
+{% comment %} pop up js start {% endcomment %}
+
+
+/* ============================================================
+   CUSTOM CONFIRM DIALOG
+   ============================================================ */
+
+function showConfirmDialog({
+    title,
+    message,
+    confirmText = "Confirm",
+    type = "success"
+}) {
+
+    return new Promise(function (resolve) {
+
+        const modal =
+            document.getElementById("hkConfirmModal");
+
+        const titleElement =
+            document.getElementById("hkConfirmTitle");
+
+        const messageElement =
+            document.getElementById("hkConfirmMessage");
+
+        const confirmButton =
+            document.getElementById("hkConfirmAction");
+
+        const cancelButton =
+            document.getElementById("hkConfirmCancel");
+
+        const closeButton =
+            document.getElementById("hkConfirmClose");
+
+        const icon =
+            document.getElementById("hkConfirmIcon");
+
+
+        titleElement.textContent =
+            title;
+
+        messageElement.textContent =
+            message;
+
+        confirmButton.querySelector("span").textContent =
+            confirmText;
+
+
+        /* TYPE */
+
+        icon.classList.remove("start");
+
+        if (type === "start") {
+
+            icon.classList.add("start");
+
+            icon.innerHTML =
+                '<i class="fa-solid fa-broom"></i>';
+
+            confirmButton.className =
+                "btn btn-primary";
+
+        } else {
+
+            icon.innerHTML =
+                '<i class="fa-solid fa-circle-check"></i>';
+
+            confirmButton.className =
+                "btn btn-success";
+        }
+
+
+        /* OPEN */
+
+        modal.classList.add("show");
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        /* CLEANUP */
+
+        function cleanup(result) {
+
+            modal.classList.remove("show");
+
+            modal.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            confirmButton.removeEventListener(
+                "click",
+                confirmHandler
+            );
+
+            cancelButton.removeEventListener(
+                "click",
+                cancelHandler
+            );
+
+            closeButton.removeEventListener(
+                "click",
+                cancelHandler
+            );
+
+            modal.removeEventListener(
+                "click",
+                backdropHandler
+            );
+
+            document.removeEventListener(
+                "keydown",
+                keyboardHandler
+            );
+
+            resolve(result);
+        }
+
+
+        function confirmHandler() {
+            cleanup(true);
+        }
+
+
+        function cancelHandler() {
+            cleanup(false);
+        }
+
+
+        function backdropHandler(event) {
+
+            if (event.target === modal) {
+                cleanup(false);
+            }
+        }
+
+
+        function keyboardHandler(event) {
+
+            if (event.key === "Escape") {
+                cleanup(false);
+            }
+        }
+
+
+        confirmButton.addEventListener(
+            "click",
+            confirmHandler
+        );
+
+        cancelButton.addEventListener(
+            "click",
+            cancelHandler
+        );
+
+        closeButton.addEventListener(
+            "click",
+            cancelHandler
+        );
+
+        modal.addEventListener(
+            "click",
+            backdropHandler
+        );
+
+        document.addEventListener(
+            "keydown",
+            keyboardHandler
+        );
+
+    });
+}
+
+
+{% comment %} pop js end {% endcomment %}
+
+
+/* ============================================================
+   HOUSEKEEPING ROOMS
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        let activeRoomFilter = "all";
+
+
+        const filterButtons =
+            document.querySelectorAll(
+                "#roomStatusTabs [data-filter]"
+            );
+
+
+        const summaryCards =
+            document.querySelectorAll(
+                "[data-summary-filter]"
+            );
+
+
+        const roomSearch =
+            document.getElementById(
+                "roomSearch"
+            );
+
+
+        const roomCards =
+            document.querySelectorAll(
+                ".hk-room-card"
+            );
+
+
+        const noResults =
+            document.getElementById(
+                "roomNoResults"
+            );
+
+
+        /* =====================================================
+           APPLY ROOM FILTER
+           ===================================================== */
+
+        function applyRoomFilters() {
+
+            const searchValue = (
+                roomSearch
+                    ? roomSearch.value
+                    : ""
+            )
+                .trim()
+                .toLowerCase();
+
+
+            let visibleCount = 0;
+
+
+            roomCards.forEach(
+                function (card) {
+
+                    const status = (
+                        card.dataset.status || ""
+                    )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const searchableText = (
+                        card.dataset.search || ""
+                    )
+                        .trim()
+                        .toLowerCase();
+
+
+                    const statusMatches =
+                        activeRoomFilter === "all"
+                        ||
+                        status === activeRoomFilter;
+
+
+                    const searchMatches =
+                        searchValue === ""
+                        ||
+                        searchableText.includes(
+                            searchValue
+                        );
+
+
+                    const shouldShow =
+                        statusMatches &&
+                        searchMatches;
+
+
+                    card.style.display =
+                        shouldShow
+                            ? ""
+                            : "none";
+
+
+                    if (shouldShow) {
+                        visibleCount++;
+                    }
+
+                }
+            );
+
+
+            if (noResults) {
+
+                noResults.classList.toggle(
+                    "show",
+                    visibleCount === 0
+                );
+
+            }
+
+        }
+
+
+        /* =====================================================
+           CHANGE ACTIVE FILTER
+           ===================================================== */
+
+        function setRoomFilter(filter) {
+
+            activeRoomFilter =
+                filter || "all";
+
+
+            filterButtons.forEach(
+                function (button) {
+
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.filter ===
+                        activeRoomFilter
+                    );
+
+                }
+            );
+
+
+            applyRoomFilters();
+
+        }
+
+
+        /* =====================================================
+           STATUS TAB EVENTS
+           ===================================================== */
+
+        filterButtons.forEach(
+            function (button) {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        setRoomFilter(
+                            button.dataset.filter
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+
+        /* =====================================================
+           SUMMARY CARD EVENTS
+           ===================================================== */
+
+        summaryCards.forEach(
+            function (card) {
+
+                card.addEventListener(
+                    "click",
+                    function () {
+
+                        setRoomFilter(
+                            card.dataset.summaryFilter
+                        );
+
+                    }
+                );
+
+
+                card.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Enter"
+                            ||
+                            event.key === " "
+                        ) {
+
+                            event.preventDefault();
+
+                            setRoomFilter(
+                                card.dataset.summaryFilter
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+        /* =====================================================
+           SEARCH
+           ===================================================== */
+
+        if (roomSearch) {
+
+            roomSearch.addEventListener(
+                "input",
+                applyRoomFilters
+            );
+
+        }
+
+
+        /* =====================================================
+           GLOBAL FILTER FUNCTION
+           ===================================================== */
+
+        window.filterRooms =
+            function (filter) {
+
+                setRoomFilter(
+                    filter || "all"
+                );
+
+            };
+
+
+        /* INITIAL FILTER */
+
+        applyRoomFilters();
+
+    }
+);
+
+
+/* ============================================================
+   GET DJANGO CSRF TOKEN
+
+   This was missing from your uploaded file.
+   ============================================================ */
+
+function getCookie(name) {
+
+    let cookieValue = null;
+
+
+    if (
+        document.cookie &&
+        document.cookie !== ""
+    ) {
+
+        const cookies =
+            document.cookie.split(";");
+
+
+        for (
+            let i = 0;
+            i < cookies.length;
+            i++
+        ) {
+
+            const cookie =
+                cookies[i].trim();
+
+
+            if (
+                cookie.substring(
+                    0,
+                    name.length + 1
+                ) ===
+                name + "="
+            ) {
+
+                cookieValue =
+                    decodeURIComponent(
+                        cookie.substring(
+                            name.length + 1
+                        )
+                    );
+
+                break;
+
+            }
+
+        }
+
+    }
+
+
+    return cookieValue;
+}
+
+
+const csrftoken =
+    getCookie("csrftoken");
+
+
+/* ============================================================
+   TOAST MESSAGE
+
+   This was also missing from your uploaded file.
+   ============================================================ */
+
+function showToast(
+    message,
+    type = "success"
+) {
+
+    let container =
+        document.getElementById(
+            "hkToastContainer"
+        );
+
+
+    /* CREATE CONTAINER */
+
+    if (!container) {
+
+        container =
+            document.createElement(
+                "div"
+            );
+
+
+        container.id =
+            "hkToastContainer";
+
+
+        container.style.position =
+            "fixed";
+
+        container.style.top =
+            "82px";
+
+        container.style.right =
+            "22px";
+
+        container.style.zIndex =
+            "99999";
+
+        container.style.display =
+            "flex";
+
+        container.style.flexDirection =
+            "column";
+
+        container.style.gap =
+            "10px";
+
+
+        document.body.appendChild(
+            container
+        );
+
+    }
+
+
+    /* CREATE TOAST */
+
+    const toast =
+        document.createElement(
+            "div"
+        );
+
+
+    toast.style.minWidth =
+        "280px";
+
+    toast.style.maxWidth =
+        "420px";
+
+    toast.style.padding =
+        "13px 16px";
+
+    toast.style.borderRadius =
+        "10px";
+
+    toast.style.boxShadow =
+        "0 10px 30px rgba(0,0,0,.15)";
+
+    toast.style.fontSize =
+        "13px";
+
+    toast.style.fontWeight =
+        "600";
+
+    toast.style.transition =
+        "opacity .2s ease, transform .2s ease";
+
+
+    /* ERROR */
+
+    if (type === "error") {
+
+        toast.style.background =
+            "#fee2e2";
+
+        toast.style.color =
+            "#b42318";
+
+        toast.style.border =
+            "1px solid #fecaca";
+
+    }
+
+    /* SUCCESS */
+
+    else {
+
+        toast.style.background =
+            "#d1fae5";
+
+        toast.style.color =
+            "#047857";
+
+        toast.style.border =
+            "1px solid #a7f3d0";
+
+    }
+
+
+    toast.textContent =
+        message;
+
+
+    container.appendChild(
+        toast
+    );
+
+
+    /* REMOVE */
+
+    setTimeout(
+        function () {
+
+            toast.style.opacity =
+                "0";
+
+            toast.style.transform =
+                "translateY(-5px)";
+
+
+            setTimeout(
+                function () {
+
+                    toast.remove();
+
+                },
+                200
+            );
+
+        },
+        3200
+    );
+
+}
+
+
+/* ============================================================
+   READ JSON RESPONSE SAFELY
+   ============================================================ */
+
+async function readJsonResponse(
+    response
+) {
+
+    const contentType =
+        response.headers.get(
+            "content-type"
+        ) || "";
+
+
+    if (
+        !contentType.includes(
+            "application/json"
+        )
+    ) {
+
+        throw new Error(
+            "Server returned an invalid response."
+        );
+
+    }
+
+
+    return await response.json();
+
+}
+
+
+/* ============================================================
+   START CLEANING
+
+   Dirty -> Cleaning
+   ============================================================ */
+
+async function startCleaning(
+    roomId,
+    button
+) {
+
+    /* ---------------------------------------------------------
+       CONFIRM
+       --------------------------------------------------------- */
+
+    const confirmed =
+    await showConfirmDialog({
+
+        title:
+            "Start Cleaning?",
+
+        message:
+            "This room will be moved to Cleaning and a housekeeping task will be started.",
+
+        confirmText:
+            "Start Cleaning",
+
+        type:
+            "start"
+
+    });
+
+
+if (!confirmed) {
+    return;
+}
+
+
+    /* ---------------------------------------------------------
+       SAVE BUTTON
+       --------------------------------------------------------- */
+
+    const originalContent =
+        button.innerHTML;
+
+
+    button.disabled = true;
+
+
+    button.innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Starting...</span>
+    `;
+
+
+    try {
+
+        /* -----------------------------------------------------
+           REQUEST
+           ----------------------------------------------------- */
+
+        const response =
+            await fetch(
+                "{% url 'start_cleaning' %}",
+                {
+
+                    method: "POST",
+
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            csrftoken,
+
+                        "X-Requested-With":
+                            "XMLHttpRequest",
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            room_unit_id:
+                                roomId
+
+                        }),
+
+                }
+            );
+
+
+        /* -----------------------------------------------------
+           RESPONSE
+           ----------------------------------------------------- */
+
+        const data =
+            await readJsonResponse(
+                response
+            );
+
+
+        if (
+            !response.ok
+            ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error
+                ||
+                "Unable to start cleaning."
+            );
+
+        }
+
+
+        /* -----------------------------------------------------
+           SUCCESS
+           ----------------------------------------------------- */
+
+        showToast(
+            data.message
+            ||
+            "Cleaning started.",
+            "success"
+        );
+
+
+        /* -----------------------------------------------------
+           RELOAD SO ROOM CARD GETS NEW STATUS/TASK
+           ----------------------------------------------------- */
+
+        setTimeout(
+            function () {
+
+                window.location.reload();
+
+            },
+            500
+        );
+
+
+    } catch (error) {
+
+        /* -----------------------------------------------------
+           RESTORE BUTTON
+           ----------------------------------------------------- */
+
+        button.disabled =
+            false;
+
+
+        button.innerHTML =
+            originalContent;
+
+
+        console.error(
+            "Start cleaning error:",
+            error
+        );
+
+
+        showToast(
+            error.message
+            ||
+            "Unable to start cleaning.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   COMPLETE CLEANING
+
+   Cleaning -> Available
+   ============================================================ */
+
+async function completeCleaning(
+    roomId,
+    taskId,
+    button
+) {
+
+    /* ---------------------------------------------------------
+       CONFIRM
+       --------------------------------------------------------- */
+
+    const confirmed =
+    await showConfirmDialog({
+
+        title:
+            "Complete Cleaning?",
+
+        message:
+            "This room will be marked as clean and ready for the next guest.",
+
+        confirmText:
+            "Complete Cleaning",
+
+        type:
+            "success"
+
+    });
+
+
+if (!confirmed) {
+    return;
+}
+
+
+    /* ---------------------------------------------------------
+       SAVE BUTTON
+       --------------------------------------------------------- */
+
+    const originalContent =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Completing...</span>
+    `;
+
+
+    try {
+
+        /* -----------------------------------------------------
+           PAYLOAD
+           ----------------------------------------------------- */
+
+        const payload = {
+
+            room_unit_id:
+                roomId
+
+        };
+
+
+        if (
+            taskId !== null
+            &&
+            taskId !== undefined
+            &&
+            taskId !== ""
+        ) {
+
+            payload.task_id =
+                taskId;
+
+        }
+
+
+        /* -----------------------------------------------------
+           REQUEST
+           ----------------------------------------------------- */
+
+        const response =
+            await fetch(
+                "{% url 'complete_cleaning' %}",
+                {
+
+                    method: "POST",
+
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            csrftoken,
+
+                        "X-Requested-With":
+                            "XMLHttpRequest",
+
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        ),
+
+                }
+            );
+
+
+        /* -----------------------------------------------------
+           RESPONSE
+           ----------------------------------------------------- */
+
+        const data =
+            await readJsonResponse(
+                response
+            );
+
+
+        if (
+            !response.ok
+            ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error
+                ||
+                "Unable to complete cleaning."
+            );
+
+        }
+
+
+        /* -----------------------------------------------------
+           SUCCESS
+           ----------------------------------------------------- */
+
+        showToast(
+            data.message
+            ||
+            "Room is clean and ready.",
+            "success"
+        );
+
+
+        /* -----------------------------------------------------
+           RELOAD
+           ----------------------------------------------------- */
+
+        setTimeout(
+            function () {
+
+                window.location.reload();
+
+            },
+            500
+        );
+
+
+    } catch (error) {
+
+        /* -----------------------------------------------------
+           RESTORE BUTTON
+           ----------------------------------------------------- */
+
+        button.disabled =
+            false;
+
+
+        button.innerHTML =
+            originalContent;
+
+
+        console.error(
+            "Complete cleaning error:",
+            error
+        );
+
+
+        showToast(
+            error.message
+            ||
+            "Unable to complete cleaning.",
+            "error"
+        );
+
+    }
+
+}
+
+</script>
+
+{% endblock %}

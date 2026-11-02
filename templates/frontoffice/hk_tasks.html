@@ -1,0 +1,2624 @@
+{% extends "frontoffice/base.html" %}
+
+{% block title %}HK Tasks | Front Office{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* =========================================================
+   HK TASKS PAGE
+   ========================================================= */
+
+.hk-page {
+    padding: 24px;
+}
+
+.hk-page * {
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.hk-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.hk-header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.02em;
+}
+
+.hk-header-left p {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.hk-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hk-btn {
+    border: 0;
+    outline: 0;
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    min-height: 38px;
+    padding: 0 15px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    transition: .15s ease;
+}
+
+.hk-btn-primary {
+    background: #0891b2;
+    color: #fff;
+}
+
+.hk-btn-primary:hover {
+    background: #0e7490;
+}
+
+.hk-btn-outline {
+    background: #fff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.hk-btn-outline:hover {
+    background: #f9fafb;
+}
+
+.hk-btn-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hk-btn-sm {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+.hk-stats {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.hk-stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 17px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hk-stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+    font-size: 16px;
+}
+
+.hk-stat-icon.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.hk-stat-icon.progress {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.hk-stat-icon.completed {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.hk-stat-icon.dirty {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hk-stat-icon.cleaning {
+    background: #cffafe;
+    color: #0891b2;
+}
+
+.hk-stat-icon.maintenance {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.hk-stat-number {
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hk-stat-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 5px;
+}
+
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.hk-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.hk-card-header {
+    min-height: 62px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+    padding: 14px 18px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.hk-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #111827;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.hk-card-title i {
+    color: #0891b2;
+}
+
+.hk-card-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.hk-search {
+    position: relative;
+}
+
+.hk-search i {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.hk-search input {
+    width: 230px;
+    height: 35px;
+
+    padding: 0 12px 0 31px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.hk-search input:focus {
+    border-color: #0891b2;
+    box-shadow: 0 0 0 3px rgba(8,145,178,.08);
+}
+
+
+/* =========================================================
+   FILTER TABS
+   ========================================================= */
+
+.hk-tabs {
+    display: flex;
+    gap: 5px;
+
+    padding: 12px 18px;
+
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+
+    overflow-x: auto;
+}
+
+.hk-tab {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #6b7280;
+
+    padding: 6px 12px;
+    border-radius: 20px;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.hk-tab:hover {
+    border-color: #a5f3fc;
+    color: #0e7490;
+}
+
+.hk-tab.active {
+    background: #0891b2;
+    border-color: #0891b2;
+    color: #fff;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.hk-table-wrap {
+    overflow-x: auto;
+}
+
+.hk-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.hk-table th {
+    background: #f9fafb;
+
+    padding: 10px 14px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    color: #6b7280;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: .05em;
+
+    text-align: left;
+    white-space: nowrap;
+}
+
+.hk-table td {
+    padding: 13px 14px;
+
+    border-bottom: 1px solid #f0f1f3;
+
+    font-size: 12px;
+    color: #374151;
+
+    vertical-align: middle;
+}
+
+.hk-table tbody tr:hover {
+    background: #fafafa;
+}
+
+.hk-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* =========================================================
+   ROOM
+   ========================================================= */
+
+.hk-room {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.hk-room-icon {
+    width: 34px;
+    height: 34px;
+
+    border-radius: 8px;
+
+    background: #ecfeff;
+    color: #0891b2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hk-room-number {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hk-room-type {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+
+/* =========================================================
+   STAFF
+   ========================================================= */
+
+.hk-staff {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hk-avatar {
+    width: 30px;
+    height: 30px;
+
+    border-radius: 7px;
+
+    background: linear-gradient(135deg, #0891b2, #2563eb);
+
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    overflow: hidden;
+}
+
+.hk-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hk-staff-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+
+/* =========================================================
+   PILLS
+   ========================================================= */
+
+.hk-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 3px 8px;
+
+    border-radius: 50px;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.hk-status-pending {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.hk-status-progress {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.hk-status-completed {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.hk-priority-high {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hk-priority-medium {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.hk-priority-low {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.hk-empty {
+    padding: 50px 20px;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.hk-empty i {
+    display: block;
+    margin-bottom: 10px;
+
+    font-size: 30px;
+    opacity: .35;
+}
+
+.hk-empty strong {
+    display: block;
+    color: #4b5563;
+    margin-bottom: 4px;
+}
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.hk-modal-backdrop {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    background: rgba(15,23,42,.55);
+    backdrop-filter: blur(3px);
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+}
+
+.hk-modal-backdrop.open {
+    display: flex;
+}
+
+.hk-modal {
+    width: 100%;
+    max-width: 680px;
+
+    max-height: 92vh;
+
+    background: #fff;
+    border-radius: 14px;
+
+    box-shadow: 0 24px 70px rgba(0,0,0,.25);
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.hk-modal-header {
+    padding: 17px 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.hk-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hk-modal-title i {
+    color: #0891b2;
+}
+
+.hk-modal-close {
+    width: 30px;
+    height: 30px;
+
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    color: #6b7280;
+    font-size: 18px;
+}
+
+.hk-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.hk-modal-footer {
+    padding: 14px 20px;
+
+    border-top: 1px solid #e5e7eb;
+
+    background: #f9fafb;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.hk-form-group {
+    margin-bottom: 16px;
+}
+
+.hk-form-label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #374151;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.hk-required {
+    color: #dc2626;
+}
+
+.hk-control {
+    width: 100%;
+    min-height: 39px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+
+    padding: 8px 11px;
+
+    outline: none;
+
+    background: #fff;
+
+    color: #111827;
+
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.hk-control:focus {
+    border-color: #0891b2;
+    box-shadow: 0 0 0 3px rgba(8,145,178,.08);
+}
+
+textarea.hk-control {
+    resize: vertical;
+    min-height: 85px;
+}
+
+.hk-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+
+/* =========================================================
+   TASK TYPE
+   ========================================================= */
+
+.hk-task-types {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.hk-task-type {
+    min-height: 74px;
+
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+
+    background: #fff;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    color: #374151;
+
+    transition: .15s ease;
+}
+
+.hk-task-type i {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #0891b2;
+
+    font-size: 17px;
+}
+
+.hk-task-type span {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.hk-task-type:hover,
+.hk-task-type.selected {
+    background: #ecfeff;
+    border-color: #0891b2;
+    color: #0e7490;
+}
+
+
+/* =========================================================
+   STAFF OPTIONS
+   ========================================================= */
+
+.hk-staff-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+
+    max-height: 210px;
+    overflow-y: auto;
+}
+
+.hk-staff-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding: 9px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    transition: .15s;
+}
+
+.hk-staff-option:hover {
+    border-color: #67e8f9;
+    background: #ecfeff;
+}
+
+.hk-staff-option.selected {
+    border-color: #0891b2;
+    background: #ecfeff;
+}
+
+.hk-staff-option .hk-check {
+    margin-left: auto;
+
+    color: #0891b2;
+
+    display: none;
+}
+
+.hk-staff-option.selected .hk-check {
+    display: block;
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+.hk-toast-container {
+    position: fixed;
+
+    top: 20px;
+    right: 20px;
+
+    z-index: 12000;
+}
+
+.hk-toast {
+    min-width: 260px;
+
+    margin-bottom: 8px;
+    padding: 11px 14px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,.15);
+
+    font-size: 12px;
+    font-weight: 600;
+
+    animation: hkToastIn .2s ease;
+}
+
+.hk-toast.success {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.hk-toast.error {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+@keyframes hkToastIn {
+
+    from {
+        opacity: 0;
+        transform: translateX(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1200px) {
+
+    .hk-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .hk-page {
+        padding: 16px;
+    }
+
+    .hk-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .hk-header-actions {
+        width: 100%;
+    }
+
+    .hk-header-actions .hk-btn {
+        flex: 1;
+    }
+
+    .hk-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hk-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .hk-card-tools {
+        width: 100%;
+    }
+
+    .hk-search {
+        flex: 1;
+    }
+
+    .hk-search input {
+        width: 100%;
+    }
+
+    .hk-form-row,
+    .hk-staff-list {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 480px) {
+
+    .hk-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .hk-task-types {
+        grid-template-columns: 1fr 1fr;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="hk-page">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="hk-header">
+
+        <div class="hk-header-left">
+
+            <h1>HK Tasks</h1>
+
+            <p>
+                Manage room cleaning, maintenance and housekeeping assignments.
+            </p>
+
+        </div>
+
+
+        <div class="hk-header-actions">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-outline"
+                onclick="window.location.reload()"
+            >
+                <i class="fas fa-rotate-right"></i>
+                Refresh
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                onclick="openHKTaskModal()"
+            >
+                <i class="fas fa-plus"></i>
+                Assign Task
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STATISTICS
+         ===================================================== -->
+
+    <div class="hk-stats">
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon pending">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ pending_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    Pending Tasks
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon progress">
+                <i class="fas fa-spinner"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ in_progress_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    In Progress
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon completed">
+                <i class="fas fa-circle-check"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ completed_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    Completed
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon dirty">
+                <i class="fas fa-broom"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ dirty_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    Dirty Rooms
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon cleaning">
+                <i class="fas fa-spray-can-sparkles"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ cleaning_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    Cleaning
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon maintenance">
+                <i class="fas fa-screwdriver-wrench"></i>
+            </div>
+
+            <div>
+                <div class="hk-stat-number">
+                    {{ maintenance_count|default:0 }}
+                </div>
+
+                <div class="hk-stat-label">
+                    Maintenance
+                </div>
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         TASK TABLE
+         ===================================================== -->
+
+    <div class="hk-card">
+
+
+        <div class="hk-card-header">
+
+            <div class="hk-card-title">
+
+                <i class="fas fa-list-check"></i>
+
+                Housekeeping Tasks
+
+            </div>
+
+
+            <div class="hk-card-tools">
+
+                <div class="hk-search">
+
+                    <i class="fas fa-search"></i>
+
+                    <input
+                        type="text"
+                        id="hkSearch"
+                        placeholder="Search room, task or staff..."
+                        oninput="filterHKTasks()"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- FILTERS -->
+
+        <div class="hk-tabs">
+
+            <button
+                type="button"
+                class="hk-tab active"
+                data-status="all"
+                onclick="setHKFilter('all', this)"
+            >
+                All
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-tab"
+                data-status="pending"
+                onclick="setHKFilter('pending', this)"
+            >
+                Pending
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-tab"
+                data-status="in progress"
+                onclick="setHKFilter('in progress', this)"
+            >
+                In Progress
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-tab"
+                data-status="completed"
+                onclick="setHKFilter('completed', this)"
+            >
+                Completed
+            </button>
+
+        </div>
+
+
+
+        {% if tasks %}
+
+        <div class="hk-table-wrap">
+
+            <table class="hk-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Room</th>
+                        <th>Task</th>
+                        <th>Assigned To</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Created</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="hkTaskTableBody">
+
+                    {% for task in tasks %}
+
+                    <tr
+                        class="hk-task-row"
+                        data-status="{{ task.status|default:''|lower }}"
+                        data-search="
+                            {{ task.room_unit.room_number|default:'' }}
+                            {{ task.task_type|default:'' }}
+                            {{ task.title|default:'' }}
+                            {{ task.staff.name|default:'' }}
+                            {{ task.priority|default:'' }}
+                        "
+                    >
+
+
+                        <!-- ROOM -->
+
+                        <td>
+
+                            <div class="hk-room">
+
+                                <div class="hk-room-icon">
+                                    <i class="fas fa-door-open"></i>
+                                </div>
+
+
+                                <div>
+
+                                    <div class="hk-room-number">
+
+                                        {% if task.room_unit %}
+                                            Room {{ task.room_unit.room_number }}
+                                        {% elif task.room %}
+                                            {{ task.room.room_type }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+
+                                    </div>
+
+
+                                    <div class="hk-room-type">
+
+                                        {% if task.room_unit.room %}
+                                            {{ task.room_unit.room.room_type }}
+                                        {% elif task.room %}
+                                            {{ task.room.room_type }}
+                                        {% else %}
+                                            Housekeeping
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+
+                        <!-- TASK -->
+
+                        <td>
+
+                            <div style="font-weight:600;color:#111827;">
+
+                                {% if task.task_type %}
+                                    {{ task.task_type }}
+                                {% elif task.title %}
+                                    {{ task.title }}
+                                {% else %}
+                                    Housekeeping
+                                {% endif %}
+
+                            </div>
+
+
+                            {% if task.notes %}
+
+                            <div
+                                style="
+                                    max-width:260px;
+                                    margin-top:3px;
+                                    overflow:hidden;
+                                    text-overflow:ellipsis;
+                                    white-space:nowrap;
+                                    color:#9ca3af;
+                                    font-size:10px;
+                                "
+                                title="{{ task.notes }}"
+                            >
+                                {{ task.notes }}
+                            </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- STAFF -->
+
+                        <td>
+
+                            {% if task.staff %}
+
+                            <div class="hk-staff">
+
+                                <div class="hk-avatar">
+
+                                    {% if task.staff.photo %}
+
+                                        <img
+                                            src="{{ task.staff.photo.url }}"
+                                            alt="{{ task.staff.name }}"
+                                        >
+
+                                    {% else %}
+
+                                        {{ task.staff.name|slice:":1"|upper }}
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="hk-staff-name">
+                                        {{ task.staff.name }}
+                                    </div>
+
+                                    {% if task.staff.department %}
+
+                                    <div style="font-size:10px;color:#9ca3af;">
+                                        {{ task.staff.department.name }}
+                                    </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                            {% else %}
+
+                            <span style="color:#9ca3af;">
+                                Unassigned
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- PRIORITY -->
+
+                        <td>
+
+                            {% with priority=task.priority|default:"Normal"|lower %}
+
+                                {% if priority == "high" or priority == "urgent" %}
+
+                                    <span class="hk-pill hk-priority-high">
+                                        <i class="fas fa-arrow-up"></i>
+                                        {{ task.priority|default:"High" }}
+                                    </span>
+
+                                {% elif priority == "low" %}
+
+                                    <span class="hk-pill hk-priority-low">
+                                        <i class="fas fa-arrow-down"></i>
+                                        {{ task.priority|default:"Low" }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="hk-pill hk-priority-medium">
+                                        {{ task.priority|default:"Normal" }}
+                                    </span>
+
+                                {% endif %}
+
+                            {% endwith %}
+
+                        </td>
+
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% with status=task.status|default:"Pending"|lower %}
+
+                                {% if status == "completed" %}
+
+                                    <span class="hk-pill hk-status-completed">
+                                        <i class="fas fa-check"></i>
+                                        Completed
+                                    </span>
+
+                                {% elif status == "in progress" or status == "in_progress" %}
+
+                                    <span class="hk-pill hk-status-progress">
+                                        <i class="fas fa-spinner"></i>
+                                        In Progress
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="hk-pill hk-status-pending">
+                                        <i class="fas fa-clock"></i>
+                                        {{ task.status|default:"Pending" }}
+                                    </span>
+
+                                {% endif %}
+
+                            {% endwith %}
+
+                        </td>
+
+
+
+                        <!-- DURATION -->
+
+                        <td>
+
+                            {% if task.duration %}
+                                {{ task.duration }} min
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- CREATED -->
+
+                        <td style="white-space:nowrap;color:#6b7280;">
+
+                            {% if task.created_at %}
+
+                                {{ task.created_at|date:"d M Y" }}
+
+                                <div style="font-size:10px;color:#9ca3af;">
+                                    {{ task.created_at|date:"h:i A" }}
+                                </div>
+
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div
+            id="hkFilteredEmpty"
+            class="hk-empty"
+            style="display:none;"
+        >
+
+            <i class="fas fa-search"></i>
+
+            <strong>No matching tasks</strong>
+
+            <span>
+                Try changing the search or status filter.
+            </span>
+
+        </div>
+
+
+        {% else %}
+
+
+        <div class="hk-empty">
+
+            <i class="fas fa-broom"></i>
+
+            <strong>No housekeeping tasks</strong>
+
+            <span>
+                Click Assign Task to create the first housekeeping task.
+            </span>
+
+        </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     ASSIGN TASK MODAL
+     ========================================================= -->
+
+<div
+    class="hk-modal-backdrop"
+    id="hkAssignModal"
+    onclick="hkBackdropClose(event)"
+>
+
+    <div class="hk-modal">
+
+
+        <!-- HEADER -->
+
+        <div class="hk-modal-header">
+
+            <div class="hk-modal-title">
+
+                <i class="fas fa-broom"></i>
+
+                Assign Housekeeping Task
+
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                onclick="closeHKTaskModal()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+
+        <!-- BODY -->
+
+        <div class="hk-modal-body">
+
+
+            {% csrf_token %}
+
+
+            <!-- ROOM -->
+
+            <div class="hk-form-group">
+
+                <label class="hk-form-label">
+
+                    Room Unit
+                    <span class="hk-required">*</span>
+
+                </label>
+
+
+                <select
+                    id="manualTaskRoom"
+                    class="hk-control"
+                >
+
+                    <option value="">
+                        — Select Room —
+                    </option>
+
+
+                    {% for unit in room_units %}
+
+                    <option value="{{ unit.id }}">
+
+                        Room {{ unit.room_number }}
+
+                        {% if unit.room %}
+                            — {{ unit.room.room_type }}
+                        {% endif %}
+
+                        {% if unit.status %}
+                            — {{ unit.status }}
+                        {% endif %}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+
+            <!-- TASK TYPE -->
+
+            <div class="hk-form-group">
+
+                <label class="hk-form-label">
+
+                    Task Type
+                    <span class="hk-required">*</span>
+
+                </label>
+
+
+                <input
+                    type="hidden"
+                    id="manualTaskType"
+                    value="Full Cleaning"
+                >
+
+
+                <div class="hk-task-types">
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type selected"
+                        onclick="selectManualTaskType(this, 'Full Cleaning')"
+                    >
+
+                        <i class="fas fa-broom"></i>
+
+                        <span>
+                            Full Cleaning
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type"
+                        onclick="selectManualTaskType(this, 'Quick Clean')"
+                    >
+
+                        <i class="fas fa-spray-can-sparkles"></i>
+
+                        <span>
+                            Quick Clean
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type"
+                        onclick="selectManualTaskType(this, 'Linen Change')"
+                    >
+
+                        <i class="fas fa-bed"></i>
+
+                        <span>
+                            Linen Change
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type"
+                        onclick="selectManualTaskType(this, 'Bathroom Cleaning')"
+                    >
+
+                        <i class="fas fa-bath"></i>
+
+                        <span>
+                            Bathroom
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type"
+                        onclick="selectManualTaskType(this, 'Inspection')"
+                    >
+
+                        <i class="fas fa-clipboard-check"></i>
+
+                        <span>
+                            Inspection
+                        </span>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="hk-task-type"
+                        onclick="selectManualTaskType(this, 'Maintenance')"
+                    >
+
+                        <i class="fas fa-screwdriver-wrench"></i>
+
+                        <span>
+                            Maintenance
+                        </span>
+
+                    </button>
+
+
+                </div>
+
+            </div>
+
+
+
+            <!-- STAFF -->
+
+            <div class="hk-form-group">
+
+                <label class="hk-form-label">
+
+                    Assign to Staff
+                    <span class="hk-required">*</span>
+
+                </label>
+
+
+                <input
+                    type="hidden"
+                    id="manualSelectedStaffId"
+                    value=""
+                >
+
+
+                <div
+                    class="hk-staff-list"
+                    id="manualStaffList"
+                >
+
+
+                    {% for member in housekeeping_staff %}
+
+                    <div
+                        class="hk-staff-option"
+                        onclick="selectManualStaff(this, '{{ member.id }}')"
+                    >
+
+
+                        <div class="hk-avatar">
+
+                            {% if member.photo %}
+
+                                <img
+                                    src="{{ member.photo.url }}"
+                                    alt="{{ member.name }}"
+                                >
+
+                            {% else %}
+
+                                {{ member.name|slice:":1"|upper }}
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="hk-staff-name">
+                                {{ member.name }}
+                            </div>
+
+                            <div style="font-size:10px;color:#9ca3af;">
+
+                                {% if member.department %}
+                                    {{ member.department.name }}
+                                {% else %}
+                                    Housekeeping
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <i
+                            class="fas fa-circle-check hk-check"
+                        ></i>
+
+
+                    </div>
+
+                    {% empty %}
+
+
+                    <div
+                        style="
+                            grid-column:1/-1;
+                            padding:18px;
+                            text-align:center;
+                            color:#9ca3af;
+                            border:1px dashed #d1d5db;
+                            border-radius:8px;
+                        "
+                    >
+
+                        <i
+                            class="fas fa-user-slash"
+                            style="
+                                display:block;
+                                margin-bottom:6px;
+                                font-size:20px;
+                            "
+                        ></i>
+
+                        No housekeeping staff found.
+
+                    </div>
+
+
+                    {% endfor %}
+
+
+                </div>
+
+            </div>
+
+
+
+            <!-- PRIORITY + DURATION -->
+
+            <div class="hk-form-row">
+
+
+                <div class="hk-form-group">
+
+                    <label class="hk-form-label">
+                        Priority
+                    </label>
+
+
+                    <select
+                        id="manualTaskPriority"
+                        class="hk-control"
+                    >
+
+                        <option value="Low">
+                            Low
+                        </option>
+
+                        <option value="Normal" selected>
+                            Normal
+                        </option>
+
+                        <option value="High">
+                            High
+                        </option>
+
+                        <option value="Urgent">
+                            Urgent
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <div class="hk-form-group">
+
+                    <label class="hk-form-label">
+                        Estimated Duration
+                    </label>
+
+
+                    <select
+                        id="manualTaskDuration"
+                        class="hk-control"
+                    >
+
+                        <option value="15">
+                            15 minutes
+                        </option>
+
+                        <option value="30" selected>
+                            30 minutes
+                        </option>
+
+                        <option value="45">
+                            45 minutes
+                        </option>
+
+                        <option value="60">
+                            1 hour
+                        </option>
+
+                        <option value="90">
+                            1 hour 30 minutes
+                        </option>
+
+                        <option value="120">
+                            2 hours
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- NOTES -->
+
+            <div class="hk-form-group">
+
+                <label class="hk-form-label">
+
+                    Notes
+
+                    <span
+                        style="
+                            color:#9ca3af;
+                            font-weight:400;
+                        "
+                    >
+                        (optional)
+                    </span>
+
+                </label>
+
+
+                <textarea
+                    id="manualTaskNotes"
+                    class="hk-control"
+                    placeholder="Add instructions or special notes..."
+                ></textarea>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- FOOTER -->
+
+        <div class="hk-modal-footer">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-outline"
+                onclick="closeHKTaskModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                id="manualAssignTaskBtn"
+                onclick="assignManualTask()"
+            >
+
+                <i class="fas fa-check"></i>
+
+                Assign Task
+
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- TOAST -->
+
+<div
+    class="hk-toast-container"
+    id="hkToastContainer"
+></div>
+
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let hkCurrentFilter = "all";
+
+
+/* =========================================================
+   CSRF
+   ========================================================= */
+
+function getHKCsrfToken() {
+
+    const input = document.querySelector(
+        'input[name="csrfmiddlewaretoken"]'
+    );
+
+    if (input && input.value) {
+        return input.value;
+    }
+
+
+    const cookieName = "csrftoken";
+
+    const cookies = document.cookie
+        ? document.cookie.split(";")
+        : [];
+
+
+    for (let cookie of cookies) {
+
+        cookie = cookie.trim();
+
+        if (
+            cookie.substring(
+                0,
+                cookieName.length + 1
+            ) === cookieName + "="
+        ) {
+
+            return decodeURIComponent(
+                cookie.substring(
+                    cookieName.length + 1
+                )
+            );
+
+        }
+
+    }
+
+
+    return "";
+
+}
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+function openHKTaskModal() {
+
+    const modal = document.getElementById(
+        "hkAssignModal"
+    );
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.add("open");
+
+    document.body.style.overflow = "hidden";
+
+}
+
+
+function closeHKTaskModal() {
+
+    const modal = document.getElementById(
+        "hkAssignModal"
+    );
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.remove("open");
+
+    document.body.style.overflow = "";
+
+}
+
+
+function hkBackdropClose(event) {
+
+    if (
+        event.target.id === "hkAssignModal"
+    ) {
+
+        closeHKTaskModal();
+
+    }
+
+}
+
+
+/* =========================================================
+   TASK TYPE
+   ========================================================= */
+
+function selectManualTaskType(
+    button,
+    taskType
+) {
+
+    document
+        .querySelectorAll(".hk-task-type")
+        .forEach(item => {
+
+            item.classList.remove(
+                "selected"
+            );
+
+        });
+
+
+    button.classList.add(
+        "selected"
+    );
+
+
+    document.getElementById(
+        "manualTaskType"
+    ).value = taskType;
+
+}
+
+
+/* =========================================================
+   STAFF
+   ========================================================= */
+
+function selectManualStaff(
+    element,
+    staffId
+) {
+
+    document
+        .querySelectorAll(
+            "#manualStaffList .hk-staff-option"
+        )
+        .forEach(item => {
+
+            item.classList.remove(
+                "selected"
+            );
+
+        });
+
+
+    element.classList.add(
+        "selected"
+    );
+
+
+    document.getElementById(
+        "manualSelectedStaffId"
+    ).value = staffId;
+
+}
+
+
+/* =========================================================
+   ASSIGN TASK
+   ========================================================= */
+
+async function assignManualTask() {
+
+    const roomUnitId =
+        document.getElementById(
+            "manualTaskRoom"
+        ).value;
+
+
+    const taskType =
+        document.getElementById(
+            "manualTaskType"
+        ).value;
+
+
+    const staffId =
+        document.getElementById(
+            "manualSelectedStaffId"
+        ).value;
+
+
+    const priority =
+        document.getElementById(
+            "manualTaskPriority"
+        ).value;
+
+
+    const duration =
+        document.getElementById(
+            "manualTaskDuration"
+        ).value;
+
+
+    const notes =
+        document.getElementById(
+            "manualTaskNotes"
+        ).value.trim();
+
+
+
+    /* VALIDATION */
+
+    if (!roomUnitId) {
+
+        showHKToast(
+            "Please select a room unit.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (!staffId) {
+
+        showHKToast(
+            "Please select housekeeping staff.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (!taskType) {
+
+        showHKToast(
+            "Please select a task type.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+
+    const button =
+        document.getElementById(
+            "manualAssignTaskBtn"
+        );
+
+
+    const originalHTML =
+        button.innerHTML;
+
+
+    button.disabled = true;
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Assigning...
+    `;
+
+
+
+    try {
+
+        const response = await fetch(
+            "{% url 'assign_housekeeping_task' %}",
+            {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type":
+                        "application/json",
+
+                    "X-CSRFToken":
+                        getHKCsrfToken()
+
+                },
+
+                body: JSON.stringify({
+
+                    staff_id:
+                        staffId,
+
+                    room_unit_id:
+                        roomUnitId,
+
+                    task_type:
+                        taskType,
+
+                    priority:
+                        priority,
+
+                    duration:
+                        duration,
+
+                    notes:
+                        notes
+
+                })
+
+            }
+        );
+
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Failed to assign housekeeping task."
+            );
+
+        }
+
+
+
+        showHKToast(
+            data.message ||
+            "Housekeeping task assigned successfully.",
+            "success"
+        );
+
+
+        closeHKTaskModal();
+
+
+        setTimeout(() => {
+
+            window.location.reload();
+
+        }, 700);
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "HK TASK ERROR:",
+            error
+        );
+
+
+        showHKToast(
+            error.message ||
+            "Unable to assign housekeeping task.",
+            "error"
+        );
+
+    }
+    finally {
+
+        button.disabled = false;
+
+        button.innerHTML =
+            originalHTML;
+
+    }
+
+}
+
+
+/* =========================================================
+   FILTER
+   ========================================================= */
+
+function setHKFilter(
+    status,
+    button
+) {
+
+    hkCurrentFilter =
+        status.toLowerCase();
+
+
+    document
+        .querySelectorAll(
+            ".hk-tab"
+        )
+        .forEach(tab => {
+
+            tab.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    button.classList.add(
+        "active"
+    );
+
+
+    filterHKTasks();
+
+}
+
+
+function filterHKTasks() {
+
+    const searchInput =
+        document.getElementById(
+            "hkSearch"
+        );
+
+
+    const query =
+        (
+            searchInput?.value ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const rows =
+        document.querySelectorAll(
+            ".hk-task-row"
+        );
+
+
+    let visibleCount = 0;
+
+
+    rows.forEach(row => {
+
+        const status =
+            (
+                row.dataset.status ||
+                ""
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const searchable =
+            (
+                row.dataset.search ||
+                row.textContent ||
+                ""
+            )
+            .toLowerCase();
+
+
+        const statusMatch =
+            hkCurrentFilter === "all" ||
+            status === hkCurrentFilter ||
+            (
+                hkCurrentFilter ===
+                "in progress" &&
+                status === "in_progress"
+            );
+
+
+        const searchMatch =
+            !query ||
+            searchable.includes(query);
+
+
+        const visible =
+            statusMatch &&
+            searchMatch;
+
+
+        row.style.display =
+            visible
+                ? ""
+                : "none";
+
+
+        if (visible) {
+            visibleCount++;
+        }
+
+    });
+
+
+
+    const empty =
+        document.getElementById(
+            "hkFilteredEmpty"
+        );
+
+
+    if (empty) {
+
+        empty.style.display =
+            rows.length > 0 &&
+            visibleCount === 0
+                ? "block"
+                : "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function showHKToast(
+    message,
+    type = "success"
+) {
+
+    const container =
+        document.getElementById(
+            "hkToastContainer"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    const toast =
+        document.createElement(
+            "div"
+        );
+
+
+    toast.className =
+        `hk-toast ${type}`;
+
+
+    const icon =
+        type === "success"
+            ? "fa-circle-check"
+            : "fa-circle-exclamation";
+
+
+    toast.innerHTML = `
+        <i class="fas ${icon}"></i>
+        ${escapeHKHtml(message)}
+    `;
+
+
+    container.appendChild(
+        toast
+    );
+
+
+    setTimeout(() => {
+
+        toast.remove();
+
+    }, 3500);
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHKHtml(value) {
+
+    return String(
+        value ?? ""
+    )
+    .replaceAll(
+        "&",
+        "&amp;"
+    )
+    .replaceAll(
+        "<",
+        "&lt;"
+    )
+    .replaceAll(
+        ">",
+        "&gt;"
+    )
+    .replaceAll(
+        '"',
+        "&quot;"
+    )
+    .replaceAll(
+        "'",
+        "&#039;"
+    );
+
+}
+
+
+/* =========================================================
+   ESC KEY
+   ========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            closeHKTaskModal();
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,2762 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+{% block title %}My Profile | Front Office{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* =========================================================
+   PROFILE PAGE
+   ========================================================= */
+
+.profile-page {
+    width: 100%;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+.profile-header h1 {
+    margin: 0;
+
+    color: #202224;
+
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.profile-header p {
+    margin: 7px 0 0;
+
+    color: #7c8798;
+
+    font-size: 14px;
+}
+
+.profile-back-btn {
+    min-height: 40px;
+
+    padding: 0 15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    border: 1px solid #dfe4ec;
+    border-radius: 9px;
+
+    background: #fff;
+
+    color: #475467;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition: .2s ease;
+}
+
+.profile-back-btn:hover {
+    border-color: #4880ff;
+    color: #4880ff;
+}
+
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+
+.profile-layout {
+    display: grid;
+
+    grid-template-columns:
+        minmax(250px, 320px)
+        minmax(0, 1fr);
+
+    gap: 20px;
+
+    align-items: start;
+}
+
+
+/* =========================================================
+   PROFILE SUMMARY
+   ========================================================= */
+
+.profile-summary {
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 4px 18px rgba(0, 0, 0, .035);
+}
+
+.profile-summary-top {
+    height: 100px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #4880ff,
+            #6d5dfc
+        );
+}
+
+.profile-summary-body {
+    padding:
+        0 22px 24px;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   AVATAR
+   ========================================================= */
+
+.profile-avatar-wrap {
+    position: relative;
+
+    width: 108px;
+    height: 108px;
+
+    margin:
+        -54px auto 14px;
+}
+
+.profile-avatar {
+    width: 108px;
+    height: 108px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border: 5px solid #fff;
+    border-radius: 50%;
+
+    background: #eef4ff;
+
+    color: #4880ff;
+
+    font-size: 34px;
+    font-weight: 800;
+
+    box-shadow:
+        0 4px 15px rgba(0,0,0,.12);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.profile-avatar-edit {
+    position: absolute;
+
+    right: 0;
+    bottom: 4px;
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 3px solid #fff;
+    border-radius: 50%;
+
+    background: #4880ff;
+    color: #fff;
+
+    cursor: pointer;
+
+    font-size: 12px;
+}
+
+.profile-summary-name {
+    margin-bottom: 4px;
+
+    color: #202224;
+
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.profile-summary-role {
+    color: #7c8798;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   STAFF META
+   ========================================================= */
+
+.profile-meta {
+    margin-top: 22px;
+
+    border-top: 1px solid #edf0f5;
+}
+
+.profile-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px 0;
+
+    border-bottom: 1px solid #f0f2f5;
+
+    font-size: 12px;
+}
+
+.profile-meta-row:last-child {
+    border-bottom: 0;
+}
+
+.profile-meta-label {
+    color: #8a94a4;
+
+    font-weight: 600;
+}
+
+.profile-meta-value {
+    color: #344054;
+
+    font-weight: 700;
+
+    text-align: right;
+}
+
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.profile-card {
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 4px 18px rgba(0, 0, 0, .035);
+}
+
+.profile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+.profile-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: #202224;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.profile-card-title i {
+    color: #4880ff;
+}
+
+.profile-card-body {
+    padding: 22px;
+}
+
+
+/* =========================================================
+   PHOTO UPLOAD
+   ========================================================= */
+
+.profile-photo-section {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+
+    padding-bottom: 22px;
+
+    border-bottom: 1px solid #edf0f5;
+
+    margin-bottom: 22px;
+}
+
+.profile-photo-preview {
+    width: 78px;
+    height: 78px;
+
+    flex: 0 0 78px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    background: #eef4ff;
+
+    color: #4880ff;
+
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.profile-photo-preview img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.profile-upload-info {
+    flex: 1;
+}
+
+.profile-upload-title {
+    margin-bottom: 5px;
+
+    color: #344054;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.profile-upload-help {
+    margin-bottom: 10px;
+
+    color: #98a2b3;
+
+    font-size: 11px;
+}
+
+.profile-upload-btn {
+    min-height: 36px;
+
+    padding: 0 12px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    border: 1px solid #dfe4ec;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #475467;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   SECTION
+   ========================================================= */
+
+.profile-section {
+    margin-bottom: 28px;
+}
+
+.profile-section:last-child {
+    margin-bottom: 0;
+}
+
+.profile-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 16px;
+
+    color: #344054;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.profile-section-title i {
+    color: #4880ff;
+}
+
+
+/* =========================================================
+   FORM
+   ========================================================= */
+
+.profile-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 17px;
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.profile-field-full {
+    grid-column: 1 / -1;
+}
+
+.profile-field label {
+    color: #475467;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.profile-field input {
+    width: 100%;
+    height: 44px;
+
+    padding: 0 13px;
+
+    border: 1px solid #dfe4ec;
+    border-radius: 9px;
+
+    outline: none;
+
+    background: #fff;
+
+    color: #344054;
+
+    font-size: 12px;
+
+    transition: .2s ease;
+}
+
+.profile-field input:focus {
+    border-color: #4880ff;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(72, 128, 255, .10);
+}
+
+.profile-field input:disabled,
+.profile-field input[readonly] {
+    background: #f8f9fb;
+
+    color: #98a2b3;
+
+    cursor: not-allowed;
+}
+
+.profile-field input.is-invalid {
+    border-color: #ef4444;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(239, 68, 68, .08);
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.profile-field-error {
+    display: none;
+
+    color: #ef4444;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.profile-field-error.show {
+    display: block;
+}
+
+
+/* =========================================================
+   PASSWORD
+   ========================================================= */
+
+.profile-password-note {
+    margin-bottom: 16px;
+
+    padding: 11px 13px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    border: 1px solid #dce7ff;
+    border-radius: 9px;
+
+    background: #f5f8ff;
+
+    color: #667085;
+
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.profile-password-note i {
+    margin-top: 2px;
+
+    color: #4880ff;
+}
+
+.profile-password-input {
+    position: relative;
+}
+
+.profile-password-input input {
+    padding-right: 42px;
+}
+
+.profile-password-toggle {
+    position: absolute;
+
+    right: 10px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+
+    background: transparent;
+
+    color: #98a2b3;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   PASSWORD STRENGTH
+   ========================================================= */
+
+.profile-strength {
+    margin-top: 3px;
+}
+
+.profile-strength-track {
+    width: 100%;
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 99px;
+
+    background: #edf0f5;
+}
+
+.profile-strength-fill {
+    width: 0;
+    height: 100%;
+
+    border-radius: 99px;
+
+    transition: .25s ease;
+}
+
+.profile-strength-label {
+    display: block;
+
+    min-height: 14px;
+
+    margin-top: 5px;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid #edf0f5;
+}
+
+.profile-btn {
+    min-height: 40px;
+
+    padding: 0 15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    border-radius: 9px;
+
+    font-size: 11px;
+    font-weight: 800;
+
+    cursor: pointer;
+}
+
+.profile-btn-reset {
+    border: 1px solid #dfe4ec;
+
+    background: #fff;
+
+    color: #475467;
+}
+
+.profile-btn-save {
+    min-width: 130px;
+
+    border: 1px solid #4880ff;
+
+    background: #4880ff;
+
+    color: #fff;
+}
+
+.profile-btn:disabled {
+    opacity: .65;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+.profile-toast-wrap {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    z-index: 99999;
+
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.profile-toast {
+    min-width: 270px;
+    max-width: 390px;
+
+    padding: 12px 15px;
+
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    border-radius: 10px;
+
+    background: #202938;
+    color: #fff;
+
+    box-shadow:
+        0 10px 30px
+        rgba(0,0,0,.20);
+
+    font-size: 12px;
+    font-weight: 600;
+
+    animation:
+        profileToastIn .22s ease;
+}
+
+.profile-toast.success i {
+    color: #4ade80;
+}
+
+.profile-toast.error i {
+    color: #f87171;
+}
+
+@keyframes profileToastIn {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+[data-bs-theme="dark"] .profile-summary,
+[data-bs-theme="dark"] .profile-card,
+[data-bs-theme="dark"] .profile-upload-btn,
+[data-bs-theme="dark"] .profile-back-btn,
+[data-bs-theme="dark"] .profile-btn-reset {
+
+    background: #1d2531;
+
+    border-color: #303a49;
+
+    color: #d7dde7;
+}
+
+[data-bs-theme="dark"] .profile-header h1,
+[data-bs-theme="dark"] .profile-summary-name,
+[data-bs-theme="dark"] .profile-card-title,
+[data-bs-theme="dark"] .profile-section-title,
+[data-bs-theme="dark"] .profile-meta-value,
+[data-bs-theme="dark"] .profile-upload-title {
+
+    color: #f4f6f8;
+}
+
+[data-bs-theme="dark"] .profile-field input {
+
+    background: #222b38;
+
+    border-color: #303a49;
+
+    color: #f4f6f8;
+}
+
+[data-bs-theme="dark"] .profile-field input:disabled,
+[data-bs-theme="dark"] .profile-field input[readonly] {
+
+    background: #19212c;
+}
+
+[data-bs-theme="dark"] .profile-card-header,
+[data-bs-theme="dark"] .profile-photo-section,
+[data-bs-theme="dark"] .profile-actions,
+[data-bs-theme="dark"] .profile-meta,
+[data-bs-theme="dark"] .profile-meta-row {
+
+    border-color: #303a49;
+}
+
+[data-bs-theme="dark"] .profile-password-note {
+
+    background: #1e293b;
+
+    border-color: #334155;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width: 900px) {
+
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media(max-width: 650px) {
+
+    .profile-header {
+        flex-direction: column;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-field-full {
+        grid-column: auto;
+    }
+
+    .profile-photo-section {
+        align-items: flex-start;
+    }
+
+    .profile-actions {
+        flex-direction: column-reverse;
+    }
+
+    .profile-btn {
+        width: 100%;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="profile-page">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="profile-header">
+
+        <div>
+
+            <h1>Edit Profile</h1>
+
+            <p>
+                Manage your personal information and password.
+            </p>
+
+        </div>
+
+
+        <a
+            href="{% url 'frontoffice_dashboard' %}"
+            class="profile-back-btn"
+        >
+            <i class="fas fa-arrow-left"></i>
+            Back
+        </a>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         LAYOUT
+         ===================================================== -->
+
+    <div class="profile-layout">
+
+
+        <!-- =================================================
+             LEFT PROFILE SUMMARY
+             ================================================= -->
+
+        <div class="profile-summary">
+
+            <div class="profile-summary-top"></div>
+
+
+            <div class="profile-summary-body">
+
+
+                <div class="profile-avatar-wrap">
+
+                    <div
+                        class="profile-avatar"
+                        id="profileSummaryAvatar"
+                    >
+
+                        {% if staff.photo %}
+
+                            <img
+                                src="{{ staff.photo.url }}"
+                                alt="{{ staff.name }}"
+                            >
+
+                        {% else %}
+
+                            <span>
+                                {{ staff.name|slice:":1"|upper }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <label
+                        for="photoInput"
+                        class="profile-avatar-edit"
+                        title="Change photo"
+                    >
+                        <i class="fas fa-camera"></i>
+                    </label>
+
+                </div>
+
+
+                <div
+                    class="profile-summary-name"
+                    id="profileDisplayName"
+                >
+                    {{ staff.name }}
+                </div>
+
+
+                <div class="profile-summary-role">
+
+                    {{ staff.role|default:"Front Office" }}
+
+                    {% if staff.employee_id %}
+                        · {{ staff.employee_id }}
+                    {% endif %}
+
+                </div>
+
+
+
+                <div class="profile-meta">
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Employee ID
+                        </span>
+
+                        <span class="profile-meta-value">
+                            {{ staff.employee_id|default:"—" }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Department
+                        </span>
+
+                        <span class="profile-meta-value">
+
+                            {% if staff.department %}
+
+                                {{ staff.department.name }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Role
+                        </span>
+
+                        <span class="profile-meta-value">
+                            {{ staff.role|default:"Front Office" }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Hotel
+                        </span>
+
+                        <span class="profile-meta-value">
+
+                            {% if hotel %}
+                                {{ hotel.name }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             RIGHT PROFILE FORM
+             ================================================= -->
+
+        <div class="profile-card">
+
+
+            <div class="profile-card-header">
+
+                <div class="profile-card-title">
+
+                    <i class="fas fa-id-card"></i>
+
+                    Personal Information
+
+                </div>
+
+            </div>
+
+
+
+            <div class="profile-card-body">
+
+
+                <!-- =========================================
+                     PHOTO
+                     ========================================= -->
+
+                <div class="profile-photo-section">
+
+
+                    <div
+                        class="profile-photo-preview"
+                        id="profileAvatarLarge"
+                    >
+
+                        {% if staff.photo %}
+
+                            <img
+                                src="{{ staff.photo.url }}"
+                                alt="{{ staff.name }}"
+                            >
+
+                        {% else %}
+
+                            <span>
+                                {{ staff.name|slice:":1"|upper }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div class="profile-upload-info">
+
+                        <div class="profile-upload-title">
+                            Profile Photo
+                        </div>
+
+                        <div class="profile-upload-help">
+                            JPG or PNG · maximum 2 MB
+                        </div>
+
+
+                        <label
+                            for="photoInput"
+                            class="profile-upload-btn"
+                        >
+                            <i class="fas fa-upload"></i>
+                            Upload Photo
+                        </label>
+
+
+                        <input
+                            type="file"
+                            id="photoInput"
+                            accept="image/jpeg,image/png"
+                            hidden
+                        >
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     BASIC DETAILS
+                     ========================================= -->
+
+                <div class="profile-section">
+
+
+                    <div class="profile-section-title">
+
+                        <i class="fas fa-user"></i>
+
+                        Basic Details
+
+                    </div>
+
+
+                    <div class="profile-form-grid">
+
+
+                        <div class="profile-field">
+
+                            <label for="pfName">
+                                Full Name *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="pfName"
+                                value="{{ staff.name }}"
+                                placeholder="Your full name"
+                                autocomplete="name"
+                            >
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfName"
+                            >
+                                Full name is required.
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="profile-field">
+
+                            <label for="pfPhone">
+                                Phone
+                            </label>
+
+                            <input
+                                type="tel"
+                                id="pfPhone"
+                                value="{{ staff.phone|default:'' }}"
+                                placeholder="10-digit mobile"
+                                maxlength="10"
+                                inputmode="numeric"
+                                autocomplete="tel"
+                            >
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfPhone"
+                            >
+                                Enter a valid 10-digit number.
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="profile-field profile-field-full">
+
+                            <label for="pfEmail">
+                                Email
+                            </label>
+
+                            <input
+                                type="email"
+                                id="pfEmail"
+                                value="{{ staff.user.email|default:'' }}"
+                                placeholder="your@email.com"
+                                autocomplete="email"
+                            >
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfEmail"
+                            >
+                                Enter a valid email address.
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="profile-field">
+
+                            <label>
+                                Employee ID
+                            </label>
+
+                            <input
+                                type="text"
+                                value="{{ staff.employee_id|default:'' }}"
+                                readonly
+                            >
+
+                        </div>
+
+
+
+                        <div class="profile-field">
+
+                            <label>
+                                Department
+                            </label>
+
+                            <input
+                                type="text"
+
+                                {% if staff.department %}
+                                    value="{{ staff.department.name }}"
+                                {% else %}
+                                    value=""
+                                {% endif %}
+
+                                readonly
+                            >
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     PASSWORD
+                     ========================================= -->
+
+                <div class="profile-section">
+
+
+                    <div class="profile-section-title">
+
+                        <i class="fas fa-lock"></i>
+
+                        Change Password
+
+                    </div>
+
+
+                    <div class="profile-password-note">
+
+                        <i class="fas fa-info-circle"></i>
+
+                        <span>
+                            Leave these password fields blank if
+                            you do not want to change your password.
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-form-grid">
+
+
+                        <div class="profile-field profile-field-full">
+
+                            <label for="pfCurrentPw">
+                                Current Password
+                            </label>
+
+
+                            <div class="profile-password-input">
+
+                                <input
+                                    type="password"
+                                    id="pfCurrentPw"
+                                    placeholder="Enter current password"
+                                    autocomplete="current-password"
+                                >
+
+                                <button
+                                    type="button"
+                                    class="profile-password-toggle"
+                                    onclick="toggleProfilePassword(
+                                        'pfCurrentPw',
+                                        this
+                                    )"
+                                    aria-label="Show current password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfCurrentPw"
+                            >
+                                Current password is required
+                                when changing password.
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="profile-field">
+
+                            <label for="pfNewPw">
+                                New Password
+                            </label>
+
+
+                            <div class="profile-password-input">
+
+                                <input
+                                    type="password"
+                                    id="pfNewPw"
+                                    placeholder="Minimum 8 characters"
+                                    autocomplete="new-password"
+                                >
+
+                                <button
+                                    type="button"
+                                    class="profile-password-toggle"
+                                    onclick="toggleProfilePassword(
+                                        'pfNewPw',
+                                        this
+                                    )"
+                                    aria-label="Show new password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfNewPw"
+                            >
+                                Password must contain at least
+                                8 characters.
+                            </div>
+
+
+                            <div class="profile-strength">
+
+                                <div class="profile-strength-track">
+
+                                    <div
+                                        class="profile-strength-fill"
+                                        id="pwStrengthFill"
+                                    ></div>
+
+                                </div>
+
+                                <span
+                                    class="profile-strength-label"
+                                    id="pwStrengthLabel"
+                                ></span>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="profile-field">
+
+                            <label for="pfConfirmPw">
+                                Confirm New Password
+                            </label>
+
+
+                            <div class="profile-password-input">
+
+                                <input
+                                    type="password"
+                                    id="pfConfirmPw"
+                                    placeholder="Repeat new password"
+                                    autocomplete="new-password"
+                                >
+
+                                <button
+                                    type="button"
+                                    class="profile-password-toggle"
+                                    onclick="toggleProfilePassword(
+                                        'pfConfirmPw',
+                                        this
+                                    )"
+                                    aria-label="Show confirmed password"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                class="profile-field-error"
+                                id="err-pfConfirmPw"
+                            >
+                                Passwords do not match.
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =========================================
+                     ACTIONS
+                     ========================================= -->
+
+                <div class="profile-actions">
+
+
+                    <button
+                        type="button"
+                        class="
+                            profile-btn
+                            profile-btn-reset
+                        "
+                        onclick="resetProfileForm();"
+                    >
+                        <i class="fas fa-rotate-left"></i>
+
+                        Reset
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="
+                            profile-btn
+                            profile-btn-save
+                        "
+                        id="profileSaveBtn"
+                        onclick="saveProfile();"
+                    >
+                        <i class="fas fa-save"></i>
+
+                        Save Changes
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =========================================================
+     TOAST CONTAINER
+     ========================================================= -->
+
+<div
+    class="profile-toast-wrap"
+    id="profileToastWrap"
+></div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* =========================================================
+   CSRF
+   ========================================================= */
+
+function getProfileCsrfToken() {
+
+    const input =
+        document.querySelector(
+            '[name="csrfmiddlewaretoken"]'
+        );
+
+    if (input && input.value) {
+        return input.value;
+    }
+
+
+    const cookies =
+        document.cookie
+            .split(";")
+            .map(
+                item =>
+                    item.trim()
+            );
+
+
+    for (const cookie of cookies) {
+
+        if (
+            cookie.startsWith(
+                "csrftoken="
+            )
+        ) {
+
+            return decodeURIComponent(
+                cookie.substring(
+                    "csrftoken=".length
+                )
+            );
+
+        }
+
+    }
+
+
+    return "";
+
+}
+
+
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function profileToast(
+    message,
+    type = "success"
+) {
+
+    const wrap =
+        document.getElementById(
+            "profileToastWrap"
+        );
+
+
+    const toast =
+        document.createElement(
+            "div"
+        );
+
+
+    toast.className =
+        `profile-toast ${type}`;
+
+
+    toast.innerHTML = `
+
+        <i class="
+            fas
+            ${
+                type === "error"
+                ? "fa-circle-exclamation"
+                : "fa-circle-check"
+            }
+        "></i>
+
+        <span></span>
+    `;
+
+
+    toast.querySelector(
+        "span"
+    ).textContent =
+        message;
+
+
+    wrap.appendChild(
+        toast
+    );
+
+
+    setTimeout(
+        function() {
+
+            toast.remove();
+
+        },
+        3500
+    );
+
+}
+
+
+
+/* =========================================================
+   FIELD ERROR
+   ========================================================= */
+
+function setProfileError(
+    inputId,
+    errorId,
+    show
+) {
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+
+    const error =
+        document.getElementById(
+            errorId
+        );
+
+
+    if (input) {
+
+        input.classList.toggle(
+            "is-invalid",
+            show
+        );
+
+    }
+
+
+    if (error) {
+
+        error.classList.toggle(
+            "show",
+            show
+        );
+
+    }
+
+}
+
+
+
+/* =========================================================
+   PASSWORD VISIBILITY
+   ========================================================= */
+
+function toggleProfilePassword(
+    inputId,
+    button
+) {
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    const show =
+        input.type === "password";
+
+
+    input.type =
+        show
+            ? "text"
+            : "password";
+
+
+    const icon =
+        button.querySelector(
+            "i"
+        );
+
+
+    if (icon) {
+
+        icon.className =
+            show
+                ? "fas fa-eye-slash"
+                : "fas fa-eye";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   PHOTO PREVIEW
+   ========================================================= */
+
+function previewProfilePhoto(
+    input
+) {
+
+    if (
+        !input.files
+        ||
+        !input.files[0]
+    ) {
+        return;
+    }
+
+
+    const file =
+        input.files[0];
+
+
+    const allowedTypes = [
+        "image/jpeg",
+        "image/png"
+    ];
+
+
+    if (
+        !allowedTypes.includes(
+            file.type
+        )
+    ) {
+
+        profileToast(
+            "Please choose a JPG or PNG image.",
+            "error"
+        );
+
+        input.value = "";
+
+        return;
+    }
+
+
+    const maxSize =
+        2 * 1024 * 1024;
+
+
+    if (
+        file.size > maxSize
+    ) {
+
+        profileToast(
+            "Profile photo must be 2 MB or smaller.",
+            "error"
+        );
+
+        input.value = "";
+
+        return;
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        function(event) {
+
+            const src =
+                event.target.result;
+
+
+            const large =
+                document.getElementById(
+                    "profileAvatarLarge"
+                );
+
+
+            const summary =
+                document.getElementById(
+                    "profileSummaryAvatar"
+                );
+
+
+            if (large) {
+
+                large.innerHTML =
+                    `<img
+                        src="${src}"
+                        alt="Profile photo"
+                    >`;
+
+            }
+
+
+            if (summary) {
+
+                summary.innerHTML =
+                    `<img
+                        src="${src}"
+                        alt="Profile photo"
+                    >`;
+
+            }
+
+        };
+
+
+    reader.readAsDataURL(
+        file
+    );
+
+}
+
+
+
+/* =========================================================
+   PASSWORD STRENGTH
+   ========================================================= */
+
+function updateProfilePasswordStrength() {
+
+    const password =
+        document.getElementById(
+            "pfNewPw"
+        ).value;
+
+
+    const fill =
+        document.getElementById(
+            "pwStrengthFill"
+        );
+
+
+    const label =
+        document.getElementById(
+            "pwStrengthLabel"
+        );
+
+
+    if (!password) {
+
+        fill.style.width =
+            "0%";
+
+        fill.style.background =
+            "transparent";
+
+        label.textContent =
+            "";
+
+        return;
+
+    }
+
+
+    let score = 0;
+
+
+    if (
+        password.length >= 8
+    ) {
+        score++;
+    }
+
+
+    if (
+        /[a-z]/.test(
+            password
+        )
+        &&
+        /[A-Z]/.test(
+            password
+        )
+    ) {
+        score++;
+    }
+
+
+    if (
+        /\d/.test(
+            password
+        )
+    ) {
+        score++;
+    }
+
+
+    if (
+        /[^A-Za-z0-9]/.test(
+            password
+        )
+    ) {
+        score++;
+    }
+
+
+    const levels = [
+
+        {
+            width: "20%",
+            background: "#ef4444",
+            text: "Very weak",
+            textColor: "#ef4444"
+        },
+
+        {
+            width: "40%",
+            background: "#f97316",
+            text: "Weak",
+            textColor: "#f97316"
+        },
+
+        {
+            width: "60%",
+            background: "#eab308",
+            text: "Fair",
+            textColor: "#ca8a04"
+        },
+
+        {
+            width: "80%",
+            background: "#4880ff",
+            text: "Good",
+            textColor: "#4880ff"
+        },
+
+        {
+            width: "100%",
+            background: "#16a34a",
+            text: "Strong",
+            textColor: "#16a34a"
+        }
+
+    ];
+
+
+    const level =
+        levels[
+            Math.min(
+                score,
+                4
+            )
+        ];
+
+
+    fill.style.width =
+        level.width;
+
+
+    fill.style.background =
+        level.background;
+
+
+    label.textContent =
+        level.text;
+
+
+    label.style.color =
+        level.textColor;
+
+}
+
+
+
+/* =========================================================
+   PASSWORD MATCH
+   ========================================================= */
+
+function checkProfilePasswordMatch() {
+
+    const newPassword =
+        document.getElementById(
+            "pfNewPw"
+        ).value;
+
+
+    const confirmPassword =
+        document.getElementById(
+            "pfConfirmPw"
+        ).value;
+
+
+    const invalid =
+        Boolean(
+            confirmPassword
+        )
+        &&
+        newPassword !==
+            confirmPassword;
+
+
+    setProfileError(
+        "pfConfirmPw",
+        "err-pfConfirmPw",
+        invalid
+    );
+
+}
+
+
+
+/* =========================================================
+   RESET FORM
+   ========================================================= */
+
+function resetProfileForm() {
+
+    const name =
+        document.getElementById(
+            "pfName"
+        );
+
+
+    const phone =
+        document.getElementById(
+            "pfPhone"
+        );
+
+
+    const email =
+        document.getElementById(
+            "pfEmail"
+        );
+
+
+    name.value =
+        "{{ staff.name|escapejs }}";
+
+
+    phone.value =
+        "{{ staff.phone|default:''|escapejs }}";
+
+
+    email.value =
+        "{{ staff.user.email|default:''|escapejs }}";
+
+
+    document.getElementById(
+        "pfCurrentPw"
+    ).value = "";
+
+
+    document.getElementById(
+        "pfNewPw"
+    ).value = "";
+
+
+    document.getElementById(
+        "pfConfirmPw"
+    ).value = "";
+
+
+    const photoInput =
+        document.getElementById(
+            "photoInput"
+        );
+
+
+    photoInput.value =
+        "";
+
+
+    {% if staff.photo %}
+
+        const originalPhoto =
+            "{{ staff.photo.url|escapejs }}";
+
+
+        document.getElementById(
+            "profileAvatarLarge"
+        ).innerHTML =
+            `<img
+                src="${originalPhoto}"
+                alt="Profile photo"
+            >`;
+
+
+        document.getElementById(
+            "profileSummaryAvatar"
+        ).innerHTML =
+            `<img
+                src="${originalPhoto}"
+                alt="Profile photo"
+            >`;
+
+    {% else %}
+
+        const initial =
+            "{{ staff.name|slice:':1'|upper|escapejs }}";
+
+
+        document.getElementById(
+            "profileAvatarLarge"
+        ).innerHTML =
+            `<span>${initial}</span>`;
+
+
+        document.getElementById(
+            "profileSummaryAvatar"
+        ).innerHTML =
+            `<span>${initial}</span>`;
+
+    {% endif %}
+
+
+    [
+        ["pfName", "err-pfName"],
+        ["pfPhone", "err-pfPhone"],
+        ["pfEmail", "err-pfEmail"],
+        ["pfCurrentPw", "err-pfCurrentPw"],
+        ["pfNewPw", "err-pfNewPw"],
+        ["pfConfirmPw", "err-pfConfirmPw"]
+    ].forEach(
+        function(item) {
+
+            setProfileError(
+                item[0],
+                item[1],
+                false
+            );
+
+        }
+    );
+
+
+    updateProfilePasswordStrength();
+
+}
+
+
+
+/* =========================================================
+   VALIDATE
+   ========================================================= */
+
+function validateProfileForm() {
+
+    const name =
+        document.getElementById(
+            "pfName"
+        ).value.trim();
+
+
+    const phone =
+        document.getElementById(
+            "pfPhone"
+        ).value.trim();
+
+
+    const email =
+        document.getElementById(
+            "pfEmail"
+        ).value.trim();
+
+
+    const currentPassword =
+        document.getElementById(
+            "pfCurrentPw"
+        ).value;
+
+
+    const newPassword =
+        document.getElementById(
+            "pfNewPw"
+        ).value;
+
+
+    const confirmPassword =
+        document.getElementById(
+            "pfConfirmPw"
+        ).value;
+
+
+    let valid = true;
+
+
+    /* NAME */
+
+    const nameInvalid =
+        !name;
+
+
+    setProfileError(
+        "pfName",
+        "err-pfName",
+        nameInvalid
+    );
+
+
+    if (nameInvalid) {
+        valid = false;
+    }
+
+
+
+    /* PHONE */
+
+    const phoneInvalid =
+        Boolean(phone)
+        &&
+        !/^\d{10}$/.test(
+            phone
+        );
+
+
+    setProfileError(
+        "pfPhone",
+        "err-pfPhone",
+        phoneInvalid
+    );
+
+
+    if (phoneInvalid) {
+        valid = false;
+    }
+
+
+
+    /* EMAIL */
+
+    const emailInvalid =
+        Boolean(email)
+        &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+            email
+        );
+
+
+    setProfileError(
+        "pfEmail",
+        "err-pfEmail",
+        emailInvalid
+    );
+
+
+    if (emailInvalid) {
+        valid = false;
+    }
+
+
+
+    /* PASSWORD */
+
+    if (newPassword) {
+
+
+        const currentInvalid =
+            !currentPassword;
+
+
+        setProfileError(
+            "pfCurrentPw",
+            "err-pfCurrentPw",
+            currentInvalid
+        );
+
+
+        if (currentInvalid) {
+            valid = false;
+        }
+
+
+        const newInvalid =
+            newPassword.length < 8;
+
+
+        setProfileError(
+            "pfNewPw",
+            "err-pfNewPw",
+            newInvalid
+        );
+
+
+        if (newInvalid) {
+            valid = false;
+        }
+
+
+        const confirmInvalid =
+            newPassword !==
+            confirmPassword;
+
+
+        setProfileError(
+            "pfConfirmPw",
+            "err-pfConfirmPw",
+            confirmInvalid
+        );
+
+
+        if (confirmInvalid) {
+            valid = false;
+        }
+
+    } else {
+
+
+        setProfileError(
+            "pfCurrentPw",
+            "err-pfCurrentPw",
+            false
+        );
+
+
+        setProfileError(
+            "pfNewPw",
+            "err-pfNewPw",
+            false
+        );
+
+
+        setProfileError(
+            "pfConfirmPw",
+            "err-pfConfirmPw",
+            false
+        );
+
+    }
+
+
+    return valid;
+
+}
+
+
+
+/* =========================================================
+   SAVE PROFILE
+   ========================================================= */
+
+async function saveProfile() {
+
+    if (
+        !validateProfileForm()
+    ) {
+
+        profileToast(
+            "Please fix the errors above.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const name =
+        document.getElementById(
+            "pfName"
+        ).value.trim();
+
+
+    const phone =
+        document.getElementById(
+            "pfPhone"
+        ).value.trim();
+
+
+    const email =
+        document.getElementById(
+            "pfEmail"
+        ).value.trim();
+
+
+    const currentPassword =
+        document.getElementById(
+            "pfCurrentPw"
+        ).value;
+
+
+    const newPassword =
+        document.getElementById(
+            "pfNewPw"
+        ).value;
+
+
+    const confirmPassword =
+        document.getElementById(
+            "pfConfirmPw"
+        ).value;
+
+
+    const formData =
+        new FormData();
+
+
+    formData.append(
+        "name",
+        name
+    );
+
+
+    formData.append(
+        "phone",
+        phone
+    );
+
+
+    formData.append(
+        "email",
+        email
+    );
+
+
+    if (newPassword) {
+
+        formData.append(
+            "current_password",
+            currentPassword
+        );
+
+
+        formData.append(
+            "new_password",
+            newPassword
+        );
+
+
+        formData.append(
+            "confirm_password",
+            confirmPassword
+        );
+
+    }
+
+
+    const photoInput =
+        document.getElementById(
+            "photoInput"
+        );
+
+
+    if (
+        photoInput.files
+        &&
+        photoInput.files[0]
+    ) {
+
+        formData.append(
+            "photo",
+            photoInput.files[0]
+        );
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "profileSaveBtn"
+        );
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Saving...
+    `;
+
+
+    try {
+
+
+        const response =
+            await fetch(
+                "/update-staff-profile/",
+                {
+                    method: "POST",
+
+                    body: formData,
+
+                    headers: {
+                        "X-CSRFToken":
+                            getProfileCsrfToken(),
+
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                }
+            );
+
+
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (jsonError) {
+
+            throw new Error(
+                "Server returned an invalid response."
+            );
+
+        }
+
+
+        if (
+            !response.ok
+            ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error
+                ||
+                "Profile update failed."
+            );
+
+        }
+
+
+        /* =============================================
+           UPDATE PAGE NAME
+           ============================================= */
+
+        document.getElementById(
+            "profileDisplayName"
+        ).textContent =
+            data.name || name;
+
+
+        /*
+         * Update shared base navigation name if that
+         * element exists.
+         */
+
+        const baseName =
+            document.getElementById(
+                "sbDisplayName"
+            );
+
+
+        if (baseName) {
+
+            baseName.textContent =
+                data.name || name;
+
+        }
+
+
+        /* =============================================
+           UPDATE PHOTO FROM SERVER
+           ============================================= */
+
+        if (data.photo) {
+
+
+            const photoHtml = `
+                <img
+                    src="${data.photo}"
+                    alt="Profile photo"
+                >
+            `;
+
+
+            document.getElementById(
+                "profileAvatarLarge"
+            ).innerHTML =
+                photoHtml;
+
+
+            document.getElementById(
+                "profileSummaryAvatar"
+            ).innerHTML =
+                photoHtml;
+
+
+            /*
+             * Also update possible shared header/avatar.
+             */
+
+            const sharedAvatar =
+                document.querySelector(
+                    ".sb-avatar"
+                );
+
+
+            if (sharedAvatar) {
+
+                sharedAvatar.innerHTML =
+                    photoHtml;
+
+            }
+
+        }
+
+
+        /* =============================================
+           CLEAR PASSWORDS
+           ============================================= */
+
+        document.getElementById(
+            "pfCurrentPw"
+        ).value = "";
+
+
+        document.getElementById(
+            "pfNewPw"
+        ).value = "";
+
+
+        document.getElementById(
+            "pfConfirmPw"
+        ).value = "";
+
+
+        photoInput.value =
+            "";
+
+
+        updateProfilePasswordStrength();
+
+
+        profileToast(
+            "Profile updated successfully.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+
+        console.error(
+            "PROFILE UPDATE ERROR:",
+            error
+        );
+
+
+        profileToast(
+            error.message
+            ||
+            "Unable to update profile.",
+            "error"
+        );
+
+
+    } finally {
+
+
+        button.disabled =
+            false;
+
+
+        button.innerHTML =
+            original;
+
+    }
+
+}
+
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+
+        const photoInput =
+            document.getElementById(
+                "photoInput"
+            );
+
+
+        photoInput.addEventListener(
+            "change",
+            function() {
+
+                previewProfilePhoto(
+                    this
+                );
+
+            }
+        );
+
+
+        document.getElementById(
+            "pfNewPw"
+        ).addEventListener(
+            "input",
+            function() {
+
+                updateProfilePasswordStrength();
+
+                checkProfilePasswordMatch();
+
+            }
+        );
+
+
+        document.getElementById(
+            "pfConfirmPw"
+        ).addEventListener(
+            "input",
+            checkProfilePasswordMatch
+        );
+
+
+        document.getElementById(
+            "pfPhone"
+        ).addEventListener(
+            "input",
+            function() {
+
+                this.value =
+                    this.value
+                        .replace(
+                            /\D/g,
+                            ""
+                        )
+                        .slice(
+                            0,
+                            10
+                        );
+
+            }
+        );
+
+
+    }
+);
+
+</script>
+
+{% endblock %}

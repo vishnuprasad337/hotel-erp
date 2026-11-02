@@ -1,0 +1,2416 @@
+{% extends "hr/base.html" %}
+{% load static %}
+
+{% block title %}Leave Management | Hotel ERP{% endblock %}
+
+{% block extra_css %}
+
+<style>
+
+/* ============================================================
+   LEAVE PAGE
+============================================================ */
+
+.leave-page {
+    padding: 0;
+}
+
+
+/* ============================================================
+   PAGE HEADER
+============================================================ */
+
+.leave-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.leave-page-title h1 {
+    margin: 0 0 5px;
+    color: #101828;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.leave-page-title p {
+    margin: 0;
+    color: #667085;
+    font-size: 13px;
+}
+
+.leave-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+
+.leave-btn {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 15px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s ease;
+}
+
+.leave-btn-primary {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #fff;
+}
+
+.leave-btn-primary:hover {
+    background: #6d28d9;
+    border-color: #6d28d9;
+}
+
+.leave-btn-outline {
+    background: #fff;
+    border-color: #d0d5dd;
+    color: #344054;
+}
+
+.leave-btn-outline:hover {
+    background: #f9fafb;
+    border-color: #98a2b3;
+}
+
+.leave-btn-success {
+    background: #ecfdf3;
+    border-color: #abefc6;
+    color: #067647;
+}
+
+.leave-btn-success:hover {
+    background: #dcfae6;
+}
+
+.leave-btn-danger {
+    background: #fef3f2;
+    border-color: #fecdca;
+    color: #b42318;
+}
+
+.leave-btn-danger:hover {
+    background: #fee4e2;
+}
+
+.leave-btn-sm {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   STATS
+============================================================ */
+
+.leave-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.leave-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 100px;
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.03);
+}
+
+.leave-stat-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 18px;
+}
+
+.leave-stat-icon.pending {
+    background: #fffaeb;
+    color: #dc6803;
+}
+
+.leave-stat-icon.approved {
+    background: #ecfdf3;
+    color: #079455;
+}
+
+.leave-stat-icon.rejected {
+    background: #fef3f2;
+    color: #d92d20;
+}
+
+.leave-stat-icon.total {
+    background: #eef4ff;
+    color: #3538cd;
+}
+
+.leave-stat-number {
+    color: #101828;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.leave-stat-label {
+    margin-top: 7px;
+    color: #667085;
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   CARD
+============================================================ */
+
+.leave-card {
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(16,24,40,.03);
+}
+
+.leave-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 17px 20px;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.leave-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #101828;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.leave-card-title i {
+    color: #7c3aed;
+}
+
+
+/* ============================================================
+   STATUS TABS
+============================================================ */
+
+.leave-status-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: #f2f4f7;
+    border-radius: 8px;
+}
+
+.leave-status-tab {
+    padding: 6px 11px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.leave-status-tab:hover {
+    color: #344054;
+}
+
+.leave-status-tab.active {
+    background: #fff;
+    color: #7c3aed;
+    box-shadow: 0 1px 2px rgba(16,24,40,.08);
+}
+
+
+/* ============================================================
+   FILTER BAR
+============================================================ */
+
+.leave-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    background: #fcfcfd;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.leave-filter-control {
+    min-width: 150px;
+    height: 38px;
+    padding: 0 11px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    outline: none;
+    background: #fff;
+    color: #344054;
+    font-size: 12px;
+}
+
+.leave-filter-control:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.leave-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.leave-table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+}
+
+.leave-table thead th {
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #eaecf0;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    white-space: nowrap;
+}
+
+.leave-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    color: #344054;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.leave-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.leave-table tbody tr:hover {
+    background: #fcfcfd;
+}
+
+
+/* ============================================================
+   EMPLOYEE
+============================================================ */
+
+.leave-employee {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.leave-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.leave-employee-name {
+    color: #101828;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.leave-employee-dept {
+    margin-top: 2px;
+    color: #98a2b3;
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   STATUS BADGES
+============================================================ */
+
+.leave-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.leave-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.leave-status.pending {
+    background: #fffaeb;
+    color: #b54708;
+}
+
+.leave-status.pending::before {
+    background: #f79009;
+}
+
+.leave-status.approved {
+    background: #ecfdf3;
+    color: #067647;
+}
+
+.leave-status.approved::before {
+    background: #17b26a;
+}
+
+.leave-status.rejected {
+    background: #fef3f2;
+    color: #b42318;
+}
+
+.leave-status.rejected::before {
+    background: #f04438;
+}
+
+
+/* ============================================================
+   EMPTY / LOADING
+============================================================ */
+
+.leave-empty {
+    padding: 55px 20px !important;
+    text-align: center;
+    color: #98a2b3 !important;
+}
+
+.leave-empty i {
+    display: block;
+    margin-bottom: 10px;
+    color: #d0d5dd;
+    font-size: 28px;
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.leave-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    padding: 25px;
+    overflow-y: auto;
+    background: rgba(16,24,40,.48);
+}
+
+.leave-modal-backdrop.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.leave-modal {
+    width: min(100%, 580px);
+    max-height: calc(100vh - 50px);
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 24px 48px rgba(16,24,40,.20);
+}
+
+.leave-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 20px 22px;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.leave-modal-header h3 {
+    margin: 0;
+    color: #101828;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.leave-modal-header p {
+    margin: 4px 0 0;
+    color: #667085;
+    font-size: 12px;
+}
+
+.leave-modal-close {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #667085;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.leave-modal-close:hover {
+    background: #f2f4f7;
+}
+
+.leave-modal-body {
+    padding: 22px;
+}
+
+.leave-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 16px 22px;
+    border-top: 1px solid #eaecf0;
+}
+
+
+/* ============================================================
+   FORM
+============================================================ */
+
+.leave-form-group {
+    margin-bottom: 17px;
+}
+
+.leave-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.leave-form-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.leave-form-control {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    outline: none;
+    background: #fff;
+    color: #344054;
+    font-size: 13px;
+}
+
+.leave-form-control:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+}
+
+textarea.leave-form-control {
+    min-height: 95px;
+    resize: vertical;
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+.leave-toast-container {
+    position: fixed;
+    top: 90px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.leave-toast {
+    min-width: 280px;
+    max-width: 380px;
+    padding: 12px 14px;
+    border: 1px solid #e4e7ec;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(16,24,40,.12);
+    color: #344054;
+    font-size: 12px;
+}
+
+.leave-toast.success {
+    border-left: 4px solid #12b76a;
+}
+
+.leave-toast.error {
+    border-left: 4px solid #f04438;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1100px) {
+
+    .leave-stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .leave-page-header {
+        flex-direction: column;
+    }
+
+    .leave-header-actions {
+        width: 100%;
+    }
+
+    .leave-header-actions .leave-btn {
+        flex: 1;
+    }
+
+    .leave-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .leave-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .leave-form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .leave-filter-control {
+        flex: 1;
+        min-width: 130px;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="leave-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="leave-page-header">
+
+        <div class="leave-page-title">
+
+            <h1>Leave Management</h1>
+
+            <p>
+                Review employee leave requests and manage approvals.
+            </p>
+
+        </div>
+
+
+        <div class="leave-header-actions">
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-outline"
+                onclick="loadLeaveRequests()"
+            >
+                <i class="fas fa-rotate"></i>
+                Refresh
+            </button>
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-primary"
+                onclick="openLeaveModal()"
+            >
+                <i class="fas fa-plus"></i>
+                Apply Leave
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         STATS
+    ====================================================== -->
+
+    <div class="leave-stat-grid">
+
+        <div class="leave-stat-card">
+
+            <div class="leave-stat-icon pending">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+
+            <div>
+                <div
+                    class="leave-stat-number"
+                    id="lv-pending"
+                >
+                    0
+                </div>
+
+                <div class="leave-stat-label">
+                    Pending Requests
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="leave-stat-card">
+
+            <div class="leave-stat-icon approved">
+                <i class="fas fa-circle-check"></i>
+            </div>
+
+            <div>
+                <div
+                    class="leave-stat-number"
+                    id="lv-approved"
+                >
+                    0
+                </div>
+
+                <div class="leave-stat-label">
+                    Approved
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="leave-stat-card">
+
+            <div class="leave-stat-icon rejected">
+                <i class="fas fa-circle-xmark"></i>
+            </div>
+
+            <div>
+                <div
+                    class="leave-stat-number"
+                    id="lv-rejected"
+                >
+                    0
+                </div>
+
+                <div class="leave-stat-label">
+                    Rejected
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="leave-stat-card">
+
+            <div class="leave-stat-icon total">
+                <i class="fas fa-calendar-days"></i>
+            </div>
+
+            <div>
+                <div
+                    class="leave-stat-number"
+                    id="lv-total"
+                >
+                    0
+                </div>
+
+                <div class="leave-stat-label">
+                    Total Requests
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         LEAVE TABLE CARD
+    ====================================================== -->
+
+    <div class="leave-card">
+
+        <div class="leave-card-header">
+
+            <div class="leave-card-title">
+                <i class="fas fa-calendar-minus"></i>
+                Leave Requests
+            </div>
+
+
+            <div
+                class="leave-status-tabs"
+                id="lvStatusFilter"
+            >
+
+                <button
+                    type="button"
+                    class="leave-status-tab active"
+                    onclick="filterLeaveByStatus('all', this)"
+                >
+                    All
+                </button>
+
+                <button
+                    type="button"
+                    class="leave-status-tab"
+                    onclick="filterLeaveByStatus('Pending', this)"
+                >
+                    Pending
+                </button>
+
+                <button
+                    type="button"
+                    class="leave-status-tab"
+                    onclick="filterLeaveByStatus('Approved', this)"
+                >
+                    Approved
+                </button>
+
+                <button
+                    type="button"
+                    class="leave-status-tab"
+                    onclick="filterLeaveByStatus('Rejected', this)"
+                >
+                    Rejected
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- FILTERS -->
+
+        <div class="leave-filter-bar">
+
+            <select
+                id="lvMonthFilter"
+                class="leave-filter-control"
+            >
+
+                <option value="">
+                    All Months
+                </option>
+
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+
+            </select>
+
+
+            <select
+                id="lvYearFilter"
+                class="leave-filter-control"
+            ></select>
+
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-outline leave-btn-sm"
+                onclick="loadLeaveRequests()"
+            >
+                <i class="fas fa-filter"></i>
+                Apply Filter
+            </button>
+
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-outline leave-btn-sm"
+                onclick="resetLeaveFilters()"
+            >
+                Reset
+            </button>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="leave-table-wrap">
+
+            <table class="leave-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Employee</th>
+
+                        <th>Applied</th>
+
+                        <th>From</th>
+
+                        <th>To</th>
+
+                        <th>Days</th>
+
+                        <th>Reason</th>
+
+                        <th>Status</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="leave-tbody">
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="leave-empty"
+                        >
+                            <i class="fas fa-spinner fa-spin"></i>
+
+                            Loading leave requests...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     APPLY LEAVE MODAL
+========================================================== -->
+
+<div
+    class="leave-modal-backdrop"
+    id="applyLeaveModal"
+>
+
+    <div class="leave-modal">
+
+        <div class="leave-modal-header">
+
+            <div>
+
+                <h3>
+                    Apply Leave
+                </h3>
+
+                <p>
+                    Create a leave request for an employee.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="leave-modal-close"
+                onclick="closeLeaveModal()"
+            >
+                <i class="fas fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="leave-modal-body">
+
+            <!-- EMPLOYEE -->
+
+            <div class="leave-form-group">
+
+                <label class="leave-form-label">
+                    Employee *
+                </label>
+
+                <select
+                    class="leave-form-control"
+                    id="leaveEmpSel">
+
+                    <option value="">
+                        Select employee
+                    </option>
+
+                    {% for staff in staff_members %}
+
+                        <option value="{{ staff.id }}">
+
+                            {{ staff.name }}
+
+                            {% if staff.department %}
+                                — {{ staff.department.name }}
+                            {% endif %}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- DATES -->
+
+            <div class="leave-form-row">
+
+                <div class="leave-form-group">
+
+                    <label class="leave-form-label">
+                        From Date *
+                    </label>
+
+                    <input
+                        type="date"
+                        class="leave-form-control"
+                        id="leaveFrom"
+                    >
+
+                </div>
+
+
+                <div class="leave-form-group">
+
+                    <label class="leave-form-label">
+                        To Date *
+                    </label>
+
+                    <input
+                        type="date"
+                        class="leave-form-control"
+                        id="leaveTo"
+                    >
+
+                </div>
+
+            </div>
+
+
+           
+
+
+            <!-- REASON -->
+
+            <div class="leave-form-group">
+
+                <label class="leave-form-label">
+                    Reason
+                </label>
+
+                <textarea
+                    class="leave-form-control"
+                    id="leaveReason"
+                    placeholder="Enter reason for leave..."
+                ></textarea>
+
+            </div>
+
+        </div>
+
+
+        <div class="leave-modal-footer">
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-outline"
+                onclick="closeLeaveModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="leave-btn leave-btn-primary"
+                id="leaveSubmitButton"
+                onclick="submitApplyLeave()"
+            >
+                <i class="fas fa-paper-plane"></i>
+
+                Submit Leave
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="leave-toast-container"
+    id="leaveToastContainer"
+></div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+let allLeave = [];
+
+let leaveStatusFilter = "all";
+
+
+/* ============================================================
+   CSRF
+============================================================ */
+
+function getLeaveCsrfToken() {
+
+    const name = "csrftoken=";
+
+    const cookies = document.cookie.split(";");
+
+    for (let cookie of cookies) {
+
+        cookie = cookie.trim();
+
+        if (cookie.startsWith(name)) {
+
+            return decodeURIComponent(
+                cookie.substring(name.length)
+            );
+
+        }
+
+    }
+
+    return "";
+
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+============================================================ */
+
+function escapeLeaveHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+function leaveToast(message, type = "success") {
+
+    const container =
+        document.getElementById(
+            "leaveToastContainer"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    const toast =
+        document.createElement("div");
+
+    toast.className =
+        `leave-toast ${type}`;
+
+    toast.innerHTML = `
+        <div style="
+            display:flex;
+            align-items:center;
+            gap:8px;
+        ">
+
+            <i class="fas ${
+                type === "success"
+                    ? "fa-circle-check"
+                    : "fa-circle-exclamation"
+            }"></i>
+
+            <span>
+                ${escapeLeaveHtml(message)}
+            </span>
+
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+
+        toast.remove();
+
+    }, 3500);
+
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+function openLeaveModal() {
+
+    const modal =
+        document.getElementById(
+            "applyLeaveModal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("show");
+
+    document.body.style.overflow = "hidden";
+
+}
+
+
+function closeLeaveModal() {
+
+    const modal =
+        document.getElementById(
+            "applyLeaveModal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove("show");
+
+    document.body.style.overflow = "";
+
+}
+
+
+/* ============================================================
+   LOAD REQUESTS
+============================================================ */
+
+async function loadLeaveRequests() {
+
+    const tbody =
+        document.getElementById(
+            "leave-tbody"
+        );
+
+    if (!tbody) {
+        return;
+    }
+
+    tbody.innerHTML = `
+        <tr>
+            <td
+                colspan="8"
+                class="leave-empty"
+            >
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading leave requests...
+            </td>
+        </tr>
+    `;
+
+
+    const month =
+        document.getElementById(
+            "lvMonthFilter"
+        )?.value || "";
+
+
+    const year =
+        document.getElementById(
+            "lvYearFilter"
+        )?.value || "";
+
+
+    const params =
+        new URLSearchParams();
+
+
+    if (month) {
+        params.set(
+            "month",
+            month
+        );
+    }
+
+
+    if (year) {
+        params.set(
+            "year",
+            year
+        );
+    }
+
+
+    try {
+
+        const response = await fetch(
+            "{% url 'admin_leave_requests' %}?" +
+            params.toString(),
+            {
+                method: "GET",
+                headers: {
+                    "X-Requested-With":
+                        "XMLHttpRequest"
+                }
+            }
+        );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.error ||
+                "Unable to load leave requests."
+            );
+
+        }
+
+
+        allLeave =
+            Array.isArray(data.leaves)
+                ? data.leaves
+                : [];
+
+
+        const summary =
+            data.summary || {};
+
+
+        document.getElementById(
+            "lv-total"
+        ).textContent =
+            summary.total ?? allLeave.length;
+
+
+        document.getElementById(
+            "lv-pending"
+        ).textContent =
+            summary.pending ??
+            allLeave.filter(
+                item =>
+                    item.status === "Pending"
+            ).length;
+
+
+        document.getElementById(
+            "lv-approved"
+        ).textContent =
+            summary.approved ??
+            allLeave.filter(
+                item =>
+                    item.status === "Approved"
+            ).length;
+
+
+        document.getElementById(
+            "lv-rejected"
+        ).textContent =
+            summary.rejected ??
+            allLeave.filter(
+                item =>
+                    item.status === "Rejected"
+            ).length;
+
+
+        renderLeaveTable();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Leave load error:",
+            error
+        );
+
+
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="leave-empty"
+                >
+
+                    <i class="
+                        fas
+                        fa-circle-exclamation
+                    "></i>
+
+                    ${escapeLeaveHtml(
+                        error.message
+                    )}
+
+                </td>
+            </tr>
+        `;
+
+
+        leaveToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   STATUS FILTER
+============================================================ */
+
+function filterLeaveByStatus(
+    status,
+    button
+) {
+
+    leaveStatusFilter =
+        status;
+
+
+    document
+        .querySelectorAll(
+            ".leave-status-tab"
+        )
+        .forEach(item => {
+
+            item.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    if (button) {
+
+        button.classList.add(
+            "active"
+        );
+
+    }
+
+
+    renderLeaveTable();
+
+}
+
+
+/* ============================================================
+   RENDER TABLE
+============================================================ */
+
+function renderLeaveTable() {
+
+    const tbody =
+        document.getElementById(
+            "leave-tbody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    let filtered =
+        [...allLeave];
+
+
+    if (
+        leaveStatusFilter !== "all"
+    ) {
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.status ===
+                    leaveStatusFilter
+            );
+
+    }
+
+
+    if (!filtered.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="leave-empty"
+                >
+
+                    <i class="
+                        fas
+                        fa-calendar-xmark
+                    "></i>
+
+                    No leave requests found.
+
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    tbody.innerHTML =
+        filtered.map(leave => {
+
+
+            let days = 0;
+
+
+            if (
+                leave.from_date &&
+                leave.to_date
+            ) {
+
+                const from =
+                    new Date(
+                        leave.from_date +
+                        "T00:00:00"
+                    );
+
+
+                const to =
+                    new Date(
+                        leave.to_date +
+                        "T00:00:00"
+                    );
+
+
+                days =
+                    Math.round(
+                        (
+                            to.getTime() -
+                            from.getTime()
+                        )
+                        /
+                        86400000
+                    )
+                    + 1;
+
+            }
+
+
+            let appliedAt = "—";
+
+
+            if (leave.applied_at) {
+
+                const parsed =
+                    new Date(
+                        leave.applied_at
+                    );
+
+
+                if (
+                    !Number.isNaN(
+                        parsed.getTime()
+                    )
+                ) {
+
+                    appliedAt =
+                        parsed.toLocaleDateString(
+                            "en-IN",
+                            {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric"
+                            }
+                        );
+
+                }
+
+                else {
+
+                    appliedAt =
+                        escapeLeaveHtml(
+                            leave.applied_at
+                        );
+
+                }
+
+            }
+
+
+            const status =
+                leave.status ||
+                "Pending";
+
+
+            const statusClass =
+                status === "Approved"
+                    ? "approved"
+                    : (
+                        status === "Rejected"
+                            ? "rejected"
+                            : "pending"
+                    );
+
+
+            let actions = "—";
+
+
+            if (
+                status === "Pending"
+            ) {
+
+                actions = `
+                    <div style="
+                        display:flex;
+                        align-items:center;
+                        gap:6px;
+                    ">
+
+                        <button
+                            type="button"
+                            class="
+                                leave-btn
+                                leave-btn-success
+                                leave-btn-sm
+                            "
+                            onclick="
+                                updateLeaveStatus(
+                                    ${leave.id},
+                                    'approve',
+                                    this
+                                )
+                            "
+                        >
+
+                            <i class="
+                                fas
+                                fa-check
+                            "></i>
+
+                            Approve
+
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="
+                                leave-btn
+                                leave-btn-danger
+                                leave-btn-sm
+                            "
+                            onclick="
+                                updateLeaveStatus(
+                                    ${leave.id},
+                                    'reject',
+                                    this
+                                )
+                            "
+                        >
+
+                            <i class="
+                                fas
+                                fa-xmark
+                            "></i>
+
+                            Reject
+
+                        </button>
+
+                    </div>
+                `;
+
+            }
+
+
+            const employeeName =
+                leave.staff ||
+                "Deleted Staff";
+
+
+            const department =
+                leave.department ||
+                "";
+
+
+            return `
+
+                <tr>
+
+                    <td>
+
+                        <div class="
+                            leave-employee
+                        ">
+
+                            <div class="
+                                leave-avatar
+                            ">
+
+                                ${escapeLeaveHtml(
+                                    employeeName
+                                        .charAt(0)
+                                        .toUpperCase()
+                                )}
+
+                            </div>
+
+
+                            <div>
+
+                                <div class="
+                                    leave-employee-name
+                                ">
+
+                                    ${escapeLeaveHtml(
+                                        employeeName
+                                    )}
+
+                                </div>
+
+
+                                ${
+                                    department
+                                    ? `
+                                        <div class="
+                                            leave-employee-dept
+                                        ">
+                                            ${escapeLeaveHtml(
+                                                department
+                                            )}
+                                        </div>
+                                    `
+                                    : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+                        ${appliedAt}
+                    </td>
+
+
+                    <td>
+                        ${escapeLeaveHtml(
+                            leave.from_date ||
+                            "—"
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeLeaveHtml(
+                            leave.to_date ||
+                            "—"
+                        )}
+                    </td>
+
+
+                    <td>
+
+                        ${
+                            days > 0
+                                ? (
+                                    days +
+                                    (
+                                        days === 1
+                                            ? " day"
+                                            : " days"
+                                    )
+                                )
+                                : "—"
+                        }
+
+                    </td>
+
+
+                    <td
+                        title="${escapeLeaveHtml(
+                            leave.reason ||
+                            ""
+                        )}"
+                        style="
+                            max-width:230px;
+                        "
+                    >
+
+                        <div style="
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            white-space:nowrap;
+                        ">
+
+                            ${escapeLeaveHtml(
+                                leave.reason ||
+                                "—"
+                            )}
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <span class="
+                            leave-status
+                            ${statusClass}
+                        ">
+
+                            ${escapeLeaveHtml(
+                                status
+                            )}
+
+                        </span>
+
+                    </td>
+
+
+                    <td>
+                        ${actions}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }).join("");
+
+}
+
+
+/* ============================================================
+   APPROVE / REJECT
+============================================================ */
+
+async function updateLeaveStatus(
+    leaveId,
+    action,
+    button
+) {
+
+    if (!leaveId) {
+        return;
+    }
+
+
+    const original =
+        button
+            ? button.innerHTML
+            : "";
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.innerHTML = `
+            <i class="
+                fas
+                fa-spinner
+                fa-spin
+            "></i>
+        `;
+
+    }
+
+
+    const form =
+        new URLSearchParams();
+
+    form.append(
+        "action",
+        action
+    );
+
+
+    try {
+
+        const url =
+            "{% url 'admin_leave_update' 999999 %}"
+                .replace(
+                    "999999",
+                    leaveId
+                );
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/x-www-form-urlencoded;charset=UTF-8",
+
+                        "X-CSRFToken":
+                            getLeaveCsrfToken(),
+
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+
+                    },
+
+                    body:
+                        form.toString()
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error ||
+                "Unable to update leave."
+            );
+
+        }
+
+
+        leaveToast(
+            data.message ||
+            (
+                action === "approve"
+                    ? "Leave approved successfully."
+                    : "Leave rejected successfully."
+            ),
+            "success"
+        );
+
+
+        await loadLeaveRequests();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Leave update error:",
+            error
+        );
+
+
+        leaveToast(
+            error.message,
+            "error"
+        );
+
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.innerHTML =
+                original;
+
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   APPLY LEAVE
+============================================================ */
+
+async function submitApplyLeave() {
+
+    const employee =
+        document.getElementById(
+            "leaveEmpSel"
+        )?.value;
+
+
+    const from =
+        document.getElementById(
+            "leaveFrom"
+        )?.value;
+
+
+    const to =
+        document.getElementById(
+            "leaveTo"
+        )?.value;
+
+
+    const reason =
+        document.getElementById(
+            "leaveReason"
+        )?.value.trim() || "";
+
+
+    if (!employee) {
+
+        leaveToast(
+            "Please select an employee.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (!from || !to) {
+
+        leaveToast(
+            "From date and To date are required.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        new Date(to) <
+        new Date(from)
+    ) {
+
+        leaveToast(
+            "To date cannot be before From date.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "leaveSubmitButton"
+        );
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled = true;
+
+    button.innerHTML = `
+        <i class="
+            fas
+            fa-spinner
+            fa-spin
+        "></i>
+
+        Submitting...
+    `;
+
+
+    const form =
+        new URLSearchParams();
+
+
+    form.append(
+        "staff_id",
+        employee
+    );
+
+
+    form.append(
+        "from_date",
+        from
+    );
+
+
+    form.append(
+        "to_date",
+        to
+    );
+
+
+    form.append(
+        "reason",
+        reason
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'apply_leave' %}",
+                {
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/x-www-form-urlencoded;charset=UTF-8",
+
+                        "X-CSRFToken":
+                            getLeaveCsrfToken(),
+
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+
+                    },
+
+                    body:
+                        form.toString()
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error ||
+                "Unable to apply leave."
+            );
+
+        }
+
+
+        leaveToast(
+            data.message ||
+            "Leave request submitted successfully.",
+            "success"
+        );
+
+
+        closeLeaveModal();
+
+
+        document.getElementById(
+            "leaveEmpSel"
+        ).value = "";
+
+
+        document.getElementById(
+            "leaveFrom"
+        ).value = "";
+
+
+        document.getElementById(
+            "leaveTo"
+        ).value = "";
+
+
+        document.getElementById(
+            "leaveReason"
+        ).value = "";
+
+
+        await loadLeaveRequests();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Apply leave error:",
+            error
+        );
+
+
+        leaveToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+    finally {
+
+        button.disabled = false;
+
+        button.innerHTML =
+            original;
+
+    }
+
+}
+
+
+/* ============================================================
+   YEAR OPTIONS
+============================================================ */
+
+function setupLeaveYears() {
+
+    const select =
+        document.getElementById(
+            "lvYearFilter"
+        );
+
+
+    if (!select) {
+        return;
+    }
+
+
+    const currentYear =
+        new Date().getFullYear();
+
+
+    let html = `
+        <option value="">
+            All Years
+        </option>
+    `;
+
+
+    for (
+        let year = currentYear - 3;
+        year <= currentYear + 1;
+        year++
+    ) {
+
+        html += `
+            <option
+                value="${year}"
+                ${
+                    year === currentYear
+                        ? "selected"
+                        : ""
+                }
+            >
+                ${year}
+            </option>
+        `;
+
+    }
+
+
+    select.innerHTML =
+        html;
+
+}
+
+
+/* ============================================================
+   RESET FILTER
+============================================================ */
+
+function resetLeaveFilters() {
+
+    document.getElementById(
+        "lvMonthFilter"
+    ).value = "";
+
+
+    document.getElementById(
+        "lvYearFilter"
+    ).value = "";
+
+
+    leaveStatusFilter =
+        "all";
+
+
+    document
+        .querySelectorAll(
+            ".leave-status-tab"
+        )
+        .forEach(
+            button =>
+                button.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .querySelector(
+            ".leave-status-tab"
+        )
+        ?.classList.add(
+            "active"
+        );
+
+
+    loadLeaveRequests();
+
+}
+
+
+/* ============================================================
+   CLOSE MODAL BY BACKDROP
+============================================================ */
+
+document
+    .getElementById(
+        "applyLeaveModal"
+    )
+    ?.addEventListener(
+        "click",
+        function(event) {
+
+            if (
+                event.target === this
+            ) {
+
+                closeLeaveModal();
+
+            }
+
+        }
+    );
+
+
+/* ============================================================
+   PAGE LOAD
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        setupLeaveYears();
+
+        loadLeaveRequests();
+
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+
+        if (
+            params.get("action") ===
+            "apply"
+        ) {
+
+            openLeaveModal();
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}
+

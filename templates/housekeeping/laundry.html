@@ -1,0 +1,1478 @@
+{% extends "housekeeping/base.html" %}
+
+{% block title %}
+Laundry | Housekeeping
+{% endblock %}
+
+
+{% block content %}
+
+<div class="hk-page hk-laundry-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="hk-page-header">
+
+        <div>
+            <div class="hk-eyebrow">
+                HOUSEKEEPING
+            </div>
+
+            <h1>Laundry</h1>
+
+            <p>
+                Manage guest laundry requests,
+                track processing and monitor completed orders.
+            </p>
+        </div>
+
+
+        <div class="hk-page-actions">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                id="refreshLaundryBtn"
+            >
+                <i class="fa-solid fa-rotate-right"></i>
+                Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         STATISTICS
+    ====================================================== -->
+
+    <div class="hk-laundry-stats">
+
+        <!-- TOTAL -->
+
+        <div class="hk-laundry-stat-card">
+
+            <div class="hk-laundry-stat-head">
+
+                <div class="hk-laundry-stat-icon">
+                    <i class="fa-solid fa-shirt"></i>
+                </div>
+
+                <span class="hk-laundry-stat-tag">
+                    All
+                </span>
+
+            </div>
+
+            <div
+                class="hk-laundry-stat-value"
+                id="laundryTotalCount"
+            >
+                0
+            </div>
+
+            <div class="hk-laundry-stat-title">
+                Total Orders
+            </div>
+
+            <div class="hk-laundry-stat-subtitle">
+                Laundry requests
+            </div>
+
+        </div>
+
+
+        <!-- PENDING -->
+
+        <div class="hk-laundry-stat-card">
+
+            <div class="hk-laundry-stat-head">
+
+                <div class="hk-laundry-stat-icon warning">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="hk-laundry-stat-value"
+                id="laundryPendingCount"
+            >
+                0
+            </div>
+
+            <div class="hk-laundry-stat-title">
+                Pending
+            </div>
+
+            <div class="hk-laundry-stat-subtitle">
+                Waiting for pickup
+            </div>
+
+        </div>
+
+
+        <!-- PROCESSING -->
+
+        <div class="hk-laundry-stat-card">
+
+            <div class="hk-laundry-stat-head">
+
+                <div class="hk-laundry-stat-icon info">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="hk-laundry-stat-value"
+                id="laundryProcessingCount"
+            >
+                0
+            </div>
+
+            <div class="hk-laundry-stat-title">
+                Processing
+            </div>
+
+            <div class="hk-laundry-stat-subtitle">
+                Currently being handled
+            </div>
+
+        </div>
+
+
+        <!-- DELIVERED -->
+
+        <div class="hk-laundry-stat-card">
+
+            <div class="hk-laundry-stat-head">
+
+                <div class="hk-laundry-stat-icon success">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="hk-laundry-stat-value"
+                id="laundryCompletedCount"
+            >
+                0
+            </div>
+
+            <div class="hk-laundry-stat-title">
+                Delivered
+            </div>
+
+            <div class="hk-laundry-stat-subtitle">
+                Returned to guest
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         FILTERS
+    ====================================================== -->
+
+    <div class="hk-laundry-toolbar">
+
+        <div class="hk-laundry-tabs">
+
+            <button
+                type="button"
+                class="hk-laundry-tab active"
+                data-status="all"
+            >
+                All
+            </button>
+
+            <button
+                type="button"
+                class="hk-laundry-tab"
+                data-status="pending"
+            >
+                Pending
+            </button>
+
+            <button
+                type="button"
+                class="hk-laundry-tab"
+                data-status="picked_up"
+            >
+                Picked Up
+            </button>
+
+            <button
+                type="button"
+                class="hk-laundry-tab"
+                data-status="washing"
+            >
+                Washing
+            </button>
+
+            <button
+                type="button"
+                class="hk-laundry-tab"
+                data-status="ready"
+            >
+                Ready
+            </button>
+
+            <button
+                type="button"
+                class="hk-laundry-tab"
+                data-status="delivered"
+            >
+                Delivered
+            </button>
+
+        </div>
+
+
+        <div class="hk-laundry-search">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            <input
+                type="search"
+                id="laundrySearch"
+                placeholder="Search room, guest or order..."
+                autocomplete="off"
+            >
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         ORDERS
+    ====================================================== -->
+
+    <section class="hk-laundry-card">
+
+        <div class="hk-laundry-card-header">
+
+            <div>
+                <h2>Laundry Orders</h2>
+
+                <p>
+                    Guest laundry requests and their current status.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="hk-laundry-table-wrap">
+
+            <table class="hk-laundry-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Order</th>
+                        <th>Guest / Room</th>
+                        <th>Service</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="laundryTableBody">
+
+                    <tr>
+                        <td colspan="6">
+
+                            <div class="hk-laundry-empty">
+
+                                <div class="hk-laundry-empty-icon">
+                                    <i class="fa-solid fa-spinner fa-spin"></i>
+                                </div>
+
+                                <h3>Loading laundry orders</h3>
+
+                                <p>Please wait...</p>
+
+                            </div>
+
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =====================================================
+     UPDATE STATUS MODAL
+====================================================== -->
+
+<div
+    class="hk-modal-backdrop"
+    id="laundryStatusModal"
+    aria-hidden="true"
+>
+
+    <div class="hk-modal">
+
+        <div class="hk-modal-header">
+
+            <div>
+
+                <span class="hk-modal-eyebrow">
+                    HOUSEKEEPING
+                </span>
+
+                <h2>
+                    Update Laundry Status
+                </h2>
+
+                <p id="laundryModalOrderInfo">
+                    Update laundry processing status.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                id="closeLaundryStatusModal"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="hk-modal-body">
+
+            <input
+                type="hidden"
+                id="laundryOrderId"
+            >
+
+
+            <div class="hk-form-group">
+
+                <label for="laundryNewStatus">
+                    Status
+                </label>
+
+                <select id="laundryNewStatus">
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="picked_up">
+                        Picked Up
+                    </option>
+
+                    <option value="washing">
+                        Washing
+                    </option>
+
+                    <option value="drying">
+                        Drying
+                    </option>
+
+                    <option value="folding">
+                        Folding
+                    </option>
+
+                    <option value="ready">
+                        Ready
+                    </option>
+
+                    <option value="delivered">
+                        Delivered
+                    </option>
+
+                    <option value="cancelled">
+                        Cancelled
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="hk-form-group">
+
+                <label for="laundryStatusNote">
+                    Note
+                </label>
+
+                <textarea
+                    id="laundryStatusNote"
+                    rows="4"
+                    placeholder="Optional note..."
+                ></textarea>
+
+            </div>
+
+        </div>
+
+
+        <div class="hk-modal-footer">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                id="cancelLaundryStatus"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                id="saveLaundryStatusBtn"
+            >
+                <i class="fa-solid fa-check"></i>
+                Update Status
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    let laundryOrders = [];
+    let activeStatus = "all";
+
+
+    const statusLabels = {
+
+        pending: "Pending",
+
+        picked_up: "Picked Up",
+
+        washing: "Washing",
+
+        drying: "Drying",
+
+        folding: "Folding",
+
+        ready: "Ready",
+
+        delivered: "Delivered",
+
+        cancelled: "Cancelled"
+
+    };
+
+
+    // =====================================================
+    // CSRF COOKIE
+    // =====================================================
+
+    function getCookie(name) {
+
+        let cookieValue = null;
+
+        if (
+            document.cookie &&
+            document.cookie !== ""
+        ) {
+
+            const cookies =
+                document.cookie.split(";");
+
+
+            for (let cookie of cookies) {
+
+                cookie = cookie.trim();
+
+                if (
+                    cookie.substring(
+                        0,
+                        name.length + 1
+                    ) === name + "="
+                ) {
+
+                    cookieValue =
+                        decodeURIComponent(
+                            cookie.substring(
+                                name.length + 1
+                            )
+                        );
+
+                    break;
+                }
+            }
+        }
+
+        return cookieValue;
+    }
+
+
+
+    // =====================================================
+    // ESCAPE HTML
+    // =====================================================
+
+    function escapeHtml(value) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return "";
+        }
+
+
+        return String(value)
+
+            .replaceAll("&", "&amp;")
+
+            .replaceAll("<", "&lt;")
+
+            .replaceAll(">", "&gt;")
+
+            .replaceAll('"', "&quot;")
+
+            .replaceAll("'", "&#039;");
+    }
+
+
+
+    // =====================================================
+    // LOAD EXISTING LAUNDRY ORDERS
+    // =====================================================
+
+    async function loadLaundryOrders() {
+
+        const tableBody =
+            document.getElementById(
+                "laundryTableBody"
+            );
+
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td colspan="6">
+
+                    <div class="hk-laundry-empty">
+
+                        <div class="hk-laundry-empty-icon">
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-spinner
+                                    fa-spin
+                                "
+                            ></i>
+
+                        </div>
+
+                        <h3>
+                            Loading laundry orders
+                        </h3>
+
+                        <p>
+                            Please wait...
+                        </p>
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/inventory/laundry/orders/",
+                    {
+                        headers: {
+
+                            "X-CSRFToken":
+                                getCookie(
+                                    "csrftoken"
+                                )
+
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load laundry orders."
+                );
+            }
+
+
+            const data =
+                await response.json();
+
+
+            laundryOrders =
+                data.orders || [];
+
+
+            updateStatistics();
+
+            renderLaundryOrders();
+
+
+        } catch (error) {
+
+            console.error(
+                "Laundry error:",
+                error
+            );
+
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="6">
+
+                        <div class="hk-laundry-empty">
+
+                            <div class="hk-laundry-empty-icon">
+
+                                <i
+                                    class="
+                                        fa-solid
+                                        fa-triangle-exclamation
+                                    "
+                                ></i>
+
+                            </div>
+
+                            <h3>
+                                Could not load laundry orders
+                            </h3>
+
+                            <p>
+                                Check the Inventory Laundry API.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+        }
+    }
+
+
+
+    // =====================================================
+    // STATISTICS
+    // =====================================================
+
+    function updateStatistics() {
+
+        const pending =
+            laundryOrders.filter(
+                order =>
+                    order.status ===
+                    "pending"
+            ).length;
+
+
+        const processing =
+            laundryOrders.filter(
+                order =>
+                    [
+                        "picked_up",
+                        "washing",
+                        "drying",
+                        "folding"
+                    ].includes(
+                        order.status
+                    )
+            ).length;
+
+
+        const delivered =
+            laundryOrders.filter(
+                order =>
+                    order.status ===
+                    "delivered"
+            ).length;
+
+
+        document.getElementById(
+            "laundryTotalCount"
+        ).textContent =
+            laundryOrders.length;
+
+
+        document.getElementById(
+            "laundryPendingCount"
+        ).textContent =
+            pending;
+
+
+        document.getElementById(
+            "laundryProcessingCount"
+        ).textContent =
+            processing;
+
+
+        document.getElementById(
+            "laundryCompletedCount"
+        ).textContent =
+            delivered;
+    }
+
+
+
+    // =====================================================
+    // RENDER ORDERS
+    // =====================================================
+
+    function renderLaundryOrders() {
+
+        const tableBody =
+            document.getElementById(
+                "laundryTableBody"
+            );
+
+
+        const search =
+            (
+                document.getElementById(
+                    "laundrySearch"
+                ).value || ""
+            )
+            .trim()
+            .toLowerCase();
+
+
+        let filtered =
+            [...laundryOrders];
+
+
+        // STATUS FILTER
+
+        if (activeStatus !== "all") {
+
+            filtered =
+                filtered.filter(
+                    order =>
+                        order.status ===
+                        activeStatus
+                );
+        }
+
+
+        // SEARCH
+
+        if (search) {
+
+            filtered =
+                filtered.filter(
+                    order => {
+
+                        const searchable = `
+
+                            ${order.id || ""}
+
+                            ${order.room || ""}
+
+                            ${order.guest_name || ""}
+
+                            ${order.order_type || ""}
+
+                        `.toLowerCase();
+
+
+                        return searchable.includes(
+                            search
+                        );
+                    }
+                );
+        }
+
+
+        // EMPTY
+
+        if (!filtered.length) {
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="6">
+
+                        <div class="hk-laundry-empty">
+
+                            <div class="hk-laundry-empty-icon">
+
+                                <i
+                                    class="
+                                        fa-solid
+                                        fa-shirt
+                                    "
+                                ></i>
+
+                            </div>
+
+                            <h3>
+                                No laundry orders
+                            </h3>
+
+                            <p>
+                                No laundry orders match
+                                the selected filter.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+        }
+
+
+
+        // ORDERS
+
+        tableBody.innerHTML =
+            filtered.map(
+                order => {
+
+
+                    const status =
+                        order.status ||
+                        "pending";
+
+
+                    const service =
+                        (
+                            order.order_type ||
+                            "—"
+                        )
+                        .replaceAll(
+                            "_",
+                            " "
+                        )
+                        .replace(
+                            /\b\w/g,
+                            char =>
+                                char.toUpperCase()
+                        );
+
+
+                    const total =
+                        Number(
+                            order.total || 0
+                        )
+                        .toLocaleString(
+                            "en-IN"
+                        );
+
+
+                    return `
+
+                        <tr
+                            class="
+                                laundry-order-row
+                            "
+                        >
+
+
+                            <!-- ORDER -->
+
+                            <td>
+
+                                <div
+                                    class="
+                                        hk-laundry-order
+                                    "
+                                >
+
+                                    <div
+                                        class="
+                                            hk-laundry-order-icon
+                                        "
+                                    >
+
+                                        <i
+                                            class="
+                                                fa-solid
+                                                fa-shirt
+                                            "
+                                        ></i>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <strong>
+                                            #${escapeHtml(
+                                                order.id
+                                            )}
+                                        </strong>
+
+                                        <span>
+                                            Laundry order
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+
+                            <!-- GUEST / ROOM -->
+
+                            <td>
+
+                                <div
+                                    class="
+                                        hk-laundry-guest
+                                    "
+                                >
+
+                                    <strong>
+
+                                        ${escapeHtml(
+                                            order.guest_name ||
+                                            "Guest"
+                                        )}
+
+                                    </strong>
+
+
+                                    <span>
+
+                                        <i
+                                            class="
+                                                fa-solid
+                                                fa-door-open
+                                            "
+                                        ></i>
+
+                                        Room
+
+                                        ${escapeHtml(
+                                            order.room ||
+                                            "—"
+                                        )}
+
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+
+
+                            <!-- SERVICE -->
+
+                            <td>
+
+                                <strong>
+                                    ${escapeHtml(
+                                        service
+                                    )}
+                                </strong>
+
+                            </td>
+
+
+
+                            <!-- TOTAL -->
+
+                            <td>
+
+                                <strong>
+                                    ₹${total}
+                                </strong>
+
+                            </td>
+
+
+
+                            <!-- STATUS -->
+
+                            <td>
+
+                                <span
+                                    class="
+                                        hk-laundry-status
+                                        hk-laundry-status-${status}
+                                    "
+                                >
+
+                                    <span></span>
+
+                                    ${
+                                        statusLabels[
+                                            status
+                                        ] ||
+                                        escapeHtml(
+                                            status
+                                        )
+                                    }
+
+                                </span>
+
+                            </td>
+
+
+
+                            <!-- ACTION -->
+
+                            <td>
+
+                                ${
+                                    status !==
+                                    "delivered" &&
+
+                                    status !==
+                                    "cancelled"
+
+                                    ?
+
+                                    `
+
+                                    <button
+                                        type="button"
+                                        class="
+                                            hk-btn
+                                            hk-btn-primary
+                                        "
+                                        onclick="
+                                            openLaundryStatusModal(
+                                                ${Number(
+                                                    order.id
+                                                )}
+                                            )
+                                        "
+                                    >
+
+                                        <i
+                                            class="
+                                                fa-regular
+                                                fa-pen-to-square
+                                            "
+                                        ></i>
+
+                                        Update
+
+                                    </button>
+
+                                    `
+
+                                    :
+
+                                    `
+
+                                    <span>
+                                        ${
+                                            status ===
+                                            "delivered"
+
+                                            ? "Delivered"
+
+                                            : "Cancelled"
+                                        }
+                                    </span>
+
+                                    `
+                                }
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+
+            ).join("");
+    }
+
+
+
+    // =====================================================
+    // FILTER TABS
+    // =====================================================
+
+    document
+        .querySelectorAll(
+            ".hk-laundry-tab"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    function () {
+
+                        document
+                            .querySelectorAll(
+                                ".hk-laundry-tab"
+                            )
+                            .forEach(
+                                tab =>
+                                    tab.classList.remove(
+                                        "active"
+                                    )
+                            );
+
+
+                        this.classList.add(
+                            "active"
+                        );
+
+
+                        activeStatus =
+                            this.dataset.status;
+
+
+                        renderLaundryOrders();
+
+                    }
+                );
+
+            }
+        );
+
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    document
+        .getElementById(
+            "laundrySearch"
+        )
+        .addEventListener(
+            "input",
+            renderLaundryOrders
+        );
+
+
+
+    // =====================================================
+    // REFRESH
+    // =====================================================
+
+    document
+        .getElementById(
+            "refreshLaundryBtn"
+        )
+        .addEventListener(
+            "click",
+            loadLaundryOrders
+        );
+
+
+
+    // =====================================================
+    // OPEN STATUS MODAL
+    // =====================================================
+
+    window.openLaundryStatusModal =
+        function (orderId) {
+
+
+            const order =
+                laundryOrders.find(
+                    item =>
+                        Number(
+                            item.id
+                        ) ===
+                        Number(
+                            orderId
+                        )
+                );
+
+
+            if (!order) {
+                return;
+            }
+
+
+            document.getElementById(
+                "laundryOrderId"
+            ).value =
+                order.id;
+
+
+            document.getElementById(
+                "laundryNewStatus"
+            ).value =
+                order.status;
+
+
+            document.getElementById(
+                "laundryStatusNote"
+            ).value = "";
+
+
+            document.getElementById(
+                "laundryModalOrderInfo"
+            ).textContent =
+                `Order #${order.id} — Room ${order.room || "—"}`;
+
+
+            const modal =
+                document.getElementById(
+                    "laundryStatusModal"
+                );
+
+
+            modal.classList.add(
+                "show"
+            );
+
+
+            modal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+
+            document.body.classList.add(
+                "hk-modal-open"
+            );
+
+        };
+
+
+
+    // =====================================================
+    // CLOSE MODAL
+    // =====================================================
+
+    function closeLaundryStatusModal() {
+
+        const modal =
+            document.getElementById(
+                "laundryStatusModal"
+            );
+
+
+        modal.classList.remove(
+            "show"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        document.body.classList.remove(
+            "hk-modal-open"
+        );
+
+    }
+
+
+    document
+        .getElementById(
+            "closeLaundryStatusModal"
+        )
+        .addEventListener(
+            "click",
+            closeLaundryStatusModal
+        );
+
+
+    document
+        .getElementById(
+            "cancelLaundryStatus"
+        )
+        .addEventListener(
+            "click",
+            closeLaundryStatusModal
+        );
+
+
+
+    // =====================================================
+    // SAVE STATUS
+    // =====================================================
+
+    document
+        .getElementById(
+            "saveLaundryStatusBtn"
+        )
+        .addEventListener(
+            "click",
+            async function () {
+
+
+                const orderId =
+                    document.getElementById(
+                        "laundryOrderId"
+                    ).value;
+
+
+                const status =
+                    document.getElementById(
+                        "laundryNewStatus"
+                    ).value;
+
+
+                const note =
+                    document.getElementById(
+                        "laundryStatusNote"
+                    ).value;
+
+
+                const button = this;
+
+                button.disabled = true;
+
+
+                try {
+
+                    const response =
+                        await fetch(
+
+                            `/inventory/laundry/update-status/${orderId}/`,
+
+                            {
+
+                                method:
+                                    "POST",
+
+
+                                headers: {
+
+                                    "Content-Type":
+                                        "application/json",
+
+                                    "X-CSRFToken":
+                                        getCookie(
+                                            "csrftoken"
+                                        )
+
+                                },
+
+
+                                body:
+                                    JSON.stringify({
+
+                                        status:
+                                            status,
+
+                                        note:
+                                            note
+
+                                    })
+
+                            }
+
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
+
+                        throw new Error(
+                            data.error ||
+                            "Unable to update status."
+                        );
+
+                    }
+
+
+                    closeLaundryStatusModal();
+
+
+                    await loadLaundryOrders();
+
+
+                } catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+
+                    alert(
+                        error.message ||
+                        "Unable to update laundry status."
+                    );
+
+                } finally {
+
+                    button.disabled = false;
+
+                }
+
+            }
+        );
+
+
+
+    // =====================================================
+    // INITIAL LOAD
+    // =====================================================
+
+    loadLaundryOrders();
+
+});
+
+</script>
+
+{% endblock %}

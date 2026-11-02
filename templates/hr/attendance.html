@@ -1,0 +1,3669 @@
+{% extends "hr/base.html" %}
+
+{% block title %}
+Attendance | Hotel ERP
+{% endblock %}
+
+{% block nav_attendance %}active{% endblock %}
+{% block mobile_nav_attendance %}active{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* ============================================================
+   ATTENDANCE PAGE
+============================================================ */
+
+.att-page {
+    width: 100%;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.att-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+.att-title {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 29px;
+    font-weight: 800;
+
+    letter-spacing: -.6px;
+}
+
+.att-subtitle {
+    margin-top: 6px;
+
+    color: #667085;
+
+    font-size: 12px;
+}
+
+.att-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   BUTTON
+============================================================ */
+
+.att-btn {
+    min-height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 15px;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #344054;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: .15s ease;
+}
+
+.att-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.att-btn-primary {
+    border-color: #7c3aed;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #6d28d9
+        );
+
+    color: #fff;
+
+    box-shadow:
+        0 4px 11px rgba(124,58,237,.18);
+}
+
+.att-btn-primary:hover {
+    background: #6d28d9;
+    color: #fff;
+}
+
+.att-btn-sm {
+    min-height: 32px;
+
+    padding: 0 10px;
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   HERO
+============================================================ */
+
+.att-hero {
+    position: relative;
+
+    min-height: 115px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 25px;
+
+    margin-bottom: 25px;
+
+    padding: 25px 30px;
+
+    overflow: hidden;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            110deg,
+            #7928e8 0%,
+            #4f2aa8 47%,
+            #172554 100%
+        );
+
+    box-shadow:
+        0 13px 30px rgba(88,28,135,.16);
+}
+
+.att-hero::before {
+    content: "";
+
+    position: absolute;
+
+    width: 190px;
+    height: 190px;
+
+    right: 25px;
+    top: -100px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255,255,255,.055);
+}
+
+.att-hero-left {
+    position: relative;
+
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+}
+
+.att-hero-icon {
+    width: 57px;
+    height: 57px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 57px;
+
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 13px;
+
+    background: rgba(255,255,255,.13);
+
+    color: #fff;
+
+    font-size: 22px;
+}
+
+.att-hero-title {
+    color: #fff;
+
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.att-hero-text {
+    margin-top: 5px;
+
+    color: rgba(255,255,255,.76);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   ATTENDANCE KPI - DASHBOARD CARD STYLE
+============================================================ */
+
+.att-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+
+/* ============================================================
+   CARD
+============================================================ */
+
+.att-stat {
+    position: relative;
+
+    min-width: 0;
+    height: 270px;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 27px 28px 0;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    border: 1px solid #e1e5eb;
+    border-radius: 18px;
+
+    box-shadow:
+        0 2px 8px rgba(15, 23, 42, .035);
+
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+
+.att-stat:hover {
+    transform: translateY(-3px);
+
+    border-color: #d5dbe5;
+
+    box-shadow:
+        0 13px 30px rgba(15, 23, 42, .08);
+}
+
+
+/* ============================================================
+   TOP
+============================================================ */
+
+.att-stat-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 14px;
+}
+
+
+/* ============================================================
+   ICON
+============================================================ */
+
+.att-stat-icon {
+    width: 58px;
+    height: 58px;
+
+    flex: 0 0 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+
+    font-size: 21px;
+}
+
+
+/* PRESENT */
+
+.att-stat-icon.green {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+
+/* LATE */
+
+.att-stat-icon.orange {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+
+/* ABSENT */
+
+.att-stat-icon.red {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+/* LEAVE */
+
+.att-stat-icon.blue {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+
+/* ============================================================
+   CHIP
+============================================================ */
+
+.att-stat-chip {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.att-stat-chip.green {
+    background: #dcfce7;
+    color: #059669;
+}
+
+
+.att-stat-chip.orange {
+    background: #fff7ed;
+    color: #d97706;
+}
+
+
+.att-stat-chip.red {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+.att-stat-chip.blue {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+
+/* ============================================================
+   VALUE
+============================================================ */
+
+.att-stat-value {
+    margin-top: 20px;
+    margin-bottom: 0;
+
+    color: #111827;
+
+    font-size: 37px;
+    font-weight: 800;
+
+    line-height: 1;
+
+    letter-spacing: -1.2px;
+}
+
+
+/* ============================================================
+   LABEL
+============================================================ */
+
+.att-stat-label {
+    margin-top: 8px;
+
+    color: #344054;
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+
+/* Old meta is no longer required */
+
+.att-stat-meta {
+    display: none;
+}
+
+
+/* ============================================================
+   MINI GRAPH
+============================================================ */
+
+.att-mini-chart {
+    height: 68px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 6px;
+
+    margin-top: auto;
+}
+
+
+.att-mini-bar {
+    flex: 1;
+
+    min-width: 8px;
+
+    border-radius: 5px 5px 0 0;
+}
+
+
+/* ============================================================
+   GRAPH COLORS
+============================================================ */
+
+.att-stat.green .att-mini-bar {
+    background: #34d399;
+}
+
+
+.att-stat.orange .att-mini-bar {
+    background: #fbbf24;
+}
+
+
+.att-stat.red .att-mini-bar {
+    background: #f87171;
+}
+
+
+.att-stat.blue .att-mini-bar {
+    background: #818cf8;
+}
+
+
+/* ============================================================
+   GRAPH HEIGHTS
+============================================================ */
+
+.att-mini-bar:nth-child(1) {
+    height: 28%;
+    opacity: .42;
+}
+
+.att-mini-bar:nth-child(2) {
+    height: 43%;
+    opacity: .52;
+}
+
+.att-mini-bar:nth-child(3) {
+    height: 35%;
+    opacity: .60;
+}
+
+.att-mini-bar:nth-child(4) {
+    height: 58%;
+    opacity: .72;
+}
+
+.att-mini-bar:nth-child(5) {
+    height: 47%;
+    opacity: .66;
+}
+
+.att-mini-bar:nth-child(6) {
+    height: 69%;
+    opacity: .83;
+}
+
+.att-mini-bar:nth-child(7) {
+    height: 82%;
+}
+
+
+/* ============================================================
+   DARK MODE
+============================================================ */
+
+[data-bs-theme="dark"] .att-stat {
+    background: #18212f;
+
+    border-color:
+        rgba(255, 255, 255, .09);
+}
+
+
+[data-bs-theme="dark"] .att-stat-value,
+[data-bs-theme="dark"] .att-stat-label {
+    color: #f8fafc;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1100px) {
+
+    .att-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .att-stat {
+        height: 245px;
+    }
+
+}
+
+
+@media (max-width: 520px) {
+
+    .att-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .att-stat {
+        height: 235px;
+    }
+
+}
+
+
+/* ============================================================
+   TOOLBAR
+============================================================ */
+
+.att-toolbar {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+
+    padding: 13px;
+
+    border: 1px solid #e1e5eb;
+    border-radius: 12px;
+
+    background: #fff;
+}
+
+.att-search {
+    position: relative;
+
+    min-width: 260px;
+    flex: 1;
+}
+
+.att-search i {
+    position: absolute;
+
+    left: 13px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #98a2b3;
+
+    font-size: 11px;
+}
+
+.att-search input {
+    width: 100%;
+    height: 39px;
+
+    padding: 0 12px 0 36px;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #344054;
+
+    font-size: 11px;
+
+    outline: none;
+}
+
+.att-control {
+    height: 39px;
+
+    padding: 0 11px;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #475467;
+
+    font-size: 11px;
+
+    outline: none;
+}
+
+
+/* ============================================================
+   MAIN GRID
+============================================================ */
+
+.att-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0,1.5fr)
+        minmax(300px,.5fr);
+
+    gap: 20px;
+}
+
+
+/* ============================================================
+   PANEL
+============================================================ */
+
+.att-panel {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border: 1px solid #e1e5eb;
+    border-radius: 14px;
+
+    background: #fff;
+
+    box-shadow:
+        0 2px 7px rgba(15,23,42,.035);
+}
+
+.att-panel-header {
+    min-height: 66px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 14px 18px;
+
+    border-bottom: 1px solid #edf0f3;
+}
+
+.att-panel-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+.att-panel-icon {
+    width: 39px;
+    height: 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #f3e8ff;
+    color: #7c3aed;
+
+    font-size: 13px;
+}
+
+.att-panel-title {
+    color: #111827;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.att-panel-subtitle {
+    margin-top: 3px;
+
+    color: #98a2b3;
+
+    font-size: 9px;
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.att-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.att-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.att-table th {
+    padding: 11px 15px;
+
+    border-bottom: 1px solid #e9edf2;
+
+    background: #fafbfc;
+
+    color: #667085;
+
+    font-size: 9px;
+    font-weight: 800;
+
+    text-align: left;
+
+    text-transform: uppercase;
+
+    letter-spacing: .35px;
+
+    white-space: nowrap;
+}
+
+.att-table td {
+    padding: 13px 15px;
+
+    border-bottom: 1px solid #f0f2f5;
+
+    color: #475467;
+
+    font-size: 10px;
+
+    vertical-align: middle;
+}
+
+.att-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.att-table tbody tr:hover {
+    background: #fcfcfd;
+}
+
+
+/* ============================================================
+   EMPLOYEE
+============================================================ */
+
+.att-employee {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.att-avatar {
+    width: 35px;
+    height: 35px;
+
+    flex: 0 0 35px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 9px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4f46e5
+        );
+
+    color: #fff;
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.att-avatar img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.att-name {
+    color: #344054;
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.att-employee-meta {
+    margin-top: 2px;
+
+    color: #98a2b3;
+
+    font-size: 8px;
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.att-badge {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 8px;
+
+    border-radius: 999px;
+
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.att-badge.present {
+    background: #ecfdf3;
+    color: #15803d;
+}
+
+.att-badge.late {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.att-badge.absent {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.att-badge.half-day {
+    background: #fefce8;
+    color: #a16207;
+}
+
+.att-badge.leave {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.att-badge.pending {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+
+/* ============================================================
+   QUICK ACTIONS
+============================================================ */
+
+.att-side-body {
+    padding: 15px;
+}
+
+.att-quick {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    margin-bottom: 9px;
+
+    padding: 12px;
+
+    border: 1px solid #e7e9ef;
+    border-radius: 10px;
+
+    background: #fff;
+
+    color: #344054;
+
+    cursor: pointer;
+
+    text-align: left;
+
+    transition: .15s ease;
+}
+
+.att-quick:last-child {
+    margin-bottom: 0;
+}
+
+.att-quick:hover {
+    border-color: #d8cdfa;
+
+    background: #faf9ff;
+
+    transform: translateY(-1px);
+}
+
+.att-quick-icon {
+    width: 37px;
+    height: 37px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 37px;
+
+    border-radius: 9px;
+
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.att-quick strong {
+    display: block;
+
+    color: #344054;
+
+    font-size: 10px;
+}
+
+.att-quick span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #98a2b3;
+
+    font-size: 8px;
+}
+
+
+/* ============================================================
+   EMPTY / LOADING
+============================================================ */
+
+.att-empty {
+    padding: 50px 20px;
+
+    color: #98a2b3;
+
+    font-size: 10px;
+
+    text-align: center;
+}
+
+.att-empty i {
+    display: block;
+
+    margin-bottom: 9px;
+
+    color: #cbd5e1;
+
+    font-size: 24px;
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.att-modal {
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 3000;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    background:
+        rgba(15,23,42,.48);
+
+    backdrop-filter:
+        blur(3px);
+}
+
+.att-modal.open {
+    display: flex;
+}
+
+.att-modal-dialog {
+    width: min(620px, 100%);
+
+    max-height: calc(100dvh - 48px);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    border-radius: 14px;
+
+    background: #fff;
+
+    box-shadow:
+        0 25px 60px rgba(15,23,42,.22);
+}
+
+.att-modal-header {
+    min-height: 67px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 15px 18px;
+
+    border-bottom: 1px solid #edf0f3;
+}
+
+.att-modal-title {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+.att-modal-title-icon {
+    width: 39px;
+    height: 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.att-modal-title h3 {
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.att-modal-title p {
+    margin: 3px 0 0;
+
+    color: #98a2b3;
+
+    font-size: 9px;
+}
+
+.att-modal-close {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #667085;
+
+    cursor: pointer;
+}
+
+.att-modal-close:hover {
+    background: #f2f4f7;
+}
+
+.att-modal-body {
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    padding: 18px;
+
+    overflow-y: auto;
+}
+
+.att-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 8px;
+
+    padding: 13px 18px;
+
+    border-top: 1px solid #edf0f3;
+}
+
+
+/* ============================================================
+   FORM
+============================================================ */
+
+.att-form-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2,minmax(0,1fr));
+
+    gap: 14px;
+}
+
+.att-field {
+    min-width: 0;
+}
+
+.att-field.full {
+    grid-column: 1 / -1;
+}
+
+.att-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: #344054;
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.att-field input,
+.att-field select,
+.att-field textarea {
+    width: 100%;
+
+    min-height: 40px;
+
+    padding: 9px 11px;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 8px;
+
+    background: #fff;
+
+    color: #344054;
+
+    font-size: 11px;
+
+    outline: none;
+}
+
+.att-field textarea {
+    min-height: 85px;
+
+    resize: vertical;
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+.att-toast {
+    position: fixed;
+
+    right: 24px;
+    bottom: 24px;
+
+    z-index: 5000;
+
+    min-width: 250px;
+    max-width: 380px;
+
+    padding: 12px 15px;
+
+    border-radius: 10px;
+
+    background: #101828;
+
+    color: #fff;
+
+    font-size: 11px;
+
+    box-shadow:
+        0 15px 35px rgba(15,23,42,.18);
+
+    opacity: 0;
+
+    transform:
+        translateY(12px);
+
+    pointer-events: none;
+
+    transition: .2s ease;
+}
+
+.att-toast.show {
+    opacity: 1;
+
+    transform:
+        translateY(0);
+}
+
+.att-toast.success {
+    background: #166534;
+}
+
+.att-toast.error {
+    background: #b42318;
+}
+
+
+/* ============================================================
+   DARK
+============================================================ */
+
+[data-bs-theme="dark"]
+.att-title,
+
+[data-bs-theme="dark"]
+.att-stat-value,
+
+[data-bs-theme="dark"]
+.att-panel-title,
+
+[data-bs-theme="dark"]
+.att-name,
+
+[data-bs-theme="dark"]
+.att-modal-title h3 {
+
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"]
+.att-stat,
+
+[data-bs-theme="dark"]
+.att-toolbar,
+
+[data-bs-theme="dark"]
+.att-panel,
+
+[data-bs-theme="dark"]
+.att-modal-dialog,
+
+[data-bs-theme="dark"]
+.att-quick {
+
+    background: #18212f;
+
+    border-color:
+        rgba(255,255,255,.09);
+}
+
+[data-bs-theme="dark"]
+.att-table th {
+
+    background: #111827;
+
+    border-color:
+        rgba(255,255,255,.08);
+}
+
+[data-bs-theme="dark"]
+.att-table td,
+
+[data-bs-theme="dark"]
+.att-panel-header,
+
+[data-bs-theme="dark"]
+.att-modal-header,
+
+[data-bs-theme="dark"]
+.att-modal-footer {
+
+    border-color:
+        rgba(255,255,255,.07);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1100px) {
+
+    .att-stats {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+
+    .att-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .att-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .att-header-actions {
+        width: 100%;
+    }
+
+    .att-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .att-search {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .att-control {
+        width: 100%;
+    }
+
+    .att-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .att-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .att-hero {
+        padding: 21px;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="att-page">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="att-hero">
+
+        <div class="att-hero-left">
+
+            <div class="att-hero-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+
+            <div>
+
+                <div class="att-hero-title">
+                    Attendance Management
+                </div>
+
+                <div class="att-hero-text">
+                    Monitor staff attendance, working hours and
+                    attendance reports.
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <section class="att-header">
+
+        <div>
+
+            <h1 class="att-title">
+                Attendance
+            </h1>
+
+            <div class="att-subtitle">
+                {% now "l, d F Y" %}
+                · Track today's hotel workforce
+            </div>
+
+        </div>
+
+
+        <div class="att-header-actions">
+
+            <button
+                type="button"
+                class="att-btn"
+                onclick="refreshAttendance()"
+            >
+                <i class="fas fa-rotate"></i>
+                Refresh
+            </button>
+
+
+            <button
+                type="button"
+                class="att-btn"
+                onclick="openAttendanceHistory()"
+            >
+                <i class="fas fa-clock-rotate-left"></i>
+                History
+            </button>
+
+
+            <button
+                type="button"
+                class="att-btn att-btn-primary"
+                onclick="openMarkAttendanceModal()"
+            >
+                <i class="fas fa-user-check"></i>
+                Mark Attendance
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         STATS
+    ====================================================== -->
+
+    <!-- =====================================================
+     ATTENDANCE STATS - DASHBOARD STYLE
+====================================================== -->
+
+<section class="att-stats">
+
+
+    <!-- ================================================
+         PRESENT TODAY
+    ================================================= -->
+
+    <article class="att-stat green">
+
+        <div class="att-stat-head">
+
+            <div class="att-stat-icon green">
+                <i class="fas fa-user-check"></i>
+            </div>
+
+            <span class="att-stat-chip green">
+                <i class="fas fa-circle-check"></i>
+                Present
+            </span>
+
+        </div>
+
+
+        <div
+            class="att-stat-value"
+            id="attPresentCount"
+        >
+            0
+        </div>
+
+
+        <div class="att-stat-label">
+            Present Today
+        </div>
+
+
+        <div class="att-mini-chart">
+
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- ================================================
+         LATE
+    ================================================= -->
+
+    <article class="att-stat orange">
+
+        <div class="att-stat-head">
+
+            <div class="att-stat-icon orange">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <span class="att-stat-chip orange">
+                <i class="fas fa-clock"></i>
+                Late
+            </span>
+
+        </div>
+
+
+        <div
+            class="att-stat-value"
+            id="attLateCount"
+        >
+            0
+        </div>
+
+
+        <div class="att-stat-label">
+            Late Arrivals
+        </div>
+
+
+        <div class="att-mini-chart">
+
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- ================================================
+         ABSENT
+    ================================================= -->
+
+    <article class="att-stat red">
+
+        <div class="att-stat-head">
+
+            <div class="att-stat-icon red">
+                <i class="fas fa-user-xmark"></i>
+            </div>
+
+            <span class="att-stat-chip red">
+                <i class="fas fa-user-xmark"></i>
+                Absent
+            </span>
+
+        </div>
+
+
+        <div
+            class="att-stat-value"
+            id="attAbsentCount"
+        >
+            0
+        </div>
+
+
+        <div class="att-stat-label">
+            Absent Today
+        </div>
+
+
+        <div class="att-mini-chart">
+
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+
+    <!-- ================================================
+         ON LEAVE
+    ================================================= -->
+
+    <article class="att-stat blue">
+
+        <div class="att-stat-head">
+
+            <div class="att-stat-icon blue">
+                <i class="fas fa-calendar-minus"></i>
+            </div>
+
+            <span class="att-stat-chip blue">
+                <i class="fas fa-calendar"></i>
+                Leave
+            </span>
+
+        </div>
+
+
+        <div
+            class="att-stat-value"
+            id="attLeaveCount"
+        >
+            0
+        </div>
+
+
+        <div class="att-stat-label">
+            On Leave
+        </div>
+
+
+        <div class="att-mini-chart">
+
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+            <span class="att-mini-bar"></span>
+
+        </div>
+
+    </article>
+
+
+</section>
+
+
+
+    <!-- =====================================================
+         FILTERS
+    ====================================================== -->
+
+    <section class="att-toolbar">
+
+        <div class="att-search">
+
+            <i class="fas fa-search"></i>
+
+            <input
+                type="text"
+                id="attendanceSearch"
+                placeholder="Search employee, ID or department..."
+                oninput="filterAttendanceTable()"
+            >
+
+        </div>
+
+
+        <select
+            id="attendanceStatusFilter"
+            class="att-control"
+            onchange="filterAttendanceTable()"
+        >
+
+            <option value="">
+                All Status
+            </option>
+
+            <option value="present">
+                Present
+            </option>
+
+            <option value="late">
+                Late
+            </option>
+
+            <option value="absent">
+                Absent
+            </option>
+
+            <option value="leave">
+                On Leave
+            </option>
+
+        </select>
+
+
+        <input
+            type="date"
+            id="attendanceDate"
+            class="att-control"
+            onchange="loadAttendanceForDate()"
+        >
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CONTENT
+    ====================================================== -->
+
+    <section class="att-grid">
+
+
+        <!-- ATTENDANCE TABLE -->
+
+        <div class="att-panel">
+
+            <div class="att-panel-header">
+
+                <div class="att-panel-heading">
+
+                    <div class="att-panel-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+
+                    <div>
+
+                        <div class="att-panel-title">
+                            Today's Attendance
+                        </div>
+
+                        <div class="att-panel-subtitle">
+                            Live employee attendance information
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="att-btn att-btn-sm"
+                    onclick="refreshAttendance()"
+                >
+                    <i class="fas fa-rotate"></i>
+                    Reload
+                </button>
+
+            </div>
+
+
+            <div class="att-table-wrap">
+
+                <table class="att-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Employee</th>
+
+                            <th>Department</th>
+
+                            <th>Check In</th>
+
+                            <th>Check Out</th>
+
+                            <th>Hours</th>
+
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="attendanceTableBody">
+
+                        <tr>
+
+                            <td colspan="6">
+
+                                <div class="att-empty">
+
+                                    <i class="fas fa-spinner fa-spin"></i>
+
+                                    Loading attendance...
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+
+        
+
+    </section>
+
+</div>
+
+
+
+<!-- ============================================================
+     MARK ATTENDANCE MODAL
+============================================================ -->
+
+<div
+    class="att-modal"
+    id="markAttendanceModal"
+>
+
+    <div class="att-modal-dialog">
+
+        <div class="att-modal-header">
+
+            <div class="att-modal-title">
+
+                <div class="att-modal-title-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+
+                <div>
+
+                    <h3>
+                        Mark Attendance
+                    </h3>
+
+                    <p>
+                        Record employee attendance manually
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="att-modal-close"
+                onclick="closeAttendanceModal('markAttendanceModal')"
+            >
+                <i class="fas fa-times"></i>
+            </button>
+
+        </div>
+
+
+        <form
+            id="markAttendanceForm"
+            onsubmit="submitMarkAttendance(event)"
+        >
+
+            {% csrf_token %}
+
+
+            <div class="att-modal-body">
+
+                <div class="att-form-grid">
+
+
+                    <div class="att-field full">
+
+                        <label>
+                            Employee
+                        </label>
+
+                        <select
+                            id="markAttendanceStaff"
+                            name="staff_id"
+                            required
+                        >
+
+                            <option value="">
+                                Select employee
+                            </option>
+
+                            {% for employee in employees %}
+
+                                <option
+                                    value="{{ employee.id }}"
+                                >
+                                    {{ employee.name }}
+                                    {% if employee.employee_id %}
+                                        — {{ employee.employee_id }}
+                                    {% endif %}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="att-field">
+
+                        <label>
+                            Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="markAttendanceDate"
+                            name="date"
+                            required
+                        >
+
+                    </div>
+
+
+<div class="att-field">
+
+    <label for="markAttendanceStatus">
+        Status
+    </label>
+
+    <select
+        id="markAttendanceStatus"
+        name="status"
+        required
+    >
+        <option value="">
+            Select status
+        </option>
+
+        <option value="Present">
+            Present
+        </option>
+
+        <option value="Late">
+            Late
+        </option>
+
+        <option value="Half Day">
+            Half Day
+        </option>
+
+        <option value="Absent">
+            Absent
+        </option>
+
+    </select>
+
+</div>
+
+
+                    <div class="att-field">
+
+                        <label>
+                            Check In
+                        </label>
+
+                        <input
+                            type="time"
+                            id="markAttendanceCheckIn"
+                            name="check_in"
+                        >
+
+                    </div>
+
+
+                    <div class="att-field">
+
+                        <label>
+                            Check Out
+                        </label>
+
+                        <input
+                            type="time"
+                            id="markAttendanceCheckOut"
+                            name="check_out"
+                        >
+
+                    </div>
+
+
+                    <div class="att-field full">
+
+                        <label>
+                            Notes
+                        </label>
+
+                        <textarea
+                            id="markAttendanceNotes"
+                            name="notes"
+                            placeholder="Optional attendance note..."
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="att-modal-footer">
+
+                <button
+                    type="button"
+                    class="att-btn"
+                    onclick="closeAttendanceModal('markAttendanceModal')"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="att-btn att-btn-primary"
+                    id="markAttendanceSubmit"
+                >
+                    <i class="fas fa-check"></i>
+                    Save Attendance
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<div
+    class="att-toast"
+    id="attendanceToast"
+></div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* ============================================================
+   IMPORTANT
+
+   Your existing project already has the attendance endpoints.
+   instead of hard-coded
+   /attendance/... paths.
+============================================================ */
+
+const ATTENDANCE_URLS = {
+
+    mark:
+        "{% url 'hr_mark_employee_attendance' %}",
+
+    live:
+        "{% url 'live_attendance' %}",
+
+    daily:
+        "{% url 'daily_report' %}",
+
+    monthly:
+        "{% url 'monthly_report' %}",
+
+    today:
+        "{% url 'today_attendance' %}",
+
+    history:
+        "{% url 'attendance_history' %}",
+
+    faceLookup:
+        "{% url 'face_attendance_lookup' %}",
+
+    faceMark:
+        "{% url 'verify_face_and_mark_attendance' %}"
+
+};
+
+
+let attendanceRows = [];
+
+
+/* ============================================================
+   INITIALIZE
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const today =
+            new Date()
+                .toISOString()
+                .split("T")[0];
+
+
+        const dateInput =
+            document.getElementById(
+                "attendanceDate"
+            );
+
+
+        const markDate =
+            document.getElementById(
+                "markAttendanceDate"
+            );
+
+
+        if (dateInput) {
+            dateInput.value = today;
+        }
+
+
+        if (markDate) {
+            markDate.value = today;
+        }
+
+
+        loadTodayAttendance();
+
+    }
+);
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+function openMarkAttendanceModal() {
+
+    openAttendanceModal(
+        "markAttendanceModal"
+    );
+
+}
+
+
+function openAttendanceModal(id) {
+
+    const modal =
+        document.getElementById(id);
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.add("open");
+
+    document.body.style.overflow =
+        "hidden";
+
+}
+
+
+function closeAttendanceModal(id) {
+
+    const modal =
+        document.getElementById(id);
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.remove("open");
+
+    document.body.style.overflow =
+        "";
+
+}
+
+
+/* ============================================================
+   LOAD TODAY
+============================================================ */
+
+async function loadTodayAttendance() {
+
+    const dateInput =
+        document.getElementById(
+            "attendanceDate"
+        );
+
+
+    const today =
+        new Date()
+            .toISOString()
+            .split("T")[0];
+
+
+    if (dateInput) {
+
+        dateInput.value =
+            today;
+
+    }
+
+
+    await loadAttendanceForDate();
+}
+
+
+/* ============================================================
+   REFRESH
+============================================================ */
+
+async function refreshAttendance() {
+
+    const date =
+        document.getElementById(
+            "attendanceDate"
+        )?.value;
+
+
+    const today =
+        new Date()
+            .toISOString()
+            .split("T")[0];
+
+
+    if (
+        !date ||
+        date === today
+    ) {
+
+        await loadTodayAttendance();
+
+    }
+    else {
+
+        await loadAttendanceForDate();
+
+    }
+}
+
+
+/* ============================================================
+   LOAD DATE
+============================================================ */
+
+async function loadAttendanceForDate() {
+
+    const date =
+        document.getElementById(
+            "attendanceDate"
+        )?.value;
+
+
+    if (!date) {
+        return;
+    }
+
+
+    setAttendanceLoading();
+
+
+    try {
+
+        const url =
+            ATTENDANCE_URLS.daily +
+            "?date=" +
+            encodeURIComponent(date);
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to load attendance."
+            );
+
+        }
+
+
+        attendanceRows =
+            Array.isArray(data)
+                ? data
+                : (
+                    data.attendance ||
+                    data.records ||
+                    data.results ||
+                    data.data ||
+                    []
+                );
+
+
+        renderAttendanceTable(
+            attendanceRows
+        );
+
+
+        updateAttendanceStats(
+            attendanceRows,
+            data
+        );
+
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+
+        setAttendanceError(
+            error.message
+        );
+
+
+        attendanceToast(
+            error.message,
+            "error"
+        );
+
+    }
+}
+
+
+
+function calculateAttendanceHours(
+    checkIn,
+    checkOut
+) {
+
+    if (!checkIn || !checkOut) {
+        return "—";
+    }
+
+    const start =
+        new Date(checkIn);
+
+    const end =
+        new Date(checkOut);
+
+    if (
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
+    ) {
+        return "—";
+    }
+
+    const milliseconds =
+        end - start;
+
+    if (milliseconds < 0) {
+        return "—";
+    }
+
+    const hours =
+        milliseconds /
+        (1000 * 60 * 60);
+
+    return hours.toFixed(2) + " hrs";
+}
+
+
+
+
+
+
+function formatAttendanceTime(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return value;
+
+    }
+
+
+    return date.toLocaleTimeString(
+        [],
+        {
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit"
+        }
+    );
+}
+
+
+
+
+
+function calculateAttendanceHours(
+    checkIn,
+    checkOut
+) {
+
+    if (
+        !checkIn ||
+        !checkOut
+    ) {
+
+        return "—";
+    }
+
+
+    const start =
+        new Date(checkIn);
+
+
+    const end =
+        new Date(checkOut);
+
+
+    if (
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
+    ) {
+
+        return "—";
+    }
+
+
+    const milliseconds =
+        end - start;
+
+
+    if (milliseconds < 0) {
+        return "—";
+    }
+
+
+    const hours =
+        milliseconds /
+        (
+            1000 *
+            60 *
+            60
+        );
+
+
+    return (
+        hours.toFixed(2) +
+        " hrs"
+    );
+}
+
+
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+function renderAttendanceTable(rows) {
+
+    const tbody =
+        document.getElementById(
+            "attendanceTableBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    if (
+        !Array.isArray(rows) ||
+        !rows.length
+    ) {
+
+        tbody.innerHTML = `
+            <tr>
+
+                <td colspan="6">
+
+                    <div class="att-empty">
+
+                        <i class="far fa-calendar-xmark"></i>
+
+                        No attendance records found.
+
+                    </div>
+
+                </td>
+
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        rows
+            .map(
+                function (row) {
+
+                    const name =
+                        row.name ||
+                        row.staff_name ||
+                        row.employee_name ||
+                        "Employee";
+
+
+                    const employeeId =
+                        row.employee_id ||
+                        row.staff_code ||
+                        "";
+
+
+                    const department =
+                        row.department ||
+                        row.department_name ||
+                        "—";
+
+
+                    const rawCheckIn =
+                        row.check_in ||
+                        row.checkin ||
+                        row.time_in ||
+                        null;
+
+
+                    const rawCheckOut =
+                        row.check_out ||
+                        row.checkout ||
+                        row.time_out ||
+                        null;
+
+
+                    const checkIn =
+                        formatAttendanceTime(
+                            rawCheckIn
+                        );
+
+
+                    const checkOut =
+                        formatAttendanceTime(
+                            rawCheckOut
+                        );
+
+
+                    const hours =
+                        row.hours ||
+                        row.total_hours ||
+                        row.worked_hours ||
+                        row.working_hours ||
+                        calculateAttendanceHours(
+                            rawCheckIn,
+                            rawCheckOut
+                        );
+
+
+                    const status =
+                        normalizeAttendanceStatus(
+                            row.status ||
+                            row.attendance_status ||
+                            "pending"
+                        );
+
+
+                    const photo =
+                        row.photo ||
+                        row.photo_url ||
+                        "";
+
+
+                    let avatar = "";
+
+
+                    if (photo) {
+
+                        avatar = `
+                            <img
+                                src="${attendanceEscape(photo)}"
+                                alt=""
+                            >
+                        `;
+
+                    }
+
+                    else {
+
+                        avatar =
+                            attendanceInitials(
+                                name
+                            );
+
+                    }
+
+
+                    return `
+
+                        <tr
+
+                            data-search="${attendanceEscape(
+                                (
+                                    name +
+                                    " " +
+                                    employeeId +
+                                    " " +
+                                    department
+                                ).toLowerCase()
+                            )}"
+
+                            data-status="${attendanceEscape(
+                                status
+                            )}"
+                        >
+
+                            <td>
+
+                                <div class="att-employee">
+
+                                    <div class="att-avatar">
+                                        ${avatar}
+                                    </div>
+
+
+                                    <div>
+
+                                        <div class="att-name">
+                                            ${attendanceEscape(name)}
+                                        </div>
+
+
+                                        <div class="att-employee-meta">
+                                            ${attendanceEscape(employeeId)}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                ${attendanceEscape(department)}
+                            </td>
+
+
+                            <td>
+                                ${attendanceEscape(checkIn)}
+                            </td>
+
+
+                            <td>
+                                ${attendanceEscape(checkOut)}
+                            </td>
+
+
+                            <td>
+                                ${attendanceEscape(hours)}
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="att-badge ${status}"
+                                >
+
+                                    <i class="${attendanceStatusIcon(status)}"></i>
+
+                                    ${attendanceStatusLabel(status)}
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+                    `;
+
+                }
+            )
+            .join("");
+}
+
+
+/* ============================================================
+   FILTER
+============================================================ */
+
+function filterAttendanceTable() {
+
+    const search =
+        (
+            document.getElementById(
+                "attendanceSearch"
+            )?.value ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const status =
+        (
+            document.getElementById(
+                "attendanceStatusFilter"
+            )?.value ||
+            ""
+        )
+        .toLowerCase();
+
+
+    document
+        .querySelectorAll(
+            "#attendanceTableBody tr[data-search]"
+        )
+        .forEach(
+            function (row) {
+
+                const matchesSearch =
+                    !search ||
+                    row.dataset.search.includes(
+                        search
+                    );
+
+
+                const matchesStatus =
+                    !status ||
+                    row.dataset.status ===
+                        status;
+
+
+                row.style.display =
+                    (
+                        matchesSearch &&
+                        matchesStatus
+                    )
+                        ? ""
+                        : "none";
+
+            }
+        );
+
+}
+
+
+/* ============================================================
+   STATS
+============================================================ */
+
+function updateAttendanceStats(
+    rows,
+    response
+) {
+
+    let present = 0;
+    let late = 0;
+    let absent = 0;
+    let leave = 0;
+
+
+    rows.forEach(
+        function (row) {
+
+            const status =
+                normalizeAttendanceStatus(
+                    row.status ||
+                    row.attendance_status ||
+                    ""
+                );
+
+
+            if (status === "present") {
+                present++;
+            }
+
+            else if (status === "late") {
+                late++;
+            }
+
+            else if (status === "absent") {
+                absent++;
+            }
+
+            else if (status === "leave") {
+                leave++;
+            }
+
+        }
+    );
+
+
+    /*
+     * If your backend already supplies totals,
+     * backend totals take priority.
+     */
+
+    present =
+        response.present ??
+        response.present_count ??
+        present;
+
+
+    late =
+        response.late ??
+        response.late_count ??
+        late;
+
+
+    absent =
+        response.absent ??
+        response.absent_count ??
+        absent;
+
+
+    leave =
+        response.leave ??
+        response.leave_count ??
+        response.on_leave ??
+        leave;
+
+
+    setAttendanceText(
+        "attPresentCount",
+        present
+    );
+
+    setAttendanceText(
+        "attLateCount",
+        late
+    );
+
+    setAttendanceText(
+        "attAbsentCount",
+        absent
+    );
+
+    setAttendanceText(
+        "attLeaveCount",
+        leave
+    );
+
+}
+
+
+/* ============================================================
+   MARK ATTENDANCE
+
+   IMPORTANT:
+   This sends FormData because that is the safest match for
+   an existing Django attendance form endpoint.
+============================================================ */
+
+async function submitMarkAttendance(
+    event
+) {
+
+    event.preventDefault();
+
+
+    const form =
+        document.getElementById(
+            "markAttendanceForm"
+        );
+
+
+    const button =
+        document.getElementById(
+            "markAttendanceSubmit"
+        );
+
+
+    if (
+        !form ||
+        !button
+    ) {
+        return;
+    }
+
+
+    const formData =
+        new FormData(form);
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Saving...
+    `;
+
+
+    try {
+
+        const response =
+            await fetch(
+                ATTENDANCE_URLS.mark,
+                {
+                    method:
+                        "POST",
+
+                    body:
+                        formData,
+
+                    headers: {
+                        "X-CSRFToken":
+                            attendanceCsrf()
+                    },
+
+                    credentials:
+                        "same-origin"
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                "Unable to mark attendance."
+            );
+
+        }
+
+
+        attendanceToast(
+            data.message ||
+            "Attendance saved successfully.",
+            "success"
+        );
+
+
+        closeAttendanceModal(
+    "markAttendanceModal"
+);
+
+
+form.reset();
+
+
+const today =
+    new Date()
+        .toISOString()
+        .split("T")[0];
+
+
+const markDate =
+    document.getElementById(
+        "markAttendanceDate"
+    );
+
+
+if (markDate) {
+    markDate.value = today;
+}
+
+
+await refreshAttendance();
+
+
+    }
+    catch (error) {
+
+        attendanceToast(
+            error.message,
+            "error"
+        );
+
+    }
+    finally {
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            original;
+
+    }
+
+}
+
+
+/* ============================================================
+   EXISTING ATTENDANCE TOOLS
+
+   These deliberately call the existing endpoints rather than
+   introducing new backend APIs.
+============================================================ */
+
+async function loadLiveAttendance() {
+
+    setAttendanceLoading();
+
+
+    try {
+
+        const response =
+            await fetch(
+                ATTENDANCE_URLS.live,
+                {
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to load live attendance."
+            );
+
+        }
+
+
+        attendanceRows =
+            Array.isArray(data)
+                ? data
+                : (
+                    data.attendance ||
+                    data.records ||
+                    data.results ||
+                    data.data ||
+                    []
+                );
+
+
+        renderAttendanceTable(
+            attendanceRows
+        );
+
+
+        updateAttendanceStats(
+            attendanceRows,
+            data
+        );
+
+
+        attendanceToast(
+            "Live attendance updated.",
+            "success"
+        );
+
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+
+        setAttendanceError(
+            error.message
+        );
+
+
+        attendanceToast(
+            error.message,
+            "error"
+        );
+
+    }
+}
+
+
+function openDailyReport() {
+
+    const input =
+        document.getElementById(
+            "attendanceDate"
+        );
+
+
+    input?.focus();
+
+    attendanceToast(
+        "Choose a date to view the daily report.",
+        "success"
+    );
+
+}
+
+
+function openMonthlyReport() {
+
+    /*
+     * The monthly endpoint already exists.
+     * We will build the full report modal after confirming its
+     * exact existing response fields.
+     */
+
+    attendanceToast(
+        "Monthly report is available from the existing attendance API.",
+        "success"
+    );
+
+}
+
+
+function openAttendanceHistory() {
+
+    /*
+     * Existing endpoint:
+     * staff/attendance/history/
+     *
+     * We preserve it. The detailed history modal should consume
+     * its actual JSON contract.
+     */
+
+    attendanceToast(
+        "Attendance history is connected to the existing history API.",
+        "success"
+    );
+
+}
+
+
+function openFaceAttendance() {
+
+    /*
+     * Existing endpoints:
+     * attendance/face-lookup/
+     * attendance/mark-with-face/
+     *
+     * Camera / image verification should reuse your existing
+     * face-attendance implementation rather than replacing it.
+     */
+
+    attendanceToast(
+        "Face Attendance uses your existing face verification system.",
+        "success"
+    );
+
+}
+
+
+/* ============================================================
+   LOADING / ERROR
+============================================================ */
+
+function setAttendanceLoading() {
+
+    const tbody =
+        document.getElementById(
+            "attendanceTableBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6">
+
+                <div class="att-empty">
+
+                    <i class="fas fa-spinner fa-spin"></i>
+
+                    Loading attendance...
+
+                </div>
+
+            </td>
+        </tr>
+    `;
+
+}
+
+
+function setAttendanceError(message) {
+
+    const tbody =
+        document.getElementById(
+            "attendanceTableBody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6">
+
+                <div class="att-empty">
+
+                    <i class="fas fa-circle-exclamation"></i>
+
+                    ${attendanceEscape(message)}
+
+                </div>
+
+            </td>
+        </tr>
+    `;
+
+}
+
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function normalizeAttendanceStatus(value) {
+
+    const status =
+        String(
+            value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    if (
+        status.includes("half day") ||
+        status.includes("half-day") ||
+        status.includes("half_day")
+    ) {
+
+        return "half-day";
+
+    }
+
+
+    if (
+        status.includes("late")
+    ) {
+
+        return "late";
+
+    }
+
+
+    if (
+        status.includes("absent")
+    ) {
+
+        return "absent";
+
+    }
+
+
+    if (
+        status.includes("leave")
+    ) {
+
+        return "leave";
+
+    }
+
+
+    if (
+        status.includes("working")
+    ) {
+
+        return "present";
+
+    }
+
+
+    if (
+        status.includes("left")
+    ) {
+
+        return "present";
+
+    }
+
+
+    if (
+        status.includes("present")
+    ) {
+
+        return "present";
+
+    }
+
+
+    return "pending";
+}
+
+
+function attendanceStatusLabel(status) {
+
+    const labels = {
+
+        present:
+            "Present",
+
+        late:
+            "Late",
+
+        absent:
+            "Absent",
+
+        "half-day":
+            "Half Day",
+
+        leave:
+            "On Leave",
+
+        pending:
+            "Pending"
+
+    };
+
+
+    return (
+        labels[status] ||
+        "Pending"
+    );
+}
+
+
+function attendanceStatusIcon(status) {
+
+    const icons = {
+
+        present:
+            "fas fa-circle-check",
+
+        late:
+            "fas fa-clock",
+
+        absent:
+            "fas fa-circle-xmark",
+
+        "half-day":
+            "fas fa-circle-half-stroke",
+
+        leave:
+            "fas fa-calendar-minus",
+
+        pending:
+            "fas fa-circle"
+
+    };
+
+
+    return (
+        icons[status] ||
+        icons.pending
+    );
+}
+
+
+function attendanceInitials(
+    name
+) {
+
+    return String(
+        name || "?"
+    )
+    .trim()
+    .split(/\s+/)
+    .slice(0,2)
+    .map(
+        function (part) {
+
+            return (
+                part.charAt(0) ||
+                ""
+            ).toUpperCase();
+
+        }
+    )
+    .join("");
+
+}
+
+
+function attendanceEscape(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+function setAttendanceText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value ?? 0;
+
+    }
+
+}
+
+
+function attendanceCsrf() {
+
+    const input =
+        document.querySelector(
+            '[name="csrfmiddlewaretoken"]'
+        );
+
+
+    if (
+        input &&
+        input.value
+    ) {
+
+        return input.value;
+
+    }
+
+
+    const match =
+        document.cookie.match(
+            /(?:^|;\s*)csrftoken=([^;]+)/
+        );
+
+
+    return match
+        ? decodeURIComponent(match[1])
+        : "";
+
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+let attendanceToastTimer = null;
+
+
+function attendanceToast(
+    message,
+    type = "success"
+) {
+
+    const toast =
+        document.getElementById(
+            "attendanceToast"
+        );
+
+
+    if (!toast) {
+        return;
+    }
+
+
+    toast.textContent =
+        message;
+
+
+    toast.className =
+        "att-toast " +
+        type +
+        " show";
+
+
+    clearTimeout(
+        attendanceToastTimer
+    );
+
+
+    attendanceToastTimer =
+        setTimeout(
+            function () {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3200
+        );
+
+}
+
+
+/* ============================================================
+   BACKDROP
+============================================================ */
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        const modal =
+            event.target.closest(
+                ".att-modal"
+            );
+
+
+        if (
+            modal &&
+            event.target === modal
+        ) {
+
+            closeAttendanceModal(
+                modal.id
+            );
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key !== "Escape"
+        ) {
+            return;
+        }
+
+
+        document
+            .querySelectorAll(
+                ".att-modal.open"
+            )
+            .forEach(
+                function (modal) {
+
+                    closeAttendanceModal(
+                        modal.id
+                    );
+
+                }
+            );
+
+    }
+);
+
+</script>
+
+{% endblock %}

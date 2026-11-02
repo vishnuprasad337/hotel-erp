@@ -1,0 +1,3111 @@
+{% extends "housekeeping/base.html" %}
+{% load static %}
+
+{% block title %}Maintenance{% endblock %}
+
+{% block extra_css %}
+<link
+    rel="stylesheet"
+    href="{% static 'housekeeping/assets/css/maintenance.css' %}"
+>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="hk-maintenance-page">
+
+    <!-- ============================================
+         PAGE HEADER
+    ============================================= -->
+
+    <div class="hk-page-header">
+
+        <div>
+            <div class="hk-eyebrow">
+                OPERATIONS
+            </div>
+
+            <h1>Maintenance</h1>
+
+            <p>
+                Log, track and review hotel maintenance work.
+            </p>
+        </div>
+
+        <div class="hk-page-actions">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="loadMaintenanceLog()"
+            >
+                <i class="fas fa-rotate-right"></i>
+                Refresh
+            </button>
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                onclick="openMaintenanceModal()"
+            >
+                <i class="fas fa-plus"></i>
+                Log Maintenance
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ============================================
+         STATS
+    ============================================= -->
+
+    <div class="hk-maint-stats">
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon hk-blue">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-stat-value"
+                    id="maintTotal"
+                >
+                    0
+                </div>
+
+                <div class="hk-stat-label">
+                    Total Logs
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon hk-amber">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-stat-value"
+                    id="maintOpen"
+                >
+                    0
+                </div>
+
+                <div class="hk-stat-label">
+                    Open
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon hk-orange">
+                <i class="fas fa-spinner"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-stat-value"
+                    id="maintInProgress"
+                >
+                    0
+                </div>
+
+                <div class="hk-stat-label">
+                    In Progress
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-stat-card">
+
+            <div class="hk-stat-icon hk-green">
+                <i class="fas fa-check-double"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-stat-value"
+                    id="maintCompleted"
+                >
+                    0
+                </div>
+
+                <div class="hk-stat-label">
+                    Completed
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ============================================
+         MAIN CARD
+    ============================================= -->
+
+    <div class="hk-maint-card">
+
+        <div class="hk-maint-card-header">
+
+            <div>
+                <h2>Maintenance Logs</h2>
+
+                <p>
+                    Review reported issues and completed work.
+                </p>
+            </div>
+
+
+            <!-- STATUS TABS -->
+
+            <div
+                class="hk-maint-tabs"
+                id="maintFilterBar"
+            >
+
+                <button
+                    type="button"
+                    class="hk-maint-tab active"
+                    onclick="filterMaintenance('all', this)"
+                >
+                    All
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-maint-tab"
+                    onclick="filterMaintenance('open', this)"
+                >
+                    Open
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-maint-tab"
+                    onclick="filterMaintenance('in_progress', this)"
+                >
+                    In Progress
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-maint-tab"
+                    onclick="filterMaintenance('completed', this)"
+                >
+                    Completed
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ========================================
+             FILTERS
+        ========================================= -->
+
+        <div class="hk-maint-toolbar">
+
+            <div class="hk-maint-search">
+
+                <i class="fas fa-search"></i>
+
+                <input
+                    type="text"
+                    id="maintSearch"
+                    placeholder="Search asset, location or description..."
+                    oninput="applyMaintSearch()"
+                >
+
+            </div>
+
+
+            <select
+                id="maintPriorityFilter"
+                onchange="applyMaintSearch()"
+            >
+                <option value="">All Priorities</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+            </select>
+
+
+            <select
+                id="maintTypeFilter"
+                onchange="applyMaintSearch()"
+            >
+                <option value="">All Types</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="breakdown">Breakdown</option>
+                <option value="preventive">Preventive</option>
+                <option value="corrective">Corrective</option>
+                <option value="inspection">Inspection</option>
+            </select>
+
+        </div>
+
+
+        <!-- DATE FILTER -->
+
+        <div class="hk-maint-date-toolbar">
+
+            <div class="hk-date-field">
+
+                <label>
+                    From
+                </label>
+
+                <input
+                    type="date"
+                    id="maintDateFrom"
+                    onchange="applyMaintSearch()"
+                >
+
+            </div>
+
+
+            <div class="hk-date-field">
+
+                <label>
+                    To
+                </label>
+
+                <input
+                    type="date"
+                    id="maintDateTo"
+                    onchange="applyMaintSearch()"
+                >
+
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-clear-btn"
+                onclick="clearMaintSearch()"
+            >
+                <i class="fas fa-times"></i>
+                Clear filters
+            </button>
+
+
+            <span
+                class="hk-result-count"
+                id="maintFilterCount"
+            >
+                0 logs
+            </span>
+
+        </div>
+
+
+        <!-- ========================================
+             LOG LIST
+        ========================================= -->
+
+        <div
+            class="hk-maint-list"
+            id="maintenanceLogsList"
+        >
+
+            <div class="hk-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+
+                <span>
+                    Loading maintenance logs...
+                </span>
+            </div>
+
+        </div>
+
+
+        <!-- ========================================
+             PAGINATION
+        ========================================= -->
+
+        <div
+            class="hk-pagination-bar"
+            id="maintPaginationBar"
+            style="display:none;"
+        >
+
+            <div
+                class="hk-pagination-info"
+                id="maintPageInfo"
+            ></div>
+
+
+            <div
+                class="hk-pagination-buttons"
+                id="maintPageBtns"
+            ></div>
+
+
+            <div class="hk-per-page">
+
+                <span>Per page</span>
+
+                <select
+                    id="maintPerPage"
+                    onchange="changeMaintPerPage()"
+                >
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MAINTENANCE MODAL
+========================================================= -->
+
+<div
+    id="maintenanceModal"
+    class="hk-maint-modal"
+>
+
+    <div
+        class="hk-modal-backdrop"
+        onclick="closeMaintenanceModal()"
+    ></div>
+
+
+    <div class="hk-modal-dialog">
+
+        <!-- HEADER -->
+
+        <div class="hk-modal-header">
+
+            <div>
+
+                <div class="hk-eyebrow">
+                    MAINTENANCE
+                </div>
+
+                <h2 id="maintModalTitle">
+                    Log Maintenance Work
+                </h2>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                onclick="closeMaintenanceModal()"
+            >
+                <i class="fas fa-times"></i>
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="hk-modal-body">
+
+            <input
+                type="hidden"
+                id="maintLogId"
+            >
+
+
+            <div class="hk-form-grid">
+
+
+                <!-- ASSET -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Asset
+                    </label>
+
+                    <select
+                        id="maintAssetId"
+                       onchange="handleMaintenanceAssetChange()"
+                    >
+
+                        <option value="">
+                            — Select Asset —
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- DEPARTMENT -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Department
+                    </label>
+
+                    <select id="maintDepartmentId">
+
+                        <option value="">
+                            — Select Department —
+                        </option>
+
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- CUSTOM ASSET -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Custom Asset / Equipment
+                    </label>
+
+                    <input
+                        type="text"
+                        id="maintCustomAsset"
+                        placeholder="Example: Lobby AC"
+                    >
+
+                </div>
+
+
+                <!-- LOCATION -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Location
+                    </label>
+
+                    <input
+                        type="text"
+                        id="maintLocation"
+                        placeholder="Example: Room 204"
+                    >
+
+                </div>
+
+
+                <!-- TYPE -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Maintenance Type
+                    </label>
+
+                    <select id="maintType">
+
+                        <option value="scheduled">
+                            Scheduled
+                        </option>
+
+                        <option value="breakdown">
+                            Breakdown
+                        </option>
+
+                        <option value="preventive">
+                            Preventive
+                        </option>
+
+                        <option value="corrective">
+                            Corrective
+                        </option>
+
+                        <option value="inspection">
+                            Inspection
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- PRIORITY -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Priority
+                    </label>
+
+                    <select id="maintPriority">
+
+                        <option value="low">
+                            Low
+                        </option>
+
+                        <option value="medium">
+                            Medium
+                        </option>
+
+                        <option value="high">
+                            High
+                        </option>
+
+                        <option value="critical">
+                            Critical
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Status
+                    </label>
+
+                    <select id="maintStatus">
+
+                        <option value="open">
+                            Open
+                        </option>
+
+                        <option value="in_progress">
+                            In Progress
+                        </option>
+
+                        <option value="completed">
+                            Completed
+                        </option>
+
+                        <option value="cancelled">
+                            Cancelled
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="hk-form-group"></div>
+
+
+                <!-- DESCRIPTION -->
+
+                <div class="hk-form-group hk-form-full">
+
+                    <label>
+                        Description
+                        <span>*</span>
+                    </label>
+
+                    <textarea
+                        id="maintDescription"
+                        rows="3"
+                        placeholder="Describe the issue or work performed..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- PERFORMED BY -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Performed By
+                    </label>
+
+                    <input
+                        type="text"
+                        id="maintPerformedBy"
+                        placeholder="Technician name"
+                    >
+
+                </div>
+
+
+                <!-- DATE -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Performed At
+                    </label>
+
+                    <input
+                        type="datetime-local"
+                        id="maintPerformedAt"
+                    >
+
+                </div>
+
+
+                <!-- DURATION -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Duration
+                    </label>
+
+                    <input
+                        type="text"
+                        id="maintDuration"
+                        placeholder="Example: 1.5 hours"
+                    >
+
+                </div>
+
+
+                <!-- NEXT DUE -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Next Due Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="maintNextDue"
+                    >
+
+                </div>
+
+
+                <!-- LABOUR -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Labour Cost (₹)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="maintLabourCost"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    >
+
+                </div>
+
+
+                <!-- PARTS -->
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Parts Cost (₹)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="maintPartsCost"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    >
+
+                </div>
+
+
+                <!-- PARTS REPLACED -->
+
+                <div class="hk-form-group hk-form-full">
+
+                    <label>
+                        Parts Replaced
+                    </label>
+
+                    <input
+                        type="text"
+                        id="maintPartsReplaced"
+                        placeholder="Example: Filter, belt, fuse..."
+                    >
+
+                </div>
+
+
+                <!-- NOTES -->
+
+                <div class="hk-form-group hk-form-full">
+
+                    <label>
+                        Additional Notes
+                    </label>
+
+                    <textarea
+                        id="maintNotes"
+                        rows="3"
+                        placeholder="Additional observations..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- EXPENSE -->
+
+                <div class="hk-form-full">
+
+                    <label class="hk-checkbox-row">
+
+                        <input
+                            type="checkbox"
+                            id="maintCreateExpense"
+                        >
+
+                        <span>
+
+                            <strong>
+                                Create expense record
+                            </strong>
+
+                            <small>
+                                Add the total maintenance cost to hotel expenses.
+                            </small>
+
+                        </span>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="hk-modal-footer">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="closeMaintenanceModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                id="maintSaveBtn"
+                class="hk-btn hk-btn-primary"
+                onclick="saveMaintenanceLog()"
+            >
+                <i class="fas fa-save"></i>
+                Save Log
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+/* ============================================================
+   CSRF
+============================================================ */
+
+function getCookie(name) {
+
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== "") {
+
+        const cookies = document.cookie.split(";");
+
+        for (let cookie of cookies) {
+
+            cookie = cookie.trim();
+
+            if (
+                cookie.substring(
+                    0,
+                    name.length + 1
+                ) === name + "="
+            ) {
+
+                cookieValue = decodeURIComponent(
+                    cookie.substring(
+                        name.length + 1
+                    )
+                );
+
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+
+const csrftoken = getCookie("csrftoken");
+
+
+async function apiFetch(url, options = {}) {
+
+    const headers = {
+        "X-CSRFToken": csrftoken,
+        ...options.headers,
+    };
+
+    if (
+        options.body &&
+        !(options.body instanceof FormData)
+    ) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    return fetch(
+        url,
+        {
+            ...options,
+            headers,
+        }
+    );
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+============================================================ */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+/* ============================================================
+   TOAST
+============================================================ */
+
+function showMaintToast(message, type = "success") {
+
+    let container =
+        document.getElementById(
+            "hkMaintenanceToastContainer"
+        );
+
+    if (!container) {
+
+        container =
+            document.createElement("div");
+
+        container.id =
+            "hkMaintenanceToastContainer";
+
+        container.className =
+            "hk-toast-container";
+
+        document.body.appendChild(
+            container
+        );
+    }
+
+
+    const toast =
+        document.createElement("div");
+
+    toast.className =
+        `hk-toast hk-toast-${type}`;
+
+    toast.innerHTML = `
+        <i class="fas ${
+            type === "success"
+                ? "fa-check-circle"
+                : "fa-circle-exclamation"
+        }"></i>
+
+        <span>
+            ${escapeHtml(message)}
+        </span>
+    `;
+
+
+    container.appendChild(toast);
+
+
+    setTimeout(() => {
+
+        toast.classList.add(
+            "hk-toast-hide"
+        );
+
+        setTimeout(
+            () => toast.remove(),
+            250
+        );
+
+    }, 3000);
+}
+
+
+/* ============================================================
+   STATE
+============================================================ */
+
+let maintenanceData = [];
+
+let maintenanceStatusFilter =
+    "all";
+
+let maintenancePage =
+    1;
+
+let maintenancePerPage =
+    10;
+
+let maintenanceEditId =
+    null;
+
+
+/* ============================================================
+   LOAD LOGS
+============================================================ */
+
+async function loadMaintenanceLog() {
+
+    const container =
+        document.getElementById(
+            "maintenanceLogsList"
+        );
+
+
+    container.innerHTML = `
+        <div class="hk-loading">
+
+            <i class="fas fa-spinner fa-spin"></i>
+
+            <span>
+                Loading maintenance logs...
+            </span>
+
+        </div>
+    `;
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                "/inventory/maintenance/"
+            );
+
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        maintenanceData =
+            data.logs || [];
+
+
+        maintenancePage =
+            1;
+
+
+        updateMaintenanceStats();
+
+        renderMaintenanceLogs();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="hk-empty">
+
+                <div class="hk-empty-icon">
+                    <i class="fas fa-triangle-exclamation"></i>
+                </div>
+
+                <h3>
+                    Unable to load maintenance
+                </h3>
+
+                <p>
+                    Please refresh and try again.
+                </p>
+
+            </div>
+        `;
+    }
+}
+
+
+/* ============================================================
+   LOAD ASSETS
+============================================================ */
+
+async function loadMaintenanceAssets() {
+
+    const select = document.getElementById("maintAssetId");
+
+    if (!select) {
+        console.error("maintAssetId select not found");
+        return;
+    }
+
+    // Loading state
+    select.innerHTML = `
+        <option value="">
+            Loading assets...
+        </option>
+    `;
+
+    select.disabled = true;
+
+    try {
+
+        const response = await apiFetch(
+            "/inventory/assets/"
+        );
+
+        console.log(
+            "ASSET API STATUS:",
+            response.status
+        );
+
+        if (!response.ok) {
+
+            throw new Error(
+                `Asset API returned HTTP ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        // IMPORTANT:
+        // Support BOTH possible API formats:
+        //
+        // 1.
+        // {
+        //     "assets": [...]
+        // }
+        //
+        // 2.
+        // [
+        //     {...},
+        //     {...}
+        // ]
+
+        let assets = [];
+
+        if (Array.isArray(data)) {
+
+            assets = data;
+
+        } else if (
+            data &&
+            Array.isArray(data.assets)
+        ) {
+
+            assets = data.assets;
+
+        } else if (
+            data &&
+            Array.isArray(data.results)
+        ) {
+
+            assets = data.results;
+
+        } else {
+
+            console.error(
+                "Unexpected asset API response:",
+                data
+            );
+        }
+
+        console.log(
+            "MAINTENANCE ASSETS:",
+            assets
+        );
+
+        // Reset dropdown
+        select.innerHTML = `
+            <option value="">
+                — Select Asset —
+            </option>
+        `;
+
+        if (!assets.length) {
+
+            const option =
+                document.createElement("option");
+
+            option.value = "";
+
+            option.textContent =
+                "No assets available";
+
+            option.disabled = true;
+
+            select.appendChild(option);
+
+            return;
+        }
+
+        // ------------------------------------------------
+        // ADD ASSETS
+        // ------------------------------------------------
+
+        assets.forEach(asset => {
+
+            if (!asset || !asset.id) {
+                return;
+            }
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                asset.id;
+
+            let label =
+                asset.name ||
+                `Asset #${asset.id}`;
+
+
+            // --------------------------------------------
+            // LOCATION
+            // --------------------------------------------
+
+            let location = "";
+
+            if (asset.location) {
+
+                location =
+                    asset.location;
+
+            } else if (
+                Array.isArray(asset.locations) &&
+                asset.locations.length
+            ) {
+
+                location =
+                    asset.locations
+                        .map(item => {
+
+                            if (
+                                typeof item === "string"
+                            ) {
+                                return item;
+                            }
+
+                            return (
+                                item.location ||
+                                item.area ||
+                                ""
+                            );
+
+                        })
+                        .filter(Boolean)
+                        .join(", ");
+
+            } else if (asset.area) {
+
+                location =
+                    asset.area;
+            }
+
+
+            if (location) {
+
+                label +=
+                    ` · ${location}`;
+            }
+
+
+            // --------------------------------------------
+            // SERIAL NUMBER
+            // --------------------------------------------
+
+            if (asset.serial_number) {
+
+                label +=
+                    ` · ${asset.serial_number}`;
+            }
+
+
+            option.textContent =
+                label;
+
+
+            // Useful data for later
+            option.dataset.name =
+                asset.name || "";
+
+            option.dataset.departmentId =
+                asset.department_id || "";
+
+            option.dataset.department =
+                asset.department || "";
+
+            option.dataset.location =
+                location || "";
+
+            option.dataset.status =
+                asset.status || "";
+
+
+            select.appendChild(option);
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "MAINTENANCE ASSET LOAD ERROR:",
+            error
+        );
+
+        select.innerHTML = `
+            <option value="">
+                Unable to load assets
+            </option>
+        `;
+
+        showMaintToast(
+            "Unable to load hotel assets.",
+            "error"
+        );
+
+    } finally {
+
+        select.disabled = false;
+    }
+}
+
+
+/* ============================================================
+   STATS
+============================================================ */
+
+function updateMaintenanceStats() {
+
+    const total =
+        maintenanceData.length;
+
+
+    const open =
+        maintenanceData.filter(
+            item =>
+                item.status === "open"
+        ).length;
+
+
+    const progress =
+        maintenanceData.filter(
+            item =>
+                item.status ===
+                "in_progress"
+        ).length;
+
+
+    const completed =
+        maintenanceData.filter(
+            item =>
+                item.status ===
+                "completed"
+        ).length;
+
+
+    document.getElementById(
+        "maintTotal"
+    ).textContent = total;
+
+
+    document.getElementById(
+        "maintOpen"
+    ).textContent = open;
+
+
+    document.getElementById(
+        "maintInProgress"
+    ).textContent = progress;
+
+
+    document.getElementById(
+        "maintCompleted"
+    ).textContent = completed;
+}
+
+
+/* ============================================================
+   FILTER STATUS
+============================================================ */
+
+function filterMaintenance(
+    status,
+    button
+) {
+
+    maintenanceStatusFilter =
+        status;
+
+
+    maintenancePage =
+        1;
+
+
+    document
+        .querySelectorAll(
+            "#maintFilterBar .hk-maint-tab"
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    "active"
+                )
+        );
+
+
+    if (button) {
+
+        button.classList.add(
+            "active"
+        );
+    }
+
+
+    renderMaintenanceLogs();
+}
+
+
+/* ============================================================
+   FILTERING
+============================================================ */
+
+function getFilteredMaintenance() {
+
+    const search =
+        (
+            document.getElementById(
+                "maintSearch"
+            ).value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const priority =
+        document.getElementById(
+            "maintPriorityFilter"
+        ).value;
+
+
+    const type =
+        document.getElementById(
+            "maintTypeFilter"
+        ).value;
+
+
+    const from =
+        document.getElementById(
+            "maintDateFrom"
+        ).value;
+
+
+    const to =
+        document.getElementById(
+            "maintDateTo"
+        ).value;
+
+
+    let filtered =
+        [...maintenanceData];
+
+
+    if (
+        maintenanceStatusFilter !==
+        "all"
+    ) {
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.status ===
+                    maintenanceStatusFilter
+            );
+    }
+
+
+    if (search) {
+
+        filtered =
+            filtered.filter(
+                item => {
+
+                    const text = [
+                        item.asset,
+                        item.custom_asset,
+                        item.department,
+                        item.location,
+                        item.description,
+                        item.performed_by,
+                        item.parts_replaced,
+                    ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+
+                    return text.includes(
+                        search
+                    );
+                }
+            );
+    }
+
+
+    if (priority) {
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.priority ===
+                    priority
+            );
+    }
+
+
+    if (type) {
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.type === type
+            );
+    }
+
+
+    if (from) {
+
+        const start =
+            new Date(
+                `${from}T00:00:00`
+            );
+
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.performed_at &&
+                    new Date(
+                        item.performed_at
+                    ) >= start
+            );
+    }
+
+
+    if (to) {
+
+        const end =
+            new Date(
+                `${to}T23:59:59`
+            );
+
+
+        filtered =
+            filtered.filter(
+                item =>
+                    item.performed_at &&
+                    new Date(
+                        item.performed_at
+                    ) <= end
+            );
+    }
+
+
+    return filtered;
+}
+
+
+function applyMaintSearch() {
+
+    maintenancePage =
+        1;
+
+    renderMaintenanceLogs();
+}
+
+
+function clearMaintSearch() {
+
+    document.getElementById(
+        "maintSearch"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintPriorityFilter"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintTypeFilter"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintDateFrom"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintDateTo"
+    ).value = "";
+
+
+    maintenanceStatusFilter =
+        "all";
+
+
+    document
+        .querySelectorAll(
+            "#maintFilterBar .hk-maint-tab"
+        )
+        .forEach(
+            button =>
+                button.classList.remove(
+                    "active"
+                )
+        );
+
+
+    const first =
+        document.querySelector(
+            "#maintFilterBar .hk-maint-tab"
+        );
+
+
+    if (first) {
+        first.classList.add(
+            "active"
+        );
+    }
+
+
+    maintenancePage =
+        1;
+
+    renderMaintenanceLogs();
+}
+
+
+/* ============================================================
+   FORMAT
+============================================================ */
+
+function maintenanceStatusLabel(status) {
+
+    return {
+        open: "Open",
+        in_progress: "In Progress",
+        completed: "Completed",
+        cancelled: "Cancelled",
+    }[status] || status || "Unknown";
+}
+
+
+function formatMaintenanceDate(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+
+    const date =
+        new Date(value);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return value;
+    }
+
+
+    return date.toLocaleString(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        }
+    );
+}
+
+
+function formatMoney(value) {
+
+    const amount =
+        Number(value || 0);
+
+
+    return amount.toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        }
+    );
+}
+
+
+/* ============================================================
+   RENDER
+============================================================ */
+
+function renderMaintenanceLogs() {
+
+    const container =
+        document.getElementById(
+            "maintenanceLogsList"
+        );
+
+
+    const filtered =
+        getFilteredMaintenance();
+
+
+    document.getElementById(
+        "maintFilterCount"
+    ).textContent =
+        `${filtered.length} ${
+            filtered.length === 1
+                ? "log"
+                : "logs"
+        }`;
+
+
+    if (!filtered.length) {
+
+        container.innerHTML = `
+            <div class="hk-empty">
+
+                <div class="hk-empty-icon">
+                    <i class="fas fa-screwdriver-wrench"></i>
+                </div>
+
+                <h3>
+                    No maintenance logs
+                </h3>
+
+                <p>
+                    No records match the selected filters.
+                </p>
+
+            </div>
+        `;
+
+
+        document.getElementById(
+            "maintPaginationBar"
+        ).style.display =
+            "none";
+
+
+        return;
+    }
+
+
+    const totalPages =
+        Math.ceil(
+            filtered.length /
+            maintenancePerPage
+        );
+
+
+    if (
+        maintenancePage >
+        totalPages
+    ) {
+        maintenancePage =
+            totalPages;
+    }
+
+
+    const start =
+        (
+            maintenancePage - 1
+        ) *
+        maintenancePerPage;
+
+
+    const pageItems =
+        filtered.slice(
+            start,
+            start +
+            maintenancePerPage
+        );
+
+
+    container.innerHTML =
+        pageItems.map(
+            renderMaintenanceCard
+        ).join("");
+
+
+    renderMaintenancePagination(
+        filtered.length
+    );
+}
+
+
+function renderMaintenanceCard(log) {
+
+    const asset =
+        log.asset ||
+        log.custom_asset ||
+        "Custom Asset";
+
+
+    const status =
+        log.status ||
+        "open";
+
+
+    const priority =
+        log.priority ||
+        "low";
+
+
+    return `
+        <article
+            class="
+                hk-maint-item
+                hk-priority-${escapeHtml(priority)}
+            "
+        >
+
+            <div class="hk-maint-item-top">
+
+                <div class="hk-maint-main">
+
+                    <div class="hk-maint-title-row">
+
+                        <div class="hk-maint-icon">
+                            <i class="fas fa-screwdriver-wrench"></i>
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                ${escapeHtml(asset)}
+                            </h3>
+
+                            <p>
+                                ${escapeHtml(
+                                    log.description ||
+                                    "No description"
+                                )}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="hk-maint-badges">
+
+                    <span
+                        class="
+                            hk-status
+                            hk-status-${escapeHtml(status)}
+                        "
+                    >
+                        ${escapeHtml(
+                            maintenanceStatusLabel(
+                                status
+                            )
+                        )}
+                    </span>
+
+
+                    <span
+                        class="
+                            hk-priority
+                            hk-priority-badge-${escapeHtml(priority)}
+                        "
+                    >
+                        ${escapeHtml(
+                            priority
+                        )}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="hk-maint-meta">
+
+                ${
+                    log.department
+                        ? `
+                            <span>
+                                <i class="fas fa-building"></i>
+                                ${escapeHtml(log.department)}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    log.location
+                        ? `
+                            <span>
+                                <i class="fas fa-location-dot"></i>
+                                ${escapeHtml(log.location)}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    log.type
+                        ? `
+                            <span>
+                                <i class="fas fa-tag"></i>
+                                ${escapeHtml(
+                                    log.type.replaceAll(
+                                        "_",
+                                        " "
+                                    )
+                                )}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    log.performed_by
+                        ? `
+                            <span>
+                                <i class="fas fa-user-gear"></i>
+                                ${escapeHtml(
+                                    log.performed_by
+                                )}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    log.performed_at
+                        ? `
+                            <span>
+                                <i class="fas fa-calendar"></i>
+                                ${escapeHtml(
+                                    formatMaintenanceDate(
+                                        log.performed_at
+                                    )
+                                )}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    Number(log.cost || 0) > 0
+                        ? `
+                            <span>
+                                <i class="fas fa-indian-rupee-sign"></i>
+                                ₹${formatMoney(log.cost)}
+                            </span>
+                        `
+                        : ""
+                }
+
+
+                ${
+                    log.next_due
+                        ? `
+                            <span class="hk-next-due">
+                                <i class="fas fa-calendar-check"></i>
+                                Next:
+                                ${escapeHtml(
+                                    log.next_due
+                                )}
+                            </span>
+                        `
+                        : ""
+                }
+
+            </div>
+
+
+            <div class="hk-maint-footer">
+
+                <div class="hk-maint-costs">
+
+                    <span>
+                        Labour:
+                        <strong>
+                            ₹${formatMoney(
+                                log.labour_cost
+                            )}
+                        </strong>
+                    </span>
+
+                    <span>
+                        Parts:
+                        <strong>
+                            ₹${formatMoney(
+                                log.parts_cost
+                            )}
+                        </strong>
+                    </span>
+
+                </div>
+
+
+                <div class="hk-maint-actions">
+
+                    ${
+                        status !== "completed" &&
+                        status !== "cancelled"
+
+                            ? `
+                                <select
+                                    class="hk-status-select"
+                                    onchange="
+                                        quickUpdateMaintStatus(
+                                            ${log.id},
+                                            this.value
+                                        )
+                                    "
+                                >
+
+                                    <option
+                                        value="open"
+                                        ${
+                                            status === "open"
+                                                ? "selected"
+                                                : ""
+                                        }
+                                    >
+                                        Open
+                                    </option>
+
+                                    <option
+                                        value="in_progress"
+                                        ${
+                                            status === "in_progress"
+                                                ? "selected"
+                                                : ""
+                                        }
+                                    >
+                                        In Progress
+                                    </option>
+
+                                    <option
+                                        value="completed"
+                                    >
+                                        Completed
+                                    </option>
+
+                                    <option
+                                        value="cancelled"
+                                    >
+                                        Cancelled
+                                    </option>
+
+                                </select>
+                            `
+
+                            : ""
+                    }
+
+
+                    <button
+                        type="button"
+                        class="hk-icon-btn"
+                        title="Edit"
+                        onclick="editMaintenanceLog(${log.id})"
+                    >
+                        <i class="fas fa-pen"></i>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="
+                            hk-icon-btn
+                            hk-icon-btn-danger
+                        "
+                        title="Delete"
+                        onclick="deleteMaintLog(${log.id})"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </article>
+    `;
+}
+
+
+/* ============================================================
+   PAGINATION
+============================================================ */
+
+function renderMaintenancePagination(
+    total
+) {
+
+    const bar =
+        document.getElementById(
+            "maintPaginationBar"
+        );
+
+
+    const info =
+        document.getElementById(
+            "maintPageInfo"
+        );
+
+
+    const buttons =
+        document.getElementById(
+            "maintPageBtns"
+        );
+
+
+    const totalPages =
+        Math.ceil(
+            total /
+            maintenancePerPage
+        );
+
+
+    if (
+        total <=
+        maintenancePerPage
+    ) {
+
+        bar.style.display =
+            "none";
+
+        return;
+    }
+
+
+    bar.style.display =
+        "flex";
+
+
+    const start =
+        (
+            maintenancePage - 1
+        ) *
+        maintenancePerPage +
+        1;
+
+
+    const end =
+        Math.min(
+            maintenancePage *
+            maintenancePerPage,
+            total
+        );
+
+
+    info.textContent =
+        `Showing ${start}–${end} of ${total}`;
+
+
+    let html = "";
+
+
+    html += `
+        <button
+            type="button"
+            class="hk-page-btn"
+            ${
+                maintenancePage === 1
+                    ? "disabled"
+                    : ""
+            }
+            onclick="
+                goMaintPage(
+                    ${maintenancePage - 1}
+                )
+            "
+        >
+            <i class="fas fa-chevron-left"></i>
+        </button>
+    `;
+
+
+    for (
+        let page = 1;
+        page <= totalPages;
+        page++
+    ) {
+
+        html += `
+            <button
+                type="button"
+                class="
+                    hk-page-btn
+                    ${
+                        page ===
+                        maintenancePage
+                            ? "active"
+                            : ""
+                    }
+                "
+                onclick="
+                    goMaintPage(${page})
+                "
+            >
+                ${page}
+            </button>
+        `;
+    }
+
+
+    html += `
+        <button
+            type="button"
+            class="hk-page-btn"
+            ${
+                maintenancePage ===
+                totalPages
+                    ? "disabled"
+                    : ""
+            }
+            onclick="
+                goMaintPage(
+                    ${maintenancePage + 1}
+                )
+            "
+        >
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
+
+
+    buttons.innerHTML =
+        html;
+}
+
+
+function goMaintPage(page) {
+
+    maintenancePage =
+        page;
+
+    renderMaintenanceLogs();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+    });
+}
+
+
+function changeMaintPerPage() {
+
+    maintenancePerPage =
+        parseInt(
+            document.getElementById(
+                "maintPerPage"
+            ).value
+        ) || 10;
+
+
+    maintenancePage =
+        1;
+
+
+    renderMaintenanceLogs();
+}
+
+
+function handleMaintenanceAssetChange() {
+
+    const assetSelect =
+        document.getElementById(
+            "maintAssetId"
+        );
+
+    const selected =
+        assetSelect.options[
+            assetSelect.selectedIndex
+        ];
+
+    if (!selected || !selected.value) {
+        return;
+    }
+
+
+    // --------------------------------------------
+    // AUTO SELECT DEPARTMENT
+    // --------------------------------------------
+
+    const departmentId =
+        selected.dataset.departmentId;
+
+    const departmentSelect =
+        document.getElementById(
+            "maintDepartmentId"
+        );
+
+    if (
+        departmentId &&
+        departmentSelect
+    ) {
+
+        const exists =
+            Array.from(
+                departmentSelect.options
+            ).some(
+                option =>
+                    String(option.value) ===
+                    String(departmentId)
+            );
+
+        if (exists) {
+
+            departmentSelect.value =
+                departmentId;
+        }
+    }
+
+
+    // --------------------------------------------
+    // AUTO FILL LOCATION
+    // --------------------------------------------
+
+    const location =
+        selected.dataset.location;
+
+    const locationInput =
+        document.getElementById(
+            "maintLocation"
+        );
+
+    if (
+        location &&
+        locationInput &&
+        !locationInput.value.trim()
+    ) {
+
+        locationInput.value =
+            location;
+    }
+
+
+    // --------------------------------------------
+    // CLEAR CUSTOM ASSET
+    // --------------------------------------------
+
+    const customAsset =
+        document.getElementById(
+            "maintCustomAsset"
+        );
+
+    if (customAsset) {
+
+        customAsset.value = "";
+    }
+}
+
+
+
+/* ============================================================
+   OPEN CREATE MODAL
+============================================================ */
+
+function openMaintenanceModal() {
+
+    loadMaintenanceAssets();
+    
+    maintenanceEditId =
+        null;
+
+
+    document.getElementById(
+        "maintModalTitle"
+    ).textContent =
+        "Log Maintenance Work";
+
+
+    document.getElementById(
+        "maintLogId"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintAssetId"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintDepartmentId"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintCustomAsset"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintLocation"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintType"
+    ).value =
+        "scheduled";
+
+
+    document.getElementById(
+        "maintPriority"
+    ).value =
+        "low";
+
+
+    document.getElementById(
+        "maintStatus"
+    ).value =
+        "completed";
+
+
+    document.getElementById(
+        "maintDescription"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintPerformedBy"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintDuration"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintNextDue"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintLabourCost"
+    ).value = "0";
+
+
+    document.getElementById(
+        "maintPartsCost"
+    ).value = "0";
+
+
+    document.getElementById(
+        "maintPartsReplaced"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintNotes"
+    ).value = "";
+
+
+    document.getElementById(
+        "maintCreateExpense"
+    ).checked = false;
+
+
+    const now =
+        new Date();
+
+
+    now.setMinutes(
+        now.getMinutes() -
+        now.getTimezoneOffset()
+    );
+
+
+    document.getElementById(
+        "maintPerformedAt"
+    ).value =
+        now.toISOString().slice(
+            0,
+            16
+        );
+
+
+    document.getElementById(
+        "maintenanceModal"
+    ).classList.add(
+        "open"
+    );
+
+
+    document.body.classList.add(
+        "hk-modal-open"
+    );
+}
+
+
+/* ============================================================
+   CLOSE MODAL
+============================================================ */
+
+function closeMaintenanceModal() {
+
+    document.getElementById(
+        "maintenanceModal"
+    ).classList.remove(
+        "open"
+    );
+
+
+    document.body.classList.remove(
+        "hk-modal-open"
+    );
+}
+
+
+/* ============================================================
+   EDIT
+============================================================ */
+
+function editMaintenanceLog(id) {
+
+    const log =
+        maintenanceData.find(
+            item =>
+                Number(item.id) ===
+                Number(id)
+        );
+
+
+    if (!log) {
+        return;
+    }
+
+
+    maintenanceEditId =
+        id;
+
+
+    document.getElementById(
+        "maintModalTitle"
+    ).textContent =
+        "Edit Maintenance Log";
+
+
+    document.getElementById(
+        "maintLogId"
+    ).value =
+        id;
+
+
+    document.getElementById(
+        "maintAssetId"
+    ).value =
+        log.asset_id || "";
+
+
+    document.getElementById(
+        "maintCustomAsset"
+    ).value =
+        log.custom_asset || "";
+
+
+    document.getElementById(
+        "maintLocation"
+    ).value =
+        log.location || "";
+
+
+    document.getElementById(
+        "maintType"
+    ).value =
+        log.type || "scheduled";
+
+
+    document.getElementById(
+        "maintPriority"
+    ).value =
+        log.priority || "low";
+
+
+    document.getElementById(
+        "maintStatus"
+    ).value =
+        log.status || "open";
+
+
+    document.getElementById(
+        "maintDescription"
+    ).value =
+        log.description || "";
+
+
+    document.getElementById(
+        "maintPerformedBy"
+    ).value =
+        log.performed_by || "";
+
+
+    document.getElementById(
+        "maintDuration"
+    ).value =
+        log.duration || "";
+
+
+    document.getElementById(
+        "maintNextDue"
+    ).value =
+        log.next_due || "";
+
+
+    document.getElementById(
+        "maintLabourCost"
+    ).value =
+        log.labour_cost || 0;
+
+
+    document.getElementById(
+        "maintPartsCost"
+    ).value =
+        log.parts_cost || 0;
+
+
+    document.getElementById(
+        "maintPartsReplaced"
+    ).value =
+        log.parts_replaced || "";
+
+
+    document.getElementById(
+        "maintNotes"
+    ).value =
+        log.notes || "";
+
+
+    if (log.performed_at) {
+
+        const date =
+            new Date(
+                log.performed_at
+            );
+
+
+        date.setMinutes(
+            date.getMinutes() -
+            date.getTimezoneOffset()
+        );
+
+
+        document.getElementById(
+            "maintPerformedAt"
+        ).value =
+            date
+                .toISOString()
+                .slice(0, 16);
+
+    } else {
+
+        document.getElementById(
+            "maintPerformedAt"
+        ).value = "";
+    }
+
+
+    document.getElementById(
+        "maintenanceModal"
+    ).classList.add(
+        "open"
+    );
+
+
+    document.body.classList.add(
+        "hk-modal-open"
+    );
+}
+
+
+/* ============================================================
+   SAVE
+============================================================ */
+
+async function saveMaintenanceLog() {
+
+    const description =
+        document.getElementById(
+            "maintDescription"
+        ).value.trim();
+
+
+    if (!description) {
+
+        showMaintToast(
+            "Description is required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const labourCost =
+        Number(
+            document.getElementById(
+                "maintLabourCost"
+            ).value || 0
+        );
+
+
+    const partsCost =
+        Number(
+            document.getElementById(
+                "maintPartsCost"
+            ).value || 0
+        );
+
+
+    const payload = {
+
+        asset_id:
+            document.getElementById(
+                "maintAssetId"
+            ).value || null,
+
+        department_id:
+            document.getElementById(
+                "maintDepartmentId"
+            ).value || null,
+
+        custom_asset:
+            document.getElementById(
+                "maintCustomAsset"
+            ).value.trim(),
+
+        location:
+            document.getElementById(
+                "maintLocation"
+            ).value.trim(),
+
+        maintenance_type:
+            document.getElementById(
+                "maintType"
+            ).value,
+
+        priority:
+            document.getElementById(
+                "maintPriority"
+            ).value,
+
+        status:
+            document.getElementById(
+                "maintStatus"
+            ).value,
+
+        description:
+            description,
+
+        performed_by:
+            document.getElementById(
+                "maintPerformedBy"
+            ).value.trim(),
+
+        performed_at:
+            document.getElementById(
+                "maintPerformedAt"
+            ).value || null,
+
+        duration:
+            document.getElementById(
+                "maintDuration"
+            ).value.trim(),
+
+        next_due:
+            document.getElementById(
+                "maintNextDue"
+            ).value || null,
+
+        labour_cost:
+            labourCost,
+
+        parts_cost:
+            partsCost,
+
+        cost:
+            labourCost +
+            partsCost,
+
+        parts_replaced:
+            document.getElementById(
+                "maintPartsReplaced"
+            ).value.trim(),
+
+        notes:
+            document.getElementById(
+                "maintNotes"
+            ).value.trim(),
+
+        create_expense:
+            document.getElementById(
+                "maintCreateExpense"
+            ).checked,
+    };
+
+
+    const button =
+        document.getElementById(
+            "maintSaveBtn"
+        );
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Saving...
+    `;
+
+
+    try {
+
+        const url =
+            maintenanceEditId
+
+                ? `/inventory/maintenance/${maintenanceEditId}/edit/`
+
+                : "/inventory/maintenance/create/";
+
+
+        const response =
+            await apiFetch(
+                url,
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify(
+                            payload
+                        ),
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to save maintenance log."
+            );
+        }
+
+
+        showMaintToast(
+            maintenanceEditId
+                ? "Maintenance log updated."
+                : "Maintenance log created."
+        );
+
+
+        closeMaintenanceModal();
+
+        await loadMaintenanceLog();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showMaintToast(
+            error.message ||
+            "Unable to save maintenance log.",
+            "error"
+        );
+
+
+    } finally {
+
+        button.disabled =
+            false;
+
+
+        button.innerHTML = `
+            <i class="fas fa-save"></i>
+            Save Log
+        `;
+    }
+}
+
+
+/* ============================================================
+   STATUS UPDATE
+============================================================ */
+
+async function quickUpdateMaintStatus(
+    logId,
+    status
+) {
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/inventory/maintenance/${logId}/update-status/`,
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+                            status:
+                                status,
+                        }),
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Status update failed."
+            );
+        }
+
+
+        const log =
+            maintenanceData.find(
+                item =>
+                    Number(item.id) ===
+                    Number(logId)
+            );
+
+
+        if (log) {
+            log.status =
+                status;
+        }
+
+
+        updateMaintenanceStats();
+
+        renderMaintenanceLogs();
+
+
+        showMaintToast(
+            "Maintenance status updated."
+        );
+
+
+    } catch (error) {
+
+        showMaintToast(
+            error.message,
+            "error"
+        );
+
+        await loadMaintenanceLog();
+    }
+}
+
+
+/* ============================================================
+   DELETE
+============================================================ */
+
+async function deleteMaintLog(
+    logId
+) {
+
+    if (
+        !confirm(
+            "Delete this maintenance log permanently?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/inventory/maintenance/${logId}/delete/`,
+                {
+                    method:
+                        "POST",
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Delete failed."
+            );
+        }
+
+
+        maintenanceData =
+            maintenanceData.filter(
+                item =>
+                    Number(item.id) !==
+                    Number(logId)
+            );
+
+
+        updateMaintenanceStats();
+
+        renderMaintenanceLogs();
+
+
+        showMaintToast(
+            "Maintenance log deleted."
+        );
+
+
+    } catch (error) {
+
+        showMaintToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* ============================================================
+   MODAL EVENTS
+============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+            closeMaintenanceModal();
+        }
+    }
+);
+
+
+/* ============================================================
+   INIT
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        loadMaintenanceAssets();
+
+        loadMaintenanceLog();
+    }
+);
+
+</script>
+
+{% endblock %}

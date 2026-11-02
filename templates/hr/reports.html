@@ -1,0 +1,473 @@
+{% extends "hr/base.html" %}
+{% load static %}
+
+{% block title %}Work Reports | Human Resources{% endblock %}
+
+{% block content %}
+<style>
+/* =========================================================
+   WORK REPORTS - STAFF MASTER / DETAIL LAYOUT
+   ========================================================= */
+.work-report-page{
+    --wr-border: var(--hr-border, #dfe3ea);
+    --wr-card: var(--hr-card, #fff);
+    --wr-bg: var(--hr-bg, #f6f7fb);
+    --wr-text: var(--hr-text, #172033);
+    --wr-muted: var(--hr-muted, #718096);
+    --wr-primary: var(--hr-primary, #2563eb);
+    --wr-purple: #7c3aed;
+    --wr-green: #16a34a;
+    --wr-orange: #d97706;
+    --wr-blue: #2563eb;
+    --wr-cyan: #0891b2;
+    width:100%;
+    min-height:calc(100vh - 140px);
+}
+.wr-topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+    padding:16px 20px;background:var(--wr-card);border-bottom:1px solid var(--wr-border);
+}
+.wr-title h1{margin:0;font-size:21px;font-weight:800;color:var(--wr-text)}
+.wr-title p{margin:4px 0 0;font-size:12px;color:var(--wr-muted)}
+.wr-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wr-control,.wr-btn{
+    height:38px;border:1px solid var(--wr-border);border-radius:8px;background:var(--wr-card);
+    color:var(--wr-text);font-size:12px;font-weight:600;padding:0 12px;outline:none;
+}
+.wr-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+.wr-btn:hover{background:var(--wr-bg)}
+.wr-btn-primary{background:var(--wr-primary);border-color:var(--wr-primary);color:#fff}
+.wr-btn-primary:hover{filter:brightness(.96);background:var(--wr-primary)}
+.wr-shell{
+    display:grid;grid-template-columns:270px minmax(0,1fr);
+    min-height:calc(100vh - 215px);background:var(--wr-bg);
+}
+.wr-sidebar{
+    background:var(--wr-card);border-right:1px solid var(--wr-border);
+    min-width:0;display:flex;flex-direction:column;
+}
+.wr-sidebar-section{padding:14px 16px;border-bottom:1px solid var(--wr-border)}
+.wr-small-label{
+    margin-bottom:9px;font-size:10px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--wr-muted)
+}
+.wr-mode-row{display:flex;gap:5px}
+.wr-mode-btn{
+    flex:1;height:32px;border:1px solid transparent;border-radius:7px;background:transparent;
+    color:var(--wr-muted);font-size:10px;font-weight:700;cursor:pointer
+}
+.wr-mode-btn.active{background:#fff;border-color:var(--wr-border);color:var(--wr-primary);box-shadow:0 1px 5px rgba(15,23,42,.08)}
+.wr-date-wrap{position:relative}
+.wr-date-wrap input{width:100%;height:36px;border:1px solid var(--wr-border);border-radius:7px;padding:0 10px;color:var(--wr-text);background:var(--wr-card)}
+.wr-dept-chips{display:flex;gap:6px;flex-wrap:wrap}
+.wr-chip{
+    border:1px solid var(--wr-border);background:var(--wr-card);color:var(--wr-muted);
+    border-radius:999px;padding:5px 10px;font-size:10px;font-weight:700;cursor:pointer
+}
+.wr-chip.active{background:#111827;color:#fff;border-color:#111827}
+.wr-search{position:relative}
+.wr-search i{position:absolute;left:11px;top:11px;color:var(--wr-muted);font-size:11px}
+.wr-search input{
+    width:100%;height:36px;border:1px solid var(--wr-border);border-radius:7px;
+    padding:0 10px 0 31px;background:var(--wr-card);color:var(--wr-text);outline:none;font-size:11px
+}
+.wr-employee-list{overflow:auto;max-height:calc(100vh - 470px);min-height:260px}
+.wr-employee{
+    width:100%;display:flex;align-items:center;gap:10px;padding:11px 15px;border:0;
+    border-bottom:1px solid var(--wr-border);background:transparent;text-align:left;cursor:pointer;
+    border-left:3px solid transparent
+}
+.wr-employee:hover{background:rgba(37,99,235,.035)}
+.wr-employee.active{background:#eaf2ff;border-left-color:var(--wr-primary)}
+.wr-avatar{
+    width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;color:#fff;font-size:13px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#2563eb)
+}
+.wr-employee:nth-child(3n+2) .wr-avatar{background:linear-gradient(135deg,#ea580c,#f59e0b)}
+.wr-employee:nth-child(3n+3) .wr-avatar{background:linear-gradient(135deg,#059669,#0891b2)}
+.wr-emp-main{min-width:0;flex:1}
+.wr-emp-name{font-size:12px;font-weight:800;color:var(--wr-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-emp-meta{margin-top:2px;font-size:9px;color:var(--wr-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wr-dept-code{margin-left:5px;font-weight:800;color:var(--wr-primary)}
+.wr-main{padding:16px 18px 28px;min-width:0}
+.wr-profile{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:17px 20px;border-radius:14px;background:#0d1119;color:#fff;margin-bottom:16px;
+}
+.wr-profile-left{display:flex;align-items:center;gap:14px;min-width:0}
+.wr-profile .wr-avatar{width:46px;height:46px;flex-basis:46px;border-radius:50%;font-size:17px;background:#153d86}
+.wr-profile-name{font-size:15px;font-weight:800}
+.wr-profile-meta{margin-top:4px;color:#9ca3af;font-size:11px}
+.wr-profile-date{text-align:right}
+.wr-profile-date span{display:block;font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}
+.wr-profile-date strong{display:block;margin-top:3px;font-size:12px}
+.wr-section-title{
+    display:flex;align-items:center;gap:7px;margin:12px 0 9px;color:var(--wr-muted);
+    font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em
+}
+.wr-section-title i{color:var(--wr-primary)}
+.wr-metric-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.wr-metric{
+    min-height:75px;padding:12px 14px;border:1px solid var(--wr-border);border-radius:8px;
+    background:var(--wr-card);border-top:3px solid #94a3b8
+}
+.wr-metric.green{border-top-color:var(--wr-green)}
+.wr-metric.orange{border-top-color:var(--wr-orange)}
+.wr-metric.blue{border-top-color:var(--wr-blue)}
+.wr-metric.cyan{border-top-color:var(--wr-cyan)}
+.wr-metric-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--wr-muted)}
+.wr-metric-value{margin-top:9px;font-size:17px;font-weight:800;color:var(--wr-text)}
+.wr-metric-value.green{color:var(--wr-green)} .wr-metric-value.orange{color:var(--wr-orange)}
+.wr-metric-value.blue{color:var(--wr-blue)} .wr-metric-value.cyan{color:var(--wr-cyan)}
+.wr-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.wr-summary{
+    min-height:64px;padding:12px 14px;border:1px solid var(--wr-border);border-radius:8px;background:var(--wr-card)
+}
+.wr-summary-label{font-size:10px;color:var(--wr-muted)}
+.wr-summary-value{margin-top:8px;font-size:18px;font-weight:800;color:var(--wr-text)}
+.wr-summary-value.green{color:var(--wr-green)} .wr-summary-value.orange{color:var(--wr-orange)}
+.wr-summary-value.blue{color:var(--wr-blue)} .wr-summary-value.purple{color:var(--wr-purple)}
+.wr-activity{
+    border:1px solid var(--wr-border);border-radius:8px;background:var(--wr-card);overflow:hidden
+}
+.wr-activity-row{
+    display:grid;grid-template-columns:110px 120px minmax(0,1fr) 105px;
+    gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--wr-border);font-size:11px;color:var(--wr-text)
+}
+.wr-activity-row:last-child{border-bottom:0}
+.wr-activity-type{font-weight:800}.wr-activity-time{color:var(--wr-muted)}
+.wr-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:800}
+.wr-badge.green{background:#dcfce7;color:#15803d}.wr-badge.orange{background:#ffedd5;color:#c2410c}
+.wr-badge.blue{background:#dbeafe;color:#1d4ed8}.wr-badge.red{background:#fee2e2;color:#b91c1c}
+.wr-badge.gray{background:#f1f5f9;color:#64748b}
+.wr-empty{padding:38px 18px;text-align:center;color:var(--wr-muted);font-size:12px}
+.wr-empty i{display:block;font-size:24px;margin-bottom:9px}
+.wr-loading{opacity:.55;pointer-events:none}
+.wr-footer-status{padding:9px 15px;border-top:1px solid var(--wr-border);font-size:9px;color:var(--wr-muted)}
+[data-theme="dark"] .wr-profile{background:#080b12}
+[data-theme="dark"] .wr-chip.active{background:#e5e7eb;color:#111827}
+[data-theme="dark"] .wr-employee.active{background:rgba(37,99,235,.16)}
+@media(max-width:1100px){.wr-shell{grid-template-columns:235px minmax(0,1fr)}.wr-metric-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:820px){.wr-topbar{align-items:flex-start;flex-direction:column}.wr-top-actions{width:100%}.wr-shell{grid-template-columns:1fr}.wr-sidebar{border-right:0;border-bottom:1px solid var(--wr-border)}.wr-employee-list{max-height:280px}.wr-metric-grid{grid-template-columns:repeat(2,1fr)}.wr-summary-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.wr-main{padding:12px}.wr-top-actions .wr-control,.wr-top-actions .wr-btn{flex:1}.wr-profile{align-items:flex-start}.wr-profile-date{display:none}.wr-metric-grid,.wr-summary-grid{grid-template-columns:1fr}.wr-activity-row{grid-template-columns:1fr;gap:5px}}
+
+/* ===== FIXED WORKSPACE + LARGER UI OVERRIDES ===== */
+@media (min-width:821px){
+  .work-report-page{height:calc(100dvh - 208px);min-height:600px;overflow:hidden;display:flex;flex-direction:column;}
+  .wr-topbar{flex:0 0 78px;padding:17px 24px;}
+  .wr-shell{flex:1 1 auto;min-height:0;height:auto;overflow:hidden;grid-template-columns:310px minmax(0,1fr);}
+  .wr-sidebar{height:100%;min-height:0;overflow:hidden;}
+  .wr-sidebar-section{flex:0 0 auto;padding:14px 17px;}
+  .wr-employee-list{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c5cad3 transparent;}
+  .wr-employee-list::-webkit-scrollbar{width:7px;}
+  .wr-employee-list::-webkit-scrollbar-thumb{background:#c5cad3;border-radius:20px;}
+  .wr-footer-status{flex:0 0 auto;background:var(--wr-card);}
+  .wr-main{height:100%;min-height:0;overflow:hidden;padding:17px 20px 18px;}
+}
+.wr-title h1{font-size:25px;}
+.wr-title p{font-size:13px;}
+.wr-control,.wr-btn{height:42px;font-size:13px;padding:0 14px;}
+.wr-small-label{font-size:11px;}
+.wr-mode-btn{height:35px;font-size:11px;}
+.wr-date-wrap input{height:39px;font-size:12px;}
+.wr-chip{padding:6px 11px;font-size:11px;}
+.wr-search input{height:40px;font-size:12px;padding-left:34px;}
+.wr-search i{top:13px;font-size:12px;}
+.wr-employee{min-height:58px;padding:11px 15px;gap:11px;}
+.wr-avatar{width:38px;height:38px;flex:0 0 38px;font-size:14px;}
+.wr-emp-name{font-size:13px;}
+.wr-emp-meta{font-size:10px;margin-top:3px;}
+.wr-profile{min-height:78px;padding:16px 21px;margin-bottom:14px;}
+.wr-profile .wr-avatar{width:48px;height:48px;flex-basis:48px;font-size:18px;}
+.wr-profile-name{font-size:17px;}
+.wr-profile-meta{font-size:12px;}
+.wr-profile-date span{font-size:10px;}
+.wr-profile-date strong{font-size:13px;}
+.wr-section-title{font-size:11px;margin:11px 0 8px;}
+.wr-metric-grid{gap:11px;}
+.wr-metric{min-height:86px;padding:14px 15px;border-radius:10px;}
+.wr-metric-label{font-size:10px;}
+.wr-metric-value{font-size:20px;margin-top:11px;}
+.wr-summary-grid{gap:11px;}
+.wr-summary{min-height:76px;padding:14px 15px;border-radius:10px;}
+.wr-summary-label{font-size:11px;}
+.wr-summary-value{font-size:20px;}
+.wr-activity{max-height:150px;border-radius:10px;}
+.wr-activity-row{padding:12px 15px;font-size:12px;grid-template-columns:130px 125px minmax(0,1fr) 110px;}
+.wr-badge{font-size:10px;padding:5px 9px;}
+.wr-empty{font-size:13px;}
+.wr-footer-status{font-size:10px;padding:10px 15px;}
+@media(max-width:820px){.work-report-page{height:auto;min-height:0;overflow:visible}.wr-shell{overflow:visible}.wr-sidebar{height:auto;overflow:visible}.wr-main{height:auto;overflow:visible}.wr-employee-list{max-height:300px}.wr-activity{max-height:none}}
+
+</style>
+
+<div class="work-report-page" id="workReportPage">
+    <div class="wr-topbar">
+        <div class="wr-title">
+            <h1>Work Reports</h1>
+            <p>Staff performance &amp; activity log</p>
+        </div>
+        <div class="wr-top-actions">
+            <select id="reportMonth" class="wr-control" aria-label="Month">
+                <option value="1">January</option><option value="2">February</option>
+                <option value="3">March</option><option value="4">April</option>
+                <option value="5">May</option><option value="6">June</option>
+                <option value="7">July</option><option value="8">August</option>
+                <option value="9">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+            </select>
+            <select id="reportYear" class="wr-control" aria-label="Year"></select>
+            <button type="button" class="wr-btn" onclick="loadWorkReport()"><i class="fas fa-rotate"></i> Refresh</button>
+            <button type="button" class="wr-btn wr-btn-primary" onclick="exportWorkReport()"><i class="fas fa-download"></i> Export</button>
+        </div>
+    </div>
+
+    <div class="wr-shell">
+        <aside class="wr-sidebar">
+            <div class="wr-sidebar-section">
+                <div class="wr-small-label">View Mode</div>
+                <div class="wr-mode-row">
+                    <button type="button" class="wr-mode-btn active" data-mode="daily"><i class="fas fa-calendar-day"></i> Daily</button>
+                    <button type="button" class="wr-mode-btn" data-mode="monthly"><i class="fas fa-calendar"></i> Monthly</button>
+                    <button type="button" class="wr-mode-btn" data-mode="all"><i class="fas fa-users"></i> All Staff</button>
+                </div>
+            </div>
+
+            <div class="wr-sidebar-section" id="specificDateBlock">
+                <div class="wr-small-label">Specific Date</div>
+                <div class="wr-date-wrap"><input type="date" id="reportSpecificDate" value="{{ report_end_date }}"></div>
+            </div>
+
+            <div class="wr-sidebar-section">
+                <div class="wr-dept-chips" id="departmentChips">
+                    <button type="button" class="wr-chip active" data-department="">All</button>
+                    {% for department in departments %}
+                    <button type="button" class="wr-chip" data-department="{{ department.id }}">{{ department.name }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="wr-sidebar-section">
+                <div class="wr-search">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="search" id="staffSearch" placeholder="Search staff..." autocomplete="off">
+                </div>
+            </div>
+
+            <div class="wr-employee-list" id="staffList">
+                <div class="wr-empty"><i class="fas fa-spinner fa-spin"></i>Loading staff...</div>
+            </div>
+            <div class="wr-footer-status" id="staffFooter">Loading...</div>
+        </aside>
+
+        <main class="wr-main" id="staffReportPanel">
+            <div class="wr-empty"><i class="fas fa-user-clock"></i>Select an employee to view the report.</div>
+        </main>
+    </div>
+</div>
+
+<script>
+const WORK_REPORT_DATA_URL = "{% url 'hr_reports_data' %}";
+const WORK_REPORT_EXPORT_URL = "{% url 'hr_reports_export_csv' %}";
+
+let wrMode = "daily";
+let wrDepartment = "";
+let wrSelectedStaff = null;
+let wrLastData = null;
+
+function wrEscape(value){
+    return String(value ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function wrMoney(value){
+    const n = Number(value || 0);
+    return "₹" + n.toLocaleString("en-IN",{maximumFractionDigits:2});
+}
+function wrHours(value){
+    const n = Number(value || 0);
+    return Number.isInteger(n) ? `${n}h` : `${n.toFixed(1)}h`;
+}
+function wrInitial(name){ return (String(name || "?").trim().charAt(0) || "?").toUpperCase(); }
+
+function initYears(){
+    const yearSelect = document.getElementById("reportYear");
+    const now = new Date();
+    const current = now.getFullYear();
+    for(let y=current-5;y<=current+1;y++){
+        const o=document.createElement("option"); o.value=y; o.textContent=y; yearSelect.appendChild(o);
+    }
+    const initial = new Date("{{ report_end_date|default:'' }}T00:00:00");
+    const safe = Number.isNaN(initial.getTime()) ? now : initial;
+    document.getElementById("reportMonth").value = safe.getMonth()+1;
+    yearSelect.value = safe.getFullYear();
+}
+
+function getRange(){
+    const month = Number(document.getElementById("reportMonth").value);
+    const year = Number(document.getElementById("reportYear").value);
+    const specific = document.getElementById("reportSpecificDate").value;
+    if(wrMode === "daily"){
+        const d = specific || `${year}-${String(month).padStart(2,"0")}-01`;
+        return {start:d,end:d};
+    }
+    const start = `${year}-${String(month).padStart(2,"0")}-01`;
+    const last = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2,"0")}-${String(last).padStart(2,"0")}`;
+    return {start,end};
+}
+
+function syncSpecificDateVisibility(){
+    document.getElementById("specificDateBlock").style.display = wrMode === "daily" ? "" : "none";
+}
+
+async function loadWorkReport(preferredStaffId=null){
+    const page=document.getElementById("workReportPage");
+    page.classList.add("wr-loading");
+    const range=getRange();
+    const params=new URLSearchParams({start_date:range.start,end_date:range.end});
+    if(wrDepartment) params.set("department",wrDepartment);
+
+    try{
+        const response=await fetch(`${WORK_REPORT_DATA_URL}?${params}`,{
+            credentials:"same-origin",headers:{"X-Requested-With":"XMLHttpRequest"}
+        });
+        const data=await response.json();
+        if(!response.ok || !data.success) throw new Error(data.error || "Unable to load report.");
+        wrLastData=data;
+        renderStaffList(data.staff || []);
+
+        const available=(data.staff || []);
+        let target = preferredStaffId ?? wrSelectedStaff;
+        if(!available.some(s=>String(s.id)===String(target))) target=available[0]?.id ?? null;
+        wrSelectedStaff=target;
+        if(target) selectStaff(target,false);
+        else renderNoStaff();
+    }catch(error){
+        console.error(error);
+        document.getElementById("staffList").innerHTML=`<div class="wr-empty"><i class="fas fa-triangle-exclamation"></i>${wrEscape(error.message)}</div>`;
+        document.getElementById("staffReportPanel").innerHTML=`<div class="wr-empty"><i class="fas fa-triangle-exclamation"></i>${wrEscape(error.message)}</div>`;
+    }finally{ page.classList.remove("wr-loading"); }
+}
+
+function renderStaffList(staff){
+    const list=document.getElementById("staffList");
+    const q=document.getElementById("staffSearch").value.trim().toLowerCase();
+    const filtered=staff.filter(s=>{
+        const hay=`${s.name||""} ${s.employee_id||""} ${s.department||""}`.toLowerCase();
+        return hay.includes(q);
+    });
+    document.getElementById("staffFooter").textContent=`${filtered.length} staff member${filtered.length===1?"":"s"}`;
+    if(!filtered.length){
+        list.innerHTML=`<div class="wr-empty"><i class="fas fa-users-slash"></i>No staff found</div>`; return;
+    }
+    list.innerHTML=filtered.map(s=>`
+        <button type="button" class="wr-employee ${String(s.id)===String(wrSelectedStaff)?"active":""}" data-staff-id="${s.id}" onclick="selectStaff(${Number(s.id)})">
+            <span class="wr-avatar">${wrEscape(wrInitial(s.name))}</span>
+            <span class="wr-emp-main">
+                <span class="wr-emp-name">${wrEscape(s.name || "Unnamed")}</span>
+                <span class="wr-emp-meta">${wrEscape(s.department || "No Department")} <span class="wr-dept-code">${wrEscape(s.employee_id || "")}</span></span>
+            </span>
+        </button>`).join("");
+}
+
+function selectStaff(id, rerenderList=true){
+    wrSelectedStaff=id;
+    if(rerenderList && wrLastData) renderStaffList(wrLastData.staff || []);
+    document.querySelectorAll(".wr-employee").forEach(el=>el.classList.toggle("active",String(el.dataset.staffId)===String(id)));
+    const staff=(wrLastData?.staff || []).find(s=>String(s.id)===String(id));
+    if(staff) renderStaffDetail(staff);
+}
+
+function renderNoStaff(){
+    document.getElementById("staffReportPanel").innerHTML=`<div class="wr-empty"><i class="fas fa-user-slash"></i>No employees match the selected filters.</div>`;
+}
+
+function statusClass(status){
+    const s=String(status||"").toLowerCase();
+    if(s.includes("present")||s.includes("completed")||s.includes("approved")) return "green";
+    if(s.includes("late")||s.includes("pending")) return "orange";
+    if(s.includes("absent")||s.includes("rejected")) return "red";
+    if(s.includes("progress")) return "blue";
+    return "gray";
+}
+
+function renderStaffDetail(s){
+    const a=s.attendance||{}, t=s.tasks||{}, daily=s.daily||{};
+    const activities=s.activities||[];
+    const dateLabel = daily.date || (wrLastData?.filters?.end_date || "—");
+    const activityHtml = activities.length ? activities.map(x=>`
+        <div class="wr-activity-row">
+            <div class="wr-activity-time">${wrEscape(x.time || x.date || "—")}</div>
+            <div class="wr-activity-type">${wrEscape(x.type || "Activity")}</div>
+            <div>${wrEscape(x.title || x.description || "—")}</div>
+            <div><span class="wr-badge ${statusClass(x.status)}">${wrEscape(x.status || "Recorded")}</span></div>
+        </div>`).join("") :
+        `<div class="wr-empty"><i class="fas fa-list-check"></i>No activity for this ${wrMode==="daily"?"date":"period"}</div>`;
+
+    document.getElementById("staffReportPanel").innerHTML=`
+        <div class="wr-profile">
+            <div class="wr-profile-left">
+                <span class="wr-avatar">${wrEscape(wrInitial(s.name))}</span>
+                <div>
+                    <div class="wr-profile-name">${wrEscape(s.name || "Unnamed")}</div>
+                    <div class="wr-profile-meta">${wrEscape(s.employee_id || "No employee ID")} · ${wrEscape(s.department || "No Department")}</div>
+                </div>
+            </div>
+            <div class="wr-profile-date"><span>${wrMode==="daily"?"Date":"Period End"}</span><strong>${wrEscape(dateLabel)}</strong></div>
+        </div>
+
+        <div class="wr-section-title"><i class="fas fa-calendar-check"></i> Attendance</div>
+        <div class="wr-metric-grid">
+            <div class="wr-metric"><div class="wr-metric-label"><i class="fas fa-circle"></i> Status</div><div class="wr-metric-value">${wrEscape(daily.status || (wrMode==="daily"?"No Record":`${a.present||0} Present`))}</div></div>
+            <div class="wr-metric green"><div class="wr-metric-label"><i class="fas fa-right-to-bracket"></i> Check-In</div><div class="wr-metric-value green">${wrEscape(daily.check_in || "—")}</div></div>
+            <div class="wr-metric orange"><div class="wr-metric-label"><i class="fas fa-right-from-bracket"></i> Check-Out</div><div class="wr-metric-value orange">${wrEscape(daily.check_out || "—")}</div></div>
+            <div class="wr-metric blue"><div class="wr-metric-label"><i class="fas fa-clock"></i> Hours</div><div class="wr-metric-value blue">${wrEscape(daily.hours_text || "—")}</div></div>
+            <div class="wr-metric cyan"><div class="wr-metric-label"><i class="fas fa-stopwatch"></i> Overtime</div><div class="wr-metric-value cyan">${wrHours(daily.overtime ?? a.overtime)}</div></div>
+        </div>
+
+        <div class="wr-section-title"><i class="fas fa-chart-column"></i> Performance Summary</div>
+        <div class="wr-summary-grid">
+            <div class="wr-summary"><div class="wr-summary-label">Present / Late</div><div class="wr-summary-value green">${a.present||0} / ${a.late||0}</div></div>
+            <div class="wr-summary"><div class="wr-summary-label">Tasks Completed</div><div class="wr-summary-value blue">${t.completed||0}<small style="font-size:10px;color:var(--wr-muted)"> / ${t.total||0}</small></div></div>
+            <div class="wr-summary"><div class="wr-summary-label">Approved Leaves</div><div class="wr-summary-value orange">${s.approved_leaves||0}</div></div>
+            <div class="wr-summary"><div class="wr-summary-label">Payroll</div><div class="wr-summary-value purple">${wrMoney(s.payroll)}</div></div>
+        </div>
+
+        <div class="wr-section-title"><i class="fas fa-list"></i> Activity Log <span style="font-weight:600">${activities.length}</span></div>
+        <div class="wr-activity">${activityHtml}</div>`;
+}
+
+function setMode(mode){
+    wrMode=mode;
+    document.querySelectorAll(".wr-mode-btn").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+    syncSpecificDateVisibility();
+    loadWorkReport();
+}
+
+function exportWorkReport(){
+    const range=getRange();
+    const params=new URLSearchParams({start_date:range.start,end_date:range.end});
+    if(wrDepartment) params.set("department",wrDepartment);
+    if(wrSelectedStaff) params.set("staff",wrSelectedStaff);
+    window.location.href=`${WORK_REPORT_EXPORT_URL}?${params}`;
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+    initYears(); syncSpecificDateVisibility();
+
+    document.querySelectorAll(".wr-mode-btn").forEach(btn=>btn.addEventListener("click",()=>setMode(btn.dataset.mode)));
+    document.querySelectorAll(".wr-chip").forEach(btn=>btn.addEventListener("click",()=>{
+        wrDepartment=btn.dataset.department || "";
+        document.querySelectorAll(".wr-chip").forEach(x=>x.classList.remove("active"));
+        btn.classList.add("active"); wrSelectedStaff=null; loadWorkReport();
+    }));
+    document.getElementById("staffSearch").addEventListener("input",()=>{ if(wrLastData) renderStaffList(wrLastData.staff||[]); });
+    document.getElementById("reportSpecificDate").addEventListener("change",()=>loadWorkReport());
+    document.getElementById("reportMonth").addEventListener("change",()=>{ if(wrMode!=="daily") loadWorkReport(); });
+    document.getElementById("reportYear").addEventListener("change",()=>{ if(wrMode!=="daily") loadWorkReport(); });
+
+    loadWorkReport();
+});
+</script>
+{% endblock %}

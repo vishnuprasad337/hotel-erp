@@ -1,0 +1,3568 @@
+{% extends "frontoffice/base.html" %}
+
+{% block title %}New Booking | Front Office{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nb-page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 26px;
+    }
+
+    .nb-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 22px;
+    }
+
+    .nb-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .nb-header p {
+        margin: 5px 0 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .nb-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 14px;
+        border: 1px solid #d8dde6;
+        border-radius: 7px;
+        color: #374151;
+        background: #fff;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .nb-back:hover {
+        background: #f8fafc;
+    }
+
+    .nb-card {
+        background: #fff;
+        border: 1px solid #d8dde6;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    /* ================================
+       STEPS
+    ================================= */
+
+    .nb-steps {
+        display: flex;
+        align-items: center;
+        padding: 22px 28px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f8fafc;
+    }
+
+    .nb-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nb-step-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .nb-step-circle.active {
+        border-color: #1a65f5;
+        background: #1a65f5;
+        color: white;
+    }
+
+    .nb-step-circle.done {
+        border-color: #16a34a;
+        background: #16a34a;
+        color: white;
+    }
+
+    .nb-step-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        white-space: nowrap;
+    }
+
+    .nb-step-label.active {
+        color: #1a65f5;
+    }
+
+    .nb-connector {
+        flex: 1;
+        height: 2px;
+        background: #d8dde6;
+        margin: 0 12px;
+    }
+
+    .nb-connector.done {
+        background: #16a34a;
+    }
+
+    /* ================================
+       FORM
+    ================================= */
+
+    .nb-body {
+        padding: 28px;
+    }
+
+    .nb-panel {
+        display: none;
+    }
+
+    .nb-panel.active {
+        display: block;
+    }
+
+    .nb-section-title {
+        margin-bottom: 20px;
+    }
+
+    .nb-section-title h2 {
+        font-size: 18px;
+        margin: 0 0 5px;
+        font-weight: 700;
+    }
+
+    .nb-section-title p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .nb-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .nb-group {
+        margin-bottom: 18px;
+    }
+
+    .nb-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .nb-control {
+        width: 100%;
+        height: 42px;
+        padding: 9px 12px;
+        border: 1px solid #d8dde6;
+        border-radius: 7px;
+        background: white;
+        color: #111827;
+        font-size: 13px;
+        transition: .15s;
+    }
+
+    textarea.nb-control {
+        height: auto;
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .nb-control:focus {
+        outline: none;
+        border-color: #1a65f5;
+        box-shadow: 0 0 0 3px rgba(26,101,245,.1);
+    }
+
+    .nb-control.is-invalid {
+        border-color: #dc2626;
+    }
+
+    .nb-error {
+        display: none;
+        color: #dc2626;
+        font-size: 11px;
+        margin-top: 4px;
+    }
+
+    .nb-error.show {
+        display: block;
+    }
+
+    /* ================================
+       ROOM UNITS
+    ================================= */
+
+    .room-unit-section {
+        margin-bottom: 20px;
+    }
+
+    .room-unit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .ru-btn {
+        padding: 12px 8px;
+        border: 1.5px solid #86efac;
+        border-radius: 7px;
+        background: #dcfce7;
+        color: #15803d;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .ru-btn:hover {
+        border-color: #16a34a;
+    }
+
+    .ru-btn.selected {
+        border-color: #1a65f5 !important;
+        background: #e8f0fe !important;
+        color: #1a65f5 !important;
+        box-shadow: 0 0 0 3px rgba(26,101,245,.12);
+    }
+
+    .ru-status {
+        font-size: 9px;
+        margin-top: 3px;
+        font-weight: 500;
+    }
+
+    .nights-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
+        border-radius: 30px;
+        background: #ede9fe;
+        color: #7c3aed;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* ================================
+       PAYMENT
+    ================================= */
+
+    .advance-box {
+        margin-top: 22px;
+        padding: 20px;
+        border: 1px solid #d8dde6;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .advance-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 15px;
+        color: #4b5563;
+    }
+
+    .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    .payment-method {
+        display: block;
+        cursor: pointer;
+    }
+
+    .payment-method input {
+        display: none;
+    }
+
+    .payment-method-box {
+        border: 2px solid #d8dde6;
+        background: white;
+        border-radius: 9px;
+        padding: 13px 8px;
+        text-align: center;
+        transition: .15s;
+    }
+
+    .payment-method-box i {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .payment-method input:checked + .payment-method-box {
+        border-color: #1a65f5;
+        background: #e8f0fe;
+        color: #1a65f5;
+    }
+
+    .advance-summary {
+        margin-top: 15px;
+        padding: 12px 15px;
+        border-left: 3px solid #0891b2;
+        background: white;
+        border-radius: 6px;
+    }
+
+    .advance-summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-size: 13px;
+    }
+
+    /* ================================
+       CONFIRM
+    ================================= */
+
+    .confirm-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .summary-box {
+        border: 1px solid #d8dde6;
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 17px;
+    }
+
+    .summary-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        font-weight: 700;
+        color: #6b7280;
+        margin-bottom: 12px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 5px 0;
+        font-size: 13px;
+    }
+
+    .summary-row span:first-child {
+        color: #6b7280;
+    }
+
+    .billing-summary {
+        margin-top: 18px;
+        background: linear-gradient(135deg,#e8f0fe,#dcfce7);
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 18px;
+    }
+
+    .billing-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        font-size: 13px;
+    }
+
+    .billing-total {
+        margin-top: 8px;
+        padding-top: 10px;
+        border-top: 1px solid #bfdbfe;
+        font-size: 16px;
+        font-weight: 700;
+    }
+
+    /* ================================
+       FOOTER
+    ================================= */
+
+    .nb-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 28px;
+        border-top: 1px solid #e5e7eb;
+        background: #f8fafc;
+    }
+
+    .nb-footer-right {
+        display: flex;
+        gap: 9px;
+    }
+
+    .nb-btn {
+        border: none;
+        border-radius: 7px;
+        padding: 9px 17px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        text-decoration: none;
+    }
+
+    .nb-btn-outline {
+        background: white;
+        color: #374151;
+        border: 1px solid #d8dde6;
+    }
+
+    .nb-btn-primary {
+        background: #1a65f5;
+        color: white;
+    }
+
+    .nb-btn-success {
+        background: #16a34a;
+        color: white;
+    }
+
+    .nb-btn:disabled {
+        opacity: .65;
+        cursor: not-allowed;
+    }
+
+    /* ================================
+       TOAST
+    ================================= */
+
+    #nbToastContainer {
+        position: fixed;
+        top: 85px;
+        right: 22px;
+        z-index: 99999;
+    }
+
+    .nb-toast {
+        min-width: 260px;
+        max-width: 380px;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.14);
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+    }
+
+    .nb-toast.error {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #fca5a5;
+    }
+
+    .nb-toast.warning {
+        background: #fef3c7;
+        color: #b45309;
+        border-color: #fcd34d;
+    }
+
+    @media (max-width: 768px) {
+        .nb-page {
+            padding: 15px;
+        }
+
+        .nb-row,
+        .confirm-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .payment-methods {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .nb-step-label {
+            display: none;
+        }
+
+        .nb-body {
+            padding: 20px;
+        }
+
+        .nb-footer {
+            padding: 14px 20px;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="nb-page">
+
+    <div class="nb-header">
+        <div>
+            <h1>
+                <i class="fas fa-calendar-plus"></i>
+                New Booking
+            </h1>
+            <p>Create a new front-desk reservation</p>
+        </div>
+
+        <a href="{% url 'get_bookings_page' %}" class="nb-back">
+            <i class="fas fa-arrow-left"></i>
+            Back to Bookings
+        </a>
+    </div>
+
+
+    <div class="nb-card">
+
+        <!-- =====================================
+             STEP HEADER
+        ====================================== -->
+
+        <div class="nb-steps">
+
+            <div class="nb-step">
+                <div class="nb-step-circle active" id="stepCircle1">1</div>
+                <span class="nb-step-label active" id="stepLabel1">
+                    Guest Info
+                </span>
+            </div>
+
+            <div class="nb-connector" id="stepConn1"></div>
+
+            <div class="nb-step">
+                <div class="nb-step-circle" id="stepCircle2">2</div>
+                <span class="nb-step-label" id="stepLabel2">
+                    Room & Dates
+                </span>
+            </div>
+
+            <div class="nb-connector" id="stepConn2"></div>
+
+            <div class="nb-step">
+                <div class="nb-step-circle" id="stepCircle3">3</div>
+                <span class="nb-step-label" id="stepLabel3">
+                    Confirm
+                </span>
+            </div>
+
+        </div>
+
+
+        <div class="nb-body">
+
+            {% csrf_token %}
+
+            <!-- =====================================
+                 STEP 1
+                 GUEST INFORMATION
+            ====================================== -->
+
+            <div class="nb-panel active" id="bookingStep1">
+
+                <div class="nb-section-title">
+                    <h2>Guest Information</h2>
+                    <p>Enter the primary guest details.</p>
+                </div>
+
+
+                <div class="nb-row">
+
+                    <div class="nb-group">
+                        <label class="nb-label">
+                            Full Name *
+                        </label>
+
+                        <input
+                            type="text"
+                            id="bookingGuestName"
+                            class="nb-control"
+                            placeholder="Guest full name"
+                        >
+
+                        <div class="nb-error" id="err-guestName">
+                            Full name is required
+                        </div>
+                    </div>
+
+
+                    <div class="nb-group">
+                        <label class="nb-label">
+                            Phone *
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="bookingPhone"
+                            class="nb-control"
+                            placeholder="10-digit mobile"
+                            maxlength="10"
+                            inputmode="numeric"
+                        >
+
+                        <div class="nb-error" id="err-phone">
+                            Enter a valid 10-digit mobile number
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="nb-row">
+
+                    <div class="nb-group">
+                        <label class="nb-label">
+                            Email
+                        </label>
+
+                        <input
+                            type="email"
+                            id="bookingEmail"
+                            class="nb-control"
+                            placeholder="guest@email.com"
+                        >
+                    </div>
+
+
+                    <div class="nb-group">
+                        <label class="nb-label">
+                            Nationality
+                        </label>
+
+                        <input
+                            type="text"
+                            id="bookingNationality"
+                            class="nb-control"
+                            placeholder="e.g. Indian"
+                        >
+                    </div>
+
+                </div>
+
+
+                <div class="nb-row">
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            ID Type
+                        </label>
+
+                        <select
+                            id="bookingIdType"
+                            class="nb-control"
+                        >
+                            <option value="">
+                                Select ID type
+                            </option>
+
+                            <option value="Aadhaar">
+                                Aadhaar Card
+                            </option>
+
+                            <option value="Passport">
+                                Passport
+                            </option>
+
+                            <option value="Driving License">
+                                Driving License
+                            </option>
+                        </select>
+
+                    </div>
+
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            ID Number
+                        </label>
+
+                        <input
+                            type="text"
+                            id="bookingIdNumber"
+                            class="nb-control"
+                            placeholder="Guest ID number"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================
+                 STEP 2
+                 ROOM / DATE / PAYMENT
+            ====================================== -->
+
+            <div class="nb-panel" id="bookingStep2">
+
+                <div class="nb-section-title">
+                    <h2>Room & Stay Details</h2>
+                    <p>Select room, dates and optional advance payment.</p>
+                </div>
+
+
+                <div class="nb-row">
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            Room Type *
+                        </label>
+
+                        <select
+                            id="bookingRoomType"
+                            class="nb-control"
+                            onchange="onRoomTypeChange()"
+                        >
+
+                            <option value="">
+                                Select room type
+                            </option>
+
+                            {% for room in rooms %}
+
+                            <option
+                                value="{{ room.room_type }}"
+                                data-price="{{ room.price }}"
+                                data-id="{{ room.id }}"
+                            >
+                                {{ room.room_type }}
+                                — ₹{{ room.price }}/night
+                                ({{ room.available_rooms }} available)
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                        <div
+                            class="nb-error"
+                            id="err-roomType"
+                        >
+                            Please select a room type
+                        </div>
+
+                    </div>
+
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            Number of Guests
+                        </label>
+
+                        <input
+                            type="number"
+                            id="bookingGuests"
+                            class="nb-control"
+                            value="1"
+                            min="1"
+                            max="10"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="nb-row">
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            Check-In Date *
+                        </label>
+
+                        <input
+                            type="date"
+                            id="bookingCheckIn"
+                            class="nb-control"
+                            onchange="onDateChange()"
+                        >
+
+                        <div
+                            class="nb-error"
+                            id="err-checkIn"
+                        >
+                            Check-in date is required
+                        </div>
+
+                    </div>
+
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            Check-Out Date *
+                        </label>
+
+                        <input
+                            type="date"
+                            id="bookingCheckOut"
+                            class="nb-control"
+                            onchange="onDateChange()"
+                        >
+
+                        <div
+                            class="nb-error"
+                            id="err-checkOut"
+                        >
+                            Check-out must be after check-in
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="nightsBadgeWrap"
+                    style="display:none;margin-bottom:18px;"
+                >
+
+                    <span class="nights-badge">
+
+                        <i class="fas fa-moon"></i>
+
+                        <span id="nightsBadgeText">
+                            0 nights
+                        </span>
+
+                    </span>
+
+                </div>
+
+
+                <!-- ROOM UNIT -->
+
+                <div
+                    class="room-unit-section"
+                    id="roomUnitSection"
+                    style="display:none;"
+                >
+
+                    <label class="nb-label">
+                        Select Room Unit *
+                    </label>
+
+                    <div
+                        id="roomUnitGrid"
+                        class="room-unit-grid"
+                    ></div>
+
+                    <input
+                        type="hidden"
+                        id="selectedRoomUnitId"
+                    >
+
+                    <input
+                        type="hidden"
+                        id="selectedRoomId"
+                    >
+
+                    <div
+                        class="nb-error"
+                        id="err-roomUnit"
+                    >
+                        Please select a room unit
+                    </div>
+
+                </div>
+
+
+                <div class="nb-group">
+
+                    <label class="nb-label">
+                        Special Requests
+                    </label>
+
+                    <textarea
+                        id="bookingRequests"
+                        class="nb-control"
+                        placeholder="Extra pillows, early check-in, airport pickup, etc."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- =================================
+                     ADVANCE PAYMENT
+                ================================== -->
+
+                <div class="advance-box">
+
+                    <div class="advance-title">
+                        <i class="fas fa-wallet"></i>
+                        Advance Payment
+                        <span style="font-weight:400;">
+                            (Optional)
+                        </span>
+                    </div>
+
+
+                    <div class="nb-group">
+
+                        <label class="nb-label">
+                            Advance Amount (₹)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="bookingAdvanceAmount"
+                            class="nb-control"
+                            value="0"
+                            min="0"
+                            step="0.01"
+                            oninput="onAdvanceAmountChange()"
+                        >
+
+                    </div>
+
+
+                    <div
+                        id="advanceMethodWrap"
+                        style="display:none;"
+                    >
+
+                        <label class="nb-label">
+                            Payment Method
+                        </label>
+
+
+                        <div class="payment-methods">
+
+
+                            <label class="payment-method">
+
+                                <input
+                                    type="radio"
+                                    name="advanceMethod"
+                                    value="Cash"
+                                    checked
+                                    onchange="selectAdvanceMethod('Cash')"
+                                >
+
+                                <div class="payment-method-box">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    Cash
+                                </div>
+
+                            </label>
+
+
+                            <label class="payment-method">
+
+                                <input
+                                    type="radio"
+                                    name="advanceMethod"
+                                    value="Card"
+                                    onchange="selectAdvanceMethod('Card')"
+                                >
+
+                                <div class="payment-method-box">
+                                    <i class="fas fa-credit-card"></i>
+                                    Card
+                                </div>
+
+                            </label>
+
+
+                            <label class="payment-method">
+
+                                <input
+                                    type="radio"
+                                    name="advanceMethod"
+                                    value="UPI"
+                                    onchange="selectAdvanceMethod('UPI')"
+                                >
+
+                                <div class="payment-method-box">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    UPI
+                                </div>
+
+                            </label>
+
+
+                            <label class="payment-method">
+
+                                <input
+                                    type="radio"
+                                    name="advanceMethod"
+                                    value="bank_transfer"
+                                    onchange="selectAdvanceMethod('bank_transfer')"
+                                >
+
+                                <div class="payment-method-box">
+                                    <i class="fas fa-university"></i>
+                                    Bank Transfer
+                                </div>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="nb-group"
+                        id="advanceRefWrap"
+                        style="display:none;margin-top:15px;"
+                    >
+
+                        <label class="nb-label">
+                            Reference / Transaction ID
+                        </label>
+
+                        <input
+                            type="text"
+                            id="advanceReference"
+                            class="nb-control"
+                            placeholder="Transaction reference"
+                        >
+
+                    </div>
+
+
+                    <div
+                        id="advanceSummary"
+                        class="advance-summary"
+                        style="display:none;"
+                    >
+
+                        <div class="advance-summary-row">
+
+                            <span>
+                                Advance Payment
+                            </span>
+
+                            <strong
+                                id="advanceSummaryAmount"
+                                style="color:#0891b2;"
+                            >
+                                ₹0.00
+                            </strong>
+
+                        </div>
+
+
+                        <div class="advance-summary-row">
+
+                            <span>
+                                Estimated Balance
+                            </span>
+
+                            <strong id="advanceBalanceDue">
+                                ₹0.00
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================
+                 STEP 3
+                 CONFIRM
+            ====================================== -->
+
+            <div class="nb-panel" id="bookingStep3">
+
+                <div class="nb-section-title">
+                    <h2>Confirm Booking</h2>
+                    <p>Review the reservation before confirming.</p>
+                </div>
+
+
+                <div class="confirm-grid">
+
+                    <div class="summary-box">
+
+                        <div class="summary-title">
+                            <i class="fas fa-user"></i>
+                            Guest
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Name</span>
+                            <strong id="sumGuestName">—</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Phone</span>
+                            <strong id="sumPhone">—</strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="summary-title">
+                            <i class="fas fa-bed"></i>
+                            Room
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Room Type</span>
+                            <strong id="sumRoomType">—</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Room Unit</span>
+                            <strong id="sumRoomUnit">—</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Check-In</span>
+                            <strong id="sumCheckIn">—</strong>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Check-Out</span>
+                            <strong id="sumCheckOut">—</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="billing-summary">
+
+                    <div class="summary-title">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        Billing Summary
+                    </div>
+
+
+                    <div class="billing-row">
+
+                        <span>
+                            Room Charges
+                        </span>
+
+                        <strong id="sumRoomCharges">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div class="billing-row">
+
+                        <span>
+                            Tax (18% GST)
+                        </span>
+
+                        <strong id="sumTax">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        class="billing-row billing-total"
+                    >
+
+                        <span>
+                            Total
+                        </span>
+
+                        <strong
+                            id="sumTotal"
+                            style="color:#1a65f5;"
+                        >
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        class="billing-row"
+                        id="sumAdvanceRow"
+                        style="display:none;color:#15803d;"
+                    >
+
+                        <span>
+                            Advance Paid
+                        </span>
+
+                        <strong id="sumAdvancePaid">
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        class="billing-row"
+                        id="sumBalanceRow"
+                        style="display:none;"
+                    >
+
+                        <span>
+                            Balance Due
+                        </span>
+
+                        <strong
+                            id="sumBalance"
+                            style="color:#dc2626;"
+                        >
+                            —
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        id="sumPayStatus"
+                        style="
+                            display:none;
+                            margin-top:12px;
+                            text-align:right;
+                            font-size:12px;
+                            font-weight:600;
+                        "
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================
+             FOOTER
+        ====================================== -->
+
+        <div class="nb-footer">
+
+            <button
+                type="button"
+                class="nb-btn nb-btn-outline"
+                id="bookingPrevBtn"
+                onclick="bookingPrevStep()"
+                style="display:none;"
+            >
+                <i class="fas fa-arrow-left"></i>
+                Back
+            </button>
+
+
+            <div class="nb-footer-right">
+
+                <a
+                    href="{% url 'get_bookings_page' %}"
+                    class="nb-btn nb-btn-outline"
+                >
+                    Cancel
+                </a>
+
+
+                <button
+                    type="button"
+                    class="nb-btn nb-btn-primary"
+                    id="bookingNextBtn"
+                    onclick="bookingNextStep()"
+                >
+                    Next
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+
+
+                <button
+                    type="button"
+                    class="nb-btn nb-btn-success"
+                    id="saveBookingBtn"
+                    onclick="saveBooking()"
+                    style="display:none;"
+                >
+                    <i class="fas fa-check"></i>
+                    Confirm Booking
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="nbToastContainer"></div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* ==========================================================
+   DATA
+========================================================== */
+
+const ROOMS_DATA = {{ rooms_json|default:"[]"|safe }};
+
+let currentBkStep = 1;
+
+
+/* ==========================================================
+   CSRF
+========================================================== */
+
+function getBookingCsrf() {
+
+    const input =
+        document.querySelector(
+            '[name=csrfmiddlewaretoken]'
+        );
+
+    if (input) {
+        return input.value;
+    }
+
+    const cookie =
+        document.cookie
+            .split('; ')
+            .find(
+                row =>
+                    row.startsWith('csrftoken=')
+            );
+
+    return cookie
+        ? decodeURIComponent(
+            cookie.split('=')[1]
+        )
+        : '';
+}
+
+
+/* ==========================================================
+   MONEY FORMAT
+========================================================== */
+
+function bookingMoney(value) {
+
+    const amount =
+        Number(value || 0);
+
+    return new Intl.NumberFormat(
+        'en-IN',
+        {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2
+        }
+    ).format(amount);
+}
+
+
+/* ==========================================================
+   TOAST
+========================================================== */
+
+function bookingToast(message, type='success') {
+
+    const container =
+        document.getElementById(
+            'nbToastContainer'
+        );
+
+    const toast =
+        document.createElement('div');
+
+    toast.className =
+        'nb-toast ' + type;
+
+    toast.textContent =
+        message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+
+        toast.remove();
+
+    }, 4500);
+}
+
+
+/* ==========================================================
+   ERROR DISPLAY
+========================================================== */
+
+function showBookingError(id, show) {
+
+    const el =
+        document.getElementById(id);
+
+    if (!el) return;
+
+    el.classList.toggle(
+        'show',
+        !!show
+    );
+}
+
+
+/* ==========================================================
+   STEP SYSTEM
+========================================================== */
+
+function goToBkStep(step) {
+
+    currentBkStep = step;
+
+    for (
+        let i = 1;
+        i <= 3;
+        i++
+    ) {
+
+        const panel =
+            document.getElementById(
+                `bookingStep${i}`
+            );
+
+        const circle =
+            document.getElementById(
+                `stepCircle${i}`
+            );
+
+        const label =
+            document.getElementById(
+                `stepLabel${i}`
+            );
+
+
+        if (panel) {
+
+            panel.classList.toggle(
+                'active',
+                i === step
+            );
+        }
+
+
+        if (circle) {
+
+            circle.classList.toggle(
+                'active',
+                i === step
+            );
+
+            circle.classList.toggle(
+                'done',
+                i < step
+            );
+
+            circle.innerHTML =
+                i < step
+                    ? '<i class="fas fa-check"></i>'
+                    : i;
+        }
+
+
+        if (label) {
+
+            label.classList.toggle(
+                'active',
+                i === step
+            );
+        }
+
+
+        if (i < 3) {
+
+            const connector =
+                document.getElementById(
+                    `stepConn${i}`
+                );
+
+            if (connector) {
+
+                connector.classList.toggle(
+                    'done',
+                    i < step
+                );
+            }
+        }
+    }
+
+
+    document.getElementById(
+        'bookingPrevBtn'
+    ).style.display =
+        step > 1
+            ? 'inline-flex'
+            : 'none';
+
+
+    document.getElementById(
+        'bookingNextBtn'
+    ).style.display =
+        step < 3
+            ? 'inline-flex'
+            : 'none';
+
+
+    document.getElementById(
+        'saveBookingBtn'
+    ).style.display =
+        step === 3
+            ? 'inline-flex'
+            : 'none';
+
+
+    if (step === 3) {
+
+        populateBookingSummary();
+    }
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+
+/* ==========================================================
+   VALIDATION
+========================================================== */
+
+function validateBkStep(step) {
+
+    let valid = true;
+
+
+    if (step === 1) {
+
+        const name =
+            document.getElementById(
+                'bookingGuestName'
+            ).value.trim();
+
+        const phone =
+            document.getElementById(
+                'bookingPhone'
+            ).value.trim();
+
+
+        const nameInvalid =
+            !name;
+
+        const phoneInvalid =
+            !/^\d{10}$/.test(phone);
+
+
+        document.getElementById(
+            'bookingGuestName'
+        ).classList.toggle(
+            'is-invalid',
+            nameInvalid
+        );
+
+
+        document.getElementById(
+            'bookingPhone'
+        ).classList.toggle(
+            'is-invalid',
+            phoneInvalid
+        );
+
+
+        showBookingError(
+            'err-guestName',
+            nameInvalid
+        );
+
+        showBookingError(
+            'err-phone',
+            phoneInvalid
+        );
+
+
+        if (
+            nameInvalid ||
+            phoneInvalid
+        ) {
+
+            valid = false;
+        }
+    }
+
+
+    if (step === 2) {
+
+        const roomType =
+            document.getElementById(
+                'bookingRoomType'
+            ).value;
+
+        const checkIn =
+            document.getElementById(
+                'bookingCheckIn'
+            ).value;
+
+        const checkOut =
+            document.getElementById(
+                'bookingCheckOut'
+            ).value;
+
+        const roomUnit =
+            document.getElementById(
+                'selectedRoomUnitId'
+            ).value;
+
+
+        const roomInvalid =
+            !roomType;
+
+        const checkInInvalid =
+            !checkIn;
+
+        const checkOutInvalid =
+            !checkOut ||
+            (
+                checkIn &&
+                checkOut &&
+                new Date(checkOut) <=
+                new Date(checkIn)
+            );
+
+        const unitInvalid =
+            roomType &&
+            !roomUnit;
+
+
+        showBookingError(
+            'err-roomType',
+            roomInvalid
+        );
+
+        showBookingError(
+            'err-checkIn',
+            checkInInvalid
+        );
+
+        showBookingError(
+            'err-checkOut',
+            checkOutInvalid
+        );
+
+        showBookingError(
+            'err-roomUnit',
+            unitInvalid
+        );
+
+
+        if (roomInvalid) {
+
+            bookingToast(
+                'Please select a room type.',
+                'error'
+            );
+
+            valid = false;
+
+        } else if (checkInInvalid) {
+
+            bookingToast(
+                'Please select a check-in date.',
+                'error'
+            );
+
+            valid = false;
+
+        } else if (checkOutInvalid) {
+
+            bookingToast(
+                'Check-out must be after check-in.',
+                'error'
+            );
+
+            valid = false;
+
+        } else if (unitInvalid) {
+
+            bookingToast(
+                'Please select a room unit.',
+                'error'
+            );
+
+            valid = false;
+        }
+    }
+
+
+    return valid;
+}
+
+
+function bookingNextStep() {
+
+    if (
+        validateBkStep(
+            currentBkStep
+        )
+    ) {
+
+        goToBkStep(
+            currentBkStep + 1
+        );
+    }
+}
+
+
+function bookingPrevStep() {
+
+    if (
+        currentBkStep > 1
+    ) {
+
+        goToBkStep(
+            currentBkStep - 1
+        );
+    }
+}
+
+
+
+
+/* ==========================================================
+   LOAD AVAILABLE ROOM UNITS FOR SELECTED DATES
+========================================================== */
+
+async function loadAvailableRoomUnits() {
+
+    const roomId =
+        document.getElementById(
+            'selectedRoomId'
+        ).value;
+
+    const checkIn =
+        document.getElementById(
+            'bookingCheckIn'
+        ).value;
+
+    const checkOut =
+        document.getElementById(
+            'bookingCheckOut'
+        ).value;
+
+    const section =
+        document.getElementById(
+            'roomUnitSection'
+        );
+
+    const grid =
+        document.getElementById(
+            'roomUnitGrid'
+        );
+
+
+    if (!roomId) {
+
+        section.style.display =
+            'none';
+
+        return;
+    }
+
+
+    if (
+        !checkIn ||
+        !checkOut
+    ) {
+
+        return;
+    }
+
+
+    if (
+        new Date(checkOut) <=
+        new Date(checkIn)
+    ) {
+
+        grid.innerHTML = `
+            <div style="
+                grid-column:1/-1;
+                padding:20px;
+                color:#dc2626;
+            ">
+                <i class="fas fa-exclamation-triangle"></i>
+                Check-out date must be after check-in date.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    section.style.display =
+        'block';
+
+
+    grid.innerHTML = `
+        <div style="
+            grid-column:1/-1;
+            padding:20px;
+            text-align:center;
+            color:#6b7280;
+        ">
+            <i class="fas fa-spinner fa-spin"></i>
+            Checking availability...
+        </div>
+    `;
+
+
+    try {
+
+        const url =
+            "{% url 'get_rooms' %}" +
+            `?check_in=${encodeURIComponent(checkIn)}` +
+            `&check_out=${encodeURIComponent(checkOut)}`;
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                'Unable to check room availability.'
+            );
+        }
+
+
+        const rooms =
+            Array.isArray(data.rooms)
+                ? data.rooms
+                : [];
+
+
+        const selectedRoom =
+            rooms.find(
+                room =>
+                    String(room.id) ===
+                    String(roomId)
+            );
+
+
+        if (
+            !selectedRoom ||
+            !Array.isArray(
+                selectedRoom.units
+            )
+        ) {
+
+            grid.innerHTML = `
+                <div style="
+                    grid-column:1/-1;
+                    padding:20px;
+                    color:#b45309;
+                ">
+                    <i class="fas fa-bed"></i>
+                    No room units found.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        const availableUnits =
+            selectedRoom.units.filter(
+                unit =>
+                    unit.available_for_dates === true
+            );
+
+
+        if (!availableUnits.length) {
+
+            document.getElementById(
+                'selectedRoomUnitId'
+            ).value = '';
+
+
+            grid.innerHTML = `
+                <div style="
+                    grid-column:1/-1;
+                    padding:20px;
+                    color:#b45309;
+                ">
+                    <i class="fas fa-calendar-times"></i>
+                    No rooms available for the selected dates.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        renderRoomUnits(
+            availableUnits
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            'Room availability error:',
+            error
+        );
+
+
+        grid.innerHTML = `
+            <div style="
+                grid-column:1/-1;
+                padding:20px;
+                color:#dc2626;
+            ">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${error.message ||
+                  'Unable to load available rooms.'}
+            </div>
+        `;
+    }
+}
+
+
+
+
+/* ==========================================================
+   ROOM TYPE CHANGE
+========================================================== */
+
+async function onRoomTypeChange() {
+
+    const select =
+        document.getElementById(
+            'bookingRoomType'
+        );
+
+    const option =
+        select.options[
+            select.selectedIndex
+        ];
+
+    const roomId =
+        option?.dataset?.id || '';
+
+
+    const selectedRoomIdInput =
+        document.getElementById(
+            'selectedRoomId'
+        );
+
+    const selectedRoomUnitInput =
+        document.getElementById(
+            'selectedRoomUnitId'
+        );
+
+    const section =
+        document.getElementById(
+            'roomUnitSection'
+        );
+
+    const grid =
+        document.getElementById(
+            'roomUnitGrid'
+        );
+
+
+    // ======================================================
+    // RESET CURRENT SELECTION
+    // ======================================================
+
+    selectedRoomIdInput.value =
+        roomId;
+
+    selectedRoomUnitInput.value =
+        '';
+
+
+    showBookingError(
+        'err-roomType',
+        false
+    );
+
+    showBookingError(
+        'err-roomUnit',
+        false
+    );
+
+
+    // ======================================================
+    // NO ROOM TYPE SELECTED
+    // ======================================================
+
+    if (!roomId) {
+
+        section.style.display =
+            'none';
+
+        grid.innerHTML = '';
+
+        return;
+    }
+
+
+    section.style.display =
+        'block';
+
+
+    grid.innerHTML = `
+        <div style="
+            grid-column:1/-1;
+            padding:20px;
+            text-align:center;
+            color:#6b7280;
+        ">
+            <i class="fas fa-spinner fa-spin"></i>
+            Loading room units...
+        </div>
+    `;
+
+
+    // ======================================================
+    // GET DATES
+    // ======================================================
+
+    const checkIn =
+        document.getElementById(
+            'bookingCheckIn'
+        ).value;
+
+    const checkOut =
+        document.getElementById(
+            'bookingCheckOut'
+        ).value;
+
+
+    // ======================================================
+    // LOAD SEASONAL PRICE
+    // ======================================================
+
+    const checkDate =
+        checkIn ||
+        new Date()
+            .toISOString()
+            .split('T')[0];
+
+
+    try {
+
+        const rateResponse =
+            await fetch(
+                `/api/seasonal-rates/?room_id=${encodeURIComponent(roomId)}`
+            );
+
+
+        if (rateResponse.ok) {
+
+            const rateData =
+                await rateResponse.json();
+
+
+            const rates =
+                Array.isArray(
+                    rateData.rates
+                )
+                    ? rateData.rates
+                    : [];
+
+
+            const matchingRate =
+                rates.find(
+                    rate =>
+                        rate.start_date <=
+                            checkDate &&
+                        rate.end_date >=
+                            checkDate
+                );
+
+
+            if (
+                matchingRate &&
+                matchingRate.price
+            ) {
+
+                option.dataset.price =
+                    matchingRate.price;
+            }
+        }
+
+    } catch (error) {
+
+        console.warn(
+            'Unable to load seasonal rate:',
+            error
+        );
+    }
+
+
+    // ======================================================
+    // IF BOTH DATES ARE SELECTED:
+    // LOAD REAL DATE-BASED AVAILABILITY
+    // ======================================================
+
+    if (
+        checkIn &&
+        checkOut
+    ) {
+
+        const inDate =
+            new Date(
+                checkIn + 'T00:00:00'
+            );
+
+        const outDate =
+            new Date(
+                checkOut + 'T00:00:00'
+            );
+
+
+        if (
+            outDate <= inDate
+        ) {
+
+            grid.innerHTML = `
+                <div style="
+                    grid-column:1/-1;
+                    padding:20px;
+                    color:#dc2626;
+                ">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Check-out date must be after check-in date.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        try {
+
+            const roomsUrl =
+                "{% url 'get_rooms' %}" +
+                `?check_in=${encodeURIComponent(checkIn)}` +
+                `&check_out=${encodeURIComponent(checkOut)}`;
+
+
+            const response =
+                await fetch(
+                    roomsUrl,
+                    {
+                        method: 'GET',
+
+                        headers: {
+                            'X-Requested-With':
+                                'XMLHttpRequest'
+                        }
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                data.success === false
+            ) {
+
+                throw new Error(
+                    data.error ||
+                    'Unable to load room availability.'
+                );
+            }
+
+
+            const rooms =
+                Array.isArray(
+                    data.rooms
+                )
+                    ? data.rooms
+                    : [];
+
+
+            const selectedRoom =
+                rooms.find(
+                    room =>
+                        String(room.id) ===
+                        String(roomId)
+                );
+
+
+            if (
+                !selectedRoom ||
+                !Array.isArray(
+                    selectedRoom.units
+                )
+            ) {
+
+                grid.innerHTML = `
+                    <div style="
+                        grid-column:1/-1;
+                        padding:20px;
+                        color:#b45309;
+                    ">
+                        <i class="fas fa-exclamation-circle"></i>
+                        No room units found.
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            // ==================================================
+            // USE BACKEND DATE AVAILABILITY
+            // ==================================================
+
+            const availableUnits =
+                selectedRoom.units.filter(
+                    unit =>
+                        unit.available_for_dates ===
+                        true
+                );
+
+
+            if (
+                !availableUnits.length
+            ) {
+
+                grid.innerHTML = `
+                    <div style="
+                        grid-column:1/-1;
+                        padding:20px;
+                        color:#b45309;
+                    ">
+                        <i class="fas fa-calendar-times"></i>
+                        No rooms available for the selected dates.
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            renderRoomUnits(
+                availableUnits
+            );
+
+
+            return;
+
+
+        } catch (error) {
+
+            console.error(
+                'Room availability error:',
+                error
+            );
+
+
+            grid.innerHTML = `
+                <div style="
+                    grid-column:1/-1;
+                    padding:20px;
+                    color:#dc2626;
+                ">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    ${
+                        error.message ||
+                        'Unable to load room availability.'
+                    }
+                </div>
+            `;
+
+
+            return;
+        }
+    }
+
+
+    // ======================================================
+    // NO DATES YET:
+    // USE SERVER-PROVIDED ROOM DATA
+    // ======================================================
+
+    const localRoom =
+        Array.isArray(
+            ROOMS_DATA
+        )
+            ? ROOMS_DATA.find(
+                room =>
+                    String(room.id) ===
+                    String(roomId)
+            )
+            : null;
+
+
+    if (
+        localRoom &&
+        Array.isArray(
+            localRoom.units
+        )
+    ) {
+
+        renderRoomUnits(
+            localRoom.units
+        );
+
+        return;
+    }
+
+
+    // ======================================================
+    // FALLBACK API
+    // ======================================================
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'get_rooms' %}",
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                'Unable to load rooms.'
+            );
+        }
+
+
+        const rooms =
+            Array.isArray(
+                data.rooms
+            )
+                ? data.rooms
+                : [];
+
+
+        const selectedRoom =
+            rooms.find(
+                room =>
+                    String(room.id) ===
+                    String(roomId)
+            );
+
+
+        if (
+            selectedRoom &&
+            Array.isArray(
+                selectedRoom.units
+            )
+        ) {
+
+            renderRoomUnits(
+                selectedRoom.units
+            );
+
+        } else {
+
+            grid.innerHTML = `
+                <div style="
+                    grid-column:1/-1;
+                    padding:20px;
+                    color:#b45309;
+                ">
+                    <i class="fas fa-exclamation-circle"></i>
+                    No available room units.
+                </div>
+            `;
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            'Room loading error:',
+            error
+        );
+
+
+        grid.innerHTML = `
+            <div style="
+                grid-column:1/-1;
+                padding:20px;
+                color:#dc2626;
+            ">
+                <i class="fas fa-exclamation-triangle"></i>
+                ${
+                    error.message ||
+                    'Could not load room units.'
+                }
+            </div>
+        `;
+    }
+}
+
+
+/* ==========================================================
+   ROOM UNIT RENDER
+========================================================== */
+
+function renderRoomUnits(units) {
+
+    const grid =
+        document.getElementById(
+            'roomUnitGrid'
+        );
+
+
+    const available =
+    units.filter(unit => {
+
+        if (
+            typeof unit.available_for_dates ===
+            'boolean'
+        ) {
+
+            return (
+                unit.available_for_dates === true
+            );
+        }
+
+
+        const status =
+            String(
+                unit.status || ''
+            ).toLowerCase();
+
+
+        return (
+            !status ||
+            status === 'available'
+        );
+    });
+
+
+    if (!available.length) {
+
+        grid.innerHTML = `
+            <div style="
+                grid-column:1/-1;
+                padding:20px;
+                color:#b45309;
+            ">
+                <i class="fas fa-exclamation-circle"></i>
+                No available units for this room type.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    grid.innerHTML =
+        available.map(unit => {
+
+            const number =
+                unit.number ||
+                unit.room_number ||
+                unit.id;
+
+            return `
+                <button
+                    type="button"
+                    class="ru-btn"
+                    data-unit-id="${unit.id}"
+                    data-unit-number="${number}"
+                    onclick="selectRoomUnit(this, '${unit.id}')"
+                >
+                    ${number}
+
+                    <div class="ru-status">
+                        Available
+                    </div>
+                </button>
+            `;
+
+        }).join('');
+}
+
+
+/* ==========================================================
+   SELECT ROOM
+========================================================== */
+
+function selectRoomUnit(
+    button,
+    unitId
+) {
+
+    document
+        .querySelectorAll(
+            '#roomUnitGrid .ru-btn'
+        )
+        .forEach(btn => {
+
+            btn.classList.remove(
+                'selected'
+            );
+        });
+
+
+    button.classList.add(
+        'selected'
+    );
+
+
+    document.getElementById(
+        'selectedRoomUnitId'
+    ).value =
+        unitId;
+
+
+    showBookingError(
+        'err-roomUnit',
+        false
+    );
+}
+
+
+/* ==========================================================
+   DATE CHANGE
+========================================================== */
+
+async function onDateChange() {
+
+    const checkInInput =
+        document.getElementById(
+            'bookingCheckIn'
+        );
+
+    const checkOutInput =
+        document.getElementById(
+            'bookingCheckOut'
+        );
+
+
+    const checkIn =
+        checkInInput.value;
+
+    const checkOut =
+        checkOutInput.value;
+
+
+    // ======================================================
+    // SET MINIMUM CHECKOUT DATE
+    // ======================================================
+
+    if (checkIn) {
+
+        const minimumCheckout =
+            new Date(
+                checkIn +
+                'T00:00:00'
+            );
+
+
+        minimumCheckout.setDate(
+            minimumCheckout.getDate() + 1
+        );
+
+
+        checkOutInput.min =
+            formatDateInput(
+                minimumCheckout
+            );
+    }
+
+
+    // ======================================================
+    // CALCULATE NIGHTS
+    // ======================================================
+
+    let nights = 0;
+
+
+    if (
+        checkIn &&
+        checkOut
+    ) {
+
+        const inDate =
+            new Date(
+                checkIn +
+                'T00:00:00'
+            );
+
+        const outDate =
+            new Date(
+                checkOut +
+                'T00:00:00'
+            );
+
+
+        nights =
+            Math.max(
+                0,
+                Math.round(
+                    (
+                        outDate -
+                        inDate
+                    ) /
+                    86400000
+                )
+            );
+    }
+
+
+    const badge =
+        document.getElementById(
+            'nightsBadgeWrap'
+        );
+
+
+    if (nights > 0) {
+
+        badge.style.display =
+            'block';
+
+
+        document.getElementById(
+            'nightsBadgeText'
+        ).textContent =
+            `${nights} night${
+                nights !== 1
+                    ? 's'
+                    : ''
+            }`;
+
+    } else {
+
+        badge.style.display =
+            'none';
+    }
+
+
+    // ======================================================
+    // INVALID DATE RANGE
+    // ======================================================
+
+    if (
+        checkIn &&
+        checkOut &&
+        nights <= 0
+    ) {
+
+        showBookingError(
+            'err-checkOut',
+            true
+        );
+
+
+        document.getElementById(
+            'selectedRoomUnitId'
+        ).value = '';
+
+
+        return;
+
+    } else {
+
+        showBookingError(
+            'err-checkOut',
+            false
+        );
+    }
+
+
+    // ======================================================
+    // REFRESH ROOM AVAILABILITY
+    // ======================================================
+
+    const roomId =
+        document.getElementById(
+            'selectedRoomId'
+        ).value;
+
+
+    if (
+        roomId &&
+        checkIn &&
+        checkOut &&
+        nights > 0
+    ) {
+
+        // Dates changed, so previous unit selection
+        // must no longer be trusted.
+
+        document.getElementById(
+            'selectedRoomUnitId'
+        ).value = '';
+
+
+        document
+            .querySelectorAll(
+                '#roomUnitGrid .ru-btn'
+            )
+            .forEach(
+                button => {
+                    button.classList.remove(
+                        'selected'
+                    );
+                }
+            );
+
+
+        await loadAvailableRoomUnits();
+    }
+
+
+    // ======================================================
+    // REFRESH CONFIRMATION SUMMARY
+    // ======================================================
+
+    if (
+        currentBkStep === 3
+    ) {
+
+        await populateBookingSummary();
+    }
+}
+
+
+/* ==========================================================
+   ADVANCE PAYMENT
+========================================================== */
+
+function onAdvanceAmountChange() {
+
+    const amount =
+        parseFloat(
+            document.getElementById(
+                'bookingAdvanceAmount'
+            ).value
+        ) || 0;
+
+
+    document.getElementById(
+        'advanceMethodWrap'
+    ).style.display =
+        amount > 0
+            ? 'block'
+            : 'none';
+
+
+    if (amount <= 0) {
+
+        document.getElementById(
+            'advanceRefWrap'
+        ).style.display =
+            'none';
+
+        document.getElementById(
+            'advanceSummary'
+        ).style.display =
+            'none';
+    }
+
+
+    if (
+        currentBkStep === 3
+    ) {
+
+        populateBookingSummary();
+    }
+}
+
+
+function selectAdvanceMethod(
+    method
+) {
+
+    const refWrap =
+        document.getElementById(
+            'advanceRefWrap'
+        );
+
+
+    /*
+       Keep the same behaviour as
+       your existing Front Office:
+       Card and Bank Transfer show
+       reference field.
+    */
+
+    if (
+        method === 'Card' ||
+        method === 'bank_transfer'
+    ) {
+
+        refWrap.style.display =
+            'block';
+
+    } else {
+
+        refWrap.style.display =
+            'none';
+
+        document.getElementById(
+            'advanceReference'
+        ).value = '';
+    }
+}
+
+
+/* ==========================================================
+   BILLING SUMMARY
+========================================================== */
+
+async function populateBookingSummary() {
+
+    const name =
+        document.getElementById(
+            'bookingGuestName'
+        ).value.trim();
+
+    const phone =
+        document.getElementById(
+            'bookingPhone'
+        ).value.trim();
+
+
+    const roomSelect =
+        document.getElementById(
+            'bookingRoomType'
+        );
+
+    const roomOption =
+        roomSelect.options[
+            roomSelect.selectedIndex
+        ];
+
+
+    const roomType =
+        roomOption
+            ? roomOption.text
+                .split(' —')[0]
+            : '—';
+
+
+    const roomId =
+        document.getElementById(
+            'selectedRoomId'
+        ).value;
+
+
+    const checkIn =
+        document.getElementById(
+            'bookingCheckIn'
+        ).value;
+
+    const checkOut =
+        document.getElementById(
+            'bookingCheckOut'
+        ).value;
+
+
+    document.getElementById(
+        'sumGuestName'
+    ).textContent =
+        name || '—';
+
+
+    document.getElementById(
+        'sumPhone'
+    ).textContent =
+        phone || '—';
+
+
+    document.getElementById(
+        'sumRoomType'
+    ).textContent =
+        roomType || '—';
+
+
+    document.getElementById(
+        'sumCheckIn'
+    ).textContent =
+        checkIn || '—';
+
+
+    document.getElementById(
+        'sumCheckOut'
+    ).textContent =
+        checkOut || '—';
+
+
+    const selectedUnit =
+        document.querySelector(
+            '#roomUnitGrid .ru-btn.selected'
+        );
+
+
+    document.getElementById(
+        'sumRoomUnit'
+    ).textContent =
+        selectedUnit
+            ? selectedUnit.dataset.unitNumber
+            : '—';
+
+
+    if (
+        !roomId ||
+        !checkIn ||
+        !checkOut
+    ) {
+
+        return;
+    }
+
+
+    const nights =
+        Math.max(
+            1,
+            Math.round(
+                (
+                    new Date(
+                        checkOut + 'T00:00:00'
+                    ) -
+                    new Date(
+                        checkIn + 'T00:00:00'
+                    )
+                ) /
+                86400000
+            )
+        );
+
+
+    const basePrice =
+        parseFloat(
+            roomOption?.dataset?.price || 0
+        );
+
+
+    let roomCharges = 0;
+
+
+    /*
+       Same approach as old page:
+       calculate seasonal rate
+       night by night.
+    */
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/seasonal-rates/?room_id=${roomId}`
+            );
+
+        const data =
+            await response.json();
+
+        const rates =
+            data.rates || [];
+
+
+        for (
+            let i = 0;
+            i < nights;
+            i++
+        ) {
+
+            const date =
+                new Date(
+                    checkIn + 'T00:00:00'
+                );
+
+            date.setDate(
+                date.getDate() + i
+            );
+
+
+            const dateString =
+                formatDateInput(date);
+
+
+            const seasonalRate =
+                rates.find(
+                    rate =>
+                        rate.start_date <= dateString &&
+                        rate.end_date >= dateString
+                );
+
+
+            roomCharges +=
+                seasonalRate
+                    ? parseFloat(
+                        seasonalRate.price
+                    )
+                    : basePrice;
+        }
+
+    } catch (error) {
+
+        roomCharges =
+            basePrice * nights;
+    }
+
+
+    const tax =
+        roomCharges * 0.18;
+
+    const total =
+        roomCharges + tax;
+
+
+    let advance =
+        parseFloat(
+            document.getElementById(
+                'bookingAdvanceAmount'
+            ).value
+        ) || 0;
+
+
+    advance =
+        Math.min(
+            advance,
+            total
+        );
+
+
+    const balance =
+        Math.max(
+            0,
+            total - advance
+        );
+
+
+    document.getElementById(
+        'sumRoomCharges'
+    ).textContent =
+        `${bookingMoney(roomCharges)} (${nights} night${nights !== 1 ? 's' : ''})`;
+
+
+    document.getElementById(
+        'sumTax'
+    ).textContent =
+        bookingMoney(tax);
+
+
+    document.getElementById(
+        'sumTotal'
+    ).textContent =
+        bookingMoney(total);
+
+
+    const advanceRow =
+        document.getElementById(
+            'sumAdvanceRow'
+        );
+
+    const balanceRow =
+        document.getElementById(
+            'sumBalanceRow'
+        );
+
+    const status =
+        document.getElementById(
+            'sumPayStatus'
+        );
+
+
+    if (advance > 0) {
+
+        advanceRow.style.display =
+            'flex';
+
+        balanceRow.style.display =
+            'flex';
+
+        status.style.display =
+            'block';
+
+
+        document.getElementById(
+            'sumAdvancePaid'
+        ).textContent =
+            bookingMoney(advance);
+
+
+        document.getElementById(
+            'sumBalance'
+        ).textContent =
+            bookingMoney(balance);
+
+
+        status.textContent =
+            advance >= total
+                ? '✓ Fully Paid'
+                : `Partial Payment — ${bookingMoney(balance)} due`;
+
+
+        document.getElementById(
+            'advanceSummary'
+        ).style.display =
+            'block';
+
+
+        document.getElementById(
+            'advanceSummaryAmount'
+        ).textContent =
+            bookingMoney(advance);
+
+
+        document.getElementById(
+            'advanceBalanceDue'
+        ).textContent =
+            bookingMoney(balance);
+
+    } else {
+
+        advanceRow.style.display =
+            'none';
+
+        balanceRow.style.display =
+            'none';
+
+        status.style.display =
+            'none';
+
+        document.getElementById(
+            'advanceSummary'
+        ).style.display =
+            'none';
+    }
+}
+
+
+/* ==========================================================
+   SAVE BOOKING
+========================================================== */
+
+async function saveBooking() {
+
+    if (
+        !validateBkStep(1) ||
+        !validateBkStep(2)
+    ) {
+
+        bookingToast(
+            'Please complete all required booking information.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    const button =
+        document.getElementById(
+            'saveBookingBtn'
+        );
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+    button.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Creating Booking...';
+
+
+    const fullName =
+        document.getElementById(
+            'bookingGuestName'
+        ).value.trim();
+
+    const phone =
+        document.getElementById(
+            'bookingPhone'
+        ).value.trim();
+
+    const roomId =
+        document.getElementById(
+            'selectedRoomId'
+        ).value;
+
+    const roomUnitId =
+        document.getElementById(
+            'selectedRoomUnitId'
+        ).value;
+
+    const checkIn =
+        document.getElementById(
+            'bookingCheckIn'
+        ).value;
+
+    const checkOut =
+        document.getElementById(
+            'bookingCheckOut'
+        ).value;
+
+
+    const advanceAmount =
+        parseFloat(
+            document.getElementById(
+                'bookingAdvanceAmount'
+            ).value
+        ) || 0;
+
+
+    const advanceMethod =
+        document.querySelector(
+            'input[name="advanceMethod"]:checked'
+        )?.value || 'Cash';
+
+
+    const payload = {
+
+        full_name:
+            fullName,
+
+        phone:
+            phone,
+
+        email:
+            document.getElementById(
+                'bookingEmail'
+            ).value.trim(),
+
+        nationality:
+            document.getElementById(
+                'bookingNationality'
+            ).value.trim(),
+
+        id_type:
+            document.getElementById(
+                'bookingIdType'
+            ).value,
+
+        id_number:
+            document.getElementById(
+                'bookingIdNumber'
+            ).value.trim(),
+
+        room:
+            roomId,
+
+        room_unit:
+            roomUnitId,
+
+        check_in:
+            checkIn,
+
+        check_out:
+            checkOut,
+
+        adults:
+            parseInt(
+                document.getElementById(
+                    'bookingGuests'
+                ).value
+            ) || 1,
+
+        children:
+            0,
+
+        special_requests:
+            document.getElementById(
+                'bookingRequests'
+            ).value.trim(),
+
+        source:
+            'front-desk',
+
+        advance_amount:
+            advanceAmount,
+
+        advance_method:
+            advanceMethod
+    };
+
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'create_booking' %}",
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+
+                        'X-CSRFToken':
+                            getBookingCsrf()
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+
+        const data =
+            await response
+                .json()
+                .catch(() => ({}));
+
+
+        if (!response.ok) {
+
+            let message =
+                data.error ||
+                data.message;
+
+
+            if (
+                !message &&
+                data.errors
+            ) {
+
+                message =
+                    Object.values(
+                        data.errors
+                    )
+                    .flat()
+                    .join(', ');
+            }
+
+
+            throw new Error(
+                message ||
+                `Booking failed (HTTP ${response.status})`
+            );
+        }
+
+
+        let message =
+            `Booking confirmed successfully`;
+
+        if (data.room_number) {
+
+            message +=
+                ` — Room ${data.room_number}`;
+        }
+
+
+        if (
+            data.payment_status ===
+            'paid'
+        ) {
+
+            message +=
+                ` — Fully paid ${bookingMoney(data.total_amount)}`;
+
+        } else if (
+            data.payment_status ===
+            'partial'
+        ) {
+
+            message +=
+                ` — Advance ${bookingMoney(data.advance_paid)}, balance ${bookingMoney(data.balance_due)}`;
+        }
+
+
+        bookingToast(
+            message,
+            'success'
+        );
+
+
+        setTimeout(() => {
+
+            window.location.href =
+                "{% url 'get_bookings_page' %}";
+
+        }, 1000);
+
+
+    } catch (error) {
+
+        console.error(
+            'Booking error:',
+            error
+        );
+
+
+        bookingToast(
+            error.message ||
+            'Unable to create booking.',
+            'error'
+        );
+
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            original;
+    }
+}
+
+
+/* ==========================================================
+   DATE HELPERS
+========================================================== */
+
+function formatDateInput(date) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, '0');
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, '0');
+
+
+    return `${year}-${month}-${day}`;
+}
+
+
+/* ==========================================================
+   INITIALIZE PAGE
+========================================================== */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+        const today =
+            new Date();
+
+        const tomorrow =
+            new Date();
+
+        tomorrow.setDate(
+            tomorrow.getDate() + 1
+        );
+
+
+        const todayString =
+            formatDateInput(today);
+
+        const tomorrowString =
+            formatDateInput(tomorrow);
+
+
+        const checkIn =
+            document.getElementById(
+                'bookingCheckIn'
+            );
+
+        const checkOut =
+            document.getElementById(
+                'bookingCheckOut'
+            );
+
+
+        checkIn.min =
+            todayString;
+
+        checkIn.value =
+            todayString;
+
+
+        checkOut.min =
+            tomorrowString;
+
+        checkOut.value =
+            tomorrowString;
+
+
+        goToBkStep(1);
+    }
+);
+
+</script>
+
+{% endblock %}

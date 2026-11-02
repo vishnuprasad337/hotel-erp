@@ -1,81 +1,218 @@
-from django.shortcuts import render,redirect
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import uuid
-from django.db import transaction
 import json
-from hotel.models import Task
-from .models import Room, RoomUnit, Property, RoomImage,Booking,Guest,Payment
-from accounts.models import Staff
+from datetime import datetime
 
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
+from django.db import transaction
+from django.db.models import Count, Sum, Q
+from django.utils import timezone
+
+from accounts.models import Staff
+from accounts.decorators import staff_login_required
+
+from hotel.models import (
+    Task,
+    Attendance,
+    LeaveRequest,
+)
+
+from billing.models import Invoice
+
+from .models import (
+    Room,
+    RoomUnit,
+    Property,
+    RoomImage,
+    Booking,
+    Guest,
+    Payment,
+)
 
 # ---------------- ROOM PAGE ----------------
+
+
+@staff_login_required
+@never_cache
 def room_page(request):
 
+    # =====================================================
+    # STAFF
+    # =====================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(id=staff_id)
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+
+    # =====================================================
+    # ADD ROOM
+    # =====================================================
+
     if request.method == "POST":
+
         room_type = request.POST.get("room_type")
         base_price = request.POST.get("base_price")
         max_adults = request.POST.get("max_adults")
         max_children = request.POST.get("max_children")
         description = request.POST.get("description")
-        total_units = int(request.POST.get("total_units", 1))
+
+        try:
+            total_units = int(
+                request.POST.get("total_units", 1)
+            )
+        except (TypeError, ValueError):
+            total_units = 1
 
         amenities_ids = request.POST.getlist("amenities")
 
-        with transaction.atomic():
-            room = Room.objects.create(
-                room_type=room_type,
-                base_price=base_price,
-                max_adults=max_adults,
-                max_children=max_children,
-                description=description,
+
+        if not room_type or not base_price:
+
+            messages.error(
+                request,
+                "Room type and base price are required."
             )
 
-            if amenities_ids:
-                room.amenities.set(amenities_ids)
+            return redirect("room_page")
 
-            
-            prefix_map = {
-                "Single": "S",
-                "Double": "D",
-                "Deluxe": "DL",
-                "Suite": "SU"
-            }
-            prefix = prefix_map.get(room.room_type, "R")
 
-            existing_numbers = set(
-                RoomUnit.objects.values_list('room_number', flat=True)
-            )
+        try:
 
-            units = []
-            counter = 1
+            with transaction.atomic():
 
-            while len(units) < total_units:
-                number = f"{prefix}{counter}"
-                if number not in existing_numbers:
-                    units.append(RoomUnit(
-                        room=room,
-                        room_number=number
-                    ))
-                counter += 1
-
-            RoomUnit.objects.bulk_create(units)
-
-           
-            images = request.FILES.getlist("images")
-            for i, img in enumerate(images):
-                RoomImage.objects.create(
-                    room=room,
-                    image=img,
-                    is_primary=(i == 0)
+                room = Room.objects.create(
+                    room_type=room_type,
+                    base_price=base_price,
+                    max_adults=max_adults or 1,
+                    max_children=max_children or 0,
+                    description=description or "",
                 )
 
-    rooms = Room.objects.all()
 
-    return render(request, "room.html", {
-        "rooms": rooms,
-        "amenities": Property.objects.all()
-    })
+                if amenities_ids:
+                    room.amenities.set(amenities_ids)
+
+
+                prefix_map = {
+                    "Single": "S",
+                    "Double": "D",
+                    "Deluxe": "DL",
+                    "Suite": "SU",
+                }
+
+                prefix = prefix_map.get(
+                    room.room_type,
+                    "R"
+                )
+
+
+                existing_numbers = set(
+                    RoomUnit.objects.values_list(
+                        "room_number",
+                        flat=True,
+                    )
+                )
+
+
+                units = []
+
+                counter = 1
+
+                while len(units) < total_units:
+
+                    number = f"{prefix}{counter}"
+
+                    if number not in existing_numbers:
+
+                        units.append(
+                            RoomUnit(
+                                room=room,
+                                room_number=number,
+                            )
+                        )
+
+                        existing_numbers.add(number)
+
+                    counter += 1
+
+
+                RoomUnit.objects.bulk_create(units)
+
+
+                images = request.FILES.getlist("images")
+
+                for i, img in enumerate(images):
+
+                    RoomImage.objects.create(
+                        room=room,
+                        image=img,
+                        is_primary=(i == 0),
+                    )
+
+
+            messages.success(
+                request,
+                f"{room.room_type} created successfully."
+            )
+
+            return redirect("room_page")
+
+
+        except Exception as exc:
+
+            messages.error(
+                request,
+                f"Unable to create room: {exc}"
+            )
+
+            return redirect("room_page")
+
+
+    # =====================================================
+    # ROOM LIST
+    # =====================================================
+
+    rooms = (
+        Room.objects
+        .prefetch_related(
+            "amenities",
+            "units",
+            "images",
+        )
+        .all()
+    )
+
+
+    return render(
+        request,
+        "frontoffice/rooms.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+            "rooms": rooms,
+            "amenities": Property.objects.all(),
+        },
+    )
+
+
+
+
 
 
 # ---------------- ADD ROOM API ----------------
@@ -772,7 +909,6 @@ from hotel.models import Attendance,LeaveRequest
 from accounts.decorators import staff_login_required
 @staff_login_required
 @never_cache
-@login_required
 def frontoffice_dashboard(request):
     staff_id = request.session.get("staff_id")
 
@@ -846,6 +982,11 @@ def frontoffice_dashboard(request):
     total_bookings = base_bookings.count()
     arrivals = base_bookings.filter(check_in=today, status="confirmed")
     departures = base_bookings.filter(check_out=today, status="checked_in")
+    checkout_bookings = (
+    base_bookings
+    .filter(status="checked_in")
+    .order_by("check_out", "id")
+)
     occupied_rooms = base_bookings.filter(status="checked_in").count()
     bookings = base_bookings.order_by("-created_at")
     recent_bookings = bookings[:5]
@@ -973,7 +1114,7 @@ def frontoffice_dashboard(request):
     else:
         current_payroll = None
 
-    return render(request, "frontoffice.html", {
+    return render(request, "frontoffice/dashboard.html", {
         "hotel": hotel,
         "hotel_staff": hotel_staff,
         "rooms": room_list,
@@ -1003,6 +1144,7 @@ def frontoffice_dashboard(request):
         "payroll_history":      payroll_history_list,
         "payroll_month_label":  MONTH_NAMES[month],
         "payroll_year":         year,
+        "checkout_bookings": checkout_bookings,
     })
 
 
@@ -2222,6 +2364,8 @@ def auto_assign_housekeeping_task(room_unit, hotel, booking=None):
         ),
         status="Pending",
     )
+
+
 from accounts.models import Hotel
 @csrf_exempt
 def check_out(request):
@@ -2314,154 +2458,829 @@ def check_out(request):
                     print(f"Auto-assign housekeeping failed: {e}")
     # ──────────────────────────────────────────────────────────────────
 
+        # =========================================================
+    # GENERATE / UPDATE FINAL INVOICE
+    # =========================================================
+
+    from decimal import Decimal
+    from billing.models import Invoice
+
+    subtotal = Decimal("0.00")
+    tax_total = Decimal("0.00")
+
+    # Calculate final invoice from ALL folio charges
+    for charge in folio.charges.all():
+
+        subtotal += (
+            charge.amount
+            or Decimal("0.00")
+        )
+
+        tax_total += (
+            charge.tax_amount
+            or Decimal("0.00")
+        )
+
+
+    # No checkout discount currently
+    discount = Decimal("0.00")
+
+    grand_total = (
+        subtotal
+        +
+        tax_total
+        -
+        discount
+    )
+
+
+    # Refresh payment totals before deciding invoice status
+    folio.refresh_from_db()
+
+    total_paid = Decimal(
+        str(
+            folio.total_paid
+            or 0
+        )
+    )
+
+
+    if total_paid >= grand_total:
+
+        invoice_status = "paid"
+
+    elif total_paid > 0:
+
+        invoice_status = "partial"
+
+    else:
+
+        invoice_status = "pending"
+
+
+    # Create invoice if missing.
+    # Update the existing invoice if one was already generated.
+    invoice, invoice_created = (
+        Invoice.objects.update_or_create(
+
+            folio=folio,
+
+            defaults={
+
+                "subtotal":
+                    subtotal,
+
+                "tax_total":
+                    tax_total,
+
+                "discount":
+                    discount,
+
+                "grand_total":
+                    grand_total,
+
+                "status":
+                    invoice_status,
+
+                "notes":
+                    "Final invoice generated at checkout",
+
+                "generated_by":
+                    checked_out_by,
+            }
+        )
+    )
+
+
+    # =========================================================
+    # CLOSE FOLIO
+    # =========================================================
+
     folio.status = "closed"
-    folio.save()
+
+    folio.save(
+        update_fields=[
+            "status"
+        ]
+    )
+    # =========================================================
+    # CHANNEL MANAGER SYNC
+    # =========================================================
+
     try:
         from channelmanager.models import WebsiteChannel
         from channelmanager.tasks import push_availability_to_channel
-        channel = WebsiteChannel.objects.filter(is_active=True).first()
+
+        channel = WebsiteChannel.objects.filter(
+            is_active=True
+        ).first()
+
         if channel:
-            push_availability_to_channel(channel.pk)
+            push_availability_to_channel(
+                channel.pk
+            )
+
     except Exception as e:
-        print(f"Channel sync failed: {e}")
-
-    return JsonResponse({
-        "success":               True,
-        "message":               "Check-out completed successfully",
-        "checked_out_by":        checked_out_by.name if checked_out_by else None,
-        "total_charges":         float(folio.total_charges),
-        "total_paid":            float(folio.total_paid),
-        "balance_due":           float(folio.balance_due),
-        "housekeeping_assigned": bool(housekeeping_task),
-        "housekeeping_task_id":  housekeeping_task.id if housekeeping_task else None,
-        "housekeeping_staff":    housekeeping_task.staff.name if housekeeping_task else None,
-    })
-@csrf_exempt
-def record_payment(request):
-   
-    if request.method != "POST":
-        return JsonResponse({"error": "POST required"}, status=405)
-    try:
-        data    = json.loads(request.body)
-        bk_id   = data.get("booking_id")
-        amount  = float(data.get("amount", 0) or 0)
-        method  = data.get("method", "Cash")
-        note    = data.get("note", "")
-
-        if not bk_id:
-            return JsonResponse({"error": "booking_id required"}, status=400)
-        if amount <= 0:
-            return JsonResponse({"error": "amount must be > 0"}, status=400)
-
-        booking = Booking.objects.get(id=bk_id)
-
-        from billing.models import GuestFolio, FolioPayment
-        folio, _ = GuestFolio.objects.get_or_create(booking=booking)
-
-        if folio.status == "closed":
-            return JsonResponse({"error": "Folio is already closed."}, status=400)
-
-        FolioPayment.objects.create(
-            folio  = folio,
-            amount = round(amount, 2),
-            method = method,
-            note   = note or "Partial payment",
+        print(
+            f"Channel sync failed: {e}"
         )
 
-        
-        payment = Payment.objects.filter(booking=booking).first()
-        if payment:
-            payment.amount_paid = float(payment.amount_paid or 0) + amount
-            if float(payment.amount_paid) >= float(payment.total_amount):
-                payment.payment_status = "paid"
-            else:
-                payment.payment_status = "partial"
-            payment.payment_method = method
-            payment.paid_at        = timezone.now()
-            payment.save()
+
+    # =========================================================
+    # SUCCESS RESPONSE
+    # IMPORTANT: OUTSIDE except
+    # =========================================================
+
+    return JsonResponse({
+
+        "success": True,
+
+        "message":
+            "Check-out completed successfully",
+
+        "checked_out_by":
+            checked_out_by.name
+            if checked_out_by
+            else None,
+
+        "total_charges":
+            float(folio.total_charges),
+
+        "total_paid":
+            float(folio.total_paid),
+
+        "balance_due":
+            float(folio.balance_due),
+
+        # -------------------------
+        # INVOICE
+        # -------------------------
+
+        "invoice_id":
+            invoice.id,
+
+        "invoice_number":
+            invoice.invoice_number,
+
+        "invoice_status":
+            invoice.status,
+
+        "invoice_created":
+            invoice_created,
+
+        "invoice_total":
+            float(invoice.grand_total),
+
+        # -------------------------
+        # HOUSEKEEPING
+        # -------------------------
+
+        "housekeeping_assigned":
+            bool(housekeeping_task),
+
+        "housekeeping_task_id":
+            (
+                housekeeping_task.id
+                if housekeeping_task
+                else None
+            ),
+
+        "housekeeping_staff":
+            (
+                housekeeping_task.staff.name
+                if housekeeping_task
+                else None
+            ),
+    })
+
+@csrf_exempt
+def record_payment(request):
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "POST required"},
+            status=405
+        )
+
+    try:
+        data = json.loads(request.body)
+
+        booking_id = data.get("booking_id")
+
+        try:
+            amount = float(
+                data.get("amount", 0) or 0
+            )
+        except (TypeError, ValueError):
+            amount = 0
+
+        method = (
+            data.get("method")
+            or "Cash"
+        )
+
+        note = (
+            data.get("note")
+            or ""
+        ).strip()
+
+        # =====================================================
+        # VALIDATION
+        # =====================================================
+
+        if not booking_id:
+            return JsonResponse(
+                {
+                    "error":
+                    "booking_id required"
+                },
+                status=400
+            )
+
+        if amount <= 0:
+            return JsonResponse(
+                {
+                    "error":
+                    "Payment amount must be greater than zero."
+                },
+                status=400
+            )
+
+        # =====================================================
+        # BOOKING
+        # =====================================================
+
+        booking = (
+            Booking.objects
+            .select_related(
+                "guest",
+                "room",
+                "room_unit"
+            )
+            .filter(
+                id=booking_id
+            )
+            .first()
+        )
+
+        if not booking:
+            return JsonResponse(
+                {
+                    "error":
+                    "Booking not found"
+                },
+                status=404
+            )
+
+        # =====================================================
+        # FOLIO
+        # =====================================================
+
+        from billing.models import (
+            GuestFolio,
+            BillingPayment
+        )
+
+        folio = (
+            GuestFolio.objects
+            .filter(
+                booking=booking
+            )
+            .first()
+        )
+
+        if not folio:
+            return JsonResponse(
+                {
+                    "error":
+                    "Folio not found for this booking."
+                },
+                status=404
+            )
+
+        if folio.status == "closed":
+            return JsonResponse(
+                {
+                    "error":
+                    "Folio is already closed."
+                },
+                status=400
+            )
+
+        # =====================================================
+        # CHECK CURRENT BALANCE
+        # =====================================================
 
         folio.refresh_from_db()
 
-        session_staff_id = request.session.get("staff_id")
-        recorded_by = Staff.objects.filter(id=session_staff_id).first()
+        current_balance = float(
+            folio.balance_due
+        )
 
-        return JsonResponse({
-            "success":       True,
-            "folio_id":      folio.id,
-            "amount_added":  round(amount, 2),
-            "total_charges": float(folio.total_charges),
-            "total_paid":    float(folio.total_paid),
-            "balance_due":   float(folio.balance_due),
-            "recorded_by":   recorded_by.name if recorded_by else None,
-        })
-    except Booking.DoesNotExist:
-        return JsonResponse({"error": "Booking not found"}, status=404)
+        if current_balance <= 0:
+            return JsonResponse(
+                {
+                    "error":
+                    "This folio is already fully paid."
+                },
+                status=400
+            )
+
+        if amount > current_balance + 0.01:
+            return JsonResponse(
+                {
+                    "error":
+                    (
+                        "Payment cannot be greater "
+                        "than the balance due."
+                    ),
+                    "balance_due":
+                    current_balance
+                },
+                status=400
+            )
+
+        # =====================================================
+        # SAVE PAYMENT
+        # =====================================================
+
+        with transaction.atomic():
+
+            billing_payment = (
+                BillingPayment.objects.create(
+                    folio=folio,
+                    amount=round(
+                        amount,
+                        2
+                    ),
+                    method=method,
+                    note=(
+                        note
+                        or
+                        "Front Office payment"
+                    ),
+                )
+            )
+
+            # =================================================
+            # KEEP PMS PAYMENT IN SYNC
+            # =================================================
+
+            payment = (
+                Payment.objects
+                .filter(
+                    booking=booking
+                )
+                .first()
+            )
+
+            if payment:
+
+                payment.amount_paid = (
+                    float(
+                        payment.amount_paid
+                        or 0
+                    )
+                    +
+                    amount
+                )
+
+                if (
+                    float(
+                        payment.amount_paid
+                    )
+                    >=
+                    float(
+                        payment.total_amount
+                    )
+                ):
+                    payment.payment_status = (
+                        "paid"
+                    )
+                else:
+                    payment.payment_status = (
+                        "partial"
+                    )
+
+                payment.payment_method = method
+
+                payment.paid_at = (
+                    timezone.now()
+                )
+
+                payment.save()
+
+        # =====================================================
+        # UPDATED TOTALS
+        # =====================================================
+
+        folio.refresh_from_db()
+
+        staff_id = (
+            request.session.get(
+                "staff_id"
+            )
+        )
+
+        recorded_by = (
+            Staff.objects
+            .filter(
+                id=staff_id
+            )
+            .first()
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+
+                "payment_id":
+                billing_payment.id,
+
+                "folio_id":
+                folio.id,
+
+                "booking_id":
+                booking.id,
+
+                "amount_added":
+                round(
+                    amount,
+                    2
+                ),
+
+                "total_charges":
+                float(
+                    folio.total_charges
+                ),
+
+                "total_paid":
+                float(
+                    folio.total_paid
+                ),
+
+                "balance_due":
+                float(
+                    folio.balance_due
+                ),
+
+                "recorded_by":
+                (
+                    recorded_by.name
+                    if recorded_by
+                    else None
+                ),
+            }
+        )
+
     except Exception as e:
-        import traceback; traceback.print_exc()
-        return JsonResponse({"error": str(e)}, status=500)
+
+        import traceback
+        traceback.print_exc()
+
+        return JsonResponse(
+            {
+                "error":
+                str(e)
+            },
+            status=500
+        )
 
 
 
-from datetime import date as date_type
 
+# ============================================================
+# GET BILL
+# ============================================================
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
+
+
+@require_GET
 def get_bill(request):
-    
-    booking_id = request.GET.get("booking_id")
-    if not booking_id:
-        return JsonResponse({"error": "booking_id required"}, status=400)
 
-    booking = Booking.objects.select_related(
-        "guest", "room", "room_unit"
-    ).filter(id=booking_id).first()
-    if not booking:
-        return JsonResponse({"error": "Booking not found"}, status=404)
-
-    from billing.models import GuestFolio, FolioCharge, BillingPayment
     try:
-        folio = GuestFolio.objects.get(booking=booking)
-    except GuestFolio.DoesNotExist:
-        return JsonResponse({"error": "Folio not created yet"}, status=404)
+        # ====================================================
+        # IMPORT BILLING MODELS
+        # ====================================================
 
-    apply_overstay_charge(booking, folio)   # NEW — add overstay charge if applicable
-    folio.refresh_from_db()
+        from billing.models import GuestFolio
 
-    charges = [
-        {
-            "id":          c.id,
-            "charge_type": c.charge_type,
-            "description": c.description,
-            "amount":      float(c.amount),
-            "tax":         float(c.tax_amount),
-            "total":       float(c.total),
-            "date":        str(c.date) if c.date else "",
-        }
-        for c in folio.charges.all().order_by("date", "charge_type")
-    ]
 
-    payments = [
-        {
-            "id":     p.id,
-            "amount": float(p.amount),
-            "method": p.method,
-            "note":   p.note or "",
-            "date":   p.created_at.strftime("%d %b %Y %H:%M") if hasattr(p, "created_at") else "",
-        }
-        for p in folio.payments.all().order_by("id")
-    ]
+        # ====================================================
+        # GET BOOKING ID
+        # ====================================================
 
-    return JsonResponse({
-        "booking_id":   booking.id,
-        "guest":        booking.guest.full_name if booking.guest else "N/A",
-        "room":         booking.room_unit.room_number if booking.room_unit else "N/A",
-        "check_in":     str(booking.check_in),
-        "check_out":    str(booking.check_out),
-        "charges":      charges,
-        "payments":     payments,
-        "subtotal":     float(folio.total_charges),
-        "total_paid":   float(folio.total_paid),
-        "balance_due":  float(folio.balance_due),
-        "status":       folio.status,
-    })
+        booking_id = request.GET.get("booking_id")
+
+
+        if not booking_id:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "booking_id is required."
+                },
+                status=400
+            )
+
+
+        # ====================================================
+        # GET BOOKING
+        # ====================================================
+
+        booking = (
+            Booking.objects
+            .select_related(
+                "guest",
+                "room",
+                "room_unit"
+            )
+            .filter(
+                id=booking_id
+            )
+            .first()
+        )
+
+
+        if not booking:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Booking not found."
+                },
+                status=404
+            )
+
+
+        # ====================================================
+        # GET FOLIO
+        # ====================================================
+
+        folio = (
+            GuestFolio.objects
+            .filter(
+                booking=booking
+            )
+            .first()
+        )
+
+
+        if not folio:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Folio not found for this booking."
+                },
+                status=404
+            )
+
+
+        # ====================================================
+        # CHARGES
+        # ====================================================
+
+        charges = []
+
+        for charge in folio.charges.all().order_by(
+            "date",
+            "charge_type"
+        ):
+
+            charges.append(
+                {
+                    "id": charge.id,
+
+                    "charge_type": charge.charge_type,
+
+                    "description": (
+                        charge.description or ""
+                    ),
+
+                    "amount": float(
+                        charge.amount or 0
+                    ),
+
+                    # IMPORTANT:
+                    # checkout.js expects tax_amount
+                    "tax_amount": float(
+                        charge.tax_amount or 0
+                    ),
+
+                    "total": float(
+                        charge.total or 0
+                    ),
+
+                    "date": (
+                        str(charge.date)
+                        if charge.date
+                        else ""
+                    ),
+                }
+            )
+
+
+        # ====================================================
+        # PAYMENTS
+        # ====================================================
+
+        payments = []
+
+        for payment in folio.payments.all().order_by(
+            "paid_at"
+        ):
+
+            payments.append(
+                {
+                    "id": payment.id,
+
+                    "amount": float(
+                        payment.amount or 0
+                    ),
+
+                    "method": (
+                        payment.method or ""
+                    ),
+
+                    "reference_number": (
+                        payment.reference_number or ""
+                    ),
+
+                    "note": (
+                        payment.note or ""
+                    ),
+
+                    "paid_at": (
+                        payment.paid_at.isoformat()
+                        if payment.paid_at
+                        else ""
+                    ),
+                }
+            )
+
+
+        # ====================================================
+        # GUEST DETAILS
+        # ====================================================
+
+        guest_name = "N/A"
+        guest_email = ""
+
+
+        if booking.guest:
+
+            guest_name = (
+                booking.guest.full_name
+                or "N/A"
+            )
+
+            guest_email = (
+                getattr(
+                    booking.guest,
+                    "email",
+                    ""
+                )
+                or ""
+            )
+
+
+        # ====================================================
+        # ROOM DETAILS
+        # ====================================================
+
+        room_number = "N/A"
+        room_type = ""
+
+
+        if booking.room_unit:
+
+            room_number = (
+                booking.room_unit.room_number
+                or "N/A"
+            )
+
+
+        if booking.room:
+
+            room_type = (
+                booking.room.room_type
+                or ""
+            )
+
+
+        # ====================================================
+        # TOTALS
+        # ====================================================
+
+        total_charges = float(
+            folio.total_charges or 0
+        )
+
+        total_paid = float(
+            folio.total_paid or 0
+        )
+
+        balance_due = float(
+            folio.balance_due or 0
+        )
+
+
+        # ====================================================
+        # SUCCESS RESPONSE
+        # ====================================================
+
+        return JsonResponse(
+            {
+                "success": True,
+
+                # --------------------------------------------
+                # FOLIO
+                # --------------------------------------------
+
+                "folio_id": folio.id,
+
+                "booking_id": booking.id,
+
+
+                # --------------------------------------------
+                # GUEST
+                # --------------------------------------------
+
+                "guest": {
+                    "name": guest_name,
+                    "email": guest_email,
+                },
+
+
+                # --------------------------------------------
+                # ROOM
+                # --------------------------------------------
+
+                "room": {
+                    "number": room_number,
+                    "room_type": room_type,
+                },
+
+
+                # --------------------------------------------
+                # BOOKING DATES
+                # --------------------------------------------
+
+                "check_in": (
+                    booking.check_in.isoformat()
+                    if booking.check_in
+                    else ""
+                ),
+
+                "check_out": (
+                    booking.check_out.isoformat()
+                    if booking.check_out
+                    else ""
+                ),
+
+
+                # --------------------------------------------
+                # BILLING
+                # --------------------------------------------
+
+                "charges": charges,
+
+                "payments": payments,
+
+                "subtotal": total_charges,
+
+                "total_charges": total_charges,
+
+                "total_paid": total_paid,
+
+                "balance_due": balance_due,
+
+
+                # --------------------------------------------
+                # FOLIO STATUS
+                # --------------------------------------------
+
+                "status": folio.status,
+            }
+        )
+
+
+    except Exception as e:
+
+        import traceback
+
+        traceback.print_exc()
+
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(e)
+            },
+            status=500
+        )
+
+
+
 @csrf_exempt
 def assign_housekeeping_task(request):
     if request.method == "POST":
@@ -3114,10 +3933,19 @@ def fd_update_request(request):
     task.save()
 
     return JsonResponse({"success": True})
+
+
 @csrf_exempt
 def update_room_status(request):
+
     if request.method != "POST":
-        return JsonResponse({"error": "POST required"}, status=405)
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "POST required",
+            },
+            status=405,
+        )
 
     try:
         data = json.loads(request.body)
@@ -3126,12 +3954,13 @@ def update_room_status(request):
         new_status = data.get("status")
 
         if not room_unit_id or not new_status:
-            return JsonResponse({"error": "Missing fields"}, status=400)
-
-        try:
-            room_unit = RoomUnit.objects.get(id=room_unit_id)
-        except RoomUnit.DoesNotExist:
-            return JsonResponse({"error": "Room unit not found"}, status=404)
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "room_unit_id and status are required",
+                },
+                status=400,
+            )
 
         valid_statuses = [
             "Available",
@@ -3139,26 +3968,201 @@ def update_room_status(request):
             "Dirty",
             "Cleaning",
             "Maintenance",
-            "Reserved"
+            "Reserved",
         ]
 
         if new_status not in valid_statuses:
-            return JsonResponse({"error": "Invalid status"}, status=400)
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Invalid room status",
+                },
+                status=400,
+            )
 
-        if room_unit.status == "Occupied" and new_status != "Dirty":
-            return JsonResponse({"error": "Cannot change occupied room unless checkout"}, status=400)
+        try:
+            room_unit = RoomUnit.objects.get(
+                id=room_unit_id
+            )
+
+        except RoomUnit.DoesNotExist:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Room unit not found",
+                },
+                status=404,
+            )
+
+        # Do not manually make an occupied room available.
+        # Checkout should handle that workflow.
+        if (
+            room_unit.status == "Occupied"
+            and new_status != "Dirty"
+        ):
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "Cannot change an occupied room "
+                        "unless checkout is completed."
+                    ),
+                },
+                status=400,
+            )
 
         room_unit.status = new_status
-        room_unit.save()
+        room_unit.save(
+            update_fields=["status"]
+        )
 
-        return JsonResponse({
-            "success": True,
-            "room_unit_id": room_unit.id,
-            "new_status": room_unit.status
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "room_unit_id": room_unit.id,
+                "new_status": room_unit.status,
+            }
+        )
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Invalid JSON data",
+            },
+            status=400,
+        )
+
+    except Exception as exc:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(exc),
+            },
+            status=500,
+        )
+
+
+
+@csrf_exempt
+def update_housekeeping_task(request):
+
+    if request.method != "POST":
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "POST required",
+            },
+            status=405,
+        )
+
+    try:
+        data = json.loads(request.body)
+
+        task_id = data.get("task_id")
+        status = data.get("status")
+
+        if not task_id:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "task_id is required",
+                },
+                status=400,
+            )
+
+        valid_statuses = [
+            "Pending",
+            "In Progress",
+            "Completed",
+            "Cancelled",
+        ]
+
+        if status not in valid_statuses:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Invalid task status",
+                },
+                status=400,
+            )
+
+        try:
+            task = Task.objects.select_related(
+                "room_unit"
+            ).get(
+                id=task_id
+            )
+
+        except Task.DoesNotExist:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Housekeeping task not found",
+                },
+                status=404,
+            )
+
+        task.status = status
+        task.save(
+            update_fields=["status"]
+        )
+
+        # Keep room physical status synchronized
+        if task.room_unit:
+
+            if status == "In Progress":
+
+                task.room_unit.status = "Cleaning"
+
+                task.room_unit.save(
+                    update_fields=["status"]
+                )
+
+            elif status == "Completed":
+
+                task.room_unit.status = "Available"
+
+                task.room_unit.save(
+                    update_fields=["status"]
+                )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "task_id": task.id,
+                "status": task.status,
+                "room_status": (
+                    task.room_unit.status
+                    if task.room_unit
+                    else None
+                ),
+            }
+        )
+
+    except json.JSONDecodeError:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Invalid JSON data",
+            },
+            status=400,
+        )
+
+    except Exception as exc:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(exc),
+            },
+            status=500,
+        )
+    
+
+
+    
 def get_guest_photos(request, guest_id):
     from pms.models import GuestIDPhoto
     try:
@@ -3651,92 +4655,454 @@ def guest_self_check_in(request, schema, token):
 
         return JsonResponse({"success": True, "message": "You're checked in! Enjoy your stay."})
 
+
 @csrf_exempt
 def guest_self_check_out(request, schema, token):
+
     if request.method != "POST":
-        return JsonResponse({"error": "POST required"}, status=405)
+        return JsonResponse(
+            {"error": "POST required"},
+            status=405
+        )
 
     with schema_context(schema):
+
+        from decimal import Decimal
+
         from accounts.models import Hotel, HotelModule
 
-        booking = Booking.objects.select_related("guest", "room_unit").filter(
-            guest_token=token
-        ).first()
-        if not booking:
-            return JsonResponse({"error": "Invalid or expired link"}, status=403)
+        from billing.models import (
+            GuestFolio,
+            Invoice,
+        )
 
-        # Resolve hotel the same way guest_portal() does
-        with schema_context('public'):
-            hotel = Hotel.objects.filter(schema_name=schema).first()
+        # =====================================================
+        # GET BOOKING
+        # =====================================================
+
+        booking = (
+            Booking.objects
+            .select_related(
+                "guest",
+                "room",
+                "room_unit",
+            )
+            .filter(
+                guest_token=token
+            )
+            .first()
+        )
+
+        if not booking:
+
+            return JsonResponse(
+                {
+                    "error":
+                        "Invalid or expired link"
+                },
+                status=403
+            )
+
+        # =====================================================
+        # GET HOTEL FROM PUBLIC SCHEMA
+        # =====================================================
+
+        with schema_context("public"):
+
+            hotel = (
+                Hotel.objects
+                .filter(
+                    schema_name=schema
+                )
+                .first()
+            )
 
         if not hotel:
-            return JsonResponse({"error": "Hotel not found"}, status=404)
 
-        # ── ADMIN TOGGLE CHECK ──────────────────────────────────────
-        # Mirrors the restaurant/laundry module pattern used in guest_portal()
-        module_enabled = HotelModule.objects.filter(
-            hotel=hotel,
-            module__name__iexact="self_checkout",
-            is_enabled=True
-        ).exists()
+            return JsonResponse(
+                {
+                    "error":
+                        "Hotel not found"
+                },
+                status=404
+            )
+
+        # =====================================================
+        # CHECK SELF CHECKOUT MODULE
+        # =====================================================
+
+        module_enabled = (
+            HotelModule.objects
+            .filter(
+                hotel=hotel,
+                module__name__iexact="self_checkout",
+                is_enabled=True,
+            )
+            .exists()
+        )
 
         if not module_enabled:
-            return JsonResponse({
-                "error": "Self check-out isn't available for this property. Please check out at the front desk."
-            }, status=403)
+
+            return JsonResponse(
+                {
+                    "error":
+                        (
+                            "Self check-out isn't available "
+                            "for this property. "
+                            "Please check out at the front desk."
+                        )
+                },
+                status=403
+            )
+
+        # =====================================================
+        # BOOKING MUST BE CHECKED IN
+        # =====================================================
 
         if booking.status != "checked_in":
-            return JsonResponse({"error": "You are not currently checked in"}, status=400)
 
-        from billing.models import GuestFolio
+            return JsonResponse(
+                {
+                    "error":
+                        "You are not currently checked in"
+                },
+                status=400
+            )
+
+        # =====================================================
+        # GET FOLIO
+        # =====================================================
+
         try:
-            folio = GuestFolio.objects.get(booking=booking)
-        except GuestFolio.DoesNotExist:
-            return JsonResponse({"error": "Folio not found. Please contact the front desk."}, status=400)
 
-        apply_overstay_charge(booking, folio)   # NEW — add overstay charge if applicable
+            folio = GuestFolio.objects.get(
+                booking=booking
+            )
+
+        except GuestFolio.DoesNotExist:
+
+            return JsonResponse(
+                {
+                    "error":
+                        (
+                            "Folio not found. "
+                            "Please contact the front desk."
+                        )
+                },
+                status=400
+            )
+
+        # =====================================================
+        # APPLY OVERSTAY CHARGE
+        # =====================================================
+
+        apply_overstay_charge(
+            booking,
+            folio
+        )
+
         folio.refresh_from_db()
-        balance = float(folio.balance_due)
+
+        # =====================================================
+        # CHECK BALANCE
+        # =====================================================
+
+        balance = float(
+            folio.balance_due
+        )
 
         if balance > 0.50:
-            return JsonResponse({
-                "error": "You have an outstanding balance. Please settle your bill to check out.",
-                "balance_due": balance,
-            }, status=400)
 
-        booking.status = "checked_out"
-        booking.actual_check_out = timezone.now()
-        booking.save()
+            return JsonResponse(
+                {
+                    "error":
+                        (
+                            "You have an outstanding balance. "
+                            "Please settle your bill to check out."
+                        ),
 
-        housekeeping_task = None
-        if booking.room_unit:
-            booking.room_unit.status = "Dirty"
-            booking.room_unit.save()
-            try:
-                housekeeping_task = auto_assign_housekeeping_task(
-                    booking.room_unit, hotel, booking=booking
-                )
-            except Exception as e:
-                print(f"Auto-assign housekeeping failed: {e}")
+                    "balance_due":
+                        balance,
 
-        folio.status = "closed"
-        folio.save()
-        
+                    "total_charges":
+                        float(
+                            folio.total_charges
+                        ),
+
+                    "total_paid":
+                        float(
+                            folio.total_paid
+                        ),
+                },
+                status=400
+            )
+
+        # =====================================================
+        # EVERYTHING BELOW SHOULD SUCCEED TOGETHER
+        # =====================================================
 
         try:
-            from channelmanager.models import WebsiteChannel
-            from channelmanager.tasks import push_availability_to_channel
-            channel = WebsiteChannel.objects.filter(is_active=True).first()
-            if channel:
-                push_availability_to_channel(channel.pk)
-        except Exception as e:
-            print(f"Channel sync failed: {e}")
 
-        return JsonResponse({
-            "success": True,
-            "message": "You're checked out. Thank you for staying with us!",
-            "housekeeping_assigned": bool(housekeeping_task),
-        })
+            with transaction.atomic():
+
+                # =============================================
+                # MARK BOOKING CHECKED OUT
+                # =============================================
+
+                booking.status = "checked_out"
+
+                booking.actual_check_out = (
+                    timezone.now()
+                )
+
+                booking.save(
+                    update_fields=[
+                        "status",
+                        "actual_check_out",
+                    ]
+                )
+
+                # =============================================
+                # ROOM → DIRTY
+                # =============================================
+
+                if booking.room_unit:
+
+                    booking.room_unit.status = "Dirty"
+
+                    booking.room_unit.save(
+                        update_fields=[
+                            "status"
+                        ]
+                    )
+
+                # =============================================
+                # CALCULATE FINAL INVOICE
+                # =============================================
+
+                subtotal = Decimal("0.00")
+                tax_total = Decimal("0.00")
+
+                for charge in folio.charges.all():
+
+                    subtotal += (
+                        charge.amount
+                        or Decimal("0.00")
+                    )
+
+                    tax_total += (
+                        charge.tax_amount
+                        or Decimal("0.00")
+                    )
+
+                discount = Decimal("0.00")
+
+                grand_total = (
+                    subtotal
+                    +
+                    tax_total
+                    -
+                    discount
+                )
+
+                # =============================================
+                # REFRESH PAYMENT TOTAL
+                # =============================================
+
+                folio.refresh_from_db()
+
+                total_paid = Decimal(
+                    str(
+                        folio.total_paid
+                        or 0
+                    )
+                )
+
+                # =============================================
+                # INVOICE STATUS
+                # =============================================
+
+                if total_paid >= grand_total:
+
+                    invoice_status = "paid"
+
+                elif total_paid > 0:
+
+                    invoice_status = "partial"
+
+                else:
+
+                    invoice_status = "pending"
+
+                # =============================================
+                # CREATE / UPDATE FINAL INVOICE
+                # =============================================
+
+                invoice, invoice_created = (
+                    Invoice.objects.update_or_create(
+
+                        folio=folio,
+
+                        defaults={
+
+                            "subtotal":
+                                subtotal,
+
+                            "tax_total":
+                                tax_total,
+
+                            "discount":
+                                discount,
+
+                            "grand_total":
+                                grand_total,
+
+                            "status":
+                                invoice_status,
+
+                            "notes":
+                                (
+                                    "Final invoice generated "
+                                    "at guest self check-out"
+                                ),
+
+                            # Guest checkout has no staff member.
+                            "generated_by":
+                                None,
+                        }
+                    )
+                )
+
+                # =============================================
+                # CLOSE FOLIO
+                # =============================================
+
+                folio.status = "closed"
+
+                folio.save(
+                    update_fields=[
+                        "status"
+                    ]
+                )
+
+        except Exception as e:
+
+            return JsonResponse(
+                {
+                    "error":
+                        f"Check-out failed: {str(e)}"
+                },
+                status=500
+            )
+
+        # =====================================================
+        # HOUSEKEEPING
+        #
+        # Keep this outside the transaction because failure to
+        # assign housekeeping must not undo a valid checkout.
+        # =====================================================
+
+        housekeeping_task = None
+
+        if booking.room_unit:
+
+            try:
+
+                housekeeping_task = (
+                    auto_assign_housekeeping_task(
+                        booking.room_unit,
+                        hotel,
+                        booking=booking,
+                    )
+                )
+
+            except Exception as e:
+
+                print(
+                    "Auto-assign housekeeping "
+                    f"failed: {e}"
+                )
+
+        # =====================================================
+        # CHANNEL MANAGER
+        # =====================================================
+
+        try:
+
+            from channelmanager.models import (
+                WebsiteChannel
+            )
+
+            from channelmanager.tasks import (
+                push_availability_to_channel
+            )
+
+            channel = (
+                WebsiteChannel.objects
+                .filter(
+                    is_active=True
+                )
+                .first()
+            )
+
+            if channel:
+
+                push_availability_to_channel(
+                    channel.pk
+                )
+
+        except Exception as e:
+
+            print(
+                f"Channel sync failed: {e}"
+            )
+
+        # =====================================================
+        # SUCCESS
+        # =====================================================
+
+        return JsonResponse(
+            {
+                "success": True,
+
+                "message":
+                    (
+                        "You're checked out. "
+                        "Thank you for staying with us!"
+                    ),
+
+                "invoice_id":
+                    invoice.id,
+
+                "invoice_number":
+                    invoice.invoice_number,
+
+                "invoice_status":
+                    invoice.status,
+
+                "invoice_total":
+                    float(
+                        invoice.grand_total
+                    ),
+
+                "invoice_created":
+                    invoice_created,
+
+                "housekeeping_assigned":
+                    bool(
+                        housekeeping_task
+                    ),
+
+                "housekeeping_task_id":
+                    (
+                        housekeeping_task.id
+                        if housekeeping_task
+                        else None
+                    ),
+            }
+        )
+
+
 
 def guest_checkout_summary(request, schema, token):
     """
@@ -3984,35 +5350,323 @@ def room_status(request):
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 
+# ============================================================
+# FRONT OFFICE - NEW BOOKING PAGE
+# ============================================================
 
-@login_required
+@staff_login_required
 @never_cache
+@login_required
 def new_booking(request):
-    """
-    Renders the 4-step New Booking wizard (document 3 template).
-    No context is strictly required — the page fetches everything
-    it needs (rooms, seasonal rates, bookings-for-lookup) via JS
-    from the API endpoints below.
-    """
-    return render(request, "hotel/booking.html", {})
 
+    # ========================================================
+    # STAFF SESSION
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+
+    # ========================================================
+    # GET STAFF
+    # ========================================================
+
+    try:
+
+        staff = (
+            Staff.objects
+            .select_related(
+                "hotel",
+                "department",
+            )
+            .get(
+                id=staff_id
+            )
+        )
+
+    except Staff.DoesNotExist:
+
+        return redirect("staff_login")
+
+
+    hotel = staff.hotel
+
+
+    # ========================================================
+    # GET ACTIVE ROOM TYPES
+    # ========================================================
+
+    rooms_queryset = (
+        Room.objects
+        .filter(
+            is_active=True
+        )
+        .prefetch_related(
+            "units",
+            "amenities",
+            "images",
+        )
+        .order_by(
+            "room_type",
+            "id",
+        )
+    )
+
+
+    # ========================================================
+    # BUILD ROOM DATA
+    # ========================================================
+
+    rooms = []
+
+    rooms_json_data = []
+
+
+    for room in rooms_queryset:
+
+        # ----------------------------------------------------
+        # DISPLAY ROOM TYPE
+        # ----------------------------------------------------
+
+        room_name = (
+            room.custom_room_type
+            if (
+                room.room_type == "Custom"
+                and room.custom_room_type
+            )
+            else room.room_type
+        )
+
+
+        # ----------------------------------------------------
+        # ROOM UNITS
+        # ----------------------------------------------------
+
+        units = list(
+            room.units.all().order_by(
+                "room_number"
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # AVAILABLE COUNT
+        #
+        # For initial page load we only exclude units that
+        # physically cannot be sold.
+        #
+        # Exact booking/date conflicts are checked when the
+        # user chooses dates.
+        # ----------------------------------------------------
+
+        available_units = [
+            unit
+            for unit in units
+            if unit.status not in [
+                "Maintenance",
+                "Dirty",
+                "Cleaning",
+            ]
+        ]
+
+
+        available_count = len(
+            available_units
+        )
+
+
+        # ----------------------------------------------------
+        # TEMPLATE DATA
+        # ----------------------------------------------------
+
+        rooms.append(
+            {
+                "id": room.id,
+
+                "room_type": room_name,
+
+                "price": room.base_price,
+
+                "available_rooms":
+                    available_count,
+
+                "total_units":
+                    len(units),
+
+                "max_adults":
+                    room.max_adults,
+
+                "max_children":
+                    room.max_children,
+            }
+        )
+
+
+        # ----------------------------------------------------
+        # JAVASCRIPT DATA
+        # ----------------------------------------------------
+
+        units_json = []
+
+
+        for unit in units:
+
+            units_json.append(
+                {
+                    "id": unit.id,
+
+                    "number":
+                        unit.room_number,
+
+                    "room_number":
+                        unit.room_number,
+
+                    "status":
+                        unit.status,
+
+                    "physical_status":
+                        unit.status,
+
+                    "available_for_dates":
+                        unit.status
+                        not in [
+                            "Maintenance",
+                            "Dirty",
+                            "Cleaning",
+                        ],
+                }
+            )
+
+
+        rooms_json_data.append(
+            {
+                "id": room.id,
+
+                "room_type":
+                    room_name,
+
+                "price":
+                    float(
+                        room.base_price or 0
+                    ),
+
+                "total_units":
+                    len(units),
+
+                "available_units":
+                    available_count,
+
+                "max_adults":
+                    room.max_adults,
+
+                "max_children":
+                    room.max_children,
+
+                "units":
+                    units_json,
+            }
+        )
+
+
+    # ========================================================
+    # CONVERT DATA TO JSON FOR JAVASCRIPT
+    # ========================================================
+
+    rooms_json = json.dumps(
+        rooms_json_data
+    )
+
+
+    # ========================================================
+    # RENDER
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/new_booking.html",
+        {
+            "staff": staff,
+
+            "hotel": hotel,
+
+            "rooms": rooms,
+
+            "rooms_json":
+                rooms_json,
+        }
+    )
 
 @login_required
 @never_cache
 def get_bookings_page(request):
-    """
-    Renders the All Bookings list page. Reuses the same
-    Booking queryset shape as the get_bookings() JSON API
-    so the template can render server-side on first load,
-    then the page's own JS can refresh via /get-bookings/.
-    """
-    bookings = Booking.objects.select_related(
-        "guest", "room", "room_unit", "payment", "created_by"
-    ).order_by("-created_at")
 
-    return render(request, "hotel/bookings_list.html", {
-        "bookings": bookings,
-    })
+    # ============================================================
+    # STAFF SESSION
+    # ============================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+
+    # ============================================================
+    # GET STAFF
+    # ============================================================
+
+    try:
+
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department"
+        ).get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+
+        return redirect("staff_login")
+
+
+    hotel = staff.hotel
+
+
+    # ============================================================
+    # GET BOOKINGS
+    # ============================================================
+
+    bookings = (
+        Booking.objects
+        .select_related(
+            "guest",
+            "room",
+            "room_unit",
+            "payment",
+            "created_by",
+        )
+        .order_by(
+            "-created_at"
+        )
+    )
+
+
+    # ============================================================
+    # RENDER NEW FRONT OFFICE PAGE
+    # ============================================================
+
+    return render(
+        request,
+        "frontoffice/bookings.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+            "bookings": bookings,
+        }
+    )
+
+
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_payment(request, payment_id):
@@ -4088,3 +5742,1744 @@ def get_housekeeping_staff(request):
     data.sort(key=lambda s: s["open_tasks"])
 
     return JsonResponse({"success": True, "staff": data})
+
+
+
+
+# ---------------------billing page 
+
+@staff_login_required
+@never_cache
+def billing_page(request):
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(id=staff_id)
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    return render(
+        request,
+        "frontoffice/billing.html",
+        {
+            "staff": staff,
+            "hotel": staff.hotel,
+        },
+    )
+
+
+# ---------------house keaping page 
+
+# ============================================================
+# HOUSEKEEPING PAGE
+# ============================================================
+
+# @staff_login_required
+# @never_cache
+# def housekeeping_page(request):
+
+#     staff_id = request.session.get("staff_id")
+
+#     if not staff_id:
+#         return redirect("staff_login")
+
+#     try:
+#         staff = Staff.objects.select_related(
+#             "hotel",
+#             "department",
+#         ).get(id=staff_id)
+
+#     except Staff.DoesNotExist:
+#         return redirect("staff_login")
+
+#     hotel = staff.hotel
+
+#     # --------------------------------------------------------
+#     # ROOM UNITS
+#     # --------------------------------------------------------
+
+#     room_units = (
+#         RoomUnit.objects
+#         .select_related("room")
+#         .order_by("room__room_type", "room_number")
+#     )
+
+#     # --------------------------------------------------------
+#     # HOUSEKEEPING STAFF
+#     # --------------------------------------------------------
+
+#     housekeeping_staff = (
+#         Staff.objects
+#         .filter(
+#             hotel=hotel,
+#             department__name__icontains="housekeeping",
+#         )
+#         .select_related("department")
+#         .order_by("name")
+#     )
+
+#     # --------------------------------------------------------
+#     # HOUSEKEEPING TASKS
+#     # --------------------------------------------------------
+
+#     tasks = (
+#         Task.objects
+#         .select_related(
+#             "staff",
+#             "room",
+#             "room_unit",
+#         )
+#         .filter(
+#             room_unit__isnull=False,
+#         )
+#         .order_by("-created_at")
+#     )
+
+#     # --------------------------------------------------------
+#     # COUNTERS
+#     # --------------------------------------------------------
+
+#     pending_count = tasks.filter(
+#         status="Pending"
+#     ).count()
+
+#     in_progress_count = tasks.filter(
+#         status="In Progress"
+#     ).count()
+
+#     completed_count = tasks.filter(
+#         status="Completed"
+#     ).count()
+
+#     dirty_count = room_units.filter(
+#         status="Dirty"
+#     ).count()
+
+#     cleaning_count = room_units.filter(
+#         status="Cleaning"
+#     ).count()
+
+#     maintenance_count = room_units.filter(
+#         status="Maintenance"
+#     ).count()
+
+#     return render(
+#         request,
+#         "frontoffice/housekeeping.html",
+#         {
+#             "staff": staff,
+#             "hotel": hotel,
+
+#             "room_units": room_units,
+#             "housekeeping_staff": housekeeping_staff,
+#             "tasks": tasks,
+
+#             "pending_count": pending_count,
+#             "in_progress_count": in_progress_count,
+#             "completed_count": completed_count,
+
+#             "dirty_count": dirty_count,
+#             "cleaning_count": cleaning_count,
+#             "maintenance_count": maintenance_count,
+#         },
+#     )
+
+
+
+@staff_login_required
+@never_cache
+def hk_tasks_page(request):
+
+    # =====================================================
+    # STAFF
+    # =====================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(id=staff_id)
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+
+    # =====================================================
+    # ROOM UNITS
+    # =====================================================
+
+    room_units = (
+        RoomUnit.objects
+        .select_related("room")
+        .order_by(
+            "room__room_type",
+            "room_number"
+        )
+    )
+
+
+    # =====================================================
+    # HOUSEKEEPING STAFF
+    # =====================================================
+
+    housekeeping_staff = (
+        Staff.objects
+        .filter(
+            hotel=hotel,
+            department__name__icontains="housekeeping",
+        )
+        .select_related("department")
+        .order_by("name")
+    )
+
+
+    # =====================================================
+    # HOUSEKEEPING TASKS
+    # =====================================================
+
+    tasks = (
+        Task.objects
+        .select_related(
+            "staff",
+            "room",
+            "room_unit",
+        )
+        .filter(
+            room_unit__isnull=False
+        )
+        .order_by("-created_at")
+    )
+
+
+    # =====================================================
+    # TASK COUNTS
+    # =====================================================
+
+    pending_count = tasks.filter(
+        status="Pending"
+    ).count()
+
+    in_progress_count = tasks.filter(
+        status="In Progress"
+    ).count()
+
+    completed_count = tasks.filter(
+        status="Completed"
+    ).count()
+
+
+    # =====================================================
+    # ROOM STATUS COUNTS
+    # =====================================================
+
+    dirty_count = room_units.filter(
+        status="Dirty"
+    ).count()
+
+    cleaning_count = room_units.filter(
+        status="Cleaning"
+    ).count()
+
+    maintenance_count = room_units.filter(
+        status="Maintenance"
+    ).count()
+
+
+    # =====================================================
+    # TEMPLATE
+    # =====================================================
+
+    return render(
+        request,
+        "frontoffice/hk_tasks.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+
+            "room_units": room_units,
+            "housekeeping_staff": housekeeping_staff,
+
+            "tasks": tasks,
+            "recent_tasks": tasks[:50],
+
+            "pending_count": pending_count,
+            "in_progress_count": in_progress_count,
+            "completed_count": completed_count,
+
+            "dirty_count": dirty_count,
+            "cleaning_count": cleaning_count,
+            "maintenance_count": maintenance_count,
+        },
+    )
+
+
+
+
+# ============================================================
+# FRONT OFFICE - GUEST REQUESTS PAGE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def guest_requests_page(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+    # ========================================================
+    # STAFF LIST
+    #
+    # Used when assigning a guest request.
+    # Keep staff restricted to the current hotel.
+    # ========================================================
+
+    hotel_staff = (
+        Staff.objects
+        .filter(
+            hotel=hotel,
+        )
+        .select_related(
+            "department"
+        )
+        .order_by(
+            "department__name",
+            "name",
+        )
+    )
+
+    # ========================================================
+    # PAGE
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/guest_requests.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+            "hotel_staff": hotel_staff,
+        },
+    )
+
+
+
+
+
+def safe_local_datetime(value):
+    """
+    Return local datetime safely whether value is
+    timezone-aware or naive.
+    """
+    if value is None:
+        return None
+
+    if timezone.is_aware(value):
+        return timezone.localtime(value)
+
+    return value
+
+
+# ============================================================
+# FRONT OFFICE - ATTENDANCE PAGE
+# ============================================================
+
+import json
+from datetime import datetime
+
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+
+from accounts.models import Staff
+from accounts.decorators import staff_login_required
+from hotel.models import Attendance
+
+
+# ============================================================
+# FRONT OFFICE - MY ATTENDANCE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def attendance_page(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = (
+            Staff.objects
+            .select_related(
+                "hotel",
+                "department",
+            )
+            .get(id=staff_id)
+        )
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+    # ========================================================
+    # TODAY
+    # ========================================================
+
+    now = timezone.now()
+
+    if timezone.is_aware(now):
+        today = timezone.localtime(now).date()
+    else:
+        today = now.date()
+
+    today_attendance = (
+        Attendance.objects
+        .filter(
+            staff=staff,
+            date=today,
+        )
+        .first()
+    )
+
+    # ========================================================
+    # SELECTED MONTH / YEAR
+    # ========================================================
+
+    try:
+        month = int(
+            request.GET.get(
+                "month",
+                today.month,
+            )
+        )
+    except (TypeError, ValueError):
+        month = today.month
+
+    try:
+        year = int(
+            request.GET.get(
+                "year",
+                today.year,
+            )
+        )
+    except (TypeError, ValueError):
+        year = today.year
+
+    if month < 1 or month > 12:
+        month = today.month
+
+    if year < 2000 or year > 2100:
+        year = today.year
+
+    # ========================================================
+    # ATTENDANCE RECORDS
+    # ========================================================
+
+    attendance_records = (
+        Attendance.objects
+        .filter(
+            staff=staff,
+            date__month=month,
+            date__year=year,
+        )
+        .order_by("-date")
+    )
+
+    # ========================================================
+    # SUMMARY
+    # ========================================================
+
+    present_days = attendance_records.filter(
+        status="Present"
+    ).count()
+
+    late_days = attendance_records.filter(
+        status="Late"
+    ).count()
+
+    absent_days = attendance_records.filter(
+        status="Absent"
+    ).count()
+
+    overtime_result = attendance_records.aggregate(
+        total=Sum("overtime_hours")
+    )
+
+    overtime_hours = overtime_result["total"] or 0
+
+    total_records = attendance_records.count()
+
+    # ========================================================
+    # FACE DATA
+    # SAME REGISTERED FACE USED BY ACCOUNTANT SYSTEM
+    # ========================================================
+
+    raw_face_descriptor = getattr(
+        staff,
+        "face_descriptor",
+        None,
+    )
+
+    face_descriptors = []
+
+    if raw_face_descriptor:
+
+        # JSONField/list
+        if isinstance(raw_face_descriptor, list):
+
+            if (
+                raw_face_descriptor
+                and isinstance(raw_face_descriptor[0], (int, float))
+            ):
+                face_descriptors = [
+                    raw_face_descriptor
+                ]
+
+            else:
+                face_descriptors = raw_face_descriptor
+
+        # CharField/TextField JSON
+        elif isinstance(raw_face_descriptor, str):
+
+            try:
+                parsed = json.loads(
+                    raw_face_descriptor
+                )
+
+                if (
+                    isinstance(parsed, list)
+                    and parsed
+                    and isinstance(parsed[0], (int, float))
+                ):
+                    face_descriptors = [
+                        parsed
+                    ]
+
+                elif isinstance(parsed, list):
+                    face_descriptors = parsed
+
+            except (
+                json.JSONDecodeError,
+                TypeError,
+                ValueError,
+            ):
+                face_descriptors = []
+
+    # Keep only valid face-api descriptors
+    face_descriptors = [
+        descriptor
+        for descriptor in face_descriptors
+        if (
+            isinstance(descriptor, list)
+            and len(descriptor) == 128
+        )
+    ]
+
+    face_enrolled = bool(
+        face_descriptors
+    )
+
+    face_descriptor_json = json.dumps(
+        face_descriptors
+    )
+
+    # Same threshold used by accountant page
+    face_threshold = 0.45
+
+    # ========================================================
+    # MONTH / YEAR OPTIONS
+    # ========================================================
+
+    months = [
+        (1, "January"),
+        (2, "February"),
+        (3, "March"),
+        (4, "April"),
+        (5, "May"),
+        (6, "June"),
+        (7, "July"),
+        (8, "August"),
+        (9, "September"),
+        (10, "October"),
+        (11, "November"),
+        (12, "December"),
+    ]
+
+    years = range(
+        today.year - 3,
+        today.year + 2,
+    )
+
+    # ========================================================
+    # RENDER
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/attendance.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+
+            "today": today,
+            "today_attendance": today_attendance,
+
+            "attendance_records":
+                attendance_records,
+
+            "present_days":
+                present_days,
+
+            "late_days":
+                late_days,
+
+            "absent_days":
+                absent_days,
+
+            "overtime_hours":
+                overtime_hours,
+
+            "total_records":
+                total_records,
+
+            "selected_month":
+                month,
+
+            "selected_year":
+                year,
+
+            "months":
+                months,
+
+            "years":
+                years,
+
+            # Face Recognition
+            "face_enrolled":
+                face_enrolled,
+
+            "face_descriptor_json":
+                face_descriptor_json,
+
+            "face_threshold":
+                face_threshold,
+        },
+    )
+
+
+
+
+# ============================================================
+# FRONT OFFICE - CHECK IN / CHECK OUT
+# ============================================================
+
+import json
+import math
+
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+
+
+FACE_THRESHOLD = 0.45
+
+
+def _normalise_face_descriptors(value):
+
+    if not value:
+        return []
+
+    if isinstance(value, str):
+
+        try:
+            value = json.loads(value)
+
+        except (
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ):
+            return []
+
+    if not isinstance(value, list):
+        return []
+
+    # One descriptor
+    if (
+        len(value) == 128
+        and all(
+            isinstance(x, (int, float))
+            for x in value
+        )
+    ):
+        return [value]
+
+    # Multiple descriptors
+    descriptors = []
+
+    for descriptor in value:
+
+        if (
+            isinstance(descriptor, list)
+            and len(descriptor) == 128
+            and all(
+                isinstance(x, (int, float))
+                for x in descriptor
+            )
+        ):
+            descriptors.append(
+                descriptor
+            )
+
+    return descriptors
+
+
+def _face_distance(face1, face2):
+
+    return math.sqrt(
+        sum(
+            (float(a) - float(b)) ** 2
+            for a, b in zip(
+                face1,
+                face2,
+            )
+        )
+    )
+
+
+@staff_login_required
+@never_cache
+@require_POST
+def frontoffice_mark_attendance(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get(
+        "staff_id"
+    )
+
+    if not staff_id:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "Your session has expired.",
+            },
+            status=403,
+        )
+
+    try:
+
+        staff = Staff.objects.get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "Staff account was not found.",
+            },
+            status=403,
+        )
+
+    # ========================================================
+    # ACTION
+    # ========================================================
+
+    action = (
+        request.POST.get("action")
+        or ""
+    ).strip()
+
+    if action not in [
+        "check_in",
+        "check_out",
+    ]:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "Invalid attendance action.",
+            },
+            status=400,
+        )
+
+    now = timezone.now()
+
+    if timezone.is_aware(now):
+        today = timezone.localtime(now).date()
+    else:
+        today = now.date()
+
+    # ========================================================
+    # CHECK IN
+    # ========================================================
+
+    if action == "check_in":
+
+        # ----------------------------------------------------
+        # GET REGISTERED FACE
+        # ----------------------------------------------------
+
+        stored_faces = (
+            _normalise_face_descriptors(
+                getattr(
+                    staff,
+                    "face_descriptor",
+                    None,
+                )
+            )
+        )
+
+        if not stored_faces:
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "matched": False,
+                    "code":
+                        "FACE_NOT_REGISTERED",
+                    "message":
+                        "Your face is not registered. Please ask HR to register it.",
+                },
+                status=400,
+            )
+
+        # ----------------------------------------------------
+        # FACE SENT FROM CAMERA
+        # ----------------------------------------------------
+
+        raw_descriptor = request.POST.get(
+            "face_descriptor"
+        )
+
+        if not raw_descriptor:
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "matched": False,
+                    "code":
+                        "FACE_REQUIRED",
+                    "message":
+                        "Face verification is required for check-in.",
+                },
+                status=400,
+            )
+
+        try:
+
+            incoming_face = json.loads(
+                raw_descriptor
+            )
+
+        except (
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ):
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "matched": False,
+                    "code":
+                        "INVALID_FACE_DATA",
+                    "message":
+                        "Invalid face data.",
+                },
+                status=400,
+            )
+
+        if (
+            not isinstance(
+                incoming_face,
+                list,
+            )
+            or len(incoming_face) != 128
+            or not all(
+                isinstance(
+                    value,
+                    (int, float),
+                )
+                for value in incoming_face
+            )
+        ):
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "matched": False,
+                    "code":
+                        "INVALID_FACE_DATA",
+                    "message":
+                        "Invalid face descriptor.",
+                },
+                status=400,
+            )
+
+        # ----------------------------------------------------
+        # SERVER-SIDE FACE MATCH
+        # ----------------------------------------------------
+
+        distances = [
+            _face_distance(
+                incoming_face,
+                stored_face,
+            )
+            for stored_face in stored_faces
+        ]
+
+        best_distance = min(
+            distances
+        )
+
+        if best_distance > FACE_THRESHOLD:
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "matched": False,
+                    "message":
+                        "Face does not match the registered employee.",
+                },
+                status=403,
+            )
+
+        # ----------------------------------------------------
+        # CREATE / GET TODAY ATTENDANCE
+        # ----------------------------------------------------
+
+        attendance, created = (
+            Attendance.objects.get_or_create(
+                staff=staff,
+                date=today,
+                defaults={
+                    "status": "Present",
+                },
+            )
+        )
+
+        if attendance.check_in:
+
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message":
+                        "You have already checked in today.",
+                },
+                status=400,
+            )
+
+        attendance.check_in = now
+
+        # Keep existing attendance status logic if your
+        # Attendance model calculates Late automatically.
+        if not attendance.status:
+            attendance.status = "Present"
+
+        attendance.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "matched": True,
+                "message":
+                    "Face verified. Checked in successfully.",
+                "check_in":
+                    safe_local_datetime(now).strftime("%I:%M %p")
+            }
+        )
+
+    # ========================================================
+    # CHECK OUT
+    # ========================================================
+
+    attendance = (
+        Attendance.objects
+        .filter(
+            staff=staff,
+            date=today,
+        )
+        .first()
+    )
+
+    if not attendance:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "You have not checked in today.",
+            },
+            status=400,
+        )
+
+    if not attendance.check_in:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "You must check in before checking out.",
+            },
+            status=400,
+        )
+
+    if attendance.check_out:
+
+        return JsonResponse(
+            {
+                "success": False,
+                "message":
+                    "You have already checked out today.",
+            },
+            status=400,
+        )
+
+    attendance.check_out = now
+
+    attendance.save()
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message":
+                "Checked out successfully.",
+            "check_out": safe_local_datetime(
+                    now
+            ).strftime("%I:%M %p"),
+        }
+    )
+
+
+
+
+# ============================================================
+# FRONT OFFICE - MY SHIFTS PAGE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def shifts_page(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+    # ========================================================
+    # RENDER PAGE
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/shifts.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+        },
+    )
+
+
+
+# ============================================================
+# FRONT OFFICE - LEAVE PAGE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def leave_page(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+
+        return redirect("staff_login")
+
+
+    hotel = staff.hotel
+
+
+    # ========================================================
+    # CURRENT DATE / YEAR
+    #
+    # IMPORTANT:
+    # Do NOT use:
+    #
+    #     timezone.localdate()
+    #
+    # because this project can return a naive datetime.
+    # ========================================================
+
+    now = timezone.now()
+
+    if timezone.is_aware(now):
+
+        current_date = timezone.localtime(
+            now
+        ).date()
+
+    else:
+
+        current_date = now.date()
+
+
+    current_year = current_date.year
+
+
+    # ========================================================
+    # RENDER PAGE
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/leave.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+            "current_date": current_date,
+            "current_year": current_year,
+        },
+    )
+
+
+
+
+# ============================================================
+# FRONT OFFICE - MY PAYROLL PAGE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def payroll_page(request):
+
+    # ========================================================
+    # LOGGED-IN STAFF
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+    try:
+        staff = Staff.objects.select_related(
+            "hotel",
+            "department",
+        ).get(
+            id=staff_id
+        )
+
+    except Staff.DoesNotExist:
+        return redirect("staff_login")
+
+    hotel = staff.hotel
+
+
+    # ========================================================
+    # SAFE CURRENT DATE
+    #
+    # Do not use timezone.localdate() because this project
+    # can use naive datetimes.
+    # ========================================================
+
+    now = timezone.now()
+
+    if timezone.is_aware(now):
+        today = timezone.localtime(now).date()
+    else:
+        today = now.date()
+
+    month = today.month
+    year = today.year
+
+
+    # ========================================================
+    # PAYROLL MODEL
+    # ========================================================
+
+    from hotel.models import Payroll
+
+
+    # ========================================================
+    # CURRENT MONTH PAYROLL
+    # ========================================================
+
+    payroll = (
+        Payroll.objects
+        .filter(
+            staff=staff,
+            month=month,
+            year=year,
+        )
+        .prefetch_related("line_items")
+        .first()
+    )
+
+
+    # ========================================================
+    # FULL PAYROLL HISTORY
+    # ========================================================
+
+    payroll_history = (
+        Payroll.objects
+        .filter(
+            staff=staff
+        )
+        .prefetch_related("line_items")
+        .order_by(
+            "-year",
+            "-month",
+        )
+    )
+
+
+    MONTH_NAMES = [
+        "",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
+
+
+    # ========================================================
+    # PREPARE PAYROLL HISTORY
+    # ========================================================
+
+    payroll_history_list = []
+
+    available_years = set()
+
+
+    for p in payroll_history:
+
+        available_years.add(
+            p.year
+        )
+
+
+        earnings = (
+            p.line_items
+            .filter(
+                line_type="earning"
+            )
+            .aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+
+        deductions = (
+            p.line_items
+            .filter(
+                line_type="deduction"
+            )
+            .aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+
+
+        earnings_items = [
+            {
+                "label": item.label,
+                "amount": float(
+                    item.amount
+                ),
+            }
+            for item in (
+                p.line_items
+                .filter(
+                    line_type="earning"
+                )
+                .order_by("order")
+            )
+        ]
+
+
+        deductions_items = [
+            {
+                "label": item.label,
+                "amount": float(
+                    item.amount
+                ),
+            }
+            for item in (
+                p.line_items
+                .filter(
+                    line_type="deduction"
+                )
+                .order_by("order")
+            )
+        ]
+
+
+        payroll_history_list.append(
+            {
+                "id": p.id,
+
+                "month": p.month,
+
+                "year": p.year,
+
+                "month_label":
+                    MONTH_NAMES[p.month],
+
+                "basic_salary":
+                    float(
+                        p.basic_salary or 0
+                    ),
+
+                "overtime_amount":
+                    float(
+                        p.overtime_amount or 0
+                    ),
+
+                "bonus":
+                    float(
+                        p.bonus or 0
+                    ),
+
+                "incentive":
+                    float(
+                        p.incentive or 0
+                    ),
+
+                "pf_amount":
+                    float(
+                        p.pf_amount or 0
+                    ),
+
+                "esi_amount":
+                    float(
+                        p.esi_amount or 0
+                    ),
+
+                "loan_deduction":
+                    float(
+                        p.loan_deduction or 0
+                    ),
+
+                "tax_deduction":
+                    float(
+                        p.tax_deduction or 0
+                    ),
+
+                "gross_salary":
+                    float(
+                        earnings
+                    ),
+
+                "deductions":
+                    float(
+                        deductions
+                    ),
+
+                "net_salary":
+                    float(
+                        p.net_salary or 0
+                    ),
+
+                "paid_status":
+                    p.paid_status,
+
+                "paid_at":
+                    (
+                        p.paid_at.strftime(
+                            "%d %b %Y"
+                        )
+                        if p.paid_at
+                        else None
+                    ),
+
+                "earnings_items":
+                    earnings_items,
+
+                "deductions_items":
+                    deductions_items,
+            }
+        )
+
+
+    # ========================================================
+    # CURRENT MONTH DETAIL
+    # ========================================================
+
+    if payroll:
+
+        current_earnings_items = [
+            {
+                "label": item.label,
+                "amount": float(
+                    item.amount
+                ),
+            }
+            for item in (
+                payroll.line_items
+                .filter(
+                    line_type="earning"
+                )
+                .order_by("order")
+            )
+        ]
+
+
+        current_deductions_items = [
+            {
+                "label": item.label,
+                "amount": float(
+                    item.amount
+                ),
+            }
+            for item in (
+                payroll.line_items
+                .filter(
+                    line_type="deduction"
+                )
+                .order_by("order")
+            )
+        ]
+
+
+        current_payroll = {
+
+            "id":
+                payroll.id,
+
+            "month":
+                payroll.month,
+
+            "month_label":
+                MONTH_NAMES[
+                    payroll.month
+                ],
+
+            "year":
+                payroll.year,
+
+            "basic_salary":
+                float(
+                    payroll.basic_salary or 0
+                ),
+
+            "overtime_amount":
+                float(
+                    payroll.overtime_amount or 0
+                ),
+
+            "bonus":
+                float(
+                    payroll.bonus or 0
+                ),
+
+            "incentive":
+                float(
+                    payroll.incentive or 0
+                ),
+
+            "pf_amount":
+                float(
+                    payroll.pf_amount or 0
+                ),
+
+            "esi_amount":
+                float(
+                    payroll.esi_amount or 0
+                ),
+
+            "loan_deduction":
+                float(
+                    payroll.loan_deduction or 0
+                ),
+
+            "tax_deduction":
+                float(
+                    payroll.tax_deduction or 0
+                ),
+
+            "deductions":
+                float(
+                    payroll.deductions or 0
+                ),
+
+            "net_salary":
+                float(
+                    payroll.net_salary or 0
+                ),
+
+            "paid_status":
+                payroll.paid_status,
+
+            "paid_at":
+                (
+                    payroll.paid_at.strftime(
+                        "%d %b %Y, %I:%M %p"
+                    )
+                    if payroll.paid_at
+                    else None
+                ),
+
+            "earnings_items":
+                current_earnings_items,
+
+            "deductions_items":
+                current_deductions_items,
+        }
+
+    else:
+
+        current_payroll = None
+
+
+    # ========================================================
+    # YEARS FOR FILTER
+    # ========================================================
+
+    available_years = sorted(
+        available_years,
+        reverse=True,
+    )
+
+
+    # ========================================================
+    # RENDER
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/payroll.html",
+        {
+            "staff":
+                staff,
+
+            "hotel":
+                hotel,
+
+            "current_payroll":
+                current_payroll,
+
+            "payroll_history":
+                payroll_history_list,
+
+            "payroll_month_label":
+                MONTH_NAMES[month],
+
+            "payroll_year":
+                year,
+
+            "available_years":
+                available_years,
+        },
+    )
+
+
+
+
+
+# ============================================================
+# FRONT OFFICE - PROFILE PAGE
+# ============================================================
+
+@staff_login_required
+@never_cache
+def profile_page(request):
+
+    # ========================================================
+    # STAFF SESSION
+    # ========================================================
+
+    staff_id = request.session.get("staff_id")
+
+    if not staff_id:
+        return redirect("staff_login")
+
+
+    # ========================================================
+    # GET STAFF
+    # ========================================================
+
+    try:
+
+        staff = (
+            Staff.objects
+            .select_related(
+                "hotel",
+                "department",
+                "user",
+            )
+            .get(
+                id=staff_id
+            )
+        )
+
+    except Staff.DoesNotExist:
+
+        return redirect("staff_login")
+
+
+    # ========================================================
+    # HOTEL
+    # ========================================================
+
+    hotel = staff.hotel
+
+
+    # ========================================================
+    # RENDER PROFILE
+    # ========================================================
+
+    return render(
+        request,
+        "frontoffice/profile.html",
+        {
+            "staff": staff,
+            "hotel": hotel,
+        },
+    )
+
+
+
+
+
+
+@staff_login_required
+@never_cache
+def invoices_page(request):
+
+    staff_id = request.session.get(
+        "staff_id"
+    )
+
+    staff = Staff.objects.filter(
+        id=staff_id
+    ).first()
+
+
+    invoices = (
+        Invoice.objects
+        .select_related(
+            "folio",
+            "folio__booking",
+            "folio__booking__guest",
+            "folio__booking__room",
+            "folio__booking__room_unit",
+            "generated_by",
+        )
+        .order_by(
+            "-generated_at"
+        )
+    )
+
+
+    context = {
+
+        "staff":
+            staff,
+
+        "invoices":
+            invoices,
+    }
+
+
+    return render(
+        request,
+        "frontoffice/invoices.html",
+        context,
+    )

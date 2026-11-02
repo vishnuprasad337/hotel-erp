@@ -1,0 +1,4434 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+
+{% block title %}
+Dashboard | Hotel ERP
+{% endblock %}
+
+
+{% block nav_dashboard %}active{% endblock %}
+
+
+{% block extra_css %}
+<link
+        rel="stylesheet"
+        href="{% static 'frontoffice/assets/css/dashboard.css' %}"
+    >
+<link
+    rel="stylesheet"
+    href="{% static 'frontoffice/assets/css/checkout.css' %}"
+>    
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="fo-dashboard">
+
+
+
+
+
+
+    <!-- =====================================================
+     DASHBOARD HERO BANNER
+====================================================== -->
+
+<div class="fo-dashboard-hero">
+
+    <div class="fo-dashboard-hero-left">
+
+        <div class="fo-dashboard-hero-icon">
+            <i class="fas fa-hotel"></i>
+        </div>
+
+        <div class="fo-dashboard-hero-content">
+
+            <div class="fo-dashboard-hero-title">
+                Front Office Overview
+            </div>
+
+            <div class="fo-dashboard-hero-text">
+                Manage reservations, arrivals, departures and room operations
+                from one place.
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="fo-dashboard-hero-decoration">
+
+        <span class="hero-circle hero-circle-one"></span>
+        <span class="hero-circle hero-circle-two"></span>
+
+    </div>
+
+</div>
+
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="fo-dashboard-header">
+
+
+        <div class="fo-dashboard-header-left">
+
+            <h1>
+                Dashboard
+            </h1>
+
+            <p>
+
+                Welcome back,
+
+                <strong>
+                    {{ staff.name|default:"Front Office Staff" }}
+                </strong>
+
+                &mdash;
+
+                {% now "l, d F Y" %}
+
+            </p>
+
+        </div>
+
+
+        <div class="fo-dashboard-actions">
+
+
+            <!-- NEW BOOKING -->
+
+            <a
+             href="{% url 'new_booking' %}"
+             class="fo-btn fo-btn-primary">
+              <i class="fas fa-plus"></i>
+               New Booking
+            </a>
+
+
+            <!-- SEND EMAIL -->
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-email"
+                onclick="openDashboardEmailModal()"
+            >
+
+                <i class="fas fa-paper-plane"></i>
+
+                Send Email
+
+            </button>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STATISTICS
+    ====================================================== -->
+
+    <!-- =====================================================
+     DASHBOARD STATISTICS
+====================================================== -->
+
+<div class="fo-stat-grid">
+
+
+    <!-- =================================================
+         TOTAL BOOKINGS
+    ================================================== -->
+
+    <a
+        href="{% url 'get_bookings_page' %}"
+        class="fo-stat-card fo-stat-blue"
+    >
+
+        <div class="fo-stat-top">
+
+            <div class="fo-stat-icon blue">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+
+            <div class="fo-stat-chip blue">
+                <i class="fas fa-arrow-trend-up"></i>
+                Bookings
+            </div>
+
+        </div>
+
+
+        <div class="fo-stat-content">
+
+            <div class="fo-stat-number">
+                {{ total_bookings|default:"0" }}
+            </div>
+
+            <div class="fo-stat-label">
+                Total Bookings
+            </div>
+
+        </div>
+
+
+        <div class="fo-mini-chart blue-chart">
+
+            <span style="height:32%;"></span>
+            <span style="height:48%;"></span>
+            <span style="height:38%;"></span>
+            <span style="height:65%;"></span>
+            <span style="height:52%;"></span>
+            <span style="height:78%;"></span>
+            <span style="height:92%;"></span>
+
+        </div>
+
+    </a>
+
+
+
+    <!-- =================================================
+         TODAY CHECK IN
+    ================================================== -->
+
+    <button
+        type="button"
+        class="fo-stat-card fo-stat-green"
+        onclick="goToCheckin()"
+    >
+
+        <div class="fo-stat-top">
+
+            <div class="fo-stat-icon green">
+                <i class="fas fa-sign-in-alt"></i>
+            </div>
+
+            <div class="fo-stat-chip green">
+                <i class="fas fa-calendar-day"></i>
+                Today
+            </div>
+
+        </div>
+
+
+        <div class="fo-stat-content">
+
+            <div class="fo-stat-number">
+                {{ arrivals_count|default:"0" }}
+            </div>
+
+            <div class="fo-stat-label">
+                Today's Check In
+            </div>
+
+        </div>
+
+
+        <div class="fo-mini-chart green-chart">
+
+            <span style="height:25%;"></span>
+            <span style="height:42%;"></span>
+            <span style="height:35%;"></span>
+            <span style="height:58%;"></span>
+            <span style="height:72%;"></span>
+            <span style="height:60%;"></span>
+            <span style="height:86%;"></span>
+
+        </div>
+
+    </button>
+
+
+
+    <!-- =================================================
+         TODAY CHECK OUT
+    ================================================== -->
+
+    <button
+        type="button"
+        class="fo-stat-card fo-stat-amber"
+        onclick="openDashboardCheckout()"
+    >
+
+        <div class="fo-stat-top">
+
+            <div class="fo-stat-icon amber">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+
+            <div class="fo-stat-chip amber">
+                <i class="fas fa-calendar-day"></i>
+                Today
+            </div>
+
+        </div>
+
+
+        <div class="fo-stat-content">
+
+            <div class="fo-stat-number">
+                {{ departures_count|default:"0" }}
+            </div>
+
+            <div class="fo-stat-label">
+                Today's Check Out
+            </div>
+
+        </div>
+
+
+        <div class="fo-mini-chart amber-chart">
+
+            <span style="height:28%;"></span>
+            <span style="height:50%;"></span>
+            <span style="height:39%;"></span>
+            <span style="height:68%;"></span>
+            <span style="height:55%;"></span>
+            <span style="height:76%;"></span>
+            <span style="height:88%;"></span>
+
+        </div>
+
+    </button>
+
+
+
+    <!-- =================================================
+         OCCUPIED ROOMS
+    ================================================== -->
+
+    <div class="fo-stat-card fo-stat-purple">
+
+        <div class="fo-stat-top">
+
+            <div class="fo-stat-icon purple">
+                <i class="fas fa-bed"></i>
+            </div>
+
+            <div class="fo-stat-chip purple">
+                <i class="fas fa-door-closed"></i>
+                In House
+            </div>
+
+        </div>
+
+
+        <div class="fo-stat-content">
+
+            <div class="fo-stat-number">
+                {{ occupied_rooms|default:"0" }}
+            </div>
+
+            <div class="fo-stat-label">
+                Occupied Rooms
+            </div>
+
+        </div>
+
+
+        <div class="fo-mini-chart purple-chart">
+
+            <span style="height:24%;"></span>
+            <span style="height:40%;"></span>
+            <span style="height:34%;"></span>
+            <span style="height:62%;"></span>
+            <span style="height:48%;"></span>
+            <span style="height:74%;"></span>
+            <span style="height:90%;"></span>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+
+    <!-- =====================================================
+         QUICK ACTIONS
+    ====================================================== -->
+
+    <div class="fo-section-heading">
+
+        <h2>
+            Quick Actions
+        </h2>
+
+    </div>
+
+
+    <div class="fo-quick-actions">
+
+
+        <!-- NEW BOOKING -->
+
+<a
+    href="{% url 'new_booking' %}"
+    class="fo-quick-card"
+>
+
+    <span class="fo-quick-icon blue">
+        <i class="fas fa-plus"></i>
+    </span>
+
+    <span class="fo-quick-text">
+
+        <span class="fo-quick-title">
+            New Booking
+        </span>
+
+        <span class="fo-quick-description">
+            Create a reservation
+        </span>
+
+    </span>
+
+</a>
+
+
+
+        <!-- CHECK IN -->
+
+<!-- CHECK IN -->
+
+<button
+    type="button"
+    class="fo-quick-card"
+    onclick="openCheckInModal()"
+>
+    <span class="fo-quick-icon green">
+        <i class="fas fa-sign-in-alt"></i>
+    </span>
+
+    <span class="fo-quick-text">
+
+        <span class="fo-quick-title">
+            Check In
+        </span>
+
+        <span class="fo-quick-description">
+            Today's arrivals
+        </span>
+
+    </span>
+</button>
+
+
+
+        <!-- CHECK OUT -->
+
+        <button
+            type="button"
+            class="fo-quick-card"
+            onclick="openDashboardCheckout()"
+        >
+
+            <span class="fo-quick-icon amber">
+
+                <i class="fas fa-sign-out-alt"></i>
+
+            </span>
+
+
+            <span class="fo-quick-text">
+
+                <span class="fo-quick-title">
+                    Check Out
+                </span>
+
+                <span class="fo-quick-description">
+                    Process guest departure
+                </span>
+
+            </span>
+
+        </button>
+
+
+
+        <!-- INVOICES -->
+
+        <button
+            type="button"
+            class="fo-quick-card"
+            onclick="openInvoiceSidebar()"
+        >
+
+            <span class="fo-quick-icon purple">
+
+                <i class="fas fa-receipt"></i>
+
+            </span>
+
+
+            <span class="fo-quick-text">
+
+                <span class="fo-quick-title">
+                    Invoices
+                </span>
+
+                <span class="fo-quick-description">
+                    View billing invoices
+                </span>
+
+            </span>
+
+        </button>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         ARRIVALS + DEPARTURES
+    ====================================================== -->
+
+    <div class="fo-two-column">
+
+
+        <!-- =================================================
+             TODAY CHECK IN
+        ================================================== -->
+
+        <section class="fo-card">
+
+
+            <div class="fo-card-header">
+
+
+                <h2 class="fo-card-title">
+
+                    <i
+                        class="fas fa-sign-in-alt green"
+                    ></i>
+
+                    Today's Check In
+
+                </h2>
+
+
+                <button
+                    type="button"
+                    class="fo-btn fo-btn-outline"
+                    onclick="goToCheckin()"
+                >
+
+                    View All
+
+                </button>
+
+
+            </div>
+
+
+            <div class="fo-card-body">
+
+
+                {% for booking in arrivals %}
+
+
+                    <div class="fo-booking-item">
+
+
+                        <!-- GUEST INITIAL -->
+
+                        <div class="fo-booking-avatar">
+
+                            {{ booking.guest.full_name|first|upper }}
+
+                        </div>
+
+
+                        <!-- GUEST INFO -->
+
+                        <div class="fo-booking-info">
+
+
+                            <div class="fo-booking-name">
+
+                                {{ booking.guest.full_name }}
+
+                            </div>
+
+
+                            <div class="fo-booking-description">
+
+
+                                <span>
+
+                                    {{ booking.room.room_type }}
+
+                                </span>
+
+
+                                {% if booking.room_unit %}
+
+                                    <span class="fo-room-pill">
+
+                                        <i class="fas fa-door-open"></i>
+
+                                        {{ booking.room_unit.room_number }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                                <span>
+
+                                    &bull;
+
+                                    {{ booking.check_in }}
+
+                                    &rarr;
+
+                                    {{ booking.check_out }}
+
+                                </span>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                        <!-- STATUS -->
+
+                        <span
+                            class="
+                                fo-badge
+                                fo-badge-confirmed
+                            "
+                        >
+
+                            Confirmed
+
+                        </span>
+
+
+                    </div>
+
+
+                {% empty %}
+
+
+                    <div class="fo-empty">
+
+                        <i class="fas fa-calendar-day"></i>
+
+                        <p>
+                            No arrivals today
+                        </p>
+
+                    </div>
+
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             TODAY CHECK OUT
+        ================================================== -->
+
+        <section class="fo-card">
+
+
+            <div class="fo-card-header">
+
+
+                <h2 class="fo-card-title">
+
+                    <i
+                        class="fas fa-sign-out-alt amber"
+                    ></i>
+
+                    Today's Checkout
+
+                </h2>
+
+
+                <button
+                    type="button"
+                    class="fo-btn fo-btn-outline"
+                    onclick="openDashboardCheckout()"
+                >
+
+                    View All
+
+                </button>
+
+
+            </div>
+
+
+            <div class="fo-card-body">
+
+
+                {% for booking in departures %}
+
+
+                    <div class="fo-booking-item">
+
+
+                        <!-- GUEST INITIAL -->
+
+                        <div class="fo-booking-avatar">
+
+                            {{ booking.guest.full_name|first|upper }}
+
+                        </div>
+
+
+                        <!-- GUEST INFO -->
+
+                        <div class="fo-booking-info">
+
+
+                            <div class="fo-booking-name">
+
+                                {{ booking.guest.full_name }}
+
+                            </div>
+
+
+                            <div class="fo-booking-description">
+
+
+                                <span>
+
+                                    {{ booking.room.room_type }}
+
+                                </span>
+
+
+                                {% if booking.room_unit %}
+
+                                    <span class="fo-room-pill">
+
+                                        <i class="fas fa-door-open"></i>
+
+                                        {{ booking.room_unit.room_number }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                        </div>
+
+
+                        <!-- STATUS -->
+
+<div class="fo-booking-actions">
+
+    <span class="fo-badge fo-badge-inhouse">
+        In-House
+    </span>
+
+    <button
+        type="button"
+        class="fo-btn fo-btn-primary fo-btn-sm"
+        onclick="startCheckout(
+            '{{ booking.id }}',
+            '{{ booking.guest.full_name|escapejs }}',
+            '{{ booking.room.room_type|escapejs }}',
+            '{% if booking.room_unit %}{{ booking.room_unit.room_number|escapejs }}{% endif %}',
+            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+        )"
+    >
+        <i class="fas fa-sign-out-alt"></i>
+        Check Out
+    </button>
+
+</div>
+
+
+                    </div>
+
+
+                {% empty %}
+
+
+                    <div class="fo-empty">
+
+                        <i class="fas fa-calendar-day"></i>
+
+                        <p>
+                            No departures today
+                        </p>
+
+                    </div>
+
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </section>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+<!-- =========================================================
+     CHECK-IN MODAL
+========================================================= -->
+
+<div
+    id="dashboardCheckInModal"
+    class="fo-modal-backdrop"
+    style="display:none;"
+>
+    <div class="fo-modal">
+
+        <div class="fo-modal-header">
+
+            <div>
+                <h3>Guest Check-In</h3>
+                <p>Select today's arrival and complete check-in.</p>
+            </div>
+
+            <button
+                type="button"
+                class="fo-modal-close"
+                onclick="closeCheckInModal()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="fo-modal-body">
+
+            <!-- BOOKING -->
+
+            <div class="fo-form-group">
+
+                <label>
+                    Today's Arrival
+                </label>
+
+                <select
+                    id="checkInBooking"
+                    class="fo-form-control"
+                    onchange="updateCheckInGuest()"
+                >
+
+                    <option value="">
+                        Select booking
+                    </option>
+
+                    {% for booking in arrivals %}
+
+                        <option
+                            value="{{ booking.id }}"
+                            data-guest="{{ booking.guest.full_name|default:'Guest' }}"
+                            data-room="{% if booking.room_unit %}{{ booking.room_unit.room_number }}{% else %}N/A{% endif %}"
+                        >
+                            {{ booking.guest.full_name|default:"Guest" }}
+                            —
+                            {% if booking.room_unit %}
+                                Room {{ booking.room_unit.room_number }}
+                            {% else %}
+                                No room
+                            {% endif %}
+                        </option>
+
+                    {% empty %}
+
+                        <option value="" disabled>
+                            No arrivals today
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- SELECTED GUEST -->
+
+            <div
+                id="checkInGuestInfo"
+                class="checkin-guest-info"
+                style="display:none;"
+            >
+
+                <div>
+                    <span>Guest</span>
+                    <strong id="checkInGuestName">—</strong>
+                </div>
+
+                <div>
+                    <span>Room</span>
+                    <strong id="checkInRoomNumber">—</strong>
+                </div>
+
+            </div>
+
+
+            <!-- ID TYPE -->
+
+            <div class="fo-form-group">
+
+                <label>
+                    ID Type
+                </label>
+
+                <select
+                    id="checkInIdType"
+                    class="fo-form-control"
+                >
+                    <option value="">Select ID type</option>
+                    <option value="Aadhaar">Aadhaar</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driving License">Driving License</option>
+                    <option value="Voter ID">Voter ID</option>
+                    <option value="Other">Other</option>
+                </select>
+
+            </div>
+
+
+            <!-- ID NUMBER -->
+
+            <div class="fo-form-group">
+
+                <label>
+                    ID Number
+                </label>
+
+                <input
+                    type="text"
+                    id="checkInIdNumber"
+                    class="fo-form-control"
+                    placeholder="Enter ID number"
+                >
+
+            </div>
+
+
+            <!-- ID PHOTO -->
+
+            <div class="fo-form-group">
+
+                <label>
+                    ID Photo
+                    <span style="color:red;">*</span>
+                </label>
+
+                <input
+                    type="file"
+                    id="checkInIdPhotos"
+                    class="fo-form-control"
+                    accept="image/*"
+                    multiple
+                >
+
+                <small>
+                    At least one ID image is required.
+                </small>
+
+            </div>
+
+
+            <div
+                id="checkInError"
+                class="fo-alert fo-alert-danger"
+                style="display:none;"
+            ></div>
+
+        </div>
+
+
+        <div class="fo-modal-footer">
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline"
+                onclick="closeCheckInModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                id="completeCheckInButton"
+                class="fo-btn fo-btn-primary"
+                onclick="submitDashboardCheckIn()"
+            >
+                <i class="fas fa-sign-in-alt"></i>
+                Complete Check-In
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+
+
+
+{% comment %} checkout modal start {% endcomment %}
+
+<!-- =========================================================
+     CHECKOUT BOOKING SELECTOR
+========================================================= -->
+
+<div
+    id="dashboardCheckoutSelector"
+    class="fo-modal-backdrop"
+    style="display:none;"
+>
+    <div class="fo-modal">
+
+        <div class="fo-modal-header">
+
+            <div>
+                <h3>Guest Check-Out</h3>
+                <p>Select a guest to begin checkout and billing.</p>
+            </div>
+
+            <button
+                type="button"
+                class="fo-modal-close"
+                onclick="closeDashboardCheckout()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="fo-modal-body">
+
+            {% for booking in checkout_bookings %}
+
+                <button
+                    type="button"
+                    class="checkout-guest-option"
+                    onclick="
+                        closeDashboardCheckout();
+                        startCheckout(
+                            '{{ booking.id }}',
+                            '{{ booking.guest.full_name|escapejs }}',
+                            '{{ booking.room.room_type|escapejs }}',
+                            '{% if booking.room_unit %}{{ booking.room_unit.room_number|escapejs }}{% endif %}',
+                            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+                        );
+                    "
+                >
+
+                    <span class="checkout-guest-avatar">
+                        {{ booking.guest.full_name|first|upper }}
+                    </span>
+
+                    <span class="checkout-guest-details">
+
+                        <strong>
+                            {{ booking.guest.full_name }}
+                        </strong>
+
+                        <small>
+
+                            {{ booking.room.room_type }}
+
+                            {% if booking.room_unit %}
+                                · Room {{ booking.room_unit.room_number }}
+                            {% endif %}
+
+                        </small>
+
+                    </span>
+
+                    <span class="checkout-guest-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+
+                </button>
+
+            {% empty %}
+
+                <div class="fo-empty">
+
+                    <i class="fas fa-sign-out-alt"></i>
+
+                    <p>
+                        No departures available today.
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+</div>
+{% comment %} checkout modal end  {% endcomment %}
+
+
+
+{% comment %}  {% endcomment %}
+<!-- ═══════════════════════════════════════
+     CHECKOUT + BILLING MODAL
+     ═══════════════════════════════════════ -->
+<div
+    class="modal-backdrop"
+    id="checkoutBillingModal"
+    style="display:none;"
+>
+    <div class="modal modal-xl" style="max-height:92vh; display:flex; flex-direction:column;">
+        <div class="modal-header" style="background:var(--ink); border-radius:var(--radius-xl) var(--radius-xl) 0 0; padding:16px 20px; border-bottom:none;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:36px;height:36px;background:rgba(255,255,255,0.1);border-radius:9px;display:grid;place-items:center;color:white;font-size:16px;"><i class="fas fa-sign-out-alt"></i></div>
+                <div>
+                    <div style="color:white; font-weight:700; font-size:14px; letter-spacing:-0.01em;">Guest Check-Out &amp; Billing</div>
+                    <div id="coModalSubtitle" style="color:rgba(255,255,255,0.45); font-size:11px;">Folio &bull; Charges &bull; Payment</div>
+                </div>
+            </div>
+            <button
+    type="button"
+    class="modal-close"
+    onclick="checkoutCloseModal('checkoutBillingModal')"
+    style="
+        background:rgba(255,255,255,0.1);
+        color:rgba(255,255,255,0.6);
+        border:none;
+    "
+>
+    &times;
+</button>
+        </div>
+
+        <div id="coGuestStrip" style="display:flex; align-items:center; gap:14px; padding:11px 20px; background:var(--surface-2); border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;">
+            <div style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));color:white;display:grid;place-items:center;font-weight:700;font-size:15px;flex-shrink:0;" id="coGuestAvatar">G</div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; font-size:13px;" id="coGuestNameDisplay">—</div>
+                <div style="font-size:11px; color:var(--text-3);" id="coRoomDisplay">—</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em;">Balance Due</div>
+                <div style="font-size:16px; font-weight:700; color:var(--blue); font-family:'DM Mono',monospace;" id="coBalanceDue">₹...</div>
+            </div>
+            <span id="coFolioStatus" class="pill pill-amber">Open Folio</span>
+        </div>
+
+        <div class="co-stepper" style="flex-shrink:0;">
+            <div class="co-step-item active" id="coStep1" onclick="goToCoStep(1)">
+                <div class="co-step-circle" id="coStepCircle1">1</div>
+                <div class="co-step-label">Charges</div>
+            </div>
+            <div class="co-connector" id="coConn1"></div>
+            <div class="co-step-item" id="coStep2" onclick="goToCoStep(2)">
+                <div class="co-step-circle" id="coStepCircle2">2</div>
+                <div class="co-step-label">Payment</div>
+            </div>
+            <div class="co-connector" id="coConn2"></div>
+            <div class="co-step-item" id="coStep3" onclick="goToCoStep(3)">
+                <div class="co-step-circle" id="coStepCircle3">3</div>
+                <div class="co-step-label">Invoice</div>
+            </div>
+        </div>
+
+        <div style="flex:1; overflow-y:auto;">
+            <!-- Step 1: Charges -->
+            <div class="co-panel active" id="coPanel1">
+                <div class="ai-box" id="aiBox">
+                    <div class="ai-badge"><i class="fas fa-robot" style="font-size:9px;"></i> AI Assistant</div>
+                    <div class="ai-text" id="aiText">Analyzing booking data...</div>
+                    <div class="ai-actions" id="aiActions"></div>
+                </div>
+                <div style="border-bottom:1px solid var(--border); margin: 0 -22px 14px; padding: 0 22px;">
+                    <div class="charge-tab-bar">
+                        <button class="charge-tab active" onclick="switchChargeTab('room',this)"><i class="fas fa-bed"></i> Room</button>
+                        <button class="charge-tab" onclick="switchChargeTab('restaurant',this)"><i class="fas fa-utensils"></i> Restaurant</button>
+                        <button class="charge-tab" onclick="switchChargeTab('laundry',this)"><i class="fas fa-tshirt"></i> Laundry</button>
+                        <button class="charge-tab" onclick="switchChargeTab('minibar',this)"><i class="fas fa-wine-glass"></i> Minibar</button>
+                        <button class="charge-tab" onclick="switchChargeTab('spa',this)"><i class="fas fa-spa"></i> Spa</button>
+                        <button class="charge-tab" onclick="switchChargeTab('other',this)"><i class="fas fa-ellipsis-h"></i> Other</button>
+                    </div>
+                </div>
+                <div id="ctab-room" class="charge-cat-panel">
+                    <div class="charge-list" id="roomChargeList">
+                        <div style="text-align:center; padding:16px; color:var(--text-3); font-size:13px;"><i class="fas fa-spinner fa-spin"></i> Loading folio...</div>
+                    </div>
+                </div>
+                <div id="ctab-restaurant" class="charge-cat-panel" style="display:none;">
+                    <div class="quick-add-grid">
+                        <button class="qa-add-btn" onclick="quickAddCharge('restaurant','Breakfast',350,this)"><i class="fas fa-sun" style="color:var(--amber)"></i><div class="qa-add-name">Breakfast</div><div class="qa-add-price">₹350/person</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('restaurant','Lunch',550,this)"><i class="fas fa-hamburger" style="color:var(--orange)"></i><div class="qa-add-name">Lunch</div><div class="qa-add-price">₹550/person</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('restaurant','Dinner',750,this)"><i class="fas fa-utensils" style="color:var(--purple)"></i><div class="qa-add-name">Dinner</div><div class="qa-add-price">₹750/person</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('restaurant','Room Service',200,this)"><i class="fas fa-concierge-bell" style="color:var(--teal)"></i><div class="qa-add-name">Room Service</div><div class="qa-add-price">₹200+</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('restaurant','Bar / Drinks',400,this)"><i class="fas fa-cocktail" style="color:var(--blue)"></i><div class="qa-add-name">Bar / Drinks</div><div class="qa-add-price">₹400+</div></button>
+                        <button class="qa-add-btn" onclick="showCustomCharge('restaurant')"><i class="fas fa-pencil-alt" style="color:var(--text-3)"></i><div class="qa-add-name">Custom</div><div class="qa-add-price">Enter amount</div></button>
+                    </div>
+                    <div class="charge-list" id="restaurantChargeList"><div style="text-align:center; padding:14px; font-size:12px; color:var(--text-3);">No restaurant charges.</div></div>
+                </div>
+                <div id="ctab-laundry" class="charge-cat-panel" style="display:none;">
+                    <div class="quick-add-grid">
+                        <button class="qa-add-btn" onclick="quickAddCharge('laundry','Shirt Press',80,this)"><i class="fas fa-tshirt" style="color:var(--green)"></i><div class="qa-add-name">Shirt Press</div><div class="qa-add-price">₹80/piece</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('laundry','Trouser Wash',120,this)"><i class="fas fa-tshirt" style="color:var(--green)"></i><div class="qa-add-name">Trouser Wash</div><div class="qa-add-price">₹120/piece</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('laundry','Dry Clean Suit',450,this)"><i class="fas fa-tshirt" style="color:var(--teal)"></i><div class="qa-add-name">Dry Clean Suit</div><div class="qa-add-price">₹450/piece</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('laundry','Laundry Bag',600,this)"><i class="fas fa-shopping-bag" style="color:var(--blue)"></i><div class="qa-add-name">Laundry Bag</div><div class="qa-add-price">₹600/bag</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('laundry','Express (3h)',800,this)"><i class="fas fa-bolt" style="color:var(--amber)"></i><div class="qa-add-name">Express (3h)</div><div class="qa-add-price">₹800/bag</div></button>
+                        <button class="qa-add-btn" onclick="showCustomCharge('laundry')"><i class="fas fa-pencil-alt" style="color:var(--text-3)"></i><div class="qa-add-name">Custom</div><div class="qa-add-price">Enter amount</div></button>
+                    </div>
+                    <div class="charge-list" id="laundryChargeList"><div style="text-align:center; padding:14px; font-size:12px; color:var(--text-3);">No laundry charges.</div></div>
+                </div>
+                <div id="ctab-minibar" class="charge-cat-panel" style="display:none;">
+                    <div class="quick-add-grid">
+                        <button class="qa-add-btn" onclick="quickAddCharge('minibar','Soft Drinks ×2',150,this)"><i class="fas fa-glass-whiskey" style="color:var(--red)"></i><div class="qa-add-name">Soft Drinks ×2</div><div class="qa-add-price">₹150</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('minibar','Beer ×2',350,this)"><i class="fas fa-beer" style="color:var(--amber)"></i><div class="qa-add-name">Beer ×2</div><div class="qa-add-price">₹350</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('minibar','Snacks Platter',280,this)"><i class="fas fa-cookie-bite" style="color:var(--orange)"></i><div class="qa-add-name">Snacks</div><div class="qa-add-price">₹280</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('minibar','Water ×4',80,this)"><i class="fas fa-tint" style="color:var(--teal)"></i><div class="qa-add-name">Water ×4</div><div class="qa-add-price">₹80</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('minibar','Whiskey Miniature',600,this)"><i class="fas fa-wine-bottle" style="color:var(--purple)"></i><div class="qa-add-name">Whiskey Mini</div><div class="qa-add-price">₹600</div></button>
+                        <button class="qa-add-btn" onclick="showCustomCharge('minibar')"><i class="fas fa-pencil-alt" style="color:var(--text-3)"></i><div class="qa-add-name">Custom</div><div class="qa-add-price">Enter amount</div></button>
+                    </div>
+                    <div class="charge-list" id="minibarChargeList"><div style="text-align:center; padding:14px; font-size:12px; color:var(--text-3);">No minibar charges.</div></div>
+                </div>
+                <div id="ctab-spa" class="charge-cat-panel" style="display:none;">
+                    <div class="quick-add-grid">
+                        <button class="qa-add-btn" onclick="quickAddCharge('spa','Swedish Massage 60m',2200,this)"><i class="fas fa-spa" style="color:var(--purple)"></i><div class="qa-add-name">Swedish Massage</div><div class="qa-add-price">₹2,200</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('spa','Deep Tissue 90m',3200,this)"><i class="fas fa-spa" style="color:var(--purple)"></i><div class="qa-add-name">Deep Tissue</div><div class="qa-add-price">₹3,200</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('spa','Facial Treatment',1800,this)"><i class="fas fa-smile" style="color:var(--red)"></i><div class="qa-add-name">Facial</div><div class="qa-add-price">₹1,800</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('spa','Yoga Session',800,this)"><i class="fas fa-praying-hands" style="color:var(--green)"></i><div class="qa-add-name">Yoga Session</div><div class="qa-add-price">₹800</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('spa','Couple Package',6000,this)"><i class="fas fa-heart" style="color:var(--red)"></i><div class="qa-add-name">Couple Package</div><div class="qa-add-price">₹6,000</div></button>
+                        <button class="qa-add-btn" onclick="showCustomCharge('spa')"><i class="fas fa-pencil-alt" style="color:var(--text-3)"></i><div class="qa-add-name">Custom</div><div class="qa-add-price">Enter amount</div></button>
+                    </div>
+                    <div class="charge-list" id="spaChargeList"><div style="text-align:center; padding:14px; font-size:12px; color:var(--text-3);">No spa charges.</div></div>
+                </div>
+                <div id="ctab-other" class="charge-cat-panel" style="display:none;">
+                    <div class="quick-add-grid">
+                        <button class="qa-add-btn" onclick="quickAddCharge('transport','Airport Pickup',800,this)"><i class="fas fa-car" style="color:var(--teal)"></i><div class="qa-add-name">Airport Pickup</div><div class="qa-add-price">₹800</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('transport','Sightseeing',1500,this)"><i class="fas fa-map-marked-alt" style="color:var(--green)"></i><div class="qa-add-name">Sightseeing</div><div class="qa-add-price">₹1,500</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('other','Business Center',300,this)"><i class="fas fa-print" style="color:var(--text-3)"></i><div class="qa-add-name">Business Center</div><div class="qa-add-price">₹300</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('other','Extra Internet',200,this)"><i class="fas fa-wifi" style="color:var(--blue)"></i><div class="qa-add-name">Extra Internet</div><div class="qa-add-price">₹200/day</div></button>
+                        <button class="qa-add-btn" onclick="quickAddCharge('other','Late Checkout Fee',500,this)"><i class="fas fa-clock" style="color:var(--amber)"></i><div class="qa-add-name">Late Checkout</div><div class="qa-add-price">₹500</div></button>
+                        <button class="qa-add-btn" onclick="showCustomCharge('other')"><i class="fas fa-pencil-alt" style="color:var(--text-3)"></i><div class="qa-add-name">Custom</div><div class="qa-add-price">Enter amount</div></button>
+                    </div>
+                    <div class="charge-list" id="otherChargeList"><div style="text-align:center; padding:14px; font-size:12px; color:var(--text-3);">No other charges.</div></div>
+                </div>
+                <!-- =========================================================
+     CUSTOM CHARGE
+========================================================= -->
+
+<div
+    class="custom-charge-panel"
+    id="customChargeForm"
+    style="display:none;"
+>
+
+    <div class="custom-charge-header">
+
+        <div class="custom-charge-icon">
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <div>
+            <div class="custom-charge-title">
+                Add Custom Charge
+            </div>
+
+            <div class="custom-charge-subtitle">
+                Add an additional charge to this guest's folio
+            </div>
+        </div>
+
+    </div>
+
+
+    <input
+        type="hidden"
+        id="customChargeType"
+        value="other"
+    >
+
+
+    <div class="custom-charge-fields">
+
+        <!-- DESCRIPTION -->
+
+        <div class="custom-charge-field custom-charge-description">
+
+            <label for="customChargeDesc">
+                Description
+                <span>*</span>
+            </label>
+
+            <input
+                type="text"
+                id="customChargeDesc"
+                class="form-control"
+                placeholder="e.g. Extra towels"
+            >
+
+        </div>
+
+
+        <!-- AMOUNT -->
+
+        <div class="custom-charge-field">
+
+            <label for="customChargeAmt">
+                Amount (₹)
+                <span>*</span>
+            </label>
+
+            <input
+                type="number"
+                id="customChargeAmt"
+                class="form-control"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+            >
+
+        </div>
+
+
+        <!-- TAX -->
+
+        <div class="custom-charge-field">
+
+            <label for="customChargeTax">
+                Tax (₹)
+            </label>
+
+            <input
+                type="number"
+                id="customChargeTax"
+                class="form-control"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+            >
+
+        </div>
+
+    </div>
+
+
+    <div class="custom-charge-footer">
+
+        <button
+            type="button"
+            class="custom-charge-cancel"
+            onclick="hideCustomCharge()"
+        >
+            Cancel
+        </button>
+
+        <button
+            type="button"
+            class="custom-charge-add"
+            onclick="addCustomCharge()"
+        >
+            <i class="fas fa-plus"></i>
+            Add Charge
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     FOLIO SUMMARY
+========================================================= -->
+
+<div class="folio-total-card">
+
+    <div class="folio-total-main">
+
+        <div class="folio-total-icon">
+            <i class="fas fa-receipt"></i>
+        </div>
+
+
+        <div class="folio-total-content">
+
+            <div class="folio-total-label">
+                Current Folio Total
+            </div>
+
+            <div
+                class="folio-total-breakdown"
+                id="folioBreakdownDisplay"
+            >
+                Charges: ₹0.00
+                &bull;
+                Tax: ₹0.00
+                &bull;
+                Paid: ₹0.00
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="folio-total-right">
+
+        <div class="folio-total-caption">
+            Total
+        </div>
+
+        <div
+            class="folio-total-amount"
+            id="folioTotalDisplay"
+        >
+            ₹0.00
+        </div>
+
+    </div>
+
+</div>
+            </div>
+
+            <!-- Step 2: Payment -->
+            <div class="co-panel" id="coPanel2">
+                <div class="co-balance-summary">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                        <div><div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Total Charges</div><div style="font-size:20px; font-weight:700; font-family:'DM Mono',monospace;" id="payTotalCharges">₹0.00</div></div>
+                        <div style="text-align:center;"><div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Already Paid</div><div style="font-size:16px; font-weight:700; color:var(--green); font-family:'DM Mono',monospace;" id="payAlreadyPaid">₹0.00</div></div>
+                        <div style="text-align:right;"><div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px;">Balance Due</div><div style="font-size:22px; font-weight:700; color:var(--blue); font-family:'DM Mono',monospace;" id="payBalanceDue">₹0.00</div></div>
+                    </div>
+                </div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:9px;"><i class="fas fa-credit-card"></i> Payment Method</div>
+                <div class="pay-method-grid">
+                    <div class="pay-method-card selected" onclick="selectPayMethod(this,'cash')" data-method="cash"><i class="fas fa-money-bill-wave" style="color:var(--green);"></i><div class="pm-name">Cash</div><div class="pm-sub">Physical currency</div></div>
+                    <div class="pay-method-card" onclick="selectPayMethod(this,'card')" data-method="card"><i class="fas fa-credit-card" style="color:var(--blue);"></i><div class="pm-name">Card</div><div class="pm-sub">Debit / Credit</div></div>
+                    <div class="pay-method-card" onclick="selectPayMethod(this,'upi')" data-method="upi"><i class="fas fa-mobile-alt" style="color:var(--purple);"></i><div class="pm-name">UPI</div><div class="pm-sub">BHIM / GPay</div></div>
+                    <div class="pay-method-card" onclick="selectPayMethod(this,'bank_transfer')" data-method="bank_transfer"><i class="fas fa-university" style="color:var(--teal);"></i><div class="pm-name">Bank Transfer</div><div class="pm-sub">NEFT / IMPS</div></div>
+                </div>
+                <input type="hidden" id="coSelectedPayMethod" value="cash">
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label">Reference / Transaction ID</label><input type="text" id="coPayRef" class="form-control" placeholder="e.g. UTR123456789"></div>
+                    <div class="form-group"><label class="form-label">Note <span style="font-weight:400; color:var(--text-3);">(optional)</span></label><input type="text" id="coPayNote" class="form-control" placeholder="Any note..."></div>
+                </div>
+                <!-- DISCOUNT -->
+<div class="form-group">
+
+    <label class="form-label">
+        Discount (₹)
+        <span style="font-weight:400; color:var(--text-3);">
+            (optional)
+        </span>
+    </label>
+
+    <div style="display:flex; align-items:center; gap:7px;">
+
+        <span
+            style="
+                font-size:16px;
+                font-weight:700;
+                color:var(--text-3);
+            "
+        >
+            ₹
+        </span>
+
+        <input
+            type="number"
+            id="invoiceDiscount"
+            class="form-control"
+            value="0"
+            min="0"
+            step="0.01"
+            oninput="updateCheckoutDiscount()"
+        >
+
+    </div>
+
+</div>
+
+
+<!-- PAYMENT AMOUNT -->
+<div class="form-group">
+
+    <label class="form-label">
+
+        Amount
+
+        <span
+            style="
+                font-weight:400;
+                color:var(--text-3);
+            "
+        >
+            (pre-filled with balance due after discount)
+        </span>
+
+    </label>
+
+    <div style="display:flex; align-items:center; gap:7px;">
+
+        <span
+            style="
+                font-size:16px;
+                font-weight:700;
+                color:var(--text-3);
+            "
+        >
+            ₹
+        </span>
+
+        <input
+            type="number"
+            id="coPayAmount"
+            class="form-control"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+            style="
+                font-size:16px;
+                font-weight:700;
+                font-family:'DM Mono',monospace;
+            "
+        >
+
+    </div>
+
+</div>
+                <button class="btn btn-success" style="width:100%; padding:13px; font-size:14px;" id="confirmPayBtn" onclick="recordPayment()">
+                    <i class="fas fa-check-circle"></i> Confirm Payment &amp; Proceed
+                </button>
+            </div>
+
+            <!-- Step 3: Invoice -->
+            <div class="co-panel" id="coPanel3">
+                <div class="form-row">
+                    
+                    <div class="form-group"><label class="form-label">Invoice Notes</label><input type="text" id="invoiceNotes" class="form-control" placeholder="Thank you for staying with us!"></div>
+                </div>
+                <div style="border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:14px; background:white;">
+                    <div class="receipt" id="receiptPreview">
+                        <div class="receipt-hotel">{{ request.site.name|default:"Hotel ERP" }}</div>
+                        <div class="receipt-sub">Tax Invoice</div>
+                        <hr class="receipt-divider">
+                        <div class="receipt-row"><span>Guest</span><span id="rcGuestName">—</span></div>
+                        <div class="receipt-row"><span>Room</span><span id="rcRoom">—</span></div>
+                        <div class="receipt-row"><span>Invoice No.</span><span id="rcInvNo">Pending</span></div>
+                        <div class="receipt-row"><span>Date</span><span id="rcDate">—</span></div>
+                        <hr class="receipt-divider">
+                        <div id="rcChargesBody"></div>
+                        <hr class="receipt-divider">
+                        <div class="receipt-row"><span>Subtotal</span><span id="rcSubtotal">—</span></div>
+                        <div class="receipt-row"><span>Tax (GST)</span><span id="rcTax">—</span></div>
+                        <div class="receipt-row"><span>Discount</span><span id="rcDiscount">—</span></div>
+                        <div class="receipt-row bold total"><span>Grand Total</span><span id="rcGrandTotal">—</span></div>
+                        <div class="receipt-row" style="margin-top:6px; color:var(--green);"><span>Amount Paid</span><span id="rcPaid">—</span></div>
+                        <div class="receipt-row bold"><span>Balance Due</span><span id="rcBalance" style="color:var(--red);">—</span></div>
+                        <hr class="receipt-divider">
+                        <div style="text-align:center; font-size:11px; color:var(--text-3);" id="rcNotes">Thank you for your stay!</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px; padding:11px 13px; background:var(--surface-2); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:12px;">
+                    <input type="checkbox" id="sendEmailToggle" checked style="width:15px;height:15px;cursor:pointer;">
+                    <label for="sendEmailToggle" style="font-size:13px; font-weight:600; cursor:pointer;"><i class="fas fa-envelope" style="color:var(--blue); margin-right:4px;"></i> Email invoice to guest</label>
+                    <span id="guestEmailDisplay" style="font-size:11px; color:var(--text-3); margin-left:auto;">—</span>
+                </div>
+                <button class="btn btn-success" style="width:100%; padding:13px; font-size:14px;" id="generateInvoiceBtn" onclick="generateAndCheckout()">
+                    <i class="fas fa-file-invoice"></i> Generate Invoice &amp; Complete Check-Out
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content:space-between; flex-shrink:0;">
+            <button class="btn btn-outline" id="coPrevBtn" onclick="prevCoStep()" style="display:none;"><i class="fas fa-arrow-left"></i> Back</button>
+            <div style="display:flex; gap:7px; margin-left:auto;">
+                <button
+                  type="button"
+                  class="btn btn-outline"
+                  onclick="checkoutCloseModal('checkoutBillingModal')"
+                >
+                   Cancel
+                </button>
+                <button class="btn btn-primary" id="coNextBtn" onclick="nextCoStep()">Next <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% comment %}  {% endcomment %}
+
+
+
+
+
+
+{% comment %} invoice modal start {% endcomment %}
+<!-- =========================================================
+     INVOICE DRAWER
+========================================================= -->
+
+<div
+    id="invoiceDrawerOverlay"
+    class="invoice-drawer-overlay"
+    onclick="closeInvoiceSidebar()"
+></div>
+
+
+<aside
+    id="invoiceDrawer"
+    class="invoice-drawer"
+>
+
+    <!-- HEADER -->
+
+    <div class="invoice-drawer-header">
+
+        <div>
+
+            <div class="invoice-drawer-title">
+                <i class="fas fa-receipt"></i>
+                Invoices
+            </div>
+
+            <div class="invoice-drawer-subtitle">
+                Hotel billing invoices
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="invoice-drawer-close"
+            onclick="closeInvoiceSidebar()"
+        >
+            &times;
+        </button>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="invoice-drawer-toolbar">
+
+        <div class="invoice-search">
+
+            <i class="fas fa-search"></i>
+
+            <input
+                type="text"
+                id="invoiceSearchInput"
+                placeholder="Search invoice or guest..."
+                oninput="renderInvoiceList()"
+            >
+
+        </div>
+
+
+        <!-- FILTERS -->
+
+        <div
+            class="invoice-filter-row"
+            id="invoiceFilterButtons"
+        >
+
+            <button
+                type="button"
+                class="invoice-filter active"
+                data-status="all"
+                onclick="setInvFilter('all', this)"
+            >
+                All
+            </button>
+
+            <button
+                type="button"
+                class="invoice-filter"
+                data-status="paid"
+                onclick="setInvFilter('paid', this)"
+            >
+                Paid
+            </button>
+
+            <button
+                type="button"
+                class="invoice-filter"
+                data-status="partial"
+                onclick="setInvFilter('partial', this)"
+            >
+                Partial
+            </button>
+
+            <button
+                type="button"
+                class="invoice-filter"
+                data-status="pending"
+                onclick="setInvFilter('pending', this)"
+            >
+                Pending
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- LIST -->
+
+    <div
+        id="invoiceListContainer"
+        class="invoice-drawer-list"
+    >
+
+        <div class="invoice-loading">
+
+            <i class="fas fa-spinner fa-spin"></i>
+
+            <span>
+                Loading invoices...
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- FOOTER -->
+
+    <div class="invoice-drawer-footer">
+
+        <button
+            type="button"
+            class="fo-btn fo-btn-outline"
+            onclick="fetchInvoices()"
+        >
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+        </button>
+
+
+        <button
+            type="button"
+            class="fo-btn fo-btn-primary"
+            onclick="closeInvoiceSidebar()"
+        >
+            Close
+        </button>
+
+    </div>
+
+</aside>
+
+
+
+
+<!-- =========================================================
+     INVOICE DETAIL MODAL
+========================================================= -->
+
+<div
+    id="invoiceDetailModal"
+    class="invoice-detail-backdrop"
+    style="display:none;"
+>
+
+    <div class="invoice-detail-modal">
+
+
+        <!-- HEADER -->
+
+        <div class="invoice-detail-header">
+
+            <div class="invoice-detail-heading">
+
+                <div class="invoice-detail-icon">
+                    <i class="fas fa-file-invoice"></i>
+                </div>
+
+                <div>
+
+                    <h3 id="invDetailTitle">
+                        Invoice
+                    </h3>
+
+                    <p id="invDetailSubtitle">
+                        Invoice details
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="invoice-detail-close"
+                onclick="closeInvoiceDetail()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div
+            id="invoiceDetailBody"
+            class="invoice-detail-body"
+        >
+
+            <div class="invoice-loading">
+
+                <i class="fas fa-spinner fa-spin"></i>
+
+                <span>
+                    Loading invoice...
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="invoice-detail-footer">
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline"
+                onclick="closeInvoiceDetail()"
+            >
+                Close
+            </button>
+
+
+            <div class="invoice-detail-actions">
+
+                <button
+                    type="button"
+                    class="fo-btn fo-btn-outline"
+                    onclick="printInvoiceDetail()"
+                >
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+
+
+                <button
+                    type="button"
+                    class="fo-btn fo-btn-primary"
+                    id="invDetailEmailBtn"
+                    onclick="emailInvoice()"
+                >
+                    <i class="fas fa-envelope"></i>
+                    Email Guest
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% comment %} invoice modal end  {% endcomment %}
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+
+{% comment %} invoice js start {% endcomment %}
+<script>
+    /* ==========================================================
+   INVOICE SYSTEM
+========================================================== */
+
+let dashboardInvoices = [];
+let dashboardInvoiceFilter = 'all';
+
+
+/* ==========================================================
+   OPEN DRAWER
+========================================================== */
+
+async function openInvoiceSidebar() {
+
+    const drawer =
+        document.getElementById(
+            'invoiceDrawer'
+        );
+
+    const overlay =
+        document.getElementById(
+            'invoiceDrawerOverlay'
+        );
+
+
+    drawer.classList.add(
+        'open'
+    );
+
+    overlay.classList.add(
+        'open'
+    );
+
+
+    document.body.style.overflow =
+        'hidden';
+
+
+    await fetchInvoices();
+}
+
+
+/* ==========================================================
+   CLOSE DRAWER
+========================================================== */
+
+function closeInvoiceSidebar() {
+
+    document
+        .getElementById(
+            'invoiceDrawer'
+        )
+        .classList.remove(
+            'open'
+        );
+
+
+    document
+        .getElementById(
+            'invoiceDrawerOverlay'
+        )
+        .classList.remove(
+            'open'
+        );
+
+
+    document.body.style.overflow =
+        '';
+}
+
+
+/* ==========================================================
+   LOAD INVOICES
+========================================================== */
+
+async function fetchInvoices() {
+
+    const container =
+        document.getElementById(
+            'invoiceListContainer'
+        );
+
+
+    container.innerHTML = `
+        <div class="invoice-loading">
+
+            <i class="fas fa-spinner fa-spin"></i>
+
+            <span>
+                Loading invoices...
+            </span>
+
+        </div>
+    `;
+
+
+    try {
+
+        const response =
+            await fetch(
+                '/api/billing/invoice/list/',
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                'Unable to load invoices.'
+            );
+        }
+
+
+        dashboardInvoices =
+            Array.isArray(
+                data.invoices
+            )
+                ? data.invoices
+                : [];
+
+
+        renderInvoiceList();
+
+
+    } catch (error) {
+
+        console.error(
+            'Invoice load error:',
+            error
+        );
+
+
+        dashboardInvoices = [];
+
+
+        container.innerHTML = `
+            <div class="invoice-empty">
+
+                <i class="fas fa-exclamation-circle"></i>
+
+                <strong>
+                    Could not load invoices
+                </strong>
+
+                <span>
+                    ${escapeInvoiceHtml(
+                        error.message ||
+                        'Please try again.'
+                    )}
+                </span>
+
+                <button
+                    type="button"
+                    class="fo-btn fo-btn-outline"
+                    onclick="fetchInvoices()"
+                >
+                    Try Again
+                </button>
+
+            </div>
+        `;
+    }
+}
+
+
+/* ==========================================================
+   FILTER
+========================================================== */
+
+function setInvFilter(
+    status,
+    button
+) {
+
+    dashboardInvoiceFilter =
+        status;
+
+
+    document
+        .querySelectorAll(
+            '#invoiceFilterButtons .invoice-filter'
+        )
+        .forEach(
+            item => {
+
+                item.classList.remove(
+                    'active'
+                );
+            }
+        );
+
+
+    if (button) {
+
+        button.classList.add(
+            'active'
+        );
+    }
+
+
+    renderInvoiceList();
+}
+
+
+/* ==========================================================
+   RENDER INVOICE LIST
+========================================================== */
+
+function renderInvoiceList() {
+
+    const container =
+        document.getElementById(
+            'invoiceListContainer'
+        );
+
+
+    const search =
+        (
+            document.getElementById(
+                'invoiceSearchInput'
+            )?.value ||
+            ''
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const filtered =
+        dashboardInvoices.filter(
+            invoice => {
+
+                const status =
+                    String(
+                        invoice.status ||
+                        ''
+                    ).toLowerCase();
+
+
+                const statusMatches =
+                    dashboardInvoiceFilter ===
+                        'all'
+                    ||
+                    status ===
+                        dashboardInvoiceFilter;
+
+
+                const invoiceNumber =
+                    String(
+                        invoice.invoice_number ||
+                        ''
+                    ).toLowerCase();
+
+
+                const guestName =
+                    String(
+                        invoice.guest_name ||
+                        ''
+                    ).toLowerCase();
+
+
+                const searchMatches =
+                    !search
+                    ||
+                    invoiceNumber.includes(
+                        search
+                    )
+                    ||
+                    guestName.includes(
+                        search
+                    );
+
+
+                return (
+                    statusMatches &&
+                    searchMatches
+                );
+            }
+        );
+
+
+    if (!filtered.length) {
+
+        container.innerHTML = `
+            <div class="invoice-empty">
+
+                <i class="fas fa-receipt"></i>
+
+                <strong>
+                    No invoices found
+                </strong>
+
+                <span>
+                    Try another search or filter.
+                </span>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        filtered.map(
+            invoice => {
+
+                const status =
+                    String(
+                        invoice.status ||
+                        'pending'
+                    ).toLowerCase();
+
+
+                const generatedDate =
+                    invoice.generated_at
+                        ? new Date(
+                            invoice.generated_at
+                        ).toLocaleDateString(
+                            'en-IN',
+                            {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                            }
+                        )
+                        : '';
+
+
+                return `
+
+                    <div
+                        class="invoice-card"
+                        onclick="openInvoiceDetail(${Number(invoice.id)})"
+                    >
+
+                        <div class="invoice-card-top">
+
+                            <div class="invoice-number">
+
+                                ${escapeInvoiceHtml(
+                                    invoice.invoice_number ||
+                                    `INV-${invoice.id}`
+                                )}
+
+                            </div>
+
+
+                            <span
+                                class="
+                                    invoice-status
+                                    invoice-status-${status}
+                                "
+                            >
+                                ${escapeInvoiceHtml(
+                                    status
+                                )}
+                            </span>
+
+                        </div>
+
+
+                        <div class="invoice-card-meta">
+
+                            <i class="fas fa-user"></i>
+
+                            ${escapeInvoiceHtml(
+                                invoice.guest_name ||
+                                'Guest'
+                            )}
+
+                            ${generatedDate
+                                ? ` &nbsp;•&nbsp; ${generatedDate}`
+                                : ''
+                            }
+
+                        </div>
+
+
+                        <div class="invoice-card-bottom">
+
+                            <div class="invoice-card-amount">
+
+                                ${formatInvoiceMoney(
+                                    invoice.grand_total
+                                )}
+
+                            </div>
+
+
+                            <div class="invoice-card-actions">
+
+                                <button
+                                    type="button"
+                                    class="fo-btn fo-btn-outline fo-btn-sm"
+                                    onclick="
+                                        event.stopPropagation();
+                                        openInvoiceDetail(${Number(invoice.id)});
+                                    "
+                                >
+                                    <i class="fas fa-eye"></i>
+                                    View
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="fo-btn fo-btn-outline fo-btn-sm"
+                                    onclick="
+                                        event.stopPropagation();
+                                        printSingleInvoice(${Number(invoice.id)});
+                                    "
+                                >
+                                    <i class="fas fa-print"></i>
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                `;
+            }
+        )
+        .join('');
+}
+
+
+/* ==========================================================
+   OPEN DETAIL
+========================================================== */
+
+async function openInvoiceDetail(
+    invoiceId
+) {
+
+    const modal =
+        document.getElementById(
+            'invoiceDetailModal'
+        );
+
+
+    document.getElementById(
+        'invDetailTitle'
+    ).textContent =
+        `Invoice #${invoiceId}`;
+
+
+    document.getElementById(
+        'invDetailSubtitle'
+    ).textContent =
+        'Loading details...';
+
+
+    document.getElementById(
+        'invoiceDetailBody'
+    ).innerHTML = `
+
+        <div class="invoice-loading">
+
+            <i class="fas fa-spinner fa-spin"></i>
+
+            <span>
+                Loading invoice...
+            </span>
+
+        </div>
+    `;
+
+
+    modal.style.display =
+        'flex';
+
+    modal.classList.add(
+        'open'
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/billing/invoice/${invoiceId}/`,
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                'Invoice not found.'
+            );
+        }
+
+
+        const invoice =
+            data.invoice ||
+            data;
+
+
+        renderInvoiceDetail(
+            invoice
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        document.getElementById(
+            'invoiceDetailBody'
+        ).innerHTML = `
+
+            <div class="invoice-empty">
+
+                <i class="fas fa-exclamation-circle"></i>
+
+                <strong>
+                    Unable to load invoice
+                </strong>
+
+                <span>
+                    ${escapeInvoiceHtml(
+                        error.message
+                    )}
+                </span>
+
+            </div>
+        `;
+    }
+}
+
+
+/* ==========================================================
+   CLOSE DETAIL
+========================================================== */
+
+function closeInvoiceDetail() {
+
+    const modal =
+        document.getElementById(
+            'invoiceDetailModal'
+        );
+
+
+    modal.classList.remove(
+        'open'
+    );
+
+    modal.style.display =
+        'none';
+}
+
+
+/* ==========================================================
+   RENDER DETAIL
+========================================================== */
+
+function renderInvoiceDetail(
+    invoice
+) {
+
+    window.dashboardCurrentInvoice =
+        invoice;
+
+
+    const title =
+        invoice.invoice_number ||
+        `INV-${invoice.id}`;
+
+
+    document.getElementById(
+        'invDetailTitle'
+    ).textContent =
+        title;
+
+
+    document.getElementById(
+        'invDetailSubtitle'
+    ).textContent =
+        `${invoice.guest_name || 'Guest'} · ${
+            invoice.room_number ||
+            invoice.room_type ||
+            'Room'
+        }`;
+
+
+    const emailButton =
+        document.getElementById(
+            'invDetailEmailBtn'
+        );
+
+
+    emailButton.dataset.invoiceId =
+        invoice.id || '';
+
+    emailButton.dataset.email =
+        invoice.guest_email || '';
+
+
+    const charges =
+        Array.isArray(
+            invoice.charges
+        )
+            ? invoice.charges
+            : [];
+
+
+    const payments =
+        Array.isArray(
+            invoice.payments
+        )
+            ? invoice.payments
+            : [];
+
+
+    const subtotal =
+        Number(
+            invoice.subtotal ||
+            0
+        );
+
+
+    const tax =
+        Number(
+            invoice.tax_total ||
+            invoice.tax ||
+            0
+        );
+
+
+    const discount =
+        Number(
+            invoice.discount ||
+            0
+        );
+
+
+    const grandTotal =
+        Number(
+            invoice.grand_total ||
+            0
+        );
+
+
+    const totalPaid =
+        Number(
+            invoice.total_paid ||
+            invoice.paid ||
+            0
+        );
+
+
+    const balance =
+        Number(
+            invoice.balance_due ??
+            invoice.balance ??
+            (
+                grandTotal -
+                totalPaid
+            )
+        );
+
+
+    const status =
+        String(
+            invoice.status ||
+            'pending'
+        ).toLowerCase();
+
+
+    const chargesHtml =
+        charges.length
+
+            ? charges.map(
+                charge => {
+
+                    const amount =
+                        Number(
+                            charge.amount ||
+                            0
+                        );
+
+                    const taxAmount =
+                        Number(
+                            charge.tax_amount ||
+                            0
+                        );
+
+                    const total =
+                        Number(
+                            charge.total ??
+                            (
+                                amount +
+                                taxAmount
+                            )
+                        );
+
+
+                    return `
+
+                        <div class="invoice-line">
+
+                            <div>
+
+                                <strong>
+                                    ${escapeInvoiceHtml(
+                                        charge.description ||
+                                        'Charge'
+                                    )}
+                                </strong>
+
+                                <div
+                                    style="
+                                        color:#6b7280;
+                                        font-size:10px;
+                                        margin-top:2px;
+                                    "
+                                >
+                                    ${escapeInvoiceHtml(
+                                        charge.charge_type ||
+                                        ''
+                                    )}
+                                </div>
+
+                            </div>
+
+
+                            <span
+                                style="
+                                    font-family:
+                                    'DM Mono',
+                                    monospace;
+                                "
+                            >
+                                ${formatInvoiceMoney(
+                                    total
+                                )}
+                            </span>
+
+                        </div>
+                    `;
+                }
+            ).join('')
+
+            : `
+
+                <div class="invoice-line">
+                    <span>
+                        No charges recorded
+                    </span>
+                </div>
+            `;
+
+
+    const paymentsHtml =
+        payments.length
+
+            ? payments.map(
+                payment => `
+
+                    <div class="invoice-line">
+
+                        <div>
+
+                            <strong>
+                                ${escapeInvoiceHtml(
+                                    payment.method ||
+                                    'Payment'
+                                )}
+                            </strong>
+
+                            ${
+                                payment.reference_number
+
+                                    ? `
+                                        <div
+                                            style="
+                                                font-size:10px;
+                                                color:#6b7280;
+                                            "
+                                        >
+                                            Ref:
+                                            ${escapeInvoiceHtml(
+                                                payment.reference_number
+                                            )}
+                                        </div>
+                                    `
+
+                                    : ''
+                            }
+
+                        </div>
+
+
+                        <span
+                            style="
+                                font-family:
+                                'DM Mono',
+                                monospace;
+
+                                color:#15803d;
+                            "
+                        >
+                            ${formatInvoiceMoney(
+                                payment.amount
+                            )}
+                        </span>
+
+                    </div>
+                `
+            ).join('')
+
+            : `
+
+                <div class="invoice-line">
+                    <span>
+                        No payments recorded
+                    </span>
+                </div>
+            `;
+
+
+    document.getElementById(
+        'invoiceDetailBody'
+    ).innerHTML = `
+
+        <div class="invoice-detail-top">
+
+            <div>
+
+                <div class="invoice-detail-number">
+
+                    ${escapeInvoiceHtml(
+                        title
+                    )}
+
+                </div>
+
+
+                <div class="invoice-detail-date">
+
+                    ${
+                        invoice.generated_at
+
+                            ? new Date(
+                                invoice.generated_at
+                            ).toLocaleDateString(
+                                'en-IN',
+                                {
+                                    day:
+                                        '2-digit',
+
+                                    month:
+                                        'long',
+
+                                    year:
+                                        'numeric'
+                                }
+                            )
+
+                            : ''
+                    }
+
+                </div>
+
+            </div>
+
+
+            <span
+                class="
+                    invoice-status
+                    invoice-status-${status}
+                "
+            >
+                ${escapeInvoiceHtml(
+                    status
+                )}
+            </span>
+
+        </div>
+
+
+        <!-- GUEST / ROOM -->
+
+        <div class="invoice-info-grid">
+
+            <div class="invoice-info-box">
+
+                <div class="invoice-info-label">
+                    <i class="fas fa-user"></i>
+                    Guest
+                </div>
+
+
+                <div class="invoice-info-value">
+
+                    ${escapeInvoiceHtml(
+                        invoice.guest_name ||
+                        'Guest'
+                    )}
+
+                </div>
+
+
+                <div class="invoice-info-small">
+
+                    ${escapeInvoiceHtml(
+                        invoice.guest_phone ||
+                        invoice.guest_email ||
+                        ''
+                    )}
+
+                </div>
+
+            </div>
+
+
+            <div class="invoice-info-box">
+
+                <div class="invoice-info-label">
+                    <i class="fas fa-bed"></i>
+                    Stay Details
+                </div>
+
+
+                <div class="invoice-info-value">
+
+                    ${
+                        invoice.room_number
+
+                            ? `Room ${
+                                escapeInvoiceHtml(
+                                    invoice.room_number
+                                )
+                            }`
+
+                            : escapeInvoiceHtml(
+                                invoice.room_type ||
+                                'Room'
+                            )
+                    }
+
+                </div>
+
+
+                <div class="invoice-info-small">
+
+                    ${escapeInvoiceHtml(
+                        invoice.check_in ||
+                        ''
+                    )}
+
+                    ${invoice.check_out
+                        ? ` → ${
+                            escapeInvoiceHtml(
+                                invoice.check_out
+                            )
+                        }`
+                        : ''
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CHARGES -->
+
+        <div class="invoice-section-title">
+            Charges
+        </div>
+
+        <div class="invoice-lines">
+            ${chargesHtml}
+        </div>
+
+
+        <!-- TOTALS -->
+
+        <div class="invoice-section-title">
+            Invoice Summary
+        </div>
+
+
+        <div class="invoice-lines">
+
+            <div class="invoice-line">
+
+                <span>
+                    Subtotal
+                </span>
+
+                <span>
+                    ${formatInvoiceMoney(
+                        subtotal
+                    )}
+                </span>
+
+            </div>
+
+
+            <div class="invoice-line">
+
+                <span>
+                    Tax / GST
+                </span>
+
+                <span>
+                    ${formatInvoiceMoney(
+                        tax
+                    )}
+                </span>
+
+            </div>
+
+
+            ${
+                discount > 0
+
+                    ? `
+
+                        <div class="invoice-line">
+
+                            <span
+                                style="color:#15803d;"
+                            >
+                                Discount
+                            </span>
+
+                            <span
+                                style="color:#15803d;"
+                            >
+                                -${formatInvoiceMoney(
+                                    discount
+                                )}
+                            </span>
+
+                        </div>
+                    `
+
+                    : ''
+            }
+
+
+            <div class="invoice-total">
+
+                <span>
+                    Grand Total
+                </span>
+
+                <span>
+                    ${formatInvoiceMoney(
+                        grandTotal
+                    )}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- PAYMENTS -->
+
+        <div class="invoice-section-title">
+            Payments
+        </div>
+
+
+        <div class="invoice-lines">
+
+            ${paymentsHtml}
+
+        </div>
+
+
+        <!-- PAYMENT SUMMARY -->
+
+        <div
+            style="
+                margin-top:14px;
+
+                padding:13px;
+
+                border:1px solid #e5e7eb;
+
+                border-radius:8px;
+
+                background:#f9fafb;
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-bottom:7px;
+                "
+            >
+
+                <strong>
+                    Total Paid
+                </strong>
+
+                <strong
+                    style="
+                        color:#15803d;
+                        font-family:'DM Mono',monospace;
+                    "
+                >
+                    ${formatInvoiceMoney(
+                        totalPaid
+                    )}
+                </strong>
+
+            </div>
+
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:space-between;
+                "
+            >
+
+                <strong>
+                    Balance Due
+                </strong>
+
+                <strong
+                    style="
+                        color:${
+                            balance > 0
+                                ? '#dc2626'
+                                : '#15803d'
+                        };
+
+                        font-family:'DM Mono',monospace;
+                    "
+                >
+                    ${formatInvoiceMoney(
+                        Math.max(
+                            balance,
+                            0
+                        )
+                    )}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        ${
+            invoice.notes
+
+                ? `
+
+                    <div
+                        style="
+                            margin-top:14px;
+                            padding:11px 13px;
+                            background:#f9fafb;
+                            border:1px solid #e5e7eb;
+                            border-radius:8px;
+                            font-size:12px;
+                            color:#6b7280;
+                        "
+                    >
+                        ${escapeInvoiceHtml(
+                            invoice.notes
+                        )}
+                    </div>
+                `
+
+                : ''
+        }
+    `;
+}
+
+
+/* ==========================================================
+   PRINT
+========================================================== */
+
+async function printSingleInvoice(
+    invoiceId
+) {
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/billing/invoice/${invoiceId}/`
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                'Unable to load invoice.'
+            );
+        }
+
+
+        printInvoiceObject(
+            data.invoice ||
+            data
+        );
+
+
+    } catch (error) {
+
+        alert(
+            error.message ||
+            'Unable to print invoice.'
+        );
+    }
+}
+
+
+function printInvoiceDetail() {
+
+    const invoice =
+        window.dashboardCurrentInvoice;
+
+
+    if (!invoice) {
+
+        alert(
+            'Invoice is not loaded.'
+        );
+
+        return;
+    }
+
+
+    printInvoiceObject(
+        invoice
+    );
+}
+
+
+function printInvoiceObject(
+    invoice
+) {
+
+    const charges =
+        Array.isArray(
+            invoice.charges
+        )
+            ? invoice.charges
+            : [];
+
+
+    const subtotal =
+        Number(
+            invoice.subtotal ||
+            0
+        );
+
+
+    const tax =
+        Number(
+            invoice.tax_total ||
+            0
+        );
+
+
+    const discount =
+        Number(
+            invoice.discount ||
+            0
+        );
+
+
+    const grandTotal =
+        Number(
+            invoice.grand_total ||
+            0
+        );
+
+
+    const totalPaid =
+        Number(
+            invoice.total_paid ||
+            invoice.paid ||
+            0
+        );
+
+
+    const balance =
+        Number(
+            invoice.balance_due ??
+            (
+                grandTotal -
+                totalPaid
+            )
+        );
+
+
+    const chargeRows =
+        charges.length
+
+            ? charges.map(
+                charge => {
+
+                    const total =
+                        Number(
+                            charge.total ??
+                            (
+                                Number(
+                                    charge.amount ||
+                                    0
+                                )
+                                +
+                                Number(
+                                    charge.tax_amount ||
+                                    0
+                                )
+                            )
+                        );
+
+
+                    return `
+
+                        <tr>
+
+                            <td>
+                                ${escapeInvoiceHtml(
+                                    charge.description ||
+                                    'Charge'
+                                )}
+                            </td>
+
+                            <td class="right">
+                                ${formatInvoiceMoney(
+                                    total
+                                )}
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            ).join('')
+
+            : `
+
+                <tr>
+
+                    <td colspan="2">
+                        No charges
+                    </td>
+
+                </tr>
+            `;
+
+
+    const printWindow =
+        window.open(
+            '',
+            '_blank'
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            'Please allow pop-ups to print the invoice.'
+        );
+
+        return;
+    }
+
+
+    printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>
+        ${escapeInvoiceHtml(
+            invoice.invoice_number ||
+            'Invoice'
+        )}
+    </title>
+
+
+    <style>
+
+        body {
+            font-family:
+                Arial,
+                sans-serif;
+
+            color:#111827;
+
+            margin:0;
+
+            padding:35px;
+        }
+
+
+        .header {
+            display:flex;
+
+            justify-content:
+                space-between;
+
+            border-bottom:
+                2px solid #111827;
+
+            padding-bottom:18px;
+
+            margin-bottom:22px;
+        }
+
+
+        h1 {
+            margin:0;
+
+            font-size:25px;
+        }
+
+
+        .muted {
+            color:#6b7280;
+
+            font-size:12px;
+        }
+
+
+        .invoice-number {
+            font-size:18px;
+
+            font-weight:700;
+
+            text-align:right;
+        }
+
+
+        .grid {
+            display:grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap:20px;
+
+            margin-bottom:25px;
+        }
+
+
+        .box {
+            border:
+                1px solid #e5e7eb;
+
+            padding:13px;
+
+            border-radius:6px;
+        }
+
+
+        .label {
+            font-size:10px;
+
+            color:#6b7280;
+
+            text-transform:uppercase;
+
+            font-weight:700;
+
+            margin-bottom:6px;
+        }
+
+
+        table {
+            width:100%;
+
+            border-collapse:collapse;
+
+            margin-top:15px;
+        }
+
+
+        th {
+            background:#111827;
+
+            color:white;
+
+            text-align:left;
+
+            padding:10px;
+
+            font-size:11px;
+        }
+
+
+        td {
+            padding:10px;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            font-size:12px;
+        }
+
+
+        .right {
+            text-align:right;
+        }
+
+
+        .totals {
+            width:300px;
+
+            margin-left:auto;
+
+            margin-top:18px;
+        }
+
+
+        .totals div {
+            display:flex;
+
+            justify-content:
+                space-between;
+
+            padding:6px 0;
+        }
+
+
+        .grand {
+            border-top:
+                2px solid #111827;
+
+            margin-top:5px;
+
+            padding-top:10px !important;
+
+            font-size:15px;
+
+            font-weight:700;
+        }
+
+
+        .footer {
+            margin-top:40px;
+
+            padding-top:15px;
+
+            border-top:
+                1px dashed #d1d5db;
+
+            text-align:center;
+
+            font-size:11px;
+
+            color:#6b7280;
+        }
+
+
+        @media print {
+
+            body {
+                padding:0;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="header">
+
+        <div>
+
+            <h1>
+                ${escapeInvoiceHtml(
+                    invoice.hotel_name ||
+                    'Hotel'
+                )}
+            </h1>
+
+            <div class="muted">
+
+                ${escapeInvoiceHtml(
+                    invoice.hotel_address ||
+                    ''
+                )}
+
+            </div>
+
+            <div class="muted">
+
+                ${escapeInvoiceHtml(
+                    invoice.hotel_phone ||
+                    ''
+                )}
+
+                ${
+                    invoice.hotel_email
+                        ? ' · ' +
+                            escapeInvoiceHtml(
+                                invoice.hotel_email
+                            )
+                        : ''
+                }
+
+            </div>
+
+        </div>
+
+
+        <div>
+
+            <div
+                style="
+                    text-align:right;
+                    font-size:11px;
+                    font-weight:700;
+                    margin-bottom:5px;
+                "
+            >
+                TAX INVOICE
+            </div>
+
+            <div class="invoice-number">
+
+                ${escapeInvoiceHtml(
+                    invoice.invoice_number ||
+                    `INV-${invoice.id}`
+                )}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="grid">
+
+        <div class="box">
+
+            <div class="label">
+                Billed To
+            </div>
+
+            <strong>
+                ${escapeInvoiceHtml(
+                    invoice.guest_name ||
+                    'Guest'
+                )}
+            </strong>
+
+            <div class="muted">
+
+                ${escapeInvoiceHtml(
+                    invoice.guest_phone ||
+                    ''
+                )}
+
+            </div>
+
+            <div class="muted">
+
+                ${escapeInvoiceHtml(
+                    invoice.guest_email ||
+                    ''
+                )}
+
+            </div>
+
+        </div>
+
+
+        <div class="box">
+
+            <div class="label">
+                Stay Details
+            </div>
+
+            <strong>
+
+                ${
+                    invoice.room_number
+                        ? 'Room ' +
+                            escapeInvoiceHtml(
+                                invoice.room_number
+                            )
+                        : escapeInvoiceHtml(
+                            invoice.room_type ||
+                            '—'
+                        )
+                }
+
+            </strong>
+
+            <div class="muted">
+
+                ${escapeInvoiceHtml(
+                    invoice.check_in ||
+                    '—'
+                )}
+
+                →
+
+                ${escapeInvoiceHtml(
+                    invoice.check_out ||
+                    '—'
+                )}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>
+                    Description
+                </th>
+
+                <th class="right">
+                    Amount
+                </th>
+
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            ${chargeRows}
+
+        </tbody>
+
+    </table>
+
+
+    <div class="totals">
+
+        <div>
+
+            <span>
+                Subtotal
+            </span>
+
+            <span>
+                ${formatInvoiceMoney(
+                    subtotal
+                )}
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Tax / GST
+            </span>
+
+            <span>
+                ${formatInvoiceMoney(
+                    tax
+                )}
+            </span>
+
+        </div>
+
+
+        ${
+            discount > 0
+
+                ? `
+
+                    <div>
+
+                        <span>
+                            Discount
+                        </span>
+
+                        <span>
+                            -${formatInvoiceMoney(
+                                discount
+                            )}
+                        </span>
+
+                    </div>
+                `
+
+                : ''
+        }
+
+
+        <div class="grand">
+
+            <span>
+                Grand Total
+            </span>
+
+            <span>
+                ${formatInvoiceMoney(
+                    grandTotal
+                )}
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Paid
+            </span>
+
+            <span>
+                ${formatInvoiceMoney(
+                    totalPaid
+                )}
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <span>
+                Balance
+            </span>
+
+            <span>
+                ${formatInvoiceMoney(
+                    Math.max(
+                        balance,
+                        0
+                    )
+                )}
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="footer">
+
+        Thank you for staying with us.
+
+        <br>
+
+        This is a computer-generated invoice.
+
+    </div>
+
+
+</body>
+
+</html>
+
+    `);
+
+
+    printWindow.document.close();
+
+
+    setTimeout(
+        () => {
+
+            printWindow.focus();
+
+            printWindow.print();
+
+        },
+        400
+    );
+}
+
+
+/* ==========================================================
+   EMAIL
+========================================================== */
+
+async function emailInvoice() {
+
+    const button =
+        document.getElementById(
+            'invDetailEmailBtn'
+        );
+
+
+    const invoiceId =
+        button.dataset.invoiceId;
+
+
+    const email =
+        button.dataset.email;
+
+
+    if (!invoiceId) {
+
+        alert(
+            'Invoice is not loaded.'
+        );
+
+        return;
+    }
+
+
+    if (!email) {
+
+        alert(
+            'This guest does not have an email address.'
+        );
+
+        return;
+    }
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Sending...
+    `;
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/billing/invoice/${invoiceId}/send-email/`,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'X-CSRFToken':
+                            getDashboardCsrfToken(),
+
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                'Unable to send invoice.'
+            );
+        }
+
+
+        alert(
+            `Invoice sent to ${
+                data.email_sent_to ||
+                email
+            }`
+        );
+
+
+    } catch (error) {
+
+        alert(
+            error.message ||
+            'Unable to send invoice.'
+        );
+
+
+    } finally {
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            original;
+    }
+}
+
+
+/* ==========================================================
+   HELPERS
+========================================================== */
+
+function formatInvoiceMoney(
+    value
+) {
+
+    const amount =
+        Number(
+            value ||
+            0
+        );
+
+
+    return (
+        '₹' +
+        amount.toLocaleString(
+            'en-IN',
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        )
+    );
+}
+
+
+function escapeInvoiceHtml(
+    value
+) {
+
+    return String(
+        value ?? ''
+    )
+    .replaceAll(
+        '&',
+        '&amp;'
+    )
+    .replaceAll(
+        '<',
+        '&lt;'
+    )
+    .replaceAll(
+        '>',
+        '&gt;'
+    )
+    .replaceAll(
+        '"',
+        '&quot;'
+    )
+    .replaceAll(
+        "'",
+        '&#039;'
+    );
+}
+
+
+function getDashboardCsrfToken() {
+
+    const name =
+        'csrftoken=';
+
+
+    const cookies =
+        document.cookie.split(
+            ';'
+        );
+
+
+    for (
+        let cookie
+        of cookies
+    ) {
+
+        cookie =
+            cookie.trim();
+
+
+        if (
+            cookie.startsWith(
+                name
+            )
+        ) {
+
+            return decodeURIComponent(
+                cookie.substring(
+                    name.length
+                )
+            );
+        }
+    }
+
+
+    return '';
+}
+</script>
+
+{% comment %} invoice js end  {% endcomment %}
+
+{% comment %} checkout js atrt {% endcomment %}
+<script src="{% static 'frontoffice/assets/js/checkout.js' %}"></script>
+{% comment %} checkout js end  {% endcomment %}
+<script>
+/* =========================================================
+   DASHBOARD CHECK-IN
+========================================================= */
+
+function openCheckInModal() {
+
+    const modal =
+        document.getElementById(
+            "dashboardCheckInModal"
+        );
+
+    if (!modal) {
+        console.error(
+            "Check-in modal not found."
+        );
+
+        return;
+    }
+
+    modal.style.display = "flex";
+
+    document.body.style.overflow = "hidden";
+}
+
+
+function closeCheckInModal() {
+
+    const modal =
+        document.getElementById(
+            "dashboardCheckInModal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.style.display = "none";
+
+    document.body.style.overflow = "";
+}
+
+
+function updateCheckInGuest() {
+
+    const select =
+        document.getElementById(
+            "checkInBooking"
+        );
+
+    const info =
+        document.getElementById(
+            "checkInGuestInfo"
+        );
+
+    const guest =
+        document.getElementById(
+            "checkInGuestName"
+        );
+
+    const room =
+        document.getElementById(
+            "checkInRoomNumber"
+        );
+
+    if (!select.value) {
+
+        info.style.display = "none";
+
+        return;
+    }
+
+
+    const option =
+        select.options[
+            select.selectedIndex
+        ];
+
+
+    guest.textContent =
+        option.dataset.guest || "—";
+
+
+    room.textContent =
+        option.dataset.room || "—";
+
+
+    info.style.display = "grid";
+}
+
+
+function showCheckInError(message) {
+
+    const box =
+        document.getElementById(
+            "checkInError"
+        );
+
+    box.textContent = message;
+
+    box.style.display = "block";
+}
+
+
+function clearCheckInError() {
+
+    const box =
+        document.getElementById(
+            "checkInError"
+        );
+
+    box.textContent = "";
+
+    box.style.display = "none";
+}
+
+
+async function submitDashboardCheckIn() {
+
+    clearCheckInError();
+
+
+    const bookingId =
+        document.getElementById(
+            "checkInBooking"
+        ).value;
+
+
+    const idType =
+        document.getElementById(
+            "checkInIdType"
+        ).value;
+
+
+    const idNumber =
+        document.getElementById(
+            "checkInIdNumber"
+        ).value.trim();
+
+
+    const photoInput =
+        document.getElementById(
+            "checkInIdPhotos"
+        );
+
+
+    const button =
+        document.getElementById(
+            "completeCheckInButton"
+        );
+
+
+    /* ---------------- VALIDATION ---------------- */
+
+    if (!bookingId) {
+
+        showCheckInError(
+            "Please select a booking."
+        );
+
+        return;
+    }
+
+
+    if (!photoInput.files.length) {
+
+        showCheckInError(
+            "Please upload at least one ID photo."
+        );
+
+        return;
+    }
+
+
+    /* ---------------- FORM DATA ---------------- */
+
+    const formData =
+        new FormData();
+
+
+    formData.append(
+        "booking_id",
+        bookingId
+    );
+
+
+    formData.append(
+        "id_type",
+        idType
+    );
+
+
+    formData.append(
+        "id_number",
+        idNumber
+    );
+
+
+    for (
+        let i = 0;
+        i < photoInput.files.length;
+        i++
+    ) {
+
+        formData.append(
+            "id_photos",
+            photoInput.files[i]
+        );
+    }
+
+
+    /* ---------------- BUTTON ---------------- */
+
+    const originalHtml =
+        button.innerHTML;
+
+
+    button.disabled = true;
+
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Checking In...
+    `;
+
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'check_in' %}",
+                {
+                    method: "POST",
+
+                    body: formData,
+
+                    credentials: "same-origin"
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+            ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.message
+                ||
+                data.error
+                ||
+                "Unable to complete check-in."
+            );
+        }
+
+
+        alert(
+            data.message
+            ||
+            "Check-in successful."
+        );
+
+
+        window.location.reload();
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "Check-in error:",
+            error
+        );
+
+
+        showCheckInError(
+            error.message
+            ||
+            "Unable to complete check-in."
+        );
+
+
+        button.disabled = false;
+
+        button.innerHTML =
+            originalHtml;
+    }
+}
+</script>
+
+<script>
+
+    /* =========================================================
+       DASHBOARD NAVIGATION
+
+       IMPORTANT:
+       These are temporary compatibility functions.
+
+       When we create the separate Django URLs for:
+       bookings.html
+       checkin.html
+       checkout.html
+
+       we will replace these with Django 
+    ========================================================== */
+
+
+    function goToBookings() {
+
+        /*
+         * During conversion we don't want to call the old
+         * switchPanel('bookings') because the Bookings panel
+         * will eventually live on another HTML page.
+         *
+         * For now try the old function if it still exists.
+         */
+
+        if (
+            typeof switchPanel === "function" &&
+            document.getElementById(
+                "panel-bookings"
+            )
+        ) {
+
+            switchPanel(
+                "bookings"
+            );
+
+            return;
+
+        }
+
+
+        console.warn(
+            "Bookings page URL has not been connected yet."
+        );
+
+    }
+
+
+
+
+
+    /* =========================================================
+       EMAIL MODAL COMPATIBILITY
+    ========================================================== */
+
+    function openDashboardEmailModal() {
+
+        const modal =
+            document.getElementById(
+                "emailModal"
+            );
+
+
+        if (modal) {
+
+            modal.style.display =
+                "flex";
+
+            return;
+
+        }
+
+
+        console.warn(
+            "emailModal has not been moved to the new base/page yet."
+        );
+
+    }
+
+
+
+    /* =========================================================
+       SAFETY FALLBACKS
+
+       Your old Dashboard calls these existing Front Office
+       functions.
+
+       We DO NOT replace them when they already exist.
+    ========================================================== */
+
+
+    if (
+        typeof window.openNewBookingModal
+        !==
+        "function"
+    ) {
+
+        window.openNewBookingModal =
+            function () {
+
+                console.warn(
+                    "New Booking modal/function has not been moved to the new template yet."
+                );
+
+            };
+
+    }
+
+</script>
+
+{% endblock %}

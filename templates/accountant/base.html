@@ -1,0 +1,3524 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="csrf-token"
+        content="{{ csrf_token }}"
+    >
+
+    <title>
+        {% block title %}
+        Accountant | Hotel ERP
+        {% endblock %}
+    </title>
+
+
+    <!-- =========================================================
+         FAVICON
+    ========================================================== -->
+
+    <link
+        rel="shortcut icon"
+        type="image/x-icon"
+        href="{% static 'accountant/assets/img/favicon.png' %}"
+    >
+
+
+    <!-- =========================================================
+         ACCOUNTANT CSS
+    ========================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="{% static 'accountant/assets/css/vendor/bootstrap.min.css' %}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'accountant/assets/css/admio-icons.css' %}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'accountant/assets/css/admio.css' %}"
+    >
+
+     <!-- =====================================================
+         HOTEL FRONT OFFICE OVERRIDES
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="{% static 'frontoffice/assets/css/frontoffice.css' %}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+
+
+    {% block extra_css %}
+    {% endblock %}
+
+
+    <!-- =========================================================
+         ACCOUNTANT LAYOUT
+    ========================================================== -->
+
+    <style>
+
+        /* ========================================================
+           ROOT
+        ======================================================== */
+
+        :root {
+            --acc-header-height: 72px;
+            --acc-nav-height: 60px;
+
+            --acc-primary: #6c3cf0;
+            --acc-primary-dark: #5127ce;
+            --acc-primary-soft: #f2edff;
+
+            --acc-bg: #f5f6fa;
+            --acc-card: #ffffff;
+
+            --acc-text: #111827;
+            --acc-muted: #667085;
+
+            --acc-border: #e5e7eb;
+
+            --acc-shadow:
+                0 1px 2px rgba(16, 24, 40, 0.04),
+                0 1px 3px rgba(16, 24, 40, 0.06);
+
+            --acc-radius: 12px;
+        }
+
+
+        html[data-theme="dark"] {
+            --acc-bg: #111827;
+            --acc-card: #18212f;
+
+            --acc-text: #f3f4f6;
+            --acc-muted: #98a2b3;
+
+            --acc-border: #2d3748;
+
+            --acc-primary-soft: rgba(108, 60, 240, 0.16);
+        }
+
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+        }
+
+
+        body {
+            background: var(--acc-bg);
+            color: var(--acc-text);
+        }
+
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+
+        a {
+            text-decoration: none;
+        }
+
+
+        /* ========================================================
+           HEADER
+        ======================================================== */
+
+        .h-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+
+            width: 100%;
+
+            background: var(--acc-card);
+            border-bottom: 1px solid var(--acc-border);
+        }
+
+
+        /* ========================================================
+           TOPBAR
+        ======================================================== */
+
+        .h-navbar-top {
+            min-height: var(--acc-header-height);
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 28px;
+
+            border-bottom: 1px solid var(--acc-border);
+
+            background: var(--acc-card);
+        }
+
+
+        /* ========================================================
+           MOBILE BUTTON
+        ======================================================== */
+
+        .h-mobile-toggle {
+            width: 42px;
+            height: 42px;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            flex-shrink: 0;
+
+            border: 1px solid var(--acc-border);
+            border-radius: 10px;
+
+            background: transparent;
+            color: var(--acc-text);
+
+            cursor: pointer;
+
+            margin-right: 14px;
+        }
+
+
+        .h-mobile-toggle:hover {
+            background: var(--acc-bg);
+        }
+
+
+        /* ========================================================
+           BRAND
+        ======================================================== */
+
+        .h-navbar-brand {
+            display: flex;
+            align-items: center;
+
+            gap: 11px;
+
+            flex-shrink: 0;
+
+            color: var(--acc-text);
+        }
+
+
+        .h-navbar-brand:hover {
+            color: var(--acc-text);
+        }
+
+
+        .h-brand-logo {
+            width: 42px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 11px;
+
+            overflow: hidden;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #4f46e5
+                );
+        }
+
+
+        .h-brand-logo img {
+            width: 100%;
+            height: 100%;
+
+            object-fit: contain;
+        }
+
+
+        .h-brand-fallback {
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #ffffff;
+            font-size: 20px;
+        }
+
+
+        .h-brand-copy {
+            display: flex;
+            flex-direction: column;
+
+            line-height: 1.1;
+        }
+
+
+        .h-brand-name {
+            color: var(--acc-text);
+
+            font-size: 18px;
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+
+        .h-brand-name strong {
+            color: var(--acc-primary);
+        }
+
+
+        .h-brand-module {
+            margin-top: 5px;
+
+            color: var(--acc-muted);
+
+            font-size: 11px;
+            font-weight: 500;
+
+            letter-spacing: 0.06em;
+
+            text-transform: uppercase;
+        }
+
+
+        /* ========================================================
+           SEARCH
+        ======================================================== */
+
+        .h-topbar-search-wrap {
+            flex: 1;
+
+            display: flex;
+            align-items: center;
+
+            margin-left: 48px;
+            margin-right: 28px;
+        }
+
+
+        .h-topbar-search {
+            width: 100%;
+            max-width: 460px;
+
+            height: 44px;
+
+            display: flex;
+            align-items: center;
+
+            gap: 11px;
+
+            padding: 0 15px;
+
+            border: 1px solid var(--acc-border);
+            border-radius: 10px;
+
+            background: var(--acc-bg);
+        }
+
+
+        .h-topbar-search i {
+            flex-shrink: 0;
+
+            color: var(--acc-muted);
+            font-size: 18px;
+        }
+
+
+        .h-topbar-search input {
+            width: 100%;
+
+            padding: 0;
+
+            border: 0;
+            outline: 0;
+
+            background: transparent;
+
+            color: var(--acc-text);
+        }
+
+
+        .h-topbar-search input::placeholder {
+            color: var(--acc-muted);
+        }
+
+
+        /* ========================================================
+           RIGHT ACTIONS
+        ======================================================== */
+
+        .h-topbar-actions {
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+
+            margin-left: auto;
+        }
+
+
+        .h-header-btn {
+            position: relative;
+
+            width: 42px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 0;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: transparent;
+            color: var(--acc-muted);
+
+            font-size: 19px;
+
+            cursor: pointer;
+        }
+
+
+        .h-header-btn:hover {
+            background: var(--acc-bg);
+            color: var(--acc-text);
+        }
+
+
+        .h-notification-dot {
+            position: absolute;
+
+            top: 8px;
+            right: 8px;
+
+            width: 7px;
+            height: 7px;
+
+            border: 2px solid var(--acc-card);
+            border-radius: 50%;
+
+            background: #ef4444;
+        }
+
+
+        .h-topbar-divider {
+            width: 1px;
+            height: 30px;
+
+            margin: 0 5px;
+
+            background: var(--acc-border);
+        }
+
+
+        /* ========================================================
+           USER
+        ======================================================== */
+
+        .h-user-wrapper {
+            position: relative;
+        }
+
+
+        .h-user-trigger {
+            display: flex;
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 4px 5px 4px 7px;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: transparent;
+
+            cursor: pointer;
+        }
+
+
+        .h-user-trigger:hover {
+            background: var(--acc-bg);
+        }
+
+
+        .h-user-avatar {
+            width: 38px;
+            height: 38px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            flex-shrink: 0;
+
+            border-radius: 50%;
+
+            background: var(--acc-primary-soft);
+            color: var(--acc-primary);
+
+            font-weight: 700;
+        }
+
+
+        .h-user-avatar-lg {
+            width: 44px;
+            height: 44px;
+        }
+
+
+        .h-user-info {
+            display: flex;
+            flex-direction: column;
+
+            text-align: left;
+
+            line-height: 1.2;
+        }
+
+
+        .h-user-info strong {
+            max-width: 150px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: var(--acc-text);
+
+            font-size: 13px;
+        }
+
+
+        .h-user-info small {
+            margin-top: 4px;
+
+            color: var(--acc-muted);
+
+            font-size: 11px;
+        }
+
+
+        .h-user-chevron {
+            color: var(--acc-muted);
+            font-size: 13px;
+        }
+
+
+        /* ========================================================
+           USER DROPDOWN
+        ======================================================== */
+
+        .h-user-menu {
+            position: absolute;
+
+            top: calc(100% + 12px);
+            right: 0;
+
+            width: 280px;
+
+            display: none;
+
+            overflow: hidden;
+
+            border: 1px solid var(--acc-border);
+            border-radius: 12px;
+
+            background: var(--acc-card);
+
+            box-shadow:
+                0 12px 35px rgba(16, 24, 40, 0.14);
+        }
+
+
+        .h-user-menu.show {
+            display: block;
+        }
+
+
+        .h-user-menu-header {
+            display: flex;
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 17px;
+
+            border-bottom: 1px solid var(--acc-border);
+        }
+
+
+        .h-user-menu-header > div:last-child {
+            min-width: 0;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .h-user-menu-header strong {
+            color: var(--acc-text);
+        }
+
+
+        .h-user-menu-header span {
+            margin-top: 3px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: var(--acc-muted);
+
+            font-size: 12px;
+        }
+
+
+        .h-user-menu-body {
+            padding: 8px;
+        }
+
+
+        .h-user-menu-body a {
+            display: flex;
+            align-items: center;
+
+            gap: 10px;
+
+            padding: 11px 12px;
+
+            border-radius: 8px;
+
+            color: var(--acc-text);
+        }
+
+
+        .h-user-menu-body a:hover {
+            background: var(--acc-bg);
+        }
+
+
+        .h-user-menu-body a.danger {
+            color: #dc2626;
+        }
+
+
+        .h-menu-divider {
+            height: 1px;
+
+            margin: 7px 0;
+
+            background: var(--acc-border);
+        }
+
+
+        /* ========================================================
+           NOTIFICATION
+        ======================================================== */
+
+        .h-notification-wrapper {
+            position: relative;
+        }
+
+
+        .h-notification-panel {
+            position: absolute;
+
+            top: calc(100% + 12px);
+            right: 0;
+
+            width: 350px;
+            max-height: 430px;
+
+            display: none;
+
+            overflow: hidden;
+
+            border: 1px solid var(--acc-border);
+            border-radius: 12px;
+
+            background: var(--acc-card);
+
+            box-shadow:
+                0 12px 35px rgba(16, 24, 40, 0.14);
+        }
+
+
+        .h-notification-panel.show {
+            display: block;
+        }
+
+
+        .h-notification-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 15px;
+
+            padding: 16px 17px;
+
+            border-bottom: 1px solid var(--acc-border);
+        }
+
+
+        .h-notification-header h3 {
+            margin: 0;
+
+            color: var(--acc-text);
+
+            font-size: 16px;
+        }
+
+
+        .h-notification-header span {
+            display: block;
+
+            margin-top: 3px;
+
+            color: var(--acc-muted);
+
+            font-size: 12px;
+        }
+
+
+        .h-notification-header button {
+            width: 34px;
+            height: 34px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 0;
+            border-radius: 8px;
+
+            background: transparent;
+            color: var(--acc-muted);
+
+            cursor: pointer;
+        }
+
+
+        .h-notification-header button:hover {
+            background: var(--acc-bg);
+        }
+
+
+        .h-notification-list {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+
+        .h-notification-item {
+            display: flex;
+
+            gap: 12px;
+
+            padding: 15px 17px;
+
+            border-bottom: 1px solid var(--acc-border);
+        }
+
+
+        .h-notification-icon {
+            width: 36px;
+            height: 36px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            flex-shrink: 0;
+
+            border-radius: 9px;
+
+            background: var(--acc-primary-soft);
+            color: var(--acc-primary);
+        }
+
+
+        .h-notification-content {
+            min-width: 0;
+        }
+
+
+        .h-notification-content strong {
+            display: block;
+
+            color: var(--acc-text);
+
+            font-size: 13px;
+        }
+
+
+        .h-notification-content p {
+            margin: 4px 0;
+
+            color: var(--acc-muted);
+
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+
+        .h-notification-content span {
+            color: var(--acc-muted);
+
+            font-size: 11px;
+        }
+
+
+        .h-empty-notification {
+            min-height: 160px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            padding: 25px;
+
+            color: var(--acc-muted);
+
+            text-align: center;
+        }
+
+
+        .h-empty-notification i {
+            margin-bottom: 10px;
+
+            font-size: 25px;
+        }
+
+
+        .h-empty-notification strong {
+            color: var(--acc-text);
+        }
+
+
+        .h-empty-notification span {
+            margin-top: 4px;
+
+            font-size: 12px;
+        }
+
+
+        /* ========================================================
+           DESKTOP NAVIGATION
+        ======================================================== */
+
+        .h-navbar-menu {
+            min-height: var(--acc-nav-height);
+
+            display: flex;
+            align-items: stretch;
+
+            gap: 4px;
+
+            padding: 0 28px;
+
+            background: var(--acc-card);
+        }
+
+
+        .h-nav-item {
+            display: flex;
+            align-items: stretch;
+        }
+
+
+        .h-nav-link {
+            position: relative;
+
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+
+            padding: 0 16px;
+
+            color: var(--acc-muted);
+
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+
+        .h-nav-link:hover {
+            color: var(--acc-primary);
+        }
+
+
+        .h-nav-link.active {
+            color: var(--acc-primary);
+        }
+
+
+        .h-nav-link.active::after {
+            content: "";
+
+            position: absolute;
+
+            left: 12px;
+            right: 12px;
+            bottom: 0;
+
+            height: 3px;
+
+            border-radius: 3px 3px 0 0;
+
+            background: var(--acc-primary);
+        }
+
+
+        .h-nav-link i {
+            font-size: 17px;
+        }
+
+
+        /* ========================================================
+   MAIN CONTENT
+   Accountant has NO desktop sidebar.
+   admio.css normally reserves space for a sidebar,
+   therefore we must explicitly cancel that offset.
+======================================================== */
+
+.admio-main {
+    width: 100% !important;
+    max-width: none !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    padding: 0 !important;
+
+    background: var(--acc-bg);
+
+    box-sizing: border-box;
+}
+
+.admio-content {
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 !important;
+
+    padding: 28px 30px 40px !important;
+
+    box-sizing: border-box;
+}
+
+/* Prevent padding/borders from increasing element width */
+.admio-main *,
+.admio-main *::before,
+.admio-main *::after {
+    box-sizing: border-box;
+}
+
+
+        /* ========================================================
+           FOOTER
+        ======================================================== */
+
+        .accountant-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            min-height: 60px;
+
+            padding: 15px 25px;
+
+            border-top: 1px solid var(--acc-border);
+
+            background: var(--acc-card);
+            color: var(--acc-muted);
+
+            font-size: 12px;
+        }
+
+
+       
+
+
+       
+
+
+       
+
+
+        
+
+
+        
+
+
+        .h-mobile-user > div {
+            min-width: 0;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .h-mobile-user strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: var(--acc-text);
+
+            font-size: 13px;
+        }
+
+
+        .h-mobile-user span {
+            margin-top: 3px;
+
+            color: var(--acc-muted);
+
+            font-size: 11px;
+        }
+
+
+       
+
+
+        .h-mobile-nav a {
+            display: flex;
+            align-items: center;
+
+            gap: 11px;
+
+            padding: 12px 13px;
+
+            margin-bottom: 4px;
+
+            border-radius: 9px;
+
+            color: var(--acc-muted);
+
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+
+        .h-mobile-nav a:hover,
+        .h-mobile-nav a.active {
+            background: var(--acc-primary-soft);
+            color: var(--acc-primary);
+        }
+
+
+        .h-mobile-nav a.danger {
+            color: #dc2626;
+        }
+
+
+        .h-mobile-divider {
+            height: 1px;
+
+            margin: 10px 0;
+
+            background: var(--acc-border);
+        }
+
+
+        /* ========================================================
+           BACK TO TOP
+        ======================================================== */
+
+        .back-to-top {
+            position: fixed;
+
+            right: 24px;
+            bottom: 24px;
+
+            z-index: 900;
+
+            width: 42px;
+            height: 42px;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: var(--acc-primary);
+            color: #ffffff;
+
+            box-shadow: var(--acc-shadow);
+
+            cursor: pointer;
+        }
+
+
+        .back-to-top.show {
+            display: flex;
+        }
+
+
+        /* ========================================================
+           RESPONSIVE
+        ======================================================== */
+
+        @media (max-width: 1100px) {
+
+            .h-topbar-search-wrap {
+                margin-left: 25px;
+            }
+
+        }
+
+
+        /* ============================================================
+   RESPONSIVE TOP NAVIGATION
+============================================================ */
+
+
+/* ============================================================
+   DESKTOP
+============================================================ */
+
+@media (min-width: 992px) {
+
+    .h-mobile-toggle {
+        display: none !important;
+    }
+
+    #accountantTopMenu {
+        display: flex !important;
+    }
+
+}
+
+
+/* ============================================================
+   TABLET / MOBILE
+============================================================ */
+
+@media (max-width: 991px) {
+
+    /* --------------------------------------------------------
+       TOP HEADER
+    -------------------------------------------------------- */
+
+    .h-navbar-top {
+        min-height: 68px;
+        padding: 0 16px;
+    }
+
+
+    /* --------------------------------------------------------
+       HAMBURGER
+    -------------------------------------------------------- */
+
+    .h-mobile-toggle {
+        display: flex !important;
+
+        align-items: center;
+        justify-content: center;
+
+        width: 42px;
+        height: 42px;
+
+        margin-right: 12px;
+
+        flex: 0 0 42px;
+
+        border: 1px solid var(--acc-border);
+        border-radius: 10px;
+
+        background: transparent;
+        color: var(--acc-text);
+
+        cursor: pointer;
+    }
+
+
+    .h-mobile-toggle:hover {
+        background: var(--acc-bg);
+    }
+
+
+    /* --------------------------------------------------------
+       SEARCH
+    -------------------------------------------------------- */
+
+    .h-topbar-search-wrap {
+        display: none;
+    }
+
+
+    /* --------------------------------------------------------
+       MODULE TEXT
+    -------------------------------------------------------- */
+
+    .h-brand-module {
+        display: none;
+    }
+
+
+    /* ========================================================
+       TOP MENU
+       Hidden until hamburger clicked
+    ======================================================== */
+
+    #accountantTopMenu {
+
+        display: none;
+
+        width: 100%;
+
+        min-height: 0;
+
+        padding: 10px 14px 14px;
+
+        flex-direction: column;
+        align-items: stretch;
+
+        gap: 2px;
+
+        background: var(--acc-card);
+
+        border-top: 1px solid var(--acc-border);
+        border-bottom: 1px solid var(--acc-border);
+
+        box-shadow:
+            0 10px 20px rgba(16, 24, 40, 0.06);
+    }
+
+
+    /* Hamburger clicked */
+
+    #accountantTopMenu.mobile-open {
+        display: flex !important;
+    }
+
+
+    /* --------------------------------------------------------
+       MENU ITEM
+    -------------------------------------------------------- */
+
+    #accountantTopMenu .h-nav-item {
+
+        display: block;
+
+        width: 100%;
+    }
+
+
+    #accountantTopMenu .h-nav-link {
+
+        position: relative;
+
+        display: flex;
+
+        align-items: center;
+
+        width: 100%;
+
+        min-height: 48px;
+
+        gap: 12px;
+
+        padding: 11px 14px;
+
+        border-radius: 9px;
+
+        color: var(--acc-muted);
+
+        font-size: 14px;
+        font-weight: 500;
+    }
+    /* ========================================================
+   MOBILE DROPDOWNS
+======================================================== */
+
+.h-nav-dropdown {
+    width: 100%;
+    display: block;
+}
+
+.h-nav-dropdown > .h-nav-link {
+    width: 100%;
+
+    justify-content: flex-start;
+
+    min-height: 46px;
+
+    padding: 10px 12px;
+}
+
+.h-nav-dropdown > .h-nav-link .h-nav-arrow {
+    margin-left: auto;
+}
+
+.h-nav-dropdown-menu,
+.h-nav-dropdown-menu-right {
+    position: static;
+
+    width: 100%;
+
+    margin: 3px 0 7px;
+
+    padding: 5px 0 5px 15px;
+
+    border: 0;
+    border-radius: 0;
+
+    background: transparent;
+
+    box-shadow: none;
+}
+
+.h-nav-dropdown.open > .h-nav-dropdown-menu {
+    display: block;
+}
+
+.h-dropdown-link {
+    padding: 9px 10px;
+}
+
+.h-dropdown-icon {
+    width: 32px;
+    height: 32px;
+
+    flex-basis: 32px;
+}
+
+.h-dropdown-copy strong {
+    font-size: 13px;
+}
+
+.h-dropdown-copy small {
+    display: none;
+}
+
+.h-dropdown-divider {
+    margin-left: 42px;
+}
+
+
+    #accountantTopMenu .h-nav-link i {
+
+        width: 20px;
+
+        flex: 0 0 20px;
+
+        text-align: center;
+
+        font-size: 17px;
+    }
+
+
+    #accountantTopMenu .h-nav-link:hover {
+
+        background: var(--acc-primary-soft);
+
+        color: var(--acc-primary);
+    }
+
+
+    #accountantTopMenu .h-nav-link.active {
+
+        background: var(--acc-primary-soft);
+
+        color: var(--acc-primary);
+    }
+
+
+    /* Desktop underline isn't appropriate here */
+
+    #accountantTopMenu
+    .h-nav-link.active::after {
+
+        display: none;
+    }
+
+
+    /* --------------------------------------------------------
+       CONTENT
+    -------------------------------------------------------- */
+
+    .admio-content {
+
+        width: 100% !important;
+
+        margin: 0 !important;
+
+        padding:
+            22px 18px 35px !important;
+    }
+
+}
+
+
+/* ============================================================
+   SMALL PHONE
+============================================================ */
+
+@media (max-width: 650px) {
+
+    .h-navbar-top {
+        min-height: 64px;
+        padding: 0 12px;
+    }
+
+
+    .h-mobile-toggle {
+
+        width: 40px;
+        height: 40px;
+
+        flex-basis: 40px;
+
+        margin-right: 9px;
+    }
+
+
+    .h-brand-logo {
+        width: 38px;
+        height: 38px;
+    }
+
+
+    .h-brand-name {
+        font-size: 16px;
+    }
+
+
+    .h-user-info,
+    .h-user-chevron,
+    .h-topbar-divider {
+        display: none;
+    }
+
+
+    .h-user-trigger {
+        padding: 0;
+    }
+
+
+    .h-notification-panel {
+
+        position: fixed;
+
+        top: 70px;
+        left: 12px;
+        right: 12px;
+
+        width: auto;
+    }
+
+
+    #accountantTopMenu {
+
+        padding:
+            8px 10px 12px;
+    }
+
+
+    #accountantTopMenu .h-nav-link {
+
+        min-height: 46px;
+
+        padding:
+            10px 12px;
+    }
+
+
+    .admio-content {
+
+        padding:
+            18px 12px 30px !important;
+    }
+
+}
+
+
+        @media (max-width: 650px) {
+
+            .h-navbar-top {
+                min-height: 64px;
+            }
+
+
+            .h-brand-logo {
+                width: 38px;
+                height: 38px;
+            }
+
+
+            .h-brand-name {
+                font-size: 16px;
+            }
+
+
+            .h-user-info,
+            .h-user-chevron,
+            .h-topbar-divider {
+                display: none;
+            }
+
+
+            .h-user-trigger {
+                padding: 0;
+            }
+
+
+            .h-notification-panel {
+                position: fixed;
+
+                top: 70px;
+                left: 12px;
+                right: 12px;
+
+                width: auto;
+            }
+
+
+            .admio-content {
+                padding: 18px 12px 30px;
+            }
+
+        }
+
+
+        body.accountant-menu-open {
+            overflow: hidden;
+        }
+
+
+
+
+
+        {% comment %} menu bar css start {% endcomment %}
+
+/* ============================================================
+   ACCOUNTANT NAVIGATION DROPDOWNS
+============================================================ */
+
+.h-nav-dropdown {
+    position: relative;
+}
+
+.h-nav-dropdown-toggle {
+    width: auto;
+
+    border: 0;
+    outline: 0;
+
+    background: transparent;
+
+    cursor: pointer;
+}
+
+.h-nav-arrow {
+    margin-left: 3px;
+
+    font-size: 10px !important;
+
+    transition: transform 0.2s ease;
+}
+
+.h-nav-dropdown.open .h-nav-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* ============================================================
+   DROPDOWN MENU
+============================================================ */
+
+.h-nav-dropdown-menu {
+    position: absolute;
+
+    top: calc(100% - 4px);
+    left: 0;
+
+    z-index: 1200;
+
+    width: 310px;
+
+    display: none;
+
+    padding: 8px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-card);
+
+    box-shadow:
+        0 12px 35px rgba(16, 24, 40, 0.14);
+}
+
+.h-nav-dropdown.open > .h-nav-dropdown-menu {
+    display: block;
+}
+
+.h-nav-dropdown-menu-right {
+    left: auto;
+    right: 0;
+}
+
+
+/* ============================================================
+   DROPDOWN LINK
+============================================================ */
+
+.h-dropdown-link {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 11px 12px;
+
+    border-radius: 9px;
+
+    color: var(--acc-text);
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.h-dropdown-link:hover {
+    background: var(--acc-bg);
+
+    color: var(--acc-primary);
+}
+
+
+/* ============================================================
+   ICON
+============================================================ */
+
+.h-dropdown-icon {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 36px;
+
+    border-radius: 9px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+}
+
+.h-dropdown-icon i {
+    font-size: 15px;
+}
+
+
+/* ============================================================
+   TEXT
+============================================================ */
+
+.h-dropdown-copy {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    line-height: 1.25;
+}
+
+.h-dropdown-copy strong {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.h-dropdown-copy small {
+    margin-top: 4px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.h-dropdown-link:hover .h-dropdown-copy strong {
+    color: var(--acc-primary);
+}
+
+
+/* ============================================================
+   DIVIDER
+============================================================ */
+
+.h-dropdown-divider {
+    height: 1px;
+
+    margin: 7px 5px;
+
+    background: var(--acc-border);
+}
+
+
+/* ============================================================
+   DANGER / LOGOUT
+============================================================ */
+
+.h-dropdown-danger,
+.h-dropdown-danger .h-dropdown-copy strong {
+    color: #dc2626;
+}
+
+.h-dropdown-danger .h-dropdown-icon {
+    background: rgba(220, 38, 38, 0.08);
+    color: #dc2626;
+}
+
+.h-dropdown-danger:hover {
+    background: rgba(220, 38, 38, 0.06);
+}
+
+.h-dropdown-danger:hover .h-dropdown-copy strong {
+    color: #dc2626;
+}
+
+
+/* ============================================================
+   ACTIVE GROUP
+============================================================ */
+
+.h-nav-dropdown > .h-nav-link.active,
+.h-nav-dropdown > .h-nav-link.active:hover {
+    color: var(--acc-primary);
+}
+
+.h-dropdown-link.active {
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+}
+
+.h-dropdown-link.active .h-dropdown-copy strong {
+    color: var(--acc-primary);
+}
+
+
+
+/* ============================================================
+   FINAL MOBILE DROPDOWN OVERRIDE
+   Must remain at the END of this stylesheet.
+============================================================ */
+
+@media (max-width: 991px) {
+
+    #accountantTopMenu .h-nav-dropdown {
+        position: relative;
+        width: 100%;
+        display: block;
+    }
+
+
+    #accountantTopMenu .h-nav-dropdown-menu,
+    #accountantTopMenu .h-nav-dropdown-menu-right {
+
+        position: static !important;
+
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+
+        width: 100% !important;
+
+        margin: 0 !important;
+        padding: 2px 0 6px 16px !important;
+
+        border: 0 !important;
+        border-radius: 0 !important;
+
+        background: transparent !important;
+
+        box-shadow: none !important;
+
+        display: none;
+    }
+
+
+    #accountantTopMenu
+    .h-nav-dropdown.open
+    > .h-nav-dropdown-menu {
+
+        display: block !important;
+    }
+
+
+    #accountantTopMenu .h-dropdown-link {
+
+        width: 100%;
+
+        display: flex;
+        align-items: center;
+
+        gap: 11px;
+
+        padding: 9px 12px;
+
+        margin: 2px 0;
+
+        border-radius: 8px;
+
+        background: transparent;
+
+        box-shadow: none;
+    }
+
+
+    #accountantTopMenu .h-dropdown-link:hover {
+
+        background: var(--acc-primary-soft);
+
+        color: var(--acc-primary);
+    }
+
+
+    #accountantTopMenu .h-dropdown-icon {
+
+        width: 34px;
+        height: 34px;
+
+        flex: 0 0 34px;
+
+        border-radius: 8px;
+    }
+
+
+    #accountantTopMenu .h-dropdown-copy {
+
+        flex: 1;
+    }
+
+
+    #accountantTopMenu .h-dropdown-copy small {
+
+        display: none;
+    }
+
+
+    #accountantTopMenu .h-nav-arrow {
+
+        margin-left: auto;
+    }
+}
+
+        {% comment %} menu bar css end  {% endcomment %}
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- ============================================================
+     ACCOUNTANT HEADER
+============================================================ -->
+
+<header class="h-navbar" id="accountantNavbar">
+
+
+    <!-- ========================================================
+         TOP BAR
+    ========================================================= -->
+
+    <div class="h-navbar-top">
+
+
+        <!-- MOBILE BUTTON -->
+
+<button
+    type="button"
+    class="h-mobile-toggle"
+    id="accountantMobileToggle"
+    aria-label="Open menu"
+    aria-expanded="false"
+>
+    <i class="icon-menu"></i>
+</button>
+
+
+        <!-- ====================================================
+             BRAND
+        ===================================================== -->
+
+        <a
+            href="{% url 'accountant_dashboard' %}"
+            class="h-navbar-brand"
+        >
+
+            <span class="h-brand-logo">
+
+                <img
+                    src="{% static 'accountant/assets/img/logo.svg' %}"
+                    alt="Hotel ERP"
+                    onerror="
+                        this.style.display='none';
+                        this.nextElementSibling.style.display='flex';
+                    "
+                >
+
+                <span
+                    class="h-brand-fallback"
+                    style="display:none;"
+                >
+                    <i class="icon-building"></i>
+                </span>
+
+            </span>
+
+
+            <span class="h-brand-copy">
+
+                <span class="h-brand-name">
+                    Hotel <strong>ERP</strong>
+                </span>
+
+                <span class="h-brand-module">
+                    Accounting
+                </span>
+
+            </span>
+
+        </a>
+
+
+        <!-- ====================================================
+             SEARCH
+        ===================================================== -->
+
+        <div class="h-topbar-search-wrap">
+
+            <div class="h-topbar-search">
+
+                <i class="icon-search"></i>
+
+                <input
+                    type="text"
+                    id="globalSearch"
+                    placeholder="Search dashboard, payroll, expenses..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             RIGHT ACTIONS
+        ===================================================== -->
+
+        <div class="h-topbar-actions">
+
+
+            <!-- THEME -->
+
+            <button
+                type="button"
+                class="h-header-btn"
+                id="themeToggle"
+                title="Toggle theme"
+                aria-label="Toggle theme"
+            >
+
+                <i
+                    class="icon-moon"
+                    id="themeIcon"
+                ></i>
+
+            </button>
+
+
+            <!-- =================================================
+                 NOTIFICATIONS
+            ================================================== -->
+
+            <div class="h-notification-wrapper">
+
+                <button
+                    type="button"
+                    class="h-header-btn"
+                    id="notifBtn"
+                    aria-label="Notifications"
+                >
+
+                    <i class="icon-bell"></i>
+
+                    {% if unread_notifications %}
+                        <span class="h-notification-dot"></span>
+                    {% endif %}
+
+                </button>
+
+
+                <div
+                    class="h-notification-panel"
+                    id="notifPanel"
+                >
+
+                    <div class="h-notification-header">
+
+                        <div>
+
+                            <h3>
+                                Notifications
+                            </h3>
+
+                            <span>
+                                Accounting updates
+                            </span>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            id="notifClose"
+                            aria-label="Close"
+                        >
+                            <i class="icon-x"></i>
+                        </button>
+
+                    </div>
+
+
+                    <div class="h-notification-list">
+
+                        {% if notifications %}
+
+                            {% for notification in notifications %}
+
+                                <div class="h-notification-item">
+
+                                    <div class="h-notification-icon">
+                                        <i class="icon-bell"></i>
+                                    </div>
+
+
+                                    <div class="h-notification-content">
+
+                                        <strong>
+                                            {{ notification.title|default:"Notification" }}
+                                        </strong>
+
+                                        <p>
+                                            {{ notification.message|default:"You have a new notification." }}
+                                        </p>
+
+                                        {% if notification.created_at %}
+
+                                            <span>
+                                                {{ notification.created_at|timesince }}
+                                                ago
+                                            </span>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="h-empty-notification">
+
+                                <i class="icon-bell"></i>
+
+                                <strong>
+                                    No new notifications
+                                </strong>
+
+                                <span>
+                                    You're all caught up.
+                                </span>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="h-topbar-divider"></div>
+
+
+            <!-- =================================================
+                 USER
+            ================================================== -->
+
+            <div class="h-user-wrapper">
+
+                <button
+                    type="button"
+                    class="h-user-trigger"
+                    id="accountantUserTrigger"
+                >
+
+                    <span class="h-user-avatar">
+
+                        {% if request.user.first_name %}
+
+                            {{ request.user.first_name|slice:":1"|upper }}
+
+                        {% elif request.user.username %}
+
+                            {{ request.user.username|slice:":1"|upper }}
+
+                        {% else %}
+
+                            A
+
+                        {% endif %}
+
+                    </span>
+
+
+                    <span class="h-user-info">
+
+                        <strong>
+
+                            {% if request.user.get_full_name %}
+
+                                {{ request.user.get_full_name }}
+
+                            {% else %}
+
+                                {{ request.user.username }}
+
+                            {% endif %}
+
+                        </strong>
+
+                        <small>
+                            Accountant
+                        </small>
+
+                    </span>
+
+
+                    <i class="icon-chevron-down h-user-chevron"></i>
+
+                </button>
+
+
+                <!-- USER DROPDOWN -->
+
+                <div
+                    class="h-user-menu"
+                    id="accountantUserMenu"
+                >
+
+                    <div class="h-user-menu-header">
+
+                        <span class="h-user-avatar h-user-avatar-lg">
+
+                            {% if request.user.first_name %}
+
+                                {{ request.user.first_name|slice:":1"|upper }}
+
+                            {% elif request.user.username %}
+
+                                {{ request.user.username|slice:":1"|upper }}
+
+                            {% else %}
+
+                                A
+
+                            {% endif %}
+
+                        </span>
+
+
+                        <div>
+
+                            <strong>
+
+                                {% if request.user.get_full_name %}
+
+                                    {{ request.user.get_full_name }}
+
+                                {% else %}
+
+                                    {{ request.user.username }}
+
+                                {% endif %}
+
+                            </strong>
+
+                            <span>
+                                {{ request.user.email|default:"Accountant" }}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="h-user-menu-body">
+
+                        <a href="{% url 'accountant_profile' %}">
+
+                            <i class="icon-circle-user"></i>
+
+                            <span>
+                                My Profile
+                            </span>
+
+                        </a>
+
+
+                        <div class="h-menu-divider"></div>
+
+
+                        <a
+                            href="{% url 'staff_logout' %}"
+                            class="danger"
+                        >
+
+                            <i class="icon-log-out"></i>
+
+                            <span>
+                                Sign Out
+                            </span>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DESKTOP NAVIGATION
+    ========================================================= -->
+
+   <!-- ============================================================
+     MAIN TOP NAVIGATION
+============================================================ -->
+
+<!-- ============================================================
+     MAIN TOP NAVIGATION
+============================================================ -->
+
+<nav class="h-navbar-menu" id="accountantTopMenu">
+
+    <!-- ========================================================
+         DASHBOARD
+    ========================================================= -->
+
+    <div class="h-nav-item">
+        <a
+            href="{% url 'accountant_dashboard' %}"
+            class="h-nav-link {% block nav_dashboard %}{% endblock %}"
+        >
+            <i class="fas fa-gauge-high"></i>
+            <span>Dashboard</span>
+        </a>
+    </div>
+
+
+    <!-- ========================================================
+         FINANCE
+    ========================================================= -->
+
+    <div class="h-nav-item h-nav-dropdown">
+
+        <button
+            type="button"
+            class="h-nav-link h-nav-dropdown-toggle
+                   {% block nav_finance %}{% endblock %}"
+            aria-expanded="false"
+        >
+            <i class="fas fa-wallet"></i>
+
+            <span>Finance</span>
+
+            <i class="fas fa-chevron-down h-nav-arrow"></i>
+        </button>
+
+
+        <div class="h-nav-dropdown-menu">
+
+            <!-- INVOICES -->
+           <a
+    href="{% url 'accountant_invoices' %}"
+    class="h-dropdown-link
+    {% if request.resolver_match.url_name == 'accountant_invoices' %}
+        active
+    {% endif %}"
+>
+    <span class="h-dropdown-icon">
+        <i class="fas fa-file-invoice"></i>
+    </span>
+
+    <span class="h-dropdown-copy">
+        <strong>Invoices</strong>
+        <small>View and manage invoices</small>
+    </span>
+</a>
+
+
+            <!-- PAYMENTS -->
+<a
+    href="{% url 'accountant_payments' %}"
+    class="h-dropdown-link
+    {% if request.resolver_match.url_name == 'accountant_payments' %}
+        active
+    {% endif %}"
+>
+    <span class="h-dropdown-icon">
+        <i class="fas fa-credit-card"></i>
+    </span>
+
+    <span class="h-dropdown-copy">
+        <strong>Payments</strong>
+        <small>View payment transactions</small>
+    </span>
+</a>
+
+
+            <!-- COLLECTIONS -->
+<a
+    href="{% url 'accountant_collections' %}"
+    class="h-dropdown-link
+    {% if request.resolver_match.url_name == 'accountant_collections' %}
+        active
+    {% endif %}"
+>
+    <span class="h-dropdown-icon">
+        <i class="fas fa-hand-holding-dollar"></i>
+    </span>
+
+    <span class="h-dropdown-copy">
+
+        <strong>
+            Collections
+        </strong>
+
+        <small>
+            Outstanding & collections
+        </small>
+
+    </span>
+</a>
+
+
+            <div class="h-dropdown-divider"></div>
+
+
+            <!-- EXPENSES -->
+            <a
+                href="{% url 'expense_report' %}"
+                class="h-dropdown-link"
+            >
+                <span class="h-dropdown-icon">
+                    <i class="fas fa-receipt"></i>
+                </span>
+
+                <span class="h-dropdown-copy">
+                    <strong>Expenses</strong>
+                    <small>Manage hotel expenses</small>
+                </span>
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PAYROLL
+    ========================================================= -->
+
+    <div class="h-nav-item h-nav-dropdown">
+
+        <button
+            type="button"
+            class="h-nav-link h-nav-dropdown-toggle
+                   {% block nav_payroll_group %}{% endblock %}"
+            aria-expanded="false"
+        >
+            <i class="fas fa-money-check-dollar"></i>
+
+            <span>Payroll</span>
+
+            <i class="fas fa-chevron-down h-nav-arrow"></i>
+        </button>
+
+
+        <div class="h-nav-dropdown-menu">
+
+            <!-- PAYROLL MANAGEMENT -->
+            <a
+                href="{% url 'payroll_management' %}"
+                class="h-dropdown-link"
+            >
+                <span class="h-dropdown-icon">
+                    <i class="fas fa-users-gear"></i>
+                </span>
+
+                <span class="h-dropdown-copy">
+                    <strong>Payroll Management</strong>
+                    <small>Manage staff payroll</small>
+                </span>
+            </a>
+
+
+            <!-- MY PAYROLL -->
+<a
+    href="{% url 'accountant_my_payroll' %}"
+    class="h-dropdown-link"
+>
+    <span class="h-dropdown-icon">
+        <i class="fas fa-money-bill-wave"></i>
+    </span>
+
+    <span class="h-dropdown-copy">
+        <strong>My Payroll</strong>
+        <small>View my salary & payslips</small>
+    </span>
+</a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+     REPORTS
+========================================================= -->
+
+<div class="h-nav-item h-nav-dropdown">
+
+    <button
+        type="button"
+        class="h-nav-link h-nav-dropdown-toggle {% if request.resolver_match.url_name == 'accountant_reports' or request.resolver_match.url_name == 'accountant_revenue_report' or request.resolver_match.url_name == 'accountant_expense_report_page' or request.resolver_match.url_name == 'accountant_payroll_report' or request.resolver_match.url_name == 'accountant_tax_report' %}active{% endif %}"
+        aria-expanded="false"
+    >
+        <i class="fas fa-chart-column"></i>
+
+        <span>Reports</span>
+
+        <i class="fas fa-chevron-down h-nav-arrow"></i>
+    </button>
+
+
+    <div class="h-nav-dropdown-menu">
+
+        <!-- ================================================
+             FINANCIAL OVERVIEW
+        ================================================= -->
+
+        <a
+            href="{% url 'accountant_reports' %}"
+            class="h-dropdown-link {% if request.resolver_match.url_name == 'accountant_reports' %}active{% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-chart-pie"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Financial Overview</strong>
+                <small>Complete financial performance</small>
+            </span>
+        </a>
+
+
+        <!-- ================================================
+             REVENUE REPORT
+        ================================================= -->
+
+        <a
+            href="{% url 'accountant_revenue_report' %}"
+            class="h-dropdown-link {% if request.resolver_match.url_name == 'accountant_revenue_report' %}active{% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-arrow-trend-up"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Revenue Report</strong>
+                <small>Revenue and payment analysis</small>
+            </span>
+        </a>
+
+
+        <!-- ================================================
+             EXPENSE REPORT
+        ================================================= -->
+
+        <a
+            href="{% url 'accountant_expense_report_page' %}"
+            class="h-dropdown-link {% if request.resolver_match.url_name == 'accountant_expense_report_page' %}active{% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-receipt"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Expense Report</strong>
+                <small>Expense and cost analysis</small>
+            </span>
+        </a>
+
+
+        <!-- ================================================
+             PAYROLL REPORT
+        ================================================= -->
+
+        <a
+            href="{% url 'accountant_payroll_report' %}"
+            class="h-dropdown-link {% if request.resolver_match.url_name == 'accountant_payroll_report' %}active{% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-money-check-dollar"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Payroll Report</strong>
+                <small>Salary and payroll analysis</small>
+            </span>
+        </a>
+
+
+        <div class="h-dropdown-divider"></div>
+
+
+        <!-- ================================================
+             TAX REPORT
+        ================================================= -->
+
+        <a
+            href="{% url 'accountant_tax_report' %}"
+            class="h-dropdown-link {% if request.resolver_match.url_name == 'accountant_tax_report' %}active{% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-file-invoice-dollar"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Tax Report</strong>
+                <small>Tax and financial summary</small>
+            </span>
+        </a>
+
+    </div>
+
+</div>
+
+
+    <!-- ========================================================
+         MY WORK
+    ========================================================= -->
+
+<div class="h-nav-item h-nav-dropdown">
+
+    <button
+        type="button"
+        class="h-nav-link h-nav-dropdown-toggle
+               {% block nav_mywork %}{% endblock %}"
+        aria-expanded="false"
+    >
+        <i class="fas fa-briefcase"></i>
+
+        <span>My Work</span>
+
+        <i class="fas fa-chevron-down h-nav-arrow"></i>
+    </button>
+
+
+    <div class="h-nav-dropdown-menu">
+
+        <!-- ATTENDANCE -->
+        <a
+            href="{% url 'accountant_my_attendance' %}"
+            class="h-dropdown-link
+            {% if request.resolver_match.url_name == 'accountant_my_attendance' %}
+                active
+            {% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-calendar-check"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Attendance</strong>
+                <small>Clock in and attendance history</small>
+            </span>
+        </a>
+
+
+        <!-- MY SHIFTS -->
+        <a
+            href="{% url 'accountant_my_shift' %}"
+            class="h-dropdown-link
+            {% if request.resolver_match.url_name == 'accountant_my_shift' %}
+                active
+            {% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-clock"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>My Shifts</strong>
+                <small>Weekly work schedule</small>
+            </span>
+        </a>
+
+
+        <!-- LEAVE -->
+        <a
+            href="{% url 'accountant_my_leave' %}"
+            class="h-dropdown-link
+            {% if request.resolver_match.url_name == 'accountant_my_leave' %}
+                active
+            {% endif %}"
+        >
+            <span class="h-dropdown-icon">
+                <i class="fas fa-plane-departure"></i>
+            </span>
+
+            <span class="h-dropdown-copy">
+                <strong>Leave</strong>
+                <small>Apply and track leave</small>
+            </span>
+        </a>
+
+    </div>
+
+</div>
+
+
+    <!-- ========================================================
+         ACCOUNT
+    ========================================================= -->
+
+    <div class="h-nav-item h-nav-dropdown">
+
+        <button
+            type="button"
+            class="h-nav-link h-nav-dropdown-toggle
+                   {% block nav_account %}{% endblock %}"
+            aria-expanded="false"
+        >
+            <i class="fas fa-circle-user"></i>
+
+            <span>Account</span>
+
+            <i class="fas fa-chevron-down h-nav-arrow"></i>
+        </button>
+
+
+        <div class="h-nav-dropdown-menu h-nav-dropdown-menu-right">
+
+            <!-- PROFILE -->
+            <a
+                href="{% url 'accountant_profile' %}"
+                class="h-dropdown-link"
+            >
+                <span class="h-dropdown-icon">
+                    <i class="fas fa-user"></i>
+                </span>
+
+                <span class="h-dropdown-copy">
+                    <strong>Profile</strong>
+                    <small>Personal information</small>
+                </span>
+            </a>
+
+
+            <div class="h-dropdown-divider"></div>
+
+
+            <!-- LOGOUT -->
+            <a
+                href="{% url 'staff_logout' %}"
+                class="h-dropdown-link h-dropdown-danger"
+            >
+                <span class="h-dropdown-icon">
+                    <i class="fas fa-right-from-bracket"></i>
+                </span>
+
+                <span class="h-dropdown-copy">
+                    <strong>Sign Out</strong>
+                    <small>Logout from your account</small>
+                </span>
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+</header>
+
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+
+<div
+    class="admio-main"
+    id="admioMain"
+>
+
+    <main class="admio-content">
+
+        {% block content %}
+        {% endblock %}
+
+    </main>
+
+</div>
+
+
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+
+<footer class="accountant-footer">
+
+    <span>
+
+        &copy; {% now "Y" %}
+
+        <strong>
+            Hotel ERP
+        </strong>
+
+        · Accounting Module
+
+    </span>
+
+</footer>
+
+
+
+<!-- ============================================================
+     BACK TO TOP
+============================================================ -->
+
+<button
+    type="button"
+    class="back-to-top"
+    id="backToTop"
+    aria-label="Back to top"
+>
+
+    <i class="icon-chevron-up"></i>
+
+</button>
+
+
+
+<!-- ============================================================
+     JAVASCRIPT FILES
+============================================================ -->
+
+<script
+    src="{% static 'accountant/assets/js/vendor/bootstrap.bundle.min.js' %}"
+></script>
+
+<script
+    src="{% static 'accountant/assets/js/vendor/chart.umd.min.js' %}"
+></script>
+
+<script
+    src="{% static 'accountant/assets/js/admio.js' %}"
+></script>
+
+<script
+    src="{% static 'accountant/assets/js/charts.js' %}"
+></script>
+
+
+
+<!-- ============================================================
+     ACCOUNTANT BASE JAVASCRIPT
+============================================================ -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    "use strict";
+
+    const html = document.documentElement;
+
+    const mobileToggle =
+        document.getElementById("accountantMobileToggle");
+
+    const topMenu =
+        document.getElementById("accountantTopMenu");
+
+    const userTrigger =
+        document.getElementById("accountantUserTrigger");
+
+    const userMenu =
+        document.getElementById("accountantUserMenu");
+
+    const notifBtn =
+        document.getElementById("notifBtn");
+
+    const notifPanel =
+        document.getElementById("notifPanel");
+
+    const notifClose =
+        document.getElementById("notifClose");
+
+    const themeToggle =
+        document.getElementById("themeToggle");
+
+    const themeIcon =
+        document.getElementById("themeIcon");
+
+    const globalSearch =
+        document.getElementById("globalSearch");
+
+    const backToTop =
+        document.getElementById("backToTop");
+
+
+    /* ============================================================
+       TOP MENU
+    ============================================================ */
+
+    function openTopMenu() {
+
+        if (!topMenu) return;
+
+        topMenu.classList.add("mobile-open");
+
+        if (mobileToggle) {
+
+            mobileToggle.setAttribute(
+                "aria-expanded",
+                "true"
+            );
+
+            mobileToggle.setAttribute(
+                "aria-label",
+                "Close menu"
+            );
+        }
+    }
+
+
+    function closeTopMenu() {
+
+    if (!topMenu) return;
+
+    /* Close the complete mobile navigation */
+    topMenu.classList.remove("mobile-open");
+
+
+    /* Reset every submenu */
+    topMenu
+        .querySelectorAll(".h-nav-dropdown.open")
+        .forEach(function (dropdown) {
+
+            dropdown.classList.remove("open");
+
+            const button =
+                dropdown.querySelector(
+                    ":scope > .h-nav-dropdown-toggle"
+                );
+
+            if (button) {
+
+                button.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            }
+
+        });
+
+
+    /* Reset hamburger accessibility state */
+    if (mobileToggle) {
+
+        mobileToggle.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+        mobileToggle.setAttribute(
+            "aria-label",
+            "Open menu"
+        );
+
+    }
+}
+
+
+    function toggleTopMenu() {
+
+        if (!topMenu) return;
+
+        if (
+            topMenu.classList.contains("mobile-open")
+        ) {
+            closeTopMenu();
+        } else {
+            openTopMenu();
+        }
+    }
+
+
+    /* ============================================================
+       HAMBURGER
+    ============================================================ */
+
+    if (mobileToggle && topMenu) {
+
+        mobileToggle.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                toggleTopMenu();
+
+                if (userMenu) {
+                    userMenu.classList.remove("show");
+                }
+
+                if (notifPanel) {
+                    notifPanel.classList.remove("show");
+                }
+            }
+        );
+    }
+
+
+    /* ============================================================
+   NAVIGATION LINKS
+   Close mobile menu ONLY when a real page link is clicked.
+   Do NOT close it when a dropdown button is clicked.
+============================================================ */
+
+if (topMenu) {
+
+    const pageLinks =
+        topMenu.querySelectorAll(
+            "a.h-nav-link, a.h-dropdown-link"
+        );
+
+    pageLinks.forEach(function (link) {
+
+        link.addEventListener(
+            "click",
+            function () {
+
+                /*
+                 * Temporary href="#" items do not navigate,
+                 * so don't close the whole menu for them.
+                 */
+                const href =
+                    this.getAttribute("href");
+
+                if (
+                    window.innerWidth <= 991 &&
+                    href &&
+                    href !== "#"
+                ) {
+                    closeTopMenu();
+                }
+
+            }
+        );
+
+    });
+}
+
+
+    /* ============================================================
+       USER MENU
+    ============================================================ */
+
+    if (userTrigger && userMenu) {
+
+        userTrigger.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                userMenu.classList.toggle("show");
+
+                if (notifPanel) {
+                    notifPanel.classList.remove("show");
+                }
+
+                if (window.innerWidth <= 991) {
+                    closeTopMenu();
+                }
+            }
+        );
+    }
+
+
+    /* ============================================================
+       NOTIFICATION
+    ============================================================ */
+
+    if (notifBtn && notifPanel) {
+
+        notifBtn.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                notifPanel.classList.toggle("show");
+
+                if (userMenu) {
+                    userMenu.classList.remove("show");
+                }
+
+                if (window.innerWidth <= 991) {
+                    closeTopMenu();
+                }
+            }
+        );
+    }
+
+
+    if (notifClose && notifPanel) {
+
+        notifClose.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                notifPanel.classList.remove("show");
+            }
+        );
+    }
+
+
+    /* ============================================================
+       OUTSIDE CLICK
+    ============================================================ */
+
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                userMenu &&
+                userTrigger &&
+                !userMenu.contains(event.target) &&
+                !userTrigger.contains(event.target)
+            ) {
+                userMenu.classList.remove("show");
+            }
+
+
+            if (
+                notifPanel &&
+                notifBtn &&
+                !notifPanel.contains(event.target) &&
+                !notifBtn.contains(event.target)
+            ) {
+                notifPanel.classList.remove("show");
+            }
+
+
+            if (
+                window.innerWidth <= 991 &&
+                topMenu &&
+                mobileToggle &&
+                topMenu.classList.contains("mobile-open") &&
+                !topMenu.contains(event.target) &&
+                !mobileToggle.contains(event.target)
+            ) {
+                closeTopMenu();
+            }
+        }
+    );
+
+
+    /* ============================================================
+   NAVIGATION DROPDOWNS
+============================================================ */
+
+const navDropdowns =
+    document.querySelectorAll(".h-nav-dropdown");
+
+
+function closeNavDropdowns(except = null) {
+
+    navDropdowns.forEach(function (dropdown) {
+
+        if (dropdown === except) {
+            return;
+        }
+
+        dropdown.classList.remove("open");
+
+        const button =
+            dropdown.querySelector(
+                ":scope > .h-nav-dropdown-toggle"
+            );
+
+        if (button) {
+            button.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+        }
+
+    });
+
+}
+
+
+navDropdowns.forEach(function (dropdown) {
+
+    const button =
+        dropdown.querySelector(
+            ":scope > .h-nav-dropdown-toggle"
+        );
+
+    if (!button) {
+        return;
+    }
+
+
+    button.addEventListener(
+    "click",
+    function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const isOpen =
+            dropdown.classList.contains("open");
+
+
+        /*
+         * Close every other dropdown first.
+         */
+        closeNavDropdowns(dropdown);
+
+
+        /*
+         * Toggle only the dropdown that was clicked.
+         */
+        if (isOpen) {
+
+            dropdown.classList.remove("open");
+
+            button.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+
+        } else {
+
+            dropdown.classList.add("open");
+
+            button.setAttribute(
+                "aria-expanded",
+                "true"
+            );
+
+        }
+
+    }
+);
+
+});
+
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            !event.target.closest(
+                ".h-nav-dropdown"
+            )
+        ) {
+            closeNavDropdowns();
+        }
+
+    }
+);
+
+
+/* ============================================================
+   TEMPORARY MENU ITEMS
+   These pages will be connected one by one later.
+============================================================ */
+
+document
+    .querySelectorAll("[data-coming-soon]")
+    .forEach(function (link) {
+
+        link.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                const page =
+                    this.getAttribute(
+                        "data-coming-soon"
+                    );
+
+                console.log(
+                    page +
+                    " page will be connected next."
+                );
+
+            }
+        );
+
+    });
+
+
+    /* ============================================================
+       THEME
+    ============================================================ */
+
+    let savedTheme =
+        localStorage.getItem("accountant-theme");
+
+
+    if (
+        savedTheme !== "dark" &&
+        savedTheme !== "light"
+    ) {
+        savedTheme = "light";
+    }
+
+
+    function setTheme(theme) {
+
+        html.setAttribute(
+            "data-theme",
+            theme
+        );
+
+        localStorage.setItem(
+            "accountant-theme",
+            theme
+        );
+
+
+        if (!themeIcon) return;
+
+
+        if (theme === "dark") {
+
+            themeIcon.classList.remove(
+                "icon-moon"
+            );
+
+            themeIcon.classList.add(
+                "icon-sun"
+            );
+
+        } else {
+
+            themeIcon.classList.remove(
+                "icon-sun"
+            );
+
+            themeIcon.classList.add(
+                "icon-moon"
+            );
+        }
+    }
+
+
+    setTheme(savedTheme);
+
+
+    if (themeToggle) {
+
+        themeToggle.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                const current =
+                    html.getAttribute("data-theme");
+
+                setTheme(
+                    current === "dark"
+                        ? "light"
+                        : "dark"
+                );
+            }
+        );
+    }
+
+
+    /* ============================================================
+       GLOBAL SEARCH
+    ============================================================ */
+
+    if (globalSearch) {
+
+        globalSearch.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+
+                const query =
+                    this.value
+                        .trim()
+                        .toLowerCase();
+
+
+                if (!query) return;
+
+
+                if (
+                    query.includes("payroll") ||
+                    query.includes("salary")
+                ) {
+
+                    window.location.href =
+                        "{% url 'payroll_management' %}";
+
+                    return;
+                }
+
+
+                if (
+                    query.includes("expense")
+                ) {
+
+                    window.location.href =
+                        "{% url 'expense_report' %}";
+
+                    return;
+                }
+
+
+                if (
+                    query.includes("profile") ||
+                    query.includes("account")
+                ) {
+
+                    window.location.href =
+                        "{% url 'accountant_profile' %}";
+
+                    return;
+                }
+
+
+                if (
+                    query.includes("dashboard") ||
+                    query.includes("finance") ||
+                    query.includes("revenue") ||
+                    query.includes("accounting")
+                ) {
+
+                    window.location.href =
+                        "{% url 'accountant_dashboard' %}";
+
+                    return;
+                }
+            }
+        );
+    }
+
+
+    /* ============================================================
+       KEYBOARD
+    ============================================================ */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                (
+                    event.ctrlKey ||
+                    event.metaKey
+                ) &&
+                event.key.toLowerCase() === "k"
+            ) {
+
+                event.preventDefault();
+
+                if (globalSearch) {
+                    globalSearch.focus();
+                }
+            }
+
+
+            if (event.key === "Escape") {
+
+    closeTopMenu();
+    closeNavDropdowns();
+
+    if (userMenu) {
+        userMenu.classList.remove("show");
+    }
+
+    if (notifPanel) {
+        notifPanel.classList.remove("show");
+    }
+}
+        }
+    );
+
+
+    /* ============================================================
+       BACK TO TOP
+    ============================================================ */
+
+    if (backToTop) {
+
+        function updateBackToTop() {
+
+            if (window.scrollY > 300) {
+
+                backToTop.classList.add("show");
+
+            } else {
+
+                backToTop.classList.remove("show");
+            }
+        }
+
+
+        window.addEventListener(
+            "scroll",
+            updateBackToTop,
+            { passive: true }
+        );
+
+
+        backToTop.addEventListener(
+            "click",
+            function () {
+
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+            }
+        );
+
+
+        updateBackToTop();
+    }
+
+
+    /* ============================================================
+       RESIZE
+    ============================================================ */
+
+    window.addEventListener(
+        "resize",
+        function () {
+
+            if (window.innerWidth >= 992) {
+                closeTopMenu();
+            }
+        }
+    );
+
+
+    /* ============================================================
+       INITIAL STATE
+    ============================================================ */
+
+    if (window.innerWidth >= 992) {
+        closeTopMenu();
+    }
+
+});
+</script>
+
+
+<!-- ============================================================
+     CHILD PAGE JAVASCRIPT
+============================================================ -->
+
+{% block extra_js %}
+{% endblock %}
+
+</body>
+</html>

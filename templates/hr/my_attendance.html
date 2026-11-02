@@ -1,0 +1,2981 @@
+{% extends "hr/base.html" %}
+{% load static %}
+
+{% block title %}My Attendance{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ============================================================
+   MY ATTENDANCE DASHBOARD
+============================================================ */
+.att-page {
+    --att-primary: #6d4aff;
+    --att-primary-soft: #f1edff;
+    --att-border: #e7eaf0;
+    --att-muted: #7b8497;
+    --att-bg: #f7f8fc;
+    --att-card: var(--bs-body-bg, #fff);
+    padding: 26px 28px 34px;
+    background: var(--att-bg);
+    min-height: calc(100vh - 120px);
+}
+
+.att-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 30px;
+    margin-bottom: 22px;
+    border-radius: 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #6842ef 0%, #8158f6 52%, #9b70ff 100%);
+    box-shadow: 0 16px 38px rgba(109,74,255,.20);
+}
+.att-hero::after {
+    content: "";
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    right: -70px;
+    top: -125px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.10);
+}
+.att-hero-copy, .att-month-form { position: relative; z-index: 1; }
+.att-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: .9;
+}
+.att-hero h2 { margin: 0 0 7px; font-size: 27px; font-weight: 800; }
+.att-hero p { margin: 0; font-size: 13px; opacity: .86; }
+.att-month-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(8px);
+}
+.att-month-form .form-control {
+    min-width: 190px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 9px;
+    background: #fff;
+}
+.att-month-form .btn {
+    min-height: 40px;
+    padding-inline: 18px;
+    border: 0;
+    border-radius: 9px;
+    background: #17142a;
+    color: #fff;
+    font-weight: 700;
+}
+
+.att-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+.att-stat {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 112px;
+    padding: 18px;
+    border: 1px solid var(--att-border);
+    border-radius: 17px;
+    background: var(--att-card);
+    box-shadow: 0 7px 22px rgba(15,23,42,.045);
+}
+.att-stat-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 19px;
+}
+.att-stat.present .att-stat-icon { color:#0f9f67; background:#e9fbf3; }
+.att-stat.late .att-stat-icon { color:#e69b12; background:#fff7df; }
+.att-stat.half .att-stat-icon { color:#2f7ef7; background:#edf4ff; }
+.att-stat.absent .att-stat-icon { color:#e33b58; background:#ffedf0; }
+.att-stat.overtime .att-stat-icon { color:#7545e8; background:#f1ebff; }
+.att-stat-label { color:var(--att-muted); font-size:11px; font-weight:600; }
+.att-stat-value { margin-top:2px; font-size:25px; line-height:1.1; font-weight:800; }
+.att-stat-note { margin-top:4px; color:#9aa2b1; font-size:10px; }
+
+.att-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(380px, .85fr);
+    gap: 18px;
+    align-items: start;
+}
+.att-panel {
+    overflow: hidden;
+    border: 1px solid var(--att-border);
+    border-radius: 18px;
+    background: var(--att-card);
+    box-shadow: 0 8px 26px rgba(15,23,42,.05);
+}
+.att-panel-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:15px;
+    padding:18px 20px;
+    border-bottom:1px solid var(--att-border);
+}
+.att-panel-title { display:flex; align-items:center; gap:11px; }
+.att-panel-title-icon {
+    width:38px; height:38px; display:grid; place-items:center;
+    border-radius:11px; background:var(--att-primary-soft); color:var(--att-primary);
+}
+.att-panel-title h5 { margin:0 0 2px; font-size:15px; font-weight:800; }
+.att-panel-title p { margin:0; color:var(--att-muted); font-size:11px; }
+
+.today-body { padding:24px; }
+.today-person {
+    display:flex; align-items:center; gap:14px;
+    padding-bottom:22px; margin-bottom:22px;
+    border-bottom:1px solid var(--att-border);
+}
+.today-avatar {
+    width:58px; height:58px; flex:0 0 58px; display:grid; place-items:center;
+    border-radius:50%; background:#e9f2ff; color:#2f7ef7; font-size:21px;
+}
+.today-kicker { color:var(--att-muted); font-size:10px; font-weight:700; text-transform:uppercase; }
+.today-date { margin:2px 0 3px; font-size:18px; font-weight:800; }
+.today-shift { color:var(--att-muted); font-size:12px; }
+.today-times {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:22px;
+}
+.today-time {
+    padding:15px 12px;
+    text-align:center;
+    border:1px solid var(--att-border);
+    border-radius:13px;
+    background:#fafbfe;
+}
+.today-time span { display:block; margin-bottom:5px; color:var(--att-muted); font-size:10px; }
+.today-time strong { font-size:14px; }
+.today-action .btn {
+    min-height:43px; padding:0 19px; border-radius:10px; font-size:12px; font-weight:700;
+}
+.today-complete {
+    display:inline-flex; align-items:center; gap:7px; padding:11px 15px;
+    border-radius:10px; color:#087a51; background:#e9fbf3; font-size:12px; font-weight:700;
+}
+
+.history-tools { display:flex; align-items:center; gap:8px; }
+.history-tools .form-select { min-width:130px; border-radius:9px; font-size:12px; }
+.att-table { margin:0; }
+.att-table thead th {
+    padding:12px 16px; border-bottom:1px solid var(--att-border);
+    color:var(--att-muted); background:#fafbfe; font-size:10px; font-weight:700; white-space:nowrap;
+}
+.att-table tbody td {
+    padding:14px 16px; border-color:var(--att-border); font-size:12px; vertical-align:middle;
+}
+.att-date-main { font-weight:700; }
+.att-date-day { color:var(--att-muted); font-size:10px; }
+.att-badge {
+    display:inline-flex; align-items:center; padding:5px 9px;
+    border-radius:999px; font-size:10px; font-weight:700;
+}
+.att-badge.present { color:#087a51; background:#e9fbf3; }
+.att-badge.late { color:#a36b00; background:#fff4d6; }
+.att-badge.half { color:#6541cc; background:#f0eaff; }
+.att-badge.absent { color:#c82c47; background:#ffedf0; }
+.att-badge.other { color:#596273; background:#eef1f5; }
+.att-empty { padding:45px 20px !important; text-align:center; color:var(--att-muted); }
+
+/* ============================================================
+   FACE CHECK MODAL
+============================================================ */
+.face-check-modal {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    padding:20px; background:rgba(15,23,42,.72); backdrop-filter:blur(5px); z-index:99999;
+}
+.face-check-modal.active { display:flex; }
+.face-check-dialog {
+    width:100%; max-width:520px; overflow:hidden; border-radius:18px;
+    background:var(--bs-body-bg,#fff); box-shadow:0 25px 70px rgba(0,0,0,.28);
+}
+.face-check-header {
+    display:flex; align-items:center; justify-content:space-between; gap:15px;
+    padding:20px 22px; border-bottom:1px solid rgba(148,163,184,.20);
+}
+.face-check-heading { display:flex; align-items:center; gap:13px; }
+.face-check-icon {
+    width:45px; height:45px; flex:0 0 45px; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; background:rgba(37,99,235,.12); color:#2563eb; font-size:18px;
+}
+.face-check-heading h3 { margin:0 0 3px; font-size:17px; font-weight:700; }
+.face-check-heading p { margin:0; color:#64748b; font-size:12px; }
+.face-check-close {
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    border:0; border-radius:10px; background:rgba(148,163,184,.10); color:#64748b; cursor:pointer;
+}
+.face-camera-container {
+    position:relative; width:calc(100% - 44px); height:360px; margin:22px auto 0;
+    overflow:hidden; border:3px solid transparent; border-radius:18px; background:#020617;
+    transition:border-color .2s ease,box-shadow .2s ease;
+}
+.face-camera-container.ok { border-color:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.12); }
+.face-camera-container.bad { border-color:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.12); }
+.face-camera-container video { width:100%; height:100%; display:block; object-fit:cover; transform:scaleX(-1); }
+.face-camera-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.face-camera-oval {
+    width:210px; height:270px; border:3px solid rgba(255,255,255,.85); border-radius:50%;
+    box-shadow:0 0 0 999px rgba(0,0,0,.20);
+}
+.face-camera-label {
+    position:absolute; top:14px; left:14px; display:flex; align-items:center; gap:6px;
+    padding:7px 10px; border-radius:20px; background:rgba(15,23,42,.70); color:#fff; font-size:11px;
+}
+.face-check-status {
+    display:flex; align-items:center; gap:9px; margin:16px 22px 0; padding:12px 14px;
+    border-radius:10px; background:#eff6ff; color:#2563eb; font-size:12px; font-weight:600;
+}
+.face-check-status.loading { background:#eff6ff; color:#2563eb; }
+.face-check-status.success { background:#ecfdf5; color:#059669; }
+.face-check-status.error { background:#fef2f2; color:#dc2626; }
+.face-check-help { padding:17px 22px 22px; color:#64748b; font-size:11px; line-height:1.8; }
+.face-check-help i { width:18px; color:#2563eb; }
+.wrong-face-box { max-width:410px; padding:35px; text-align:center; }
+.wrong-face-icon {
+    width:68px; height:68px; display:flex; align-items:center; justify-content:center;
+    margin:0 auto 17px; border-radius:50%; background:#fee2e2; color:#dc2626; font-size:27px;
+}
+.wrong-face-box h3 { margin-bottom:10px; font-size:20px; font-weight:700; }
+.wrong-face-box p { margin-bottom:24px; color:#64748b; font-size:13px; line-height:1.7; }
+.wrong-face-actions { display:flex; justify-content:center; gap:10px; }
+.btn-retry,.btn-wclose {
+    min-width:110px; padding:10px 15px; border:0; border-radius:9px;
+    font-size:12px; font-weight:600; cursor:pointer;
+}
+.btn-retry { background:#2563eb; color:#fff; }
+.btn-wclose { background:#f1f5f9; color:#475569; }
+.attendance-message {
+    position:fixed; right:25px; top:25px; display:flex; align-items:center; gap:9px;
+    max-width:380px; padding:13px 17px; border-radius:10px; background:#fff;
+    box-shadow:0 15px 40px rgba(15,23,42,.18); font-size:13px; font-weight:600; z-index:100001;
+}
+.attendance-message.success { border-left:4px solid #10b981; color:#047857; }
+.attendance-message.error { border-left:4px solid #ef4444; color:#dc2626; }
+
+/* DARK MODE */
+[data-bs-theme="dark"] .att-page,
+[data-theme="dark"] .att-page {
+    --att-bg:#111827; --att-card:#182231; --att-border:#2b3748; --att-muted:#9eabc0;
+}
+[data-bs-theme="dark"] .today-time,
+[data-bs-theme="dark"] .att-table thead th,
+[data-theme="dark"] .today-time,
+[data-theme="dark"] .att-table thead th { background:#141e2c; }
+[data-bs-theme="dark"] .face-check-dialog,
+[data-theme="dark"] .face-check-dialog { background:#182231; color:#f8fafc; }
+
+@media (max-width:1199px) {
+    .att-stats { grid-template-columns:repeat(3,1fr); }
+    .att-grid { grid-template-columns:1fr; }
+}
+@media (max-width:767px) {
+    .att-page { padding:16px 12px 28px; }
+    .att-hero { align-items:flex-start; flex-direction:column; padding:22px 18px; }
+    .att-month-form { width:100%; }
+    .att-month-form .form-control { min-width:0; flex:1; }
+    .att-stats { grid-template-columns:repeat(2,1fr); }
+    .att-stat { min-height:96px; padding:14px; }
+    .today-times { grid-template-columns:1fr; }
+    .att-panel-header { align-items:flex-start; flex-direction:column; }
+    .history-tools { width:100%; }
+    .history-tools form, .history-tools .form-select { width:100%; }
+    .face-camera-container { height:310px; }
+}
+@media (max-width:480px) {
+    .att-stats { grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="att-page">
+
+    <section class="att-hero">
+        <div class="att-hero-copy">
+            <div class="att-hero-eyebrow">
+                <i class="fa-solid fa-fingerprint"></i>
+                HUMAN RESOURCES
+            </div>
+            <h2>My Attendance</h2>
+            <p>Track your attendance, working hours and today's check-in activity.</p>
+        </div>
+
+        <form method="get" class="att-month-form">
+            <input type="month"
+                   name="month"
+                   class="form-control"
+                   value="{{ selected_month_value }}">
+            {% if selected_status %}
+                <input type="hidden" name="status" value="{{ selected_status }}">
+            {% endif %}
+            <button type="submit" class="btn">
+                <i class="fa-solid fa-filter me-1"></i> Apply
+            </button>
+        </form>
+    </section>
+
+    <section class="att-stats">
+        <article class="att-stat present">
+            <div class="att-stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="att-stat-label">Present Days</div>
+                <div class="att-stat-value">{{ present_count }}</div>
+                <div class="att-stat-note">Selected month</div>
+            </div>
+        </article>
+
+        <article class="att-stat late">
+            <div class="att-stat-icon"><i class="fa-solid fa-clock"></i></div>
+            <div>
+                <div class="att-stat-label">Late Days</div>
+                <div class="att-stat-value">{{ late_count }}</div>
+                <div class="att-stat-note">Late attendance</div>
+            </div>
+        </article>
+
+        <article class="att-stat half">
+            <div class="att-stat-icon"><i class="fa-solid fa-circle-half-stroke"></i></div>
+            <div>
+                <div class="att-stat-label">Half Days</div>
+                <div class="att-stat-value">{{ half_day_count }}</div>
+                <div class="att-stat-note">Partial working days</div>
+            </div>
+        </article>
+
+        <article class="att-stat absent">
+            <div class="att-stat-icon"><i class="fa-solid fa-xmark"></i></div>
+            <div>
+                <div class="att-stat-label">Absent</div>
+                <div class="att-stat-value">{{ absent_count }}</div>
+                <div class="att-stat-note">Days without attendance</div>
+            </div>
+        </article>
+
+        <article class="att-stat overtime">
+            <div class="att-stat-icon"><i class="fa-solid fa-stopwatch"></i></div>
+            <div>
+                <div class="att-stat-label">Overtime</div>
+                <div class="att-stat-value">{{ overtime_total }} <small style="font-size:12px">hrs</small></div>
+                <div class="att-stat-note">Total overtime hours</div>
+            </div>
+        </article>
+    </section>
+
+    <section class="att-grid">
+        <article class="att-panel">
+            <header class="att-panel-header">
+                <div class="att-panel-title">
+                    <div class="att-panel-title-icon"><i class="fa-regular fa-clock"></i></div>
+                    <div>
+                        <h5>Today's Attendance</h5>
+                        <p>View and manage your clock in and out for today.</p>
+                    </div>
+                </div>
+
+                {% if today_state == "completed" %}
+                    <span class="today-complete">
+                        <i class="fa-solid fa-circle-check"></i> Completed
+                    </span>
+                {% endif %}
+            </header>
+
+            <div class="today-body">
+                <div class="today-person">
+                    <div class="today-avatar"><i class="fa-solid fa-user-clock"></i></div>
+                    <div>
+                        <div class="today-kicker">Today</div>
+                        <div class="today-date">{{ today|date:"l, d F Y" }}</div>
+                        <div class="today-shift">
+                            {% if today_shift %}
+                                {{ shift_name }}
+                                {% if shift_start and shift_end %}
+                                    · {{ shift_start|time:"h:i A" }} - {{ shift_end|time:"h:i A" }}
+                                {% endif %}
+                            {% else %}
+                                No shift assigned
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="today-times">
+                    <div class="today-time">
+                        <span>CHECK IN</span>
+                        <strong id="todayCheckIn">
+                            {% if today_attendance.check_in %}
+                                {{ today_attendance.check_in|date:"h:i A" }}
+                            {% else %}—{% endif %}
+                        </strong>
+                    </div>
+                    <div class="today-time">
+                        <span>CHECK OUT</span>
+                        <strong id="todayCheckOut">
+                            {% if today_attendance.check_out %}
+                                {{ today_attendance.check_out|date:"h:i A" }}
+                            {% else %}—{% endif %}
+                        </strong>
+                    </div>
+                    <div class="today-time">
+                        <span>WORKING</span>
+                        <strong>{{ today_working_text }}</strong>
+                    </div>
+                </div>
+
+                <div class="today-action">
+                    {% if today_state == "not_started" %}
+                        {% if face_enrolled %}
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    id="checkInButton"
+                                    onclick="markAttendance('check_in')">
+                                <i class="fa-solid fa-camera me-1"></i>
+                                Check In with Face
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-secondary" disabled>
+                                <i class="fa-solid fa-face-frown me-1"></i>
+                                Face Not Registered
+                            </button>
+                        {% endif %}
+                    {% elif today_state == "working" %}
+                        <button type="button"
+                                class="btn btn-danger"
+                                id="checkOutButton"
+                                onclick="markAttendance('check_out')">
+                            <i class="fa-solid fa-right-from-bracket me-1"></i>
+                            Check Out
+                        </button>
+                    {% else %}
+                        <span class="today-complete">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Attendance completed for today
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+
+        <article class="att-panel">
+            <header class="att-panel-header">
+                <div class="att-panel-title">
+                    <div class="att-panel-title-icon"><i class="fa-solid fa-chart-column"></i></div>
+                    <div>
+                        <h5>Attendance History</h5>
+                        <p>{{ selected_month_label }}</p>
+                    </div>
+                </div>
+
+                <div class="history-tools">
+                    <form method="get">
+                        <input type="hidden" name="month" value="{{ selected_month_value }}">
+                        <select name="status" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Status</option>
+                            <option value="Present" {% if selected_status == "Present" %}selected{% endif %}>Present</option>
+                            <option value="Late" {% if selected_status == "Late" %}selected{% endif %}>Late</option>
+                            <option value="Half Day" {% if selected_status == "Half Day" %}selected{% endif %}>Half Day</option>
+                            <option value="Absent" {% if selected_status == "Absent" %}selected{% endif %}>Absent</option>
+                        </select>
+                    </form>
+                </div>
+            </header>
+
+            <div class="table-responsive">
+                <table class="table att-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Hours</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in attendance_rows %}
+                            <tr>
+                                <td>
+                                    <div class="att-date-main">{{ row.date|date:"d M" }}</div>
+                                    <div class="att-date-day">{{ row.date|date:"D" }}</div>
+                                </td>
+                                <td>{% if row.check_in %}{{ row.check_in|date:"h:i A" }}{% else %}—{% endif %}</td>
+                                <td>{% if row.check_out %}{{ row.check_out|date:"h:i A" }}{% else %}—{% endif %}</td>
+                                <td>{{ row.working_hours_text }}</td>
+                                <td>
+                                    {% if row.status == "Present" %}
+                                        <span class="att-badge present">Present</span>
+                                    {% elif row.status == "Late" %}
+                                        <span class="att-badge late">Late</span>
+                                    {% elif row.status == "Half Day" %}
+                                        <span class="att-badge half">Half Day</span>
+                                    {% elif row.status == "Absent" %}
+                                        <span class="att-badge absent">Absent</span>
+                                    {% else %}
+                                        <span class="att-badge other">{{ row.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="att-empty">
+                                    <i class="fa-regular fa-calendar-xmark fa-2x mb-2 d-block"></i>
+                                    No attendance records found for this month.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+
+<div
+    id="faceCheckModal"
+    class="face-check-modal"
+    aria-hidden="true"
+>
+
+    <div class="face-check-dialog">
+
+        <div class="face-check-header">
+
+            <div class="face-check-heading">
+
+                <div class="face-check-icon">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+
+                <div>
+
+                    <h3>
+                        Verify Your Identity
+                    </h3>
+
+                    <p>
+                        Look straight at the camera.
+                        Scanning starts automatically.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="face-check-close"
+                onclick="closeFaceCheckModal()"
+                aria-label="Close"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <!-- CAMERA -->
+
+        <div
+            class="face-camera-container"
+            id="faceCamBox"
+        >
+
+            <video
+                id="attendanceFaceVideo"
+                autoplay
+                muted
+                playsinline
+            ></video>
+
+
+            <div class="face-camera-overlay">
+
+                <div class="face-camera-oval"></div>
+
+            </div>
+
+
+            <div class="face-camera-label">
+
+                <i class="fa-solid fa-camera"></i>
+
+                Live camera
+
+            </div>
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <div
+            id="faceCheckStatus"
+            class="face-check-status"
+        >
+
+            <i class="fa-solid fa-camera"></i>
+
+            <span>
+                Preparing camera...
+            </span>
+
+        </div>
+
+
+        <!-- HELP -->
+
+        <div class="face-check-help">
+
+            <div>
+                <i class="fa-solid fa-lightbulb"></i>
+                Make sure your face is clearly visible.
+            </div>
+
+            <div>
+                <i class="fa-solid fa-user"></i>
+                Only one person should be visible.
+            </div>
+
+            <div>
+                <i class="fa-solid fa-sun"></i>
+                Face the light. Don't sit with a window behind you.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     WRONG FACE MODAL
+============================================================ -->
+
+<div
+    id="wrongFaceModal"
+    class="face-check-modal"
+    style="z-index:100000;"
+>
+
+    <div
+        class="face-check-dialog wrong-face-box"
+        role="alertdialog"
+    >
+
+        <div class="wrong-face-icon">
+
+            <i class="fa-solid fa-xmark"></i>
+
+        </div>
+
+
+        <h3>
+            Wrong face
+        </h3>
+
+
+        <p>
+
+            This face does not match the face registered for
+
+            <strong>{{ staff.name }}</strong>.
+
+            <br>
+
+            Only <strong>{{ staff.name }}</strong>
+            can check in from this account.
+
+        </p>
+
+
+        <div class="wrong-face-actions">
+
+            <button
+                type="button"
+                class="btn-retry"
+                id="wrongFaceRetry"
+            >
+                Try again
+            </button>
+
+
+            <button
+                type="button"
+                class="btn-wclose"
+                id="wrongFaceClose"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const openButton =
+        document.getElementById("openFaceAttendanceBtn");
+
+    const checkoutButton =
+        document.getElementById("checkOutBtn");
+
+    const verifyButton =
+        document.getElementById("verifyFaceBtn");
+
+    const modalElement =
+        document.getElementById("faceAttendanceModal");
+
+    const video =
+        document.getElementById("faceVideo");
+
+    const statusBox =
+        document.getElementById("faceStatus");
+
+
+    let stream = null;
+
+    let faceModal = null;
+
+
+    if (modalElement) {
+
+        faceModal = new bootstrap.Modal(
+            modalElement
+        );
+
+    }
+
+
+    // =========================================================
+    // CSRF
+    // =========================================================
+
+    function getCookie(name) {
+
+        let cookieValue = null;
+
+        if (
+            document.cookie
+            &&
+            document.cookie !== ""
+        ) {
+
+            const cookies =
+                document.cookie.split(";");
+
+            for (
+                let i = 0;
+                i < cookies.length;
+                i++
+            ) {
+
+                const cookie =
+                    cookies[i].trim();
+
+                if (
+                    cookie.substring(
+                        0,
+                        name.length + 1
+                    )
+                    ===
+                    (
+                        name + "="
+                    )
+                ) {
+
+                    cookieValue =
+                        decodeURIComponent(
+                            cookie.substring(
+                                name.length + 1
+                            )
+                        );
+
+                    break;
+                }
+
+            }
+
+        }
+
+        return cookieValue;
+    }
+
+
+    // =========================================================
+    // STATUS
+    // =========================================================
+
+    function setStatus(
+        message,
+        type = "info"
+    ) {
+
+        if (!statusBox) {
+            return;
+        }
+
+        statusBox.className =
+            "alert alert-" +
+            type +
+            " mt-3 mb-0";
+
+        statusBox.textContent =
+            message;
+
+    }
+
+
+    // =========================================================
+    // STOP CAMERA
+    // =========================================================
+
+    function stopCamera() {
+
+        if (stream) {
+
+            stream
+                .getTracks()
+                .forEach(function (track) {
+
+                    track.stop();
+
+                });
+
+            stream = null;
+
+        }
+
+        if (video) {
+            video.srcObject = null;
+        }
+
+    }
+
+
+    // =========================================================
+    // START CAMERA
+    // =========================================================
+
+    async function startCamera() {
+
+        try {
+
+            setStatus(
+                "Requesting camera permission...",
+                "info"
+            );
+
+
+            stream =
+                await navigator.mediaDevices
+                    .getUserMedia({
+
+                        video: {
+                            facingMode: "user",
+                            width: {
+                                ideal: 640
+                            },
+                            height: {
+                                ideal: 480
+                            }
+                        },
+
+                        audio: false
+
+                    });
+
+
+            video.srcObject =
+                stream;
+
+
+            await video.play();
+
+
+            setStatus(
+                "Camera ready. Look directly at the camera.",
+                "success"
+            );
+
+
+            if (verifyButton) {
+                verifyButton.disabled = false;
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Camera error:",
+                error
+            );
+
+
+            setStatus(
+                "Unable to access camera. Please allow camera permission.",
+                "danger"
+            );
+
+
+            if (verifyButton) {
+                verifyButton.disabled = true;
+            }
+
+        }
+
+    }
+
+
+    // =========================================================
+    // OPEN MODAL
+    // =========================================================
+
+    if (openButton) {
+
+        openButton.addEventListener(
+            "click",
+            async function () {
+
+                {% if not face_enrolled %}
+
+                    alert(
+                        "Your face has not been registered. Please contact HR/Admin."
+                    );
+
+                    return;
+
+                {% endif %}
+
+
+                if (
+                    typeof faceapi === "undefined"
+                ) {
+
+                    alert(
+                        "Face recognition library is not loaded. " +
+                        "Load the same face-api.js files used by your staff page."
+                    );
+
+                    return;
+                }
+
+
+                faceModal.show();
+
+                await startCamera();
+
+            }
+        );
+
+    }
+
+
+    // =========================================================
+    // MODAL CLOSED
+    // =========================================================
+
+    if (modalElement) {
+
+        modalElement.addEventListener(
+            "hidden.bs.modal",
+            function () {
+
+                stopCamera();
+
+                if (verifyButton) {
+                    verifyButton.disabled = true;
+                }
+
+            }
+        );
+
+    }
+
+
+    // =========================================================
+    // VERIFY FACE
+    // =========================================================
+
+    if (verifyButton) {
+
+        verifyButton.addEventListener(
+            "click",
+            async function () {
+
+                try {
+
+                    verifyButton.disabled = true;
+
+
+                    setStatus(
+                        "Detecting your face...",
+                        "info"
+                    );
+
+
+                    /*
+                     * IMPORTANT:
+                     *
+                     * This expects the same face-api models that
+                     * your existing staff frontend already loads:
+                     *
+                     * TinyFaceDetector
+                     * FaceLandmark68Net
+                     * FaceRecognitionNet
+                     */
+
+
+                    const detection =
+                        await faceapi
+                            .detectSingleFace(
+                                video,
+                                new faceapi
+                                    .TinyFaceDetectorOptions({
+                                        inputSize: 224,
+                                        scoreThreshold: 0.5
+                                    })
+                            )
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+
+
+                    if (!detection) {
+
+                        setStatus(
+                            "No face detected. Center your face and try again.",
+                            "warning"
+                        );
+
+                        verifyButton.disabled = false;
+
+                        return;
+                    }
+
+
+                    const descriptor =
+                        Array.from(
+                            detection.descriptor
+                        );
+
+
+                    if (
+                        descriptor.length !== 128
+                    ) {
+
+                        setStatus(
+                            "Unable to read your face correctly. Please try again.",
+                            "danger"
+                        );
+
+                        verifyButton.disabled = false;
+
+                        return;
+                    }
+
+
+                    setStatus(
+                        "Face detected. Verifying...",
+                        "info"
+                    );
+
+
+                    const formData =
+                        new FormData();
+
+
+                    formData.append(
+                        "action",
+                        "check_in"
+                    );
+
+
+                    formData.append(
+                        "face_descriptor",
+                        JSON.stringify(
+                            descriptor
+                        )
+                    );
+
+
+                    const response =
+                        await fetch(
+                            "{% url 'hr_my_attendance_mark' %}",
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "X-CSRFToken":
+                                        getCookie(
+                                            "csrftoken"
+                                        )
+                                },
+
+                                body:
+                                    formData
+                            }
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (
+                        !response.ok
+                        ||
+                        !data.success
+                    ) {
+
+                        setStatus(
+                            data.message
+                            ||
+                            data.error
+                            ||
+                            "Face verification failed.",
+                            "danger"
+                        );
+
+
+                        verifyButton.disabled =
+                            false;
+
+                        return;
+                    }
+
+
+                    setStatus(
+                        "Face verified. Attendance marked successfully.",
+                        "success"
+                    );
+
+
+                    setTimeout(
+                        function () {
+
+                            stopCamera();
+
+                            window.location.reload();
+
+                        },
+                        800
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Face verification error:",
+                        error
+                    );
+
+
+                    setStatus(
+                        "Unable to verify face. Please try again.",
+                        "danger"
+                    );
+
+
+                    verifyButton.disabled =
+                        false;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // =========================================================
+    // CHECK OUT
+    // =========================================================
+
+    if (checkoutButton) {
+
+        checkoutButton.addEventListener(
+            "click",
+            async function () {
+
+                if (
+                    !confirm(
+                        "Are you sure you want to check out?"
+                    )
+                ) {
+                    return;
+                }
+
+
+                checkoutButton.disabled =
+                    true;
+
+
+                const formData =
+                    new FormData();
+
+
+                formData.append(
+                    "action",
+                    "check_out"
+                );
+
+
+                try {
+
+                    const response =
+                        await fetch(
+                            "{% url 'hr_my_attendance_mark' %}",
+                            {
+
+                                method:
+                                    "POST",
+
+                                headers: {
+
+                                    "X-CSRFToken":
+                                        getCookie(
+                                            "csrftoken"
+                                        )
+
+                                },
+
+                                body:
+                                    formData
+
+                            }
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (
+                        !response.ok
+                        ||
+                        !data.success
+                    ) {
+
+                        alert(
+                            data.message
+                            ||
+                            data.error
+                            ||
+                            "Unable to check out."
+                        );
+
+                        checkoutButton.disabled =
+                            false;
+
+                        return;
+                    }
+
+
+                    window.location.reload();
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+                    alert(
+                        "Unable to check out. Please try again."
+                    );
+
+                    checkoutButton.disabled =
+                        false;
+
+                }
+
+            }
+        );
+
+    }
+
+});
+
+</script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+<script>
+
+(function () {
+
+    /* ============================================================
+       SETTINGS
+    ============================================================ */
+
+    const URL_MARK =
+        "{% url 'hr_my_attendance_mark' %}";
+
+    const FACE_ENROLLED =
+        {{ face_enrolled|yesno:"true,false" }};
+
+    const THRESHOLD =
+        {{ face_threshold|default:"0.45" }};
+
+    const MODEL_URL =
+        "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+
+    const MISMATCH_LIMIT = 3;
+
+    const MATCH_FRAMES = 3;
+
+
+    /* ============================================================
+       REGISTERED FACE DATA
+    ============================================================ */
+
+    let rawStored =
+        {{ face_descriptor_json|default:"[]"|safe }};
+
+
+    if (
+        rawStored.length
+        &&
+        typeof rawStored[0] === "number"
+    ) {
+
+        rawStored = [
+            rawStored
+        ];
+
+    }
+
+
+    const STORED =
+        rawStored
+            .filter(function (descriptor) {
+
+                return (
+                    Array.isArray(descriptor)
+                    &&
+                    descriptor.length === 128
+                );
+
+            })
+            .map(function (descriptor) {
+
+                return Float32Array.from(
+                    descriptor
+                );
+
+            });
+
+
+    /* ============================================================
+       HELPERS
+    ============================================================ */
+
+    const $ = function (id) {
+
+        return document.getElementById(id);
+
+    };
+
+
+    const sleep = function (ms) {
+
+        return new Promise(function (resolve) {
+
+            setTimeout(resolve, ms);
+
+        });
+
+    };
+
+
+    function getCookie(name) {
+
+        let value = null;
+
+        if (document.cookie) {
+
+            document.cookie
+                .split(";")
+                .forEach(function (cookie) {
+
+                    cookie =
+                        cookie.trim();
+
+                    if (
+                        cookie.substring(
+                            0,
+                            name.length + 1
+                        )
+                        ===
+                        name + "="
+                    ) {
+
+                        value =
+                            decodeURIComponent(
+                                cookie.substring(
+                                    name.length + 1
+                                )
+                            );
+
+                    }
+
+                });
+
+        }
+
+        return value;
+
+    }
+
+
+    /* ============================================================
+       MESSAGE
+    ============================================================ */
+
+    function showAttendanceMessage(
+        message,
+        type
+    ) {
+
+        type =
+            type || "success";
+
+
+        const old =
+            document.querySelector(
+                ".attendance-message"
+            );
+
+
+        if (old) {
+            old.remove();
+        }
+
+
+        const el =
+            document.createElement(
+                "div"
+            );
+
+
+        el.className =
+            "attendance-message "
+            +
+            type;
+
+
+        const icon =
+            type === "success"
+                ? "fa-circle-check"
+                : "fa-circle-exclamation";
+
+
+        el.innerHTML =
+            '<i class="fa-solid '
+            +
+            icon
+            +
+            '"></i><span></span>';
+
+
+        el.querySelector(
+            "span"
+        ).textContent =
+            message;
+
+
+        document.body.appendChild(
+            el
+        );
+
+
+        setTimeout(
+            function () {
+
+                el.remove();
+
+            },
+            3500
+        );
+
+    }
+
+
+    /* ============================================================
+       FACE STATUS
+    ============================================================ */
+
+    function setStatus(
+        message,
+        type
+    ) {
+
+        const el =
+            $("faceCheckStatus");
+
+
+        if (!el) {
+            return;
+        }
+
+
+        el.className =
+            "face-check-status"
+            +
+            (
+                type
+                    ? " " + type
+                    : ""
+            );
+
+
+        let icon =
+            "fa-camera";
+
+
+        if (type === "loading") {
+
+            icon =
+                "fa-spinner fa-spin";
+
+        }
+
+        else if (
+            type === "success"
+        ) {
+
+            icon =
+                "fa-circle-check";
+
+        }
+
+        else if (
+            type === "error"
+        ) {
+
+            icon =
+                "fa-circle-exclamation";
+
+        }
+
+
+        el.innerHTML =
+            '<i class="fa-solid '
+            +
+            icon
+            +
+            '"></i><span></span>';
+
+
+        el.querySelector(
+            "span"
+        ).textContent =
+            message;
+
+    }
+
+
+    function setRing(cls) {
+
+        const box =
+            $("faceCamBox");
+
+
+        if (!box) {
+            return;
+        }
+
+
+        box.className =
+            "face-camera-container"
+            +
+            (
+                cls
+                    ? " " + cls
+                    : ""
+            );
+
+    }
+
+
+    /* ============================================================
+       FACE DISTANCE
+    ============================================================ */
+
+    function bestDistance(live) {
+
+        let best =
+            Infinity;
+
+
+        for (
+            const stored of STORED
+        ) {
+
+            const distance =
+                faceapi.euclideanDistance(
+                    live,
+                    stored
+                );
+
+
+            if (
+                distance < best
+            ) {
+
+                best =
+                    distance;
+
+            }
+
+        }
+
+
+        return best;
+
+    }
+
+
+    /* ============================================================
+       LOAD MODELS
+    ============================================================ */
+
+    let modelsReady =
+        false;
+
+
+    async function loadModels() {
+
+        if (modelsReady) {
+            return;
+        }
+
+
+        if (
+            typeof faceapi
+            ===
+            "undefined"
+        ) {
+
+            throw new Error(
+                "Face recognition library could not be loaded. Check your internet."
+            );
+
+        }
+
+
+        await faceapi.tf.ready();
+
+
+        await Promise.all([
+
+            faceapi.nets
+                .ssdMobilenetv1
+                .loadFromUri(
+                    MODEL_URL
+                ),
+
+            faceapi.nets
+                .tinyFaceDetector
+                .loadFromUri(
+                    MODEL_URL
+                ),
+
+            faceapi.nets
+                .faceLandmark68Net
+                .loadFromUri(
+                    MODEL_URL
+                ),
+
+            faceapi.nets
+                .faceRecognitionNet
+                .loadFromUri(
+                    MODEL_URL
+                )
+
+        ]);
+
+
+        modelsReady =
+            true;
+
+    }
+
+
+    /* ============================================================
+       IMPROVED FACE DETECTION
+    ============================================================ */
+
+    const frameCanvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    function grabFrame(video) {
+
+        const size =
+            416;
+
+
+        frameCanvas.width =
+            size;
+
+        frameCanvas.height =
+            size;
+
+
+        const ctx =
+            frameCanvas.getContext(
+                "2d",
+                {
+                    willReadFrequently:
+                        true
+                }
+            );
+
+
+        const sourceSize =
+            Math.min(
+                video.videoWidth,
+                video.videoHeight
+            );
+
+
+        const sx =
+            (
+                video.videoWidth
+                -
+                sourceSize
+            )
+            /
+            2;
+
+
+        const sy =
+            (
+                video.videoHeight
+                -
+                sourceSize
+            )
+            /
+            2;
+
+
+        ctx.filter =
+            "brightness(1.6) contrast(1.15)";
+
+
+        ctx.drawImage(
+            video,
+
+            sx,
+            sy,
+
+            sourceSize,
+            sourceSize,
+
+            0,
+            0,
+
+            size,
+            size
+        );
+
+
+        return frameCanvas;
+
+    }
+
+
+    async function detectFace(
+        video
+    ) {
+
+        const ssd =
+            new faceapi
+                .SsdMobilenetv1Options({
+                    minConfidence:
+                        0.2
+                });
+
+
+        const tiny =
+            new faceapi
+                .TinyFaceDetectorOptions({
+
+                    inputSize:
+                        512,
+
+                    scoreThreshold:
+                        0.2
+
+                });
+
+
+        const inputs = [
+
+            video,
+
+            grabFrame(video)
+
+        ];
+
+
+        const detectors = [
+
+            ssd,
+
+            tiny
+
+        ];
+
+
+        for (
+            const input of inputs
+        ) {
+
+            for (
+                const options
+                of detectors
+            ) {
+
+                const detection =
+                    await faceapi
+                        .detectSingleFace(
+                            input,
+                            options
+                        )
+                        .withFaceLandmarks()
+                        .withFaceDescriptor();
+
+
+                if (detection) {
+
+                    return detection;
+
+                }
+
+            }
+
+        }
+
+
+        return null;
+
+    }
+
+
+    /* ============================================================
+       CAMERA
+    ============================================================ */
+
+    let stream =
+        null;
+
+    let scanning =
+        false;
+
+
+    function stopCamera() {
+
+        scanning =
+            false;
+
+
+        if (stream) {
+
+            stream
+                .getTracks()
+                .forEach(
+                    function (track) {
+
+                        track.stop();
+
+                    }
+                );
+
+
+            stream =
+                null;
+
+        }
+
+
+        const video =
+            $("attendanceFaceVideo");
+
+
+        if (video) {
+
+            video.pause();
+
+            video.srcObject =
+                null;
+
+        }
+
+    }
+
+
+    /* ============================================================
+       CLOSE MODAL
+    ============================================================ */
+
+    window.closeFaceCheckModal =
+        function () {
+
+            stopCamera();
+
+
+            const modal =
+                $("faceCheckModal");
+
+
+            if (modal) {
+
+                modal.classList.remove(
+                    "active"
+                );
+
+                modal.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+
+            }
+
+        };
+
+
+    /* ============================================================
+       WRONG FACE
+    ============================================================ */
+
+    function showWrongFace() {
+
+        window.closeFaceCheckModal();
+
+
+        const modal =
+            $("wrongFaceModal");
+
+
+        if (modal) {
+
+            modal.classList.add(
+                "active"
+            );
+
+        }
+
+    }
+
+
+    function closeWrongFace() {
+
+        const modal =
+            $("wrongFaceModal");
+
+
+        if (modal) {
+
+            modal.classList.remove(
+                "active"
+            );
+
+        }
+
+    }
+
+
+    const wrongClose =
+        $("wrongFaceClose");
+
+
+    if (wrongClose) {
+
+        wrongClose.onclick =
+            closeWrongFace;
+
+    }
+
+
+    const wrongRetry =
+        $("wrongFaceRetry");
+
+
+    if (wrongRetry) {
+
+        wrongRetry.onclick =
+            function () {
+
+                closeWrongFace();
+
+                startFaceCheckIn();
+
+            };
+
+    }
+
+
+    const wrongModal =
+        $("wrongFaceModal");
+
+
+    if (wrongModal) {
+
+        wrongModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target
+                    ===
+                    wrongModal
+                ) {
+
+                    closeWrongFace();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key
+                ===
+                "Escape"
+            ) {
+
+                closeWrongFace();
+
+                window.closeFaceCheckModal();
+
+            }
+
+        }
+    );
+
+
+    const faceModal =
+        $("faceCheckModal");
+
+
+    if (faceModal) {
+
+        faceModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target
+                    ===
+                    faceModal
+                ) {
+
+                    window.closeFaceCheckModal();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    window.addEventListener(
+        "beforeunload",
+        stopCamera
+    );
+
+
+    /* ============================================================
+       START FACE CHECK
+    ============================================================ */
+
+    async function startFaceCheckIn() {
+
+        if (
+            !FACE_ENROLLED
+            ||
+            !STORED.length
+        ) {
+
+            showAttendanceMessage(
+                "Your face is not registered. Please ask HR to register it.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        setRing("");
+
+
+        setStatus(
+            "Loading face recognition...",
+            "loading"
+        );
+
+
+        const modal =
+            $("faceCheckModal");
+
+
+        if (!modal) {
+
+            showAttendanceMessage(
+                "Face verification modal could not be found.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * IMPORTANT:
+         * Modal opens BEFORE models/camera.
+         */
+
+        modal.classList.add(
+            "active"
+        );
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        try {
+
+            await loadModels();
+
+
+            setStatus(
+                "Starting camera...",
+                "loading"
+            );
+
+
+            if (
+                !navigator.mediaDevices
+                ||
+                !navigator.mediaDevices
+                    .getUserMedia
+            ) {
+
+                throw new Error(
+                    "Camera needs HTTPS or localhost."
+                );
+
+            }
+
+
+            stream =
+                await navigator
+                    .mediaDevices
+                    .getUserMedia({
+
+                        video: {
+
+                            facingMode:
+                                "user",
+
+                            width:
+                                480,
+
+                            height:
+                                480
+
+                        },
+
+                        audio:
+                            false
+
+                    });
+
+
+            const video =
+                $("attendanceFaceVideo");
+
+
+            video.srcObject =
+                stream;
+
+
+            await new Promise(
+                function (resolve) {
+
+                    if (
+                        video.readyState
+                        >=
+                        1
+                    ) {
+
+                        resolve();
+
+                    }
+
+                    else {
+
+                        video.onloadedmetadata =
+                            resolve;
+
+                    }
+
+                }
+            );
+
+
+            await video.play();
+
+
+            while (
+                video.readyState < 2
+                ||
+                !video.videoWidth
+            ) {
+
+                await sleep(
+                    100
+                );
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Camera / model error:",
+                error
+            );
+
+
+            let message =
+                error.message
+                ||
+                "Unable to start the camera.";
+
+
+            if (
+                error.name
+                ===
+                "NotAllowedError"
+            ) {
+
+                message =
+                    "Camera permission denied. Allow camera access.";
+
+            }
+
+            else if (
+                error.name
+                ===
+                "NotFoundError"
+            ) {
+
+                message =
+                    "No camera found on this device.";
+
+            }
+
+            else if (
+                error.name
+                ===
+                "NotReadableError"
+            ) {
+
+                message =
+                    "Camera is being used by another application.";
+
+            }
+
+
+            setStatus(
+                message,
+                "error"
+            );
+
+
+            return;
+
+        }
+
+
+        scanning =
+            true;
+
+
+        scanLoop();
+
+    }
+
+
+    /* ============================================================
+       SCAN LOOP
+    ============================================================ */
+
+    async function scanLoop() {
+
+        let mismatches =
+            0;
+
+        let matches =
+            0;
+
+        let misses =
+            0;
+
+
+        setStatus(
+            "Scanning...",
+            "loading"
+        );
+
+
+        while (scanning) {
+
+            let detection =
+                null;
+
+
+            try {
+
+                detection =
+                    await detectFace(
+                        $("attendanceFaceVideo")
+                    );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Detection error:",
+                    error
+                );
+
+
+                setStatus(
+                    "Detection error: "
+                    +
+                    (
+                        error.message
+                        ||
+                        error
+                    ),
+                    "error"
+                );
+
+
+                setRing(
+                    "bad"
+                );
+
+
+                scanning =
+                    false;
+
+
+                return;
+
+            }
+
+
+            if (!scanning) {
+                return;
+            }
+
+
+            /* ====================================================
+               NO FACE
+            ==================================================== */
+
+            if (!detection) {
+
+                mismatches =
+                    0;
+
+                matches =
+                    0;
+
+                misses++;
+
+
+                setRing("");
+
+
+                setStatus(
+
+                    misses > 6
+
+                        ?
+
+                        "Still no face. Move to a brighter spot and keep your face inside the circle."
+
+                        :
+
+                        "No face detected. Look directly at the camera.",
+
+                    "loading"
+
+                );
+
+
+                await sleep(
+                    400
+                );
+
+
+                continue;
+
+            }
+
+
+            misses =
+                0;
+
+
+            /* ====================================================
+               LOCAL FACE COMPARISON
+            ==================================================== */
+
+            const distance =
+                bestDistance(
+                    detection.descriptor
+                );
+
+
+            console.log(
+                "HR attendance face distance:",
+                distance.toFixed(3),
+                "threshold:",
+                THRESHOLD
+            );
+
+
+            if (
+                distance
+                >
+                THRESHOLD
+            ) {
+
+                matches =
+                    0;
+
+                mismatches++;
+
+
+                setRing(
+                    "bad"
+                );
+
+
+                setStatus(
+                    "Checking face...",
+                    "error"
+                );
+
+
+                if (
+                    mismatches
+                    >=
+                    MISMATCH_LIMIT
+                ) {
+
+                    showWrongFace();
+
+                    return;
+
+                }
+
+
+                await sleep(
+                    350
+                );
+
+
+                continue;
+
+            }
+
+
+            /* ====================================================
+               MATCH
+            ==================================================== */
+
+            mismatches =
+                0;
+
+            matches++;
+
+
+            setRing(
+                "ok"
+            );
+
+
+            if (
+                matches
+                <
+                MATCH_FRAMES
+            ) {
+
+                setStatus(
+                    "Matching... "
+                    +
+                    matches
+                    +
+                    "/"
+                    +
+                    MATCH_FRAMES,
+                    "success"
+                );
+
+
+                await sleep(
+                    300
+                );
+
+
+                continue;
+
+            }
+
+
+            setStatus(
+                "Face matched. Recording attendance...",
+                "success"
+            );
+
+
+            /*
+             * Browser matched the face.
+             *
+             * Django verifies the descriptor AGAIN.
+             */
+
+            let data;
+
+            let responseOK =
+                false;
+
+
+            try {
+
+                const formData =
+                    new FormData();
+
+
+                formData.append(
+                    "action",
+                    "check_in"
+                );
+
+
+                formData.append(
+                    "face_descriptor",
+                    JSON.stringify(
+                        Array.from(
+                            detection.descriptor
+                        )
+                    )
+                );
+
+
+                const response =
+                    await fetch(
+                        URL_MARK,
+                        {
+
+                            method:
+                                "POST",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "X-CSRFToken":
+                                    getCookie(
+                                        "csrftoken"
+                                    ),
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest",
+
+                                "Accept":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                formData
+
+                        }
+                    );
+
+
+                responseOK =
+                    response.ok;
+
+
+                data =
+                    await response.json();
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    error
+                );
+
+
+                setStatus(
+                    "Network error. Please try again.",
+                    "error"
+                );
+
+
+                setRing(
+                    "bad"
+                );
+
+
+                scanning =
+                    false;
+
+
+                return;
+
+            }
+
+
+            /* ====================================================
+               SERVER ACCEPTED
+            ==================================================== */
+
+            if (
+                responseOK
+                &&
+                data.success
+            ) {
+
+                setStatus(
+                    data.message
+                    ||
+                    "Checked in successfully.",
+                    "success"
+                );
+
+
+                scanning =
+                    false;
+
+
+                stopCamera();
+
+
+                showAttendanceMessage(
+                    data.message
+                    ||
+                    "Checked in successfully.",
+                    "success"
+                );
+
+
+                setTimeout(
+                    function () {
+
+                        window.location.reload();
+
+                    },
+                    900
+                );
+
+
+                return;
+
+            }
+
+
+            /* ====================================================
+               SERVER SAYS WRONG FACE
+            ==================================================== */
+
+            if (
+                data
+                &&
+                data.matched
+                ===
+                false
+            ) {
+
+                showWrongFace();
+
+                return;
+
+            }
+
+
+            setRing(
+                "bad"
+            );
+
+
+            setStatus(
+                (
+                    data
+                    &&
+                    data.message
+                )
+                ||
+                "Could not record attendance.",
+                "error"
+            );
+
+
+            scanning =
+                false;
+
+
+            return;
+
+        }
+
+    }
+
+
+    /* ============================================================
+       CHECK IN / CHECK OUT
+    ============================================================ */
+
+    window.markAttendance =
+        async function (action) {
+
+
+            /* ====================================================
+               CHECK IN
+            ==================================================== */
+
+            if (
+                action
+                ===
+                "check_in"
+            ) {
+
+                await startFaceCheckIn();
+
+                return;
+
+            }
+
+
+            /* ====================================================
+               CHECK OUT
+            ==================================================== */
+
+            if (
+                action
+                !==
+                "check_out"
+            ) {
+
+                showAttendanceMessage(
+                    "Invalid attendance action.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            const button =
+                $("checkOutButton");
+
+
+            if (button) {
+
+                button.disabled =
+                    true;
+
+
+                button.innerHTML =
+                    '<i class="fa-solid fa-spinner fa-spin"></i> Checking Out...';
+
+            }
+
+
+            try {
+
+                const formData =
+                    new FormData();
+
+
+                formData.append(
+                    "action",
+                    "check_out"
+                );
+
+
+                const response =
+                    await fetch(
+                        URL_MARK,
+                        {
+
+                            method:
+                                "POST",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "X-CSRFToken":
+                                    getCookie(
+                                        "csrftoken"
+                                    ),
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest",
+
+                                "Accept":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                formData
+
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (
+                    !response.ok
+                    ||
+                    !data.success
+                ) {
+
+                    throw new Error(
+                        data.message
+                        ||
+                        "Unable to check out."
+                    );
+
+                }
+
+
+                showAttendanceMessage(
+                    data.message
+                    ||
+                    "Checked out successfully.",
+                    "success"
+                );
+
+
+                setTimeout(
+                    function () {
+
+                        window.location.reload();
+
+                    },
+                    700
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    error
+                );
+
+
+                showAttendanceMessage(
+                    error.message
+                    ||
+                    "Unable to check out.",
+                    "error"
+                );
+
+
+                if (button) {
+
+                    button.disabled =
+                        false;
+
+
+                    button.innerHTML =
+                        '<i class="fa-solid fa-right-from-bracket"></i> Check Out';
+
+                }
+
+            }
+
+        };
+
+
+})();
+
+</script>
+
+{% endblock %}

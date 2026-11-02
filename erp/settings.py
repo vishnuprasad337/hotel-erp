@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -118,12 +119,39 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 
+DATABASE_URL = config(
+    "DATABASE_URL",
+    default="postgresql://postgres@127.0.0.1:5432/erp",
+)
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'postgresql://postgres:vishnu123@localhost:5432/erp'),
+    "default": dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600,
     )
 }
+
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get('DATABASE_URL', 'postgresql://postgres:vishnu123@localhost:5432/erp'),
+#         conn_max_age=600,
+#     )
+# }
+
+
+DATABASES["default"]["ENGINE"] = (
+    "django_tenants.postgresql_backend"
+)
+
+IS_PRODUCTION = False
+
+BASE_URL = "localhost"
+PORT = ":8000"
+
+DATABASE_ROUTERS = (
+    "django_tenants.routers.TenantSyncRouter",
+)
 
 from decouple import config
 DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
@@ -186,8 +214,22 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'msvishnu673@gmail.com'
-EMAIL_HOST_PASSWORD = 'sjcf tyva aldr ashi'
+EMAIL_HOST_PASSWORD = 'ntbu oxim xxnt bloe'
 DEFAULT_FROM_EMAIL = 'msvishnu673@gmail.com'
+
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# MEDIA_URL = '/media/'
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = "smtp.zoho.in"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'booking@flyingfoxadventuremunnar.com'
+# EMAIL_HOST_PASSWORD = 'RKX0NdqeudAL'
+# EMAIL_HOST_PASSWORD ="RKX0NdqeudAL"
+# DEFAULT_FROM_EMAIL = "booking@flyingfoxadventuremunnar.com"
+# DEFAULT_FROM_EMAIL = 'booking@flyingfoxadventuremunnar.com'
+
 
 PASSWORD_RESET_TIMEOUT =900
 MY_API_KEY = "hotel_erp_prod_2026_x7K9mP2Qa8"

@@ -1,0 +1,1403 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}
+Revenue Report | Hotel ERP
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.revenue-report-page {
+    padding: 24px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.revenue-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 24px;
+
+    margin-bottom: 24px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7628ef,
+            #2d326b
+        );
+
+    color: #ffffff;
+}
+
+.revenue-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.revenue-hero-icon {
+    width: 48px;
+    height: 48px;
+
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: rgba(255,255,255,.13);
+
+    font-size: 19px;
+}
+
+.revenue-hero h1 {
+    margin: 0 0 5px;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.revenue-hero p {
+    margin: 0;
+
+    opacity: .82;
+}
+
+.revenue-back-btn {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 9px;
+
+    background: rgba(255,255,255,.10);
+
+    color: #ffffff;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition: .2s ease;
+}
+
+.revenue-back-btn:hover {
+    background: rgba(255,255,255,.18);
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   FILTERS
+========================================================= */
+
+.revenue-filter-card {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    padding: 18px;
+
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.revenue-field {
+    flex: 0 0 auto;
+}
+
+.revenue-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.revenue-field input,
+.revenue-field select {
+    min-width: 160px;
+    height: 40px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-card);
+    color: var(--acc-text);
+}
+
+.revenue-field input:focus,
+.revenue-field select:focus {
+    border-color: var(--acc-primary);
+
+    box-shadow:
+        0 0 0 3px
+        var(--acc-primary-soft);
+}
+
+.revenue-filter-btn {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: var(--acc-primary);
+
+    color: #ffffff;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.revenue-reset-btn {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    background: var(--acc-card);
+
+    color: var(--acc-text);
+
+    text-decoration: none;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.revenue-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.revenue-stat {
+    min-width: 0;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.revenue-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 18px;
+}
+
+.revenue-stat-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+}
+
+.revenue-stat-value {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--acc-text);
+
+    font-size: 23px;
+    font-weight: 700;
+
+    overflow-wrap: anywhere;
+}
+
+.revenue-stat-label {
+    color: var(--acc-muted);
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MAIN GRID
+========================================================= */
+
+.revenue-main-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.4fr)
+        minmax(300px, .6fr);
+
+    gap: 18px;
+
+    margin-bottom: 22px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.revenue-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.revenue-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+.revenue-card-title h2 {
+    margin: 0 0 4px;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.revenue-card-title p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+.revenue-card-body {
+    padding: 20px;
+}
+
+
+/* =========================================================
+   CHART
+========================================================= */
+
+.revenue-chart-container {
+    position: relative;
+
+    width: 100%;
+    height: 310px;
+}
+
+
+/* =========================================================
+   PAYMENT METHOD LIST
+========================================================= */
+
+.payment-method-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.payment-method-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 13px 0;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+.payment-method-row:last-child {
+    border-bottom: 0;
+}
+
+.payment-method-left {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 0;
+}
+
+.payment-method-icon {
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+}
+
+.payment-method-name {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.payment-method-count {
+    margin-top: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+.payment-method-amount {
+    color: var(--acc-text);
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.revenue-table-card {
+    margin-bottom: 22px;
+}
+
+.revenue-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.revenue-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.revenue-table th {
+    padding: 12px 15px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    background: var(--acc-surface);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.revenue-table td {
+    padding: 14px 15px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+.revenue-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.revenue-table tbody tr:hover {
+    background: var(--acc-surface);
+}
+
+.revenue-amount {
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.revenue-muted {
+    color: var(--acc-muted);
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.revenue-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 5px 9px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.revenue-status-paid,
+.revenue-status-completed,
+.revenue-status-success {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.revenue-status-pending {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.revenue-status-failed,
+.revenue-status-cancelled {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.revenue-empty {
+    padding: 45px 20px;
+
+    text-align: center;
+}
+
+.revenue-empty-icon {
+    width: 56px;
+    height: 56px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 13px;
+
+    border-radius: 14px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+
+    font-size: 20px;
+}
+
+.revenue-empty h3 {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 15px;
+}
+
+.revenue-empty p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .revenue-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .revenue-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 650px) {
+
+    .revenue-report-page {
+        padding: 15px;
+    }
+
+    .revenue-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .revenue-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .revenue-field {
+        width: 100%;
+    }
+
+    .revenue-field input,
+    .revenue-field select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .revenue-filter-btn,
+    .revenue-reset-btn {
+        width: 100%;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="revenue-report-page">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="revenue-hero">
+
+        <div class="revenue-hero-left">
+
+            <div class="revenue-hero-icon">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+
+            <div>
+
+                <h1>
+                    Revenue Report
+                </h1>
+
+                <p>
+                    Review hotel revenue, payments and
+                    collection performance.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="{% url 'accountant_reports' %}"
+            class="revenue-back-btn"
+        >
+            <i class="fa-solid fa-arrow-left"></i>
+            All Reports
+        </a>
+
+    </section>
+
+
+    <!-- =====================================================
+         FILTER
+    ====================================================== -->
+
+    <form
+        method="get"
+        class="revenue-filter-card"
+    >
+
+        <div class="revenue-field">
+
+            <label>
+                Period
+            </label>
+
+            <select name="period">
+
+                <option
+                    value="today"
+                    {% if period == "today" %}selected{% endif %}
+                >
+                    Today
+                </option>
+
+                <option
+                    value="week"
+                    {% if period == "week" %}selected{% endif %}
+                >
+                    This Week
+                </option>
+
+                <option
+                    value="month"
+                    {% if period == "month" %}selected{% endif %}
+                >
+                    This Month
+                </option>
+
+                <option
+                    value="year"
+                    {% if period == "year" %}selected{% endif %}
+                >
+                    This Year
+                </option>
+
+                <option
+                    value="custom"
+                    {% if period == "custom" %}selected{% endif %}
+                >
+                    Custom
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="revenue-field">
+
+            <label>
+                Start Date
+            </label>
+
+            <input
+                type="date"
+                name="start_date"
+                value="{{ start_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <div class="revenue-field">
+
+            <label>
+                End Date
+            </label>
+
+            <input
+                type="date"
+                name="end_date"
+                value="{{ end_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="revenue-filter-btn"
+        >
+            <i class="fa-solid fa-filter"></i>
+            Apply
+        </button>
+
+
+        <a
+            href="{% url 'accountant_revenue_report' %}"
+            class="revenue-reset-btn"
+        >
+            <i class="fa-solid fa-rotate-left"></i>
+            Reset
+        </a>
+
+    </form>
+
+
+    <!-- =====================================================
+         STATS
+    ====================================================== -->
+
+    <section class="revenue-stats">
+
+
+        <article class="revenue-stat">
+
+            <div class="revenue-stat-top">
+
+                <div class="revenue-stat-icon">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+
+            </div>
+
+            <span class="revenue-stat-value">
+                ₹{{ total_revenue|default:0|floatformat:2 }}
+            </span>
+
+            <span class="revenue-stat-label">
+                Total Revenue
+            </span>
+
+        </article>
+
+
+        <article class="revenue-stat">
+
+            <div class="revenue-stat-top">
+
+                <div class="revenue-stat-icon">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+
+            </div>
+
+            <span class="revenue-stat-value">
+                {{ transaction_count|default:0 }}
+            </span>
+
+            <span class="revenue-stat-label">
+                Transactions
+            </span>
+
+        </article>
+
+
+        <article class="revenue-stat">
+
+            <div class="revenue-stat-top">
+
+                <div class="revenue-stat-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+
+            </div>
+
+            <span class="revenue-stat-value">
+                ₹{{ average_transaction|default:0|floatformat:2 }}
+            </span>
+
+            <span class="revenue-stat-label">
+                Average Transaction
+            </span>
+
+        </article>
+
+
+        <article class="revenue-stat">
+
+            <div class="revenue-stat-top">
+
+                <div class="revenue-stat-icon">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+
+            </div>
+
+            <span class="revenue-stat-value">
+                ₹{{ today_revenue|default:0|floatformat:2 }}
+            </span>
+
+            <span class="revenue-stat-label">
+                Today's Revenue
+            </span>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         CHART + PAYMENT METHODS
+    ====================================================== -->
+
+    <section class="revenue-main-grid">
+
+
+        <!-- REVENUE TREND -->
+
+        <article class="revenue-card">
+
+            <div class="revenue-card-header">
+
+                <div class="revenue-card-title">
+
+                    <h2>
+                        Revenue Trend
+                    </h2>
+
+                    <p>
+                        Revenue during the selected period.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="revenue-card-body">
+
+                <div class="revenue-chart-container">
+
+                    <canvas id="revenueChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+        <!-- PAYMENT METHODS -->
+
+        <article class="revenue-card">
+
+            <div class="revenue-card-header">
+
+                <div class="revenue-card-title">
+
+                    <h2>
+                        Payment Methods
+                    </h2>
+
+                    <p>
+                        Revenue by payment method.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="revenue-card-body">
+
+                <div class="payment-method-list">
+
+                    {% for method in payment_methods %}
+
+                        <div class="payment-method-row">
+
+                            <div class="payment-method-left">
+
+                                <div class="payment-method-icon">
+
+                                    {% if method.name|lower == "cash" %}
+
+                                        <i class="fa-solid fa-money-bill"></i>
+
+                                    {% elif method.name|lower == "card" %}
+
+                                        <i class="fa-solid fa-credit-card"></i>
+
+                                    {% elif method.name|lower == "upi" %}
+
+                                        <i class="fa-solid fa-mobile-screen-button"></i>
+
+                                    {% elif method.name|lower == "bank" %}
+
+                                        <i class="fa-solid fa-building-columns"></i>
+
+                                    {% else %}
+
+                                        <i class="fa-solid fa-wallet"></i>
+
+                                    {% endif %}
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="payment-method-name">
+                                        {{ method.name|default:"Other" }}
+                                    </div>
+
+                                    <div class="payment-method-count">
+                                        {{ method.count|default:0 }}
+                                        transaction{{ method.count|pluralize }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="payment-method-amount">
+                                ₹{{ method.amount|default:0|floatformat:2 }}
+                            </div>
+
+                        </div>
+
+                    {% empty %}
+
+                        <div class="revenue-empty">
+
+                            <div class="revenue-empty-icon">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+
+                            <h3>
+                                No payment data
+                            </h3>
+
+                            <p>
+                                No revenue was recorded for this period.
+                            </p>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         TRANSACTION TABLE
+    ====================================================== -->
+
+    <article class="revenue-card revenue-table-card">
+
+
+        <div class="revenue-card-header">
+
+            <div class="revenue-card-title">
+
+                <h2>
+                    Revenue Transactions
+                </h2>
+
+                <p>
+                    Revenue records for the selected period.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if transactions %}
+
+            <div class="revenue-table-wrap">
+
+                <table class="revenue-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Reference
+                            </th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Source
+                            </th>
+
+                            <th>
+                                Payment Method
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for transaction in transactions %}
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+                                        {{ transaction.reference|default:"-" }}
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if transaction.date %}
+
+                                        {{ transaction.date|date:"d M Y" }}
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ transaction.source|default:"-" }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ transaction.payment_method|default:"-" }}
+
+                                </td>
+
+
+                                <td class="revenue-amount">
+
+                                    ₹{{ transaction.amount|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% with status=transaction.status|default:"completed"|lower %}
+
+                                        <span class="revenue-status revenue-status-{{ status }}">
+
+                                            {% if status == "paid" or status == "completed" or status == "success" %}
+
+                                                <i class="fa-solid fa-circle-check"></i>
+
+                                            {% elif status == "pending" %}
+
+                                                <i class="fa-solid fa-clock"></i>
+
+                                            {% else %}
+
+                                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                            {% endif %}
+
+                                            {{ transaction.status|default:"Completed"|title }}
+
+                                        </span>
+
+                                    {% endwith %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="revenue-empty">
+
+                <div class="revenue-empty-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+
+                <h3>
+                    No revenue transactions
+                </h3>
+
+                <p>
+                    There are no revenue transactions for the
+                    selected period.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </article>
+
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{ chart_labels|default:"[]"|json_script:"revenue-chart-labels" }}
+{{ chart_values|default:"[]"|json_script:"revenue-chart-values" }}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const canvas =
+        document.getElementById("revenueChart");
+
+    if (!canvas) {
+        return;
+    }
+
+
+    let labels = [];
+    let values = [];
+
+
+    try {
+
+        labels = JSON.parse(
+            document.getElementById(
+                "revenue-chart-labels"
+            ).textContent
+        );
+
+    } catch (error) {
+
+        labels = [];
+
+    }
+
+
+    try {
+
+        values = JSON.parse(
+            document.getElementById(
+                "revenue-chart-values"
+            ).textContent
+        );
+
+    } catch (error) {
+
+        values = [];
+
+    }
+
+
+    new Chart(
+        canvas,
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+
+                        label: "Revenue",
+
+                        data: values,
+
+                        tension: 0.35,
+
+                        fill: true,
+
+                        borderWidth: 2,
+
+                        pointRadius: 3,
+
+                        pointHoverRadius: 5
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    intersect: false,
+                    mode: "index"
+                },
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function (context) {
+
+                                const value =
+                                    Number(
+                                        context.raw || 0
+                                    );
+
+                                return (
+                                    "₹" +
+                                    value.toLocaleString(
+                                        "en-IN",
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }
+                                    )
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function (value) {
+
+                                return (
+                                    "₹" +
+                                    Number(value).toLocaleString(
+                                        "en-IN"
+                                    )
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+});
+
+</script>
+
+{% endblock %}

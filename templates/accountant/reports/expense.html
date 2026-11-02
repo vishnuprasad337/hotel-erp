@@ -1,0 +1,1527 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}
+Expense Report | Hotel ERP
+{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.exp-report-page {
+    padding: 24px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.exp-report-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 24px;
+
+    margin-bottom: 24px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7628ef,
+            #2d326b
+        );
+
+    color: #ffffff;
+}
+
+.exp-report-hero-left {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+}
+
+.exp-report-hero-icon {
+    width: 48px;
+    height: 48px;
+
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: rgba(255,255,255,.13);
+
+    font-size: 19px;
+}
+
+.exp-report-hero h1 {
+    margin: 0 0 5px;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.exp-report-hero p {
+    margin: 0;
+
+    opacity: .82;
+}
+
+.exp-report-back {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 9px;
+
+    background: rgba(255,255,255,.10);
+
+    color: #ffffff;
+
+    text-decoration: none;
+
+    font-weight: 600;
+
+    transition: .2s ease;
+}
+
+.exp-report-back:hover {
+    background: rgba(255,255,255,.18);
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.exp-report-filter {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    padding: 18px;
+
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.exp-report-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.exp-report-field input,
+.exp-report-field select {
+    min-width: 155px;
+    height: 40px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-card);
+
+    color: var(--acc-text);
+}
+
+.exp-report-field input:focus,
+.exp-report-field select:focus {
+    border-color: var(--acc-primary);
+
+    box-shadow:
+        0 0 0 3px
+        var(--acc-primary-soft);
+}
+
+.exp-report-apply {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: var(--acc-primary);
+
+    color: #ffffff;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.exp-report-reset {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    background: var(--acc-card);
+
+    color: var(--acc-text);
+
+    text-decoration: none;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.exp-report-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.exp-report-stat {
+    min-width: 0;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.exp-report-stat-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border-radius: 11px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+}
+
+.exp-report-stat strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--acc-text);
+
+    font-size: 23px;
+    font-weight: 700;
+
+    overflow-wrap: anywhere;
+}
+
+.exp-report-stat span {
+    color: var(--acc-muted);
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   MAIN GRID
+========================================================= */
+
+.exp-report-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.4fr)
+        minmax(300px, .6fr);
+
+    gap: 18px;
+
+    margin-bottom: 22px;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.exp-report-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.exp-report-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+.exp-report-card-title h2 {
+    margin: 0 0 4px;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.exp-report-card-title p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+.exp-report-card-body {
+    padding: 20px;
+}
+
+
+/* =========================================================
+   CHART
+========================================================= */
+
+.exp-report-chart {
+    position: relative;
+
+    width: 100%;
+    height: 310px;
+}
+
+
+/* =========================================================
+   CATEGORY BREAKDOWN
+========================================================= */
+
+.exp-category-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.exp-category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    padding: 12px 0;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+.exp-category-row:last-child {
+    border-bottom: 0;
+}
+
+.exp-category-left {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 0;
+}
+
+.exp-category-icon {
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+}
+
+.exp-category-name {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.exp-category-count {
+    margin-top: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+.exp-category-amount {
+    color: var(--acc-text);
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.exp-report-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.exp-report-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.exp-report-table th {
+    padding: 12px 15px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    background: var(--acc-surface);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.exp-report-table td {
+    padding: 14px 15px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+.exp-report-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.exp-report-table tbody tr:hover {
+    background: var(--acc-surface);
+}
+
+.exp-report-amount {
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.exp-badge {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 9px;
+
+    border-radius: 999px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   DESCRIPTION
+========================================================= */
+
+.exp-description {
+    max-width: 280px;
+
+    color: var(--acc-muted);
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.exp-report-empty {
+    padding: 45px 20px;
+
+    text-align: center;
+}
+
+.exp-report-empty-icon {
+    width: 56px;
+    height: 56px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 13px;
+
+    border-radius: 14px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+
+    font-size: 20px;
+}
+
+.exp-report-empty h3 {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 15px;
+}
+
+.exp-report-empty p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .exp-report-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .exp-report-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+@media (max-width: 650px) {
+
+    .exp-report-page {
+        padding: 15px;
+    }
+
+    .exp-report-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .exp-report-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .exp-report-field {
+        width: 100%;
+    }
+
+    .exp-report-field input,
+    .exp-report-field select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .exp-report-apply,
+    .exp-report-reset {
+        width: 100%;
+    }
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="exp-report-page">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="exp-report-hero">
+
+        <div class="exp-report-hero-left">
+
+            <div class="exp-report-hero-icon">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+
+            <div>
+
+                <h1>
+                    Expense Report
+                </h1>
+
+                <p>
+                    Analyse hotel expenses, departments,
+                    categories and operating costs.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="{% url 'accountant_reports' %}"
+            class="exp-report-back"
+        >
+            <i class="fa-solid fa-arrow-left"></i>
+            All Reports
+        </a>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FILTER
+    ====================================================== -->
+
+    <form
+        method="get"
+        class="exp-report-filter"
+    >
+
+
+        <!-- PERIOD -->
+
+        <div class="exp-report-field">
+
+            <label>
+                Period
+            </label>
+
+            <select name="period">
+
+                <option
+                    value="today"
+                    {% if period == "today" %}selected{% endif %}
+                >
+                    Today
+                </option>
+
+                <option
+                    value="week"
+                    {% if period == "week" %}selected{% endif %}
+                >
+                    This Week
+                </option>
+
+                <option
+                    value="month"
+                    {% if period == "month" %}selected{% endif %}
+                >
+                    This Month
+                </option>
+
+                <option
+                    value="year"
+                    {% if period == "year" %}selected{% endif %}
+                >
+                    This Year
+                </option>
+
+                <option
+                    value="custom"
+                    {% if period == "custom" %}selected{% endif %}
+                >
+                    Custom
+                </option>
+
+            </select>
+
+        </div>
+
+
+
+        <!-- START -->
+
+        <div class="exp-report-field">
+
+            <label>
+                Start Date
+            </label>
+
+            <input
+                type="date"
+                name="start_date"
+                value="{{ start_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+
+        <!-- END -->
+
+        <div class="exp-report-field">
+
+            <label>
+                End Date
+            </label>
+
+            <input
+                type="date"
+                name="end_date"
+                value="{{ end_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+
+        <!-- DEPARTMENT -->
+
+        <div class="exp-report-field">
+
+            <label>
+                Department
+            </label>
+
+            <select name="department">
+
+                <option value="">
+                    All Departments
+                </option>
+
+                {% for department in departments %}
+
+                    <option
+                        value="{{ department.id }}"
+                        {% if selected_department == department.id|stringformat:"s" %}selected{% endif %}
+                    >
+                        {{ department.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <!-- CATEGORY -->
+
+        <div class="exp-report-field">
+
+            <label>
+                Category
+            </label>
+
+            <select name="category">
+
+                <option value="">
+                    All Categories
+                </option>
+
+                {% for category in categories %}
+
+                    <option
+                        value="{{ category.id }}"
+                        {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}
+                    >
+                        {{ category.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+
+        <button
+            type="submit"
+            class="exp-report-apply"
+        >
+            <i class="fa-solid fa-filter"></i>
+            Apply
+        </button>
+
+
+        <a
+            href="{% url 'accountant_expense_report_page' %}"
+            class="exp-report-reset"
+        >
+            <i class="fa-solid fa-rotate-left"></i>
+            Reset
+        </a>
+
+    </form>
+
+
+
+    <!-- =====================================================
+         STATS
+    ====================================================== -->
+
+    <section class="exp-report-stats">
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <article class="exp-report-stat">
+
+            <div class="exp-report-stat-icon">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_expenses|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Total Expenses
+            </span>
+
+        </article>
+
+
+
+        <!-- RECORDS -->
+
+        <article class="exp-report-stat">
+
+            <div class="exp-report-stat-icon">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+
+            <strong>
+                {{ expense_count|default:0 }}
+            </strong>
+
+            <span>
+                Expense Records
+            </span>
+
+        </article>
+
+
+
+        <!-- AVERAGE -->
+
+        <article class="exp-report-stat">
+
+            <div class="exp-report-stat-icon">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+
+            <strong>
+                ₹{{ average_expense|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Average Expense
+            </span>
+
+        </article>
+
+
+
+        <!-- TODAY -->
+
+        <article class="exp-report-stat">
+
+            <div class="exp-report-stat-icon">
+                <i class="fa-solid fa-calendar-day"></i>
+            </div>
+
+            <strong>
+                ₹{{ today_expenses|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Today's Expenses
+            </span>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CHART + CATEGORY BREAKDOWN
+    ====================================================== -->
+
+    <section class="exp-report-grid">
+
+
+        <!-- EXPENSE TREND -->
+
+        <article class="exp-report-card">
+
+            <div class="exp-report-card-header">
+
+                <div class="exp-report-card-title">
+
+                    <h2>
+                        Expense Trend
+                    </h2>
+
+                    <p>
+                        Expenses recorded during the selected period.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="exp-report-card-body">
+
+                <div class="exp-report-chart">
+
+                    <canvas id="expenseTrendChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- CATEGORY BREAKDOWN -->
+
+        <article class="exp-report-card">
+
+            <div class="exp-report-card-header">
+
+                <div class="exp-report-card-title">
+
+                    <h2>
+                        Category Breakdown
+                    </h2>
+
+                    <p>
+                        Expense distribution by category.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="exp-report-card-body">
+
+                <div class="exp-category-list">
+
+                    {% for item in category_breakdown %}
+
+                        <div class="exp-category-row">
+
+                            <div class="exp-category-left">
+
+                                <div class="exp-category-icon">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </div>
+
+
+                                <div>
+
+                                    <div class="exp-category-name">
+
+                                        {{ item.name|default:"Uncategorised" }}
+
+                                    </div>
+
+
+                                    <div class="exp-category-count">
+
+                                        {{ item.count|default:0 }}
+                                        record{{ item.count|pluralize }}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="exp-category-amount">
+
+                                ₹{{ item.amount|default:0|floatformat:2 }}
+
+                            </div>
+
+                        </div>
+
+
+                    {% empty %}
+
+                        <div class="exp-report-empty">
+
+                            <div class="exp-report-empty-icon">
+                                <i class="fa-solid fa-chart-pie"></i>
+                            </div>
+
+                            <h3>
+                                No category data
+                            </h3>
+
+                            <p>
+                                No expenses were recorded
+                                for this period.
+                            </p>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         EXPENSE TABLE
+    ====================================================== -->
+
+    <article class="exp-report-card">
+
+
+        <div class="exp-report-card-header">
+
+            <div class="exp-report-card-title">
+
+                <h2>
+                    Expense Records
+                </h2>
+
+                <p>
+                    Detailed expense transactions for
+                    the selected period.
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        {% if expenses %}
+
+            <div class="exp-report-table-wrap">
+
+                <table class="exp-report-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Department
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for expense in expenses %}
+
+                            <tr>
+
+
+                                <!-- DATE -->
+
+                                <td>
+
+                                    {% if expense.expense_date %}
+
+                                        {{ expense.expense_date|date:"d M Y" }}
+
+                                    {% elif expense.date %}
+
+                                        {{ expense.date|date:"d M Y" }}
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+
+
+                                <!-- DEPARTMENT -->
+
+                                <td>
+
+                                    {% if expense.department %}
+
+                                        <span class="exp-badge">
+
+                                            <i class="fa-solid fa-building"></i>
+
+                                            {{ expense.department.name }}
+
+                                        </span>
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+
+
+                                <!-- CATEGORY -->
+
+                                <td>
+
+                                    {% if expense.category %}
+
+                                        {{ expense.category.name }}
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+
+
+                                <!-- DESCRIPTION -->
+
+                                <td>
+
+                                    <div
+                                        class="exp-description"
+                                        title="{{ expense.description|default:'' }}"
+                                    >
+
+                                        {{ expense.description|default:"-" }}
+
+                                    </div>
+
+                                </td>
+
+
+
+                                <!-- AMOUNT -->
+
+                                <td class="exp-report-amount">
+
+                                    ₹{{ expense.amount|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="exp-report-empty">
+
+                <div class="exp-report-empty-icon">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+
+                <h3>
+                    No expense records
+                </h3>
+
+                <p>
+                    There are no expenses matching
+                    the selected filters.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+
+    </article>
+
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+{{ chart_labels|default:"[]"|json_script:"expense-chart-labels" }}
+
+{{ chart_values|default:"[]"|json_script:"expense-chart-values" }}
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* =================================================
+           GET CHART
+        ================================================= */
+
+        const canvas =
+            document.getElementById(
+                "expenseTrendChart"
+            );
+
+
+        if (!canvas) {
+
+            return;
+
+        }
+
+
+
+        /* =================================================
+           DATA
+        ================================================= */
+
+        let labels = [];
+        let values = [];
+
+
+        const labelElement =
+            document.getElementById(
+                "expense-chart-labels"
+            );
+
+        const valueElement =
+            document.getElementById(
+                "expense-chart-values"
+            );
+
+
+        try {
+
+            if (labelElement) {
+
+                labels =
+                    JSON.parse(
+                        labelElement.textContent
+                    );
+
+            }
+
+        }
+
+        catch (error) {
+
+            labels = [];
+
+        }
+
+
+        try {
+
+            if (valueElement) {
+
+                values =
+                    JSON.parse(
+                        valueElement.textContent
+                    );
+
+            }
+
+        }
+
+        catch (error) {
+
+            values = [];
+
+        }
+
+
+
+        /* =================================================
+           CREATE CHART
+        ================================================= */
+
+        new Chart(
+            canvas,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels: labels,
+
+                    datasets: [
+
+                        {
+
+                            label: "Expenses",
+
+                            data: values,
+
+                            tension: 0.35,
+
+                            fill: true,
+
+                            borderWidth: 2,
+
+                            pointRadius: 3,
+
+                            pointHoverRadius: 5
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+
+                    interaction: {
+
+                        intersect: false,
+
+                        mode: "index"
+
+                    },
+
+
+                    plugins: {
+
+                        legend: {
+
+                            display: false
+
+                        },
+
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label: function (
+                                    context
+                                ) {
+
+                                    const value =
+                                        Number(
+                                            context.raw || 0
+                                        );
+
+                                    return (
+                                        "₹" +
+                                        value.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2
+                                            }
+                                        )
+                                    );
+
+                                }
+
+                            }
+
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+
+                                        return (
+                                            "₹" +
+                                            Number(value)
+                                                .toLocaleString(
+                                                    "en-IN"
+                                                )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+);
+
+</script>
+
+{% endblock %}

@@ -195,22 +195,40 @@ class Attendance(models.Model):
 
 
 class LeaveRequest(models.Model):
+
     STATUS_CHOICES = [
         ("Pending", "Pending"),
         ("Approved", "Approved"),
         ("Rejected", "Rejected"),
     ]
 
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
-    tenant = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True)
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE
+    )
+
+    tenant = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
     from_date = models.DateField()
+
     to_date = models.DateField()
 
     reason = models.TextField()
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="Pending"
+    )
 
-    applied_at = models.DateTimeField(auto_now_add=True)
+    applied_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     action_by = models.ForeignKey(
         Staff,
@@ -220,10 +238,196 @@ class LeaveRequest(models.Model):
         related_name="leave_actions"
     )
 
-    action_at = models.DateTimeField(null=True, blank=True)
+    action_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+
+    # ============================================================
+    # STRING REPRESENTATION
+    # ============================================================
 
     def __str__(self):
+
         return f"{self.staff.name} - {self.status}"
+
+
+    # ============================================================
+    # LEAVE TYPE
+    #
+    # Stored inside reason as:
+    # [Leave Type: Sick Leave]
+    # ============================================================
+
+    @property
+    def leave_type(self):
+
+        if not self.reason:
+            return "Leave"
+
+        lines = self.reason.splitlines()
+
+        if not lines:
+            return "Leave"
+
+        first_line = lines[0].strip()
+
+        prefix = "[Leave Type: "
+
+        if (
+            first_line.startswith(prefix)
+            and
+            first_line.endswith("]")
+        ):
+
+            return first_line[
+                len(prefix):-1
+            ].strip()
+
+        # --------------------------------------------------------
+        # OLD LEAVE RECORD
+        # --------------------------------------------------------
+
+        return "Leave"
+
+
+    # ============================================================
+    # DURATION TYPE
+    #
+    # Stored inside reason as:
+    # [Duration: Full Day]
+    # [Duration: First Half]
+    # [Duration: Second Half]
+    # ============================================================
+
+    @property
+    def duration_type(self):
+
+        if not self.reason:
+            return "Full Day"
+
+        lines = self.reason.splitlines()
+
+        if len(lines) < 2:
+            return "Full Day"
+
+        second_line = lines[1].strip()
+
+        prefix = "[Duration: "
+
+        if (
+            second_line.startswith(prefix)
+            and
+            second_line.endswith("]")
+        ):
+
+            value = second_line[
+                len(prefix):-1
+            ].strip()
+
+            if value in {
+                "Full Day",
+                "First Half",
+                "Second Half",
+            }:
+
+                return value
+
+        # --------------------------------------------------------
+        # OLD LEAVE RECORD
+        # --------------------------------------------------------
+
+        return "Full Day"
+
+
+    # ============================================================
+    # DISPLAY REASON
+    #
+    # Removes our internal metadata before displaying reason.
+    #
+    # Stored:
+    #
+    # [Leave Type: Sick Leave]
+    # [Duration: Full Day]
+    # Fever and doctor advised rest.
+    #
+    # Display:
+    #
+    # Fever and doctor advised rest.
+    # ============================================================
+
+    @property
+    def display_reason(self):
+
+        if not self.reason:
+            return ""
+
+        lines = self.reason.splitlines()
+
+        clean_lines = []
+
+        for line in lines:
+
+            stripped_line = line.strip()
+
+            if stripped_line.startswith(
+                "[Leave Type: "
+            ):
+                continue
+
+            if stripped_line.startswith(
+                "[Duration: "
+            ):
+                continue
+
+            clean_lines.append(line)
+
+        return "\n".join(
+            clean_lines
+        ).strip()
+
+
+    # ============================================================
+    # DURATION IN DAYS
+    #
+    # Full day:
+    # Sep 10 -> Sep 10 = 1 day
+    # Sep 10 -> Sep 12 = 3 days
+    #
+    # Half day:
+    # First Half / Second Half = 0.5
+    # ============================================================
+
+    @property
+    def duration_days(self):
+
+        if self.duration_type in {
+            "First Half",
+            "Second Half",
+        }:
+
+            return 0.5
+
+        if (
+            not self.from_date
+            or
+            not self.to_date
+        ):
+            return 0
+
+        # Defensive check for bad/legacy records.
+        if self.to_date < self.from_date:
+            return 0
+
+        return (
+            self.to_date
+            -
+            self.from_date
+        ).days + 1
+
+    
+     
 
 from django.db.models import JSONField
 

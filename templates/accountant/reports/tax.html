@@ -1,0 +1,1191 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}
+Tax Report | Hotel ERP
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+.tax-report-page {
+    padding: 24px;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.tax-report-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 24px;
+    margin-bottom: 24px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7628ef,
+            #2d326b
+        );
+
+    color: #ffffff;
+}
+
+.tax-report-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.tax-report-hero-icon {
+    width: 48px;
+    height: 48px;
+
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: rgba(255,255,255,.13);
+
+    font-size: 19px;
+}
+
+.tax-report-hero h1 {
+    margin: 0 0 5px;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.tax-report-hero p {
+    margin: 0;
+    opacity: .82;
+}
+
+.tax-report-back {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 9px;
+
+    background: rgba(255,255,255,.10);
+
+    color: #ffffff;
+
+    text-decoration: none;
+    font-weight: 600;
+
+    transition: .2s;
+}
+
+.tax-report-back:hover {
+    background: rgba(255,255,255,.18);
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.tax-report-filter {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    padding: 18px;
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.tax-report-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tax-report-field input,
+.tax-report-field select {
+    min-width: 155px;
+    height: 40px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-card);
+    color: var(--acc-text);
+}
+
+.tax-report-field input:focus,
+.tax-report-field select:focus {
+    border-color: var(--acc-primary);
+
+    box-shadow:
+        0 0 0 3px
+        var(--acc-primary-soft);
+}
+
+.tax-report-apply,
+.tax-report-reset {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border-radius: 9px;
+
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.tax-report-apply {
+    border: 0;
+
+    background: var(--acc-primary);
+    color: #ffffff;
+
+    cursor: pointer;
+}
+
+.tax-report-reset {
+    border: 1px solid var(--acc-border);
+
+    background: var(--acc-card);
+    color: var(--acc-text);
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.tax-report-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.tax-report-stat {
+    min-width: 0;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.tax-report-stat-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border-radius: 11px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+}
+
+.tax-report-stat strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--acc-text);
+
+    font-size: 23px;
+    font-weight: 700;
+
+    overflow-wrap: anywhere;
+}
+
+.tax-report-stat span {
+    color: var(--acc-muted);
+
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   SECONDARY SUMMARY
+========================================================= */
+
+.tax-summary-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.tax-summary-card {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 17px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.tax-summary-icon {
+    width: 44px;
+    height: 44px;
+
+    flex: 0 0 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+}
+
+.tax-summary-copy span {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+.tax-summary-copy strong {
+    color: var(--acc-text);
+
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   MAIN CARD
+========================================================= */
+
+.tax-report-card {
+    min-width: 0;
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.tax-report-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--acc-border);
+}
+
+.tax-report-card-title h2 {
+    margin: 0 0 4px;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.tax-report-card-title p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.tax-report-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tax-report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tax-report-table th {
+    padding: 12px 14px;
+
+    border-bottom: 1px solid var(--acc-border);
+
+    background: var(--acc-surface);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+    white-space: nowrap;
+}
+
+.tax-report-table td {
+    padding: 14px;
+
+    border-bottom: 1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.tax-report-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.tax-report-table tbody tr:hover {
+    background: var(--acc-surface);
+}
+
+.tax-amount {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   EMPLOYEE
+========================================================= */
+
+.tax-employee {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 180px;
+}
+
+.tax-employee-avatar {
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+
+    font-weight: 700;
+}
+
+.tax-employee-name {
+    margin-bottom: 2px;
+
+    color: var(--acc-text);
+
+    font-weight: 600;
+}
+
+.tax-employee-meta {
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.tax-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 5px 9px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.tax-status-paid {
+    background: rgba(16,185,129,.12);
+    color: #059669;
+}
+
+.tax-status-pending {
+    background: rgba(245,158,11,.14);
+    color: #b45309;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.tax-report-empty {
+    padding: 45px 20px;
+
+    text-align: center;
+}
+
+.tax-report-empty-icon {
+    width: 56px;
+    height: 56px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 13px;
+
+    border-radius: 14px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+
+    font-size: 20px;
+}
+
+.tax-report-empty h3 {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 15px;
+}
+
+.tax-report-empty p {
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .tax-report-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 850px) {
+
+    .tax-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 650px) {
+
+    .tax-report-page {
+        padding: 15px;
+    }
+
+    .tax-report-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .tax-report-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .tax-report-field {
+        width: 100%;
+    }
+
+    .tax-report-field input,
+    .tax-report-field select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .tax-report-apply,
+    .tax-report-reset {
+        width: 100%;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="tax-report-page">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="tax-report-hero">
+
+        <div class="tax-report-hero-left">
+
+            <div class="tax-report-hero-icon">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+
+            <div>
+
+                <h1>
+                    Tax Report
+                </h1>
+
+                <p>
+                    Review payroll tax deductions and tax-related
+                    financial records for the selected period.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="{% url 'accountant_reports' %}"
+            class="tax-report-back"
+        >
+            <i class="fa-solid fa-arrow-left"></i>
+            All Reports
+        </a>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         FILTERS
+    ====================================================== -->
+
+    <form
+        method="get"
+        class="tax-report-filter"
+    >
+
+        <div class="tax-report-field">
+
+            <label>Period</label>
+
+            <select name="period">
+
+                <option
+                    value="month"
+                    {% if period == "month" %}selected{% endif %}
+                >
+                    This Month
+                </option>
+
+                <option
+                    value="last_month"
+                    {% if period == "last_month" %}selected{% endif %}
+                >
+                    Last Month
+                </option>
+
+                <option
+                    value="year"
+                    {% if period == "year" %}selected{% endif %}
+                >
+                    This Year
+                </option>
+
+                <option
+                    value="custom"
+                    {% if period == "custom" %}selected{% endif %}
+                >
+                    Custom
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="tax-report-field">
+
+            <label>Start Date</label>
+
+            <input
+                type="date"
+                name="start_date"
+                value="{{ start_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <div class="tax-report-field">
+
+            <label>End Date</label>
+
+            <input
+                type="date"
+                name="end_date"
+                value="{{ end_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <div class="tax-report-field">
+
+            <label>Department</label>
+
+            <select name="department">
+
+                <option value="">
+                    All Departments
+                </option>
+
+                {% for department in departments %}
+
+                    <option
+                        value="{{ department.id }}"
+                        {% if selected_department == department.id|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ department.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="tax-report-apply"
+        >
+            <i class="fa-solid fa-filter"></i>
+            Apply
+        </button>
+
+
+        <a
+            href="{% url 'accountant_tax_report' %}"
+            class="tax-report-reset"
+        >
+            <i class="fa-solid fa-rotate-left"></i>
+            Reset
+        </a>
+
+    </form>
+
+
+
+    <!-- =====================================================
+         PRIMARY STATISTICS
+    ====================================================== -->
+
+    <section class="tax-report-stats">
+
+
+        <article class="tax-report-stat">
+
+            <div class="tax-report-stat-icon">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_tax|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Total Tax Deducted
+            </span>
+
+        </article>
+
+
+        <article class="tax-report-stat">
+
+            <div class="tax-report-stat-icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+
+            <strong>
+                {{ employee_count|default:0 }}
+            </strong>
+
+            <span>
+                Employees
+            </span>
+
+        </article>
+
+
+        <article class="tax-report-stat">
+
+            <div class="tax-report-stat-icon">
+                <i class="fa-solid fa-money-check-dollar"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_payroll|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Total Payroll
+            </span>
+
+        </article>
+
+
+        <article class="tax-report-stat">
+
+            <div class="tax-report-stat-icon">
+                <i class="fa-solid fa-calculator"></i>
+            </div>
+
+            <strong>
+                ₹{{ average_tax|default:0|floatformat:2 }}
+            </strong>
+
+            <span>
+                Average Tax / Employee
+            </span>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TAX BREAKDOWN
+    ====================================================== -->
+
+    <section class="tax-summary-grid">
+
+
+        <article class="tax-summary-card">
+
+            <div class="tax-summary-icon">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+
+            <div class="tax-summary-copy">
+
+                <span>
+                    Payroll Tax
+                </span>
+
+                <strong>
+                    ₹{{ payroll_tax|default:0|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article class="tax-summary-card">
+
+            <div class="tax-summary-icon">
+                <i class="fa-solid fa-building-columns"></i>
+            </div>
+
+            <div class="tax-summary-copy">
+
+                <span>
+                    PF Contribution
+                </span>
+
+                <strong>
+                    ₹{{ total_pf|default:0|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </article>
+
+
+        <article class="tax-summary-card">
+
+            <div class="tax-summary-icon">
+                <i class="fa-solid fa-shield-heart"></i>
+            </div>
+
+            <div class="tax-summary-copy">
+
+                <span>
+                    ESI Contribution
+                </span>
+
+                <strong>
+                    ₹{{ total_esi|default:0|floatformat:2 }}
+                </strong>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TAX RECORDS
+    ====================================================== -->
+
+    <article class="tax-report-card">
+
+        <div class="tax-report-card-header">
+
+            <div class="tax-report-card-title">
+
+                <h2>
+                    Employee Tax Records
+                </h2>
+
+                <p>
+                    Payroll tax deductions for the selected period.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if payrolls %}
+
+            <div class="tax-report-table-wrap">
+
+                <table class="tax-report-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Employee</th>
+
+                            <th>Period</th>
+
+                            <th>Basic Salary</th>
+
+                            <th>Gross / Net Salary</th>
+
+                            <th>Tax</th>
+
+                            <th>PF</th>
+
+                            <th>ESI</th>
+
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for payroll in payrolls %}
+
+                            <tr>
+
+
+                                <!-- EMPLOYEE -->
+
+                                <td>
+
+                                    <div class="tax-employee">
+
+                                        <div class="tax-employee-avatar">
+
+                                            {% if payroll.staff.name %}
+
+                                                {{ payroll.staff.name|first|upper }}
+
+                                            {% else %}
+
+                                                <i class="fa-solid fa-user"></i>
+
+                                            {% endif %}
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <div class="tax-employee-name">
+
+                                                {% if payroll.staff.name %}
+
+                                                    {{ payroll.staff.name }}
+
+                                                {% elif payroll.staff.user %}
+
+                                                    {{ payroll.staff.user.get_full_name|default:payroll.staff.user.username }}
+
+                                                {% else %}
+
+                                                    Employee
+
+                                                {% endif %}
+
+                                            </div>
+
+
+                                            <div class="tax-employee-meta">
+
+                                                {% if payroll.staff.employee_id %}
+
+                                                    {{ payroll.staff.employee_id }}
+
+                                                {% endif %}
+
+                                                {% if payroll.staff.department %}
+
+                                                    {% if payroll.staff.employee_id %}
+                                                        •
+                                                    {% endif %}
+
+                                                    {{ payroll.staff.department.name }}
+
+                                                {% endif %}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- PERIOD -->
+
+                                <td>
+
+                                    {% if payroll.month %}
+
+                                        {{ payroll.month }}
+
+                                        {% if payroll.year %}
+                                            / {{ payroll.year }}
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        -
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- BASIC SALARY -->
+
+                                <td class="tax-amount">
+
+                                    ₹{{ payroll.basic_salary|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <!-- NET SALARY -->
+
+                                <td class="tax-amount">
+
+                                    ₹{{ payroll.net_salary|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <!-- TAX -->
+
+                                <td class="tax-amount">
+
+                                    ₹{{ payroll.tax_deduction|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <!-- PF -->
+
+                                <td class="tax-amount">
+
+                                    ₹{{ payroll.pf_amount|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <!-- ESI -->
+
+                                <td class="tax-amount">
+
+                                    ₹{{ payroll.esi_amount|default:0|floatformat:2 }}
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    {% if payroll.paid_status == "Paid" %}
+
+                                        <span class="tax-status tax-status-paid">
+
+                                            <i class="fa-solid fa-circle-check"></i>
+
+                                            Paid
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="tax-status tax-status-pending">
+
+                                            <i class="fa-solid fa-clock"></i>
+
+                                            Pending
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="tax-report-empty">
+
+                <div class="tax-report-empty-icon">
+
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+
+                </div>
+
+                <h3>
+                    No tax records
+                </h3>
+
+                <p>
+                    No payroll tax records were found
+                    for the selected period.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </article>
+
+
+</div>
+
+{% endblock %}

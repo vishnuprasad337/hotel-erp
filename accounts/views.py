@@ -1737,7 +1737,7 @@ def dashboard(request):
             "total_amount": b.total_amount,
         })
 
-    return render(request, "hotel/property.html", {
+    return render(request, "property.html", {
         "hotel": hotel,
         "amenities": amenities,
         "active_module_names": active_module_names,

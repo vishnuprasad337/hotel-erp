@@ -1,0 +1,3336 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="en" data-theme="light">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+            Housekeeping
+        {% endblock %}
+    </title>
+
+
+    <!-- =====================================================
+     BOOTSTRAP
+===================================================== -->
+
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+
+
+<!-- =====================================================
+     ADMIO ICONS
+===================================================== -->
+
+<link
+    rel="stylesheet"
+    href="{% static 'housekeeping/assets/css/admio-icons.css' %}"
+>
+
+
+<!-- =====================================================
+     ADMIO BASE CSS
+===================================================== -->
+
+<link
+    rel="stylesheet"
+    href="{% static 'housekeeping/assets/css/admio.css' %}"
+>
+
+
+<!-- =====================================================
+     FONT AWESOME
+===================================================== -->
+
+<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+>
+
+
+<!-- =====================================================
+     HOUSEKEEPING MODULE CSS
+
+     IMPORTANT:
+     Keep this AFTER Bootstrap and Admio so housekeeping
+     styles can override them.
+===================================================== -->
+
+<link
+    rel="stylesheet"
+    href="{% static 'housekeeping/assets/css/housekeeping.css' %}"
+>
+
+
+    <style>
+
+        /* =====================================================
+           ROOT
+           ===================================================== */
+
+        :root {
+
+            --hk-primary: #7c3aed;
+            --hk-primary-dark: #6d28d9;
+
+            --hk-page-bg: #f7f8fc;
+
+            --hk-card-bg: #ffffff;
+
+            --hk-navbar-bg: #ffffff;
+
+            --hk-heading: #101828;
+
+            --hk-text: #344054;
+
+            --hk-muted: #667085;
+
+            --hk-border: #e5e7eb;
+
+            --hk-hover: #f4edff;
+
+            --hk-shadow:
+                0 2px 10px
+                rgba(15, 23, 42, 0.05);
+
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html {
+            min-height: 100%;
+        }
+
+
+        body {
+
+            min-height: 100vh;
+
+            margin: 0;
+
+            background: var(--hk-page-bg);
+
+            color: var(--hk-text);
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+
+            font-size: 14px;
+
+            line-height: 1.5;
+
+        }
+
+
+        a {
+            text-decoration: none;
+        }
+
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+
+        /* =====================================================
+           REMOVE ADMIO SIDEBAR
+           ===================================================== */
+
+        .admio-sidebar {
+            display: none !important;
+        }
+
+
+        .admio-main {
+
+            width: 100% !important;
+
+            min-height:
+                calc(100vh - 132px);
+
+            margin: 0 !important;
+
+            padding: 0 !important;
+
+        }
+
+
+        .admio-content {
+
+            width: 100%;
+
+            max-width: 1700px;
+
+            margin: 0 auto;
+
+            padding:
+                32px 34px
+                60px;
+
+        }
+
+
+        /* =====================================================
+           NAVBAR
+           ===================================================== */
+
+        .h-navbar {
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1050;
+
+            width: 100%;
+
+            background:
+                var(--hk-navbar-bg);
+
+            border-bottom:
+                1px solid
+                var(--hk-border);
+
+            box-shadow:
+                var(--hk-shadow);
+
+        }
+
+
+        /* =====================================================
+           TOP NAVBAR ROW
+           ===================================================== */
+
+        .h-navbar-top {
+
+            width: 100%;
+
+            min-height: 72px;
+
+            padding:
+                0 32px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 20px;
+
+        }
+
+
+        /* =====================================================
+           MOBILE MENU BUTTON
+           ===================================================== */
+
+        .h-menu-toggle {
+
+            width: 40px;
+
+            height: 40px;
+
+            padding: 0;
+
+            border: 0;
+
+            border-radius: 10px;
+
+            display: none;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex: 0 0 40px;
+
+            background: transparent;
+
+            color: var(--hk-text);
+
+            cursor: pointer;
+
+            font-size: 18px;
+
+            transition:
+                background 0.2s ease,
+                color 0.2s ease;
+
+        }
+
+
+        .h-menu-toggle:hover {
+
+            color:
+                var(--hk-primary);
+
+            background:
+                var(--hk-hover);
+
+        }
+
+
+        /* =====================================================
+           BRAND
+           ===================================================== */
+
+        .h-navbar-brand {
+
+            min-width: 0;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
+            flex-shrink: 0;
+
+            color: inherit;
+
+        }
+
+
+        .h-navbar-brand:hover {
+            color: inherit;
+        }
+
+
+        .hk-brand-logo {
+
+            width: 46px;
+
+            height: 46px;
+
+            flex: 0 0 46px;
+
+            border-radius: 13px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            color: #ffffff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #9333ea
+                );
+
+            box-shadow:
+                0 7px 17px
+                rgba(124, 58, 237, 0.23);
+
+            font-size: 19px;
+
+        }
+
+
+        .hk-brand-copy {
+
+            min-width: 0;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        .hk-brand-name {
+
+            max-width: 190px;
+
+            overflow: hidden;
+
+            color:
+                var(--hk-heading);
+
+            font-size: 16px;
+
+            font-weight: 750;
+
+            line-height: 1.25;
+
+            text-overflow: ellipsis;
+
+            white-space: nowrap;
+
+        }
+
+
+        .hk-brand-module {
+
+            margin-top: 2px;
+
+            color:
+                var(--hk-primary);
+
+            font-size: 11px;
+
+            font-weight: 600;
+
+        }
+
+
+        /* =====================================================
+           MODULE STATUS
+           ===================================================== */
+
+        .hk-module-pill {
+
+            min-height: 36px;
+
+            padding:
+                0 15px;
+
+            border-radius: 999px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            flex-shrink: 0;
+
+            color:
+                var(--hk-primary);
+
+            background:
+                rgba(
+                    124,
+                    58,
+                    237,
+                    0.09
+                );
+
+            font-size: 12px;
+
+            font-weight: 600;
+
+            white-space: nowrap;
+
+        }
+
+
+        .hk-module-dot {
+
+            width: 8px;
+
+            height: 8px;
+
+            border-radius: 50%;
+
+            flex: 0 0 8px;
+
+            background: #22c55e;
+
+        }
+
+
+        /* =====================================================
+           SEARCH
+           ===================================================== */
+
+        .h-topbar-search {
+
+            position: relative;
+
+            min-width: 170px;
+
+            max-width: 420px;
+
+            margin-left: 8px;
+
+            flex:
+                1 1 320px;
+
+        }
+
+
+        .h-search-icon {
+
+            position: absolute;
+
+            left: 14px;
+
+            top: 50%;
+
+            transform:
+                translateY(-50%);
+
+            color: #98a2b3;
+
+            pointer-events: none;
+
+            font-size: 14px;
+
+        }
+
+
+        .h-search-input {
+
+            width: 100%;
+
+            height: 42px;
+
+            padding:
+                0 15px
+                0 41px;
+
+            border:
+                1px solid
+                var(--hk-border);
+
+            border-radius: 10px;
+
+            outline: none;
+
+            background: #f9fafb;
+
+            color:
+                var(--hk-heading);
+
+            font-size: 13px;
+
+            transition:
+                border-color 0.2s ease,
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+
+        }
+
+
+        .h-search-input::placeholder {
+            color: #98a2b3;
+        }
+
+
+        .h-search-input:focus {
+
+            border-color:
+                var(--hk-primary);
+
+            background: #ffffff;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(
+                    124,
+                    58,
+                    237,
+                    0.10
+                );
+
+        }
+
+
+        /* =====================================================
+           RIGHT ACTION AREA
+           ===================================================== */
+
+        .h-topbar-actions {
+
+            margin-left: auto;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .hk-topbar-btn {
+
+            position: relative;
+
+            width: 40px;
+
+            height: 40px;
+
+            padding: 0;
+
+            border: 0;
+
+            border-radius: 10px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex: 0 0 40px;
+
+            background: transparent;
+
+            color: #667085;
+
+            cursor: pointer;
+
+            font-size: 16px;
+
+            transition:
+                color 0.2s ease,
+                background 0.2s ease;
+
+        }
+
+
+        .hk-topbar-btn:hover {
+
+            color:
+                var(--hk-primary);
+
+            background:
+                var(--hk-hover);
+
+        }
+
+
+        .hk-topbar-divider {
+
+            width: 1px;
+
+            height: 27px;
+
+            margin:
+                0 4px;
+
+            flex: 0 0 1px;
+
+            background:
+                var(--hk-border);
+
+        }
+
+
+        /* =====================================================
+           NOTIFICATION DOT
+           ===================================================== */
+
+        .hk-notification-btn {
+            position: relative;
+        }
+
+
+        .hk-notification-dot {
+
+            position: absolute;
+
+            top: 8px;
+
+            right: 8px;
+
+            width: 6px;
+
+            height: 6px;
+
+            border:
+
+                1.5px solid
+                var(--hk-navbar-bg);
+
+            border-radius: 50%;
+
+            background: #ef4444;
+
+        }
+
+
+        /* =====================================================
+           USER
+           ===================================================== */
+
+        .hk-user-area {
+
+            min-width: 0;
+
+            margin-left: 3px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+        }
+
+
+        .hk-user-avatar {
+
+            width: 40px;
+
+            height: 40px;
+
+            flex: 0 0 40px;
+
+            border-radius: 50%;
+
+            overflow: hidden;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            color: #ffffff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #7c3aed,
+                    #9333ea
+                );
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+        }
+
+
+        .hk-user-avatar img {
+
+            width: 100%;
+
+            height: 100%;
+
+            display: block;
+
+            object-fit: cover;
+
+        }
+
+
+        .hk-user-copy {
+
+            min-width: 0;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        .hk-user-name {
+
+            max-width: 130px;
+
+            overflow: hidden;
+
+            color:
+                var(--hk-heading);
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            line-height: 1.25;
+
+            text-overflow: ellipsis;
+
+            white-space: nowrap;
+
+        }
+
+
+        .hk-user-role {
+
+            margin-top: 2px;
+
+            color:
+                var(--hk-muted);
+
+            font-size: 10px;
+
+            line-height: 1.25;
+
+        }
+
+
+        /* =====================================================
+           DESKTOP NAVIGATION
+           ===================================================== */
+
+        .h-navbar-menu {
+
+            width: 100%;
+
+            min-height: 57px;
+
+            padding:
+                7px 32px;
+
+            border-top:
+                1px solid
+                rgba(
+                    229,
+                    231,
+                    235,
+                    0.65
+                );
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 5px;
+
+            overflow-x: auto;
+
+            scrollbar-width: none;
+
+            background:
+                var(--hk-navbar-bg);
+
+        }
+
+
+        .h-navbar-menu::-webkit-scrollbar {
+            display: none;
+        }
+
+
+        .h-nav-link {
+
+            min-height: 40px;
+
+            padding:
+                9px 15px;
+
+            border-radius: 10px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 8px;
+
+            flex-shrink: 0;
+
+            color: #667085;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            white-space: nowrap;
+
+            transition:
+                background 0.2s ease,
+                color 0.2s ease;
+
+        }
+
+
+        .h-nav-link i {
+
+            width: 18px;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-size: 14px;
+
+        }
+
+
+        .h-nav-link:hover {
+
+            color:
+                var(--hk-primary);
+
+            background:
+                #f6f0ff;
+
+        }
+
+
+        .h-nav-link.active {
+
+            color:
+                var(--hk-primary);
+
+            background:
+                #f1e9ff;
+
+        }
+
+        /* =====================================================
+   NAVIGATION DROPDOWN
+===================================================== */
+
+.h-nav-dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.h-nav-dropdown-toggle {
+    border: 0;
+    cursor: pointer;
+    background: transparent;
+}
+
+.h-nav-dropdown-toggle .dropdown-arrow {
+    margin-left: 3px;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.h-nav-dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* DROPDOWN MENU */
+
+.h-nav-dropdown-menu {
+    position: fixed;
+
+    min-width: 210px;
+
+    padding: 7px;
+
+    border:
+        1px solid
+        var(--hk-border);
+
+    border-radius: 12px;
+
+    display: none;
+
+    background:
+        var(--hk-navbar-bg);
+
+    box-shadow:
+        0 12px 35px
+        rgba(15, 23, 42, 0.13);
+
+    z-index: 2000;
+}
+
+.h-nav-dropdown.open
+.h-nav-dropdown-menu {
+    display: block;
+}
+
+
+/* DROPDOWN ITEM */
+
+.h-dropdown-item {
+    width: 100%;
+
+    min-height: 40px;
+
+    padding:
+        9px 12px;
+
+    border-radius: 8px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    color:
+        var(--hk-text);
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.h-dropdown-item i {
+    width: 20px;
+
+    color:
+        var(--hk-primary);
+
+    text-align: center;
+}
+
+
+.h-dropdown-item:hover,
+.h-dropdown-item.active {
+
+    color:
+        var(--hk-primary);
+
+    background:
+        var(--hk-hover);
+}
+
+
+        /* =====================================================
+           MOBILE NAVIGATION
+           ===================================================== */
+
+        .h-navbar-menu-mobile {
+
+            display: none;
+
+            padding:
+                10px 14px
+                16px;
+
+            border-top:
+                1px solid
+                var(--hk-border);
+
+            background:
+                var(--hk-navbar-bg);
+
+        }
+
+
+        .h-navbar-menu-mobile.open {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+
+        .h-mobile-link {
+
+            min-height: 43px;
+
+            padding:
+                10px 12px;
+
+            border-radius: 9px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            color:
+                var(--hk-text);
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+        }
+
+
+        .h-mobile-link i {
+
+            width: 20px;
+
+            color:
+                var(--hk-primary);
+
+            text-align: center;
+
+        }
+
+
+        .h-mobile-link:hover,
+        .h-mobile-link.active {
+
+            color:
+                var(--hk-primary);
+
+            background:
+                var(--hk-hover);
+
+        }
+
+
+        /* =====================================================
+           TOAST
+           ===================================================== */
+
+        .hk-toast {
+
+            position: fixed;
+
+            right: 24px;
+
+            bottom: 24px;
+
+            z-index: 99999;
+
+            min-width: 260px;
+
+            max-width: 400px;
+
+            padding:
+                13px 16px;
+
+            border-radius: 10px;
+
+            visibility: hidden;
+
+            opacity: 0;
+
+            transform:
+                translateY(12px);
+
+            background: #111827;
+
+            color: #ffffff;
+
+            box-shadow:
+                0 12px 35px
+                rgba(15, 23, 42, 0.20);
+
+            transition:
+                opacity 0.2s ease,
+                transform 0.2s ease,
+                visibility 0.2s ease;
+
+        }
+
+
+        .hk-toast.show {
+
+            visibility: visible;
+
+            opacity: 1;
+
+            transform:
+                translateY(0);
+
+        }
+
+
+        .hk-toast.success {
+            background: #059669;
+        }
+
+
+        .hk-toast.error {
+            background: #dc2626;
+        }
+
+
+        /* =====================================================
+           DARK MODE
+           ===================================================== */
+
+        html[data-theme="dark"] {
+
+            --hk-page-bg: #151521;
+
+            --hk-card-bg: #1e1e2d;
+
+            --hk-navbar-bg: #1e1e2d;
+
+            --hk-heading: #f5f6fa;
+
+            --hk-text: #d0d3dc;
+
+            --hk-muted: #9196a5;
+
+            --hk-border: #303041;
+
+            --hk-hover:
+                rgba(
+                    124,
+                    58,
+                    237,
+                    0.15
+                );
+
+        }
+
+
+        html[data-theme="dark"] body {
+
+            background:
+                var(--hk-page-bg);
+
+            color:
+                var(--hk-text);
+
+        }
+
+
+        html[data-theme="dark"]
+        .h-search-input {
+
+            border-color:
+                var(--hk-border);
+
+            background: #252535;
+
+            color: #ffffff;
+
+        }
+
+
+        html[data-theme="dark"]
+        .h-search-input:focus {
+
+            border-color:
+                var(--hk-primary);
+
+            background: #29293a;
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVE - MEDIUM DESKTOP
+           ===================================================== */
+
+        @media (max-width: 1250px) {
+
+            .h-navbar-top {
+
+                padding:
+                    0 22px;
+
+                gap: 14px;
+
+            }
+
+
+            .h-navbar-menu {
+
+                padding:
+                    7px 22px;
+
+            }
+
+
+            .h-topbar-search {
+                max-width: 300px;
+            }
+
+
+            .hk-brand-name {
+                max-width: 145px;
+            }
+
+
+            .admio-content {
+
+                padding:
+                    28px 24px
+                    50px;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVE - TABLET / SMALL DESKTOP
+           ===================================================== */
+
+        @media (max-width: 1050px) {
+
+            .h-topbar-search {
+                display: none;
+            }
+
+
+            .hk-module-pill {
+
+                margin-left: 5px;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           MOBILE NAVBAR
+           ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .h-navbar-top {
+
+                min-height: 64px;
+
+                padding:
+                    0 16px;
+
+                gap: 10px;
+
+            }
+
+
+            .h-menu-toggle {
+                display: inline-flex;
+            }
+
+
+            .h-navbar-menu {
+                display: none;
+            }
+
+
+            .hk-module-pill {
+                display: none;
+            }
+
+
+            .hk-user-copy {
+                display: none;
+            }
+
+
+            .h-topbar-divider {
+                display: none;
+            }
+
+
+            .admio-main {
+
+                min-height:
+                    calc(100vh - 64px);
+
+            }
+
+
+            .admio-content {
+
+                padding:
+                    22px 18px
+                    40px;
+
+            }
+
+        }
+
+
+        /* =====================================================
+           SMALL MOBILE
+           ===================================================== */
+
+        @media (max-width: 575px) {
+
+            .h-navbar-top {
+
+                padding:
+                    0 12px;
+
+            }
+
+
+            .hk-brand-logo {
+
+                width: 40px;
+
+                height: 40px;
+
+                flex-basis: 40px;
+
+                border-radius: 11px;
+
+                font-size: 17px;
+
+            }
+
+
+            .hk-brand-name {
+
+                max-width: 115px;
+
+                font-size: 14px;
+
+            }
+
+
+            .hk-brand-module {
+
+                font-size: 10px;
+
+            }
+
+
+            .hk-topbar-btn {
+
+                width: 36px;
+
+                height: 36px;
+
+                flex-basis: 36px;
+
+            }
+
+
+            .hk-user-avatar {
+
+                width: 36px;
+
+                height: 36px;
+
+                flex-basis: 36px;
+
+            }
+
+
+            .h-navbar-menu-mobile.open {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            .admio-content {
+
+                padding:
+                    18px 14px
+                    35px;
+
+            }
+
+
+            .hk-toast {
+
+                right: 14px;
+
+                bottom: 14px;
+
+                left: 14px;
+
+                min-width: 0;
+
+            }
+
+        }
+
+
+
+        {% comment %} mobile navbar css start {% endcomment %}
+      /* =====================================================
+   MOBILE ACCORDION NAVIGATION
+===================================================== */
+
+.h-mobile-group {
+    width: 100%;
+    border-radius: 10px;
+}
+
+
+/* GROUP BUTTON */
+
+.h-mobile-group-toggle {
+    width: 100%;
+    min-height: 43px;
+
+    padding: 10px 12px;
+
+    border: 0;
+    border-radius: 9px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: transparent;
+    color: var(--hk-text);
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.h-mobile-group-toggle:hover,
+.h-mobile-group-toggle.active {
+    color: var(--hk-primary);
+    background: var(--hk-hover);
+}
+
+
+/* LEFT SIDE */
+
+.h-mobile-group-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+.h-mobile-group-title > i {
+    width: 20px;
+
+    color: var(--hk-primary);
+
+    text-align: center;
+}
+
+
+/* ARROW */
+
+.h-mobile-arrow {
+    margin-left: auto;
+
+    font-size: 11px;
+
+    transition:
+        transform 0.25s ease;
+}
+
+
+.h-mobile-group.open
+.h-mobile-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* =====================================================
+   MOBILE SUB MENU
+===================================================== */
+
+.h-mobile-submenu {
+    max-height: 0;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    opacity: 0;
+
+    transition:
+        max-height 0.3s ease,
+        opacity 0.2s ease,
+        margin 0.3s ease;
+}
+
+
+.h-mobile-group.open
+.h-mobile-submenu {
+    max-height: 300px;
+
+    margin-top: 5px;
+    margin-bottom: 5px;
+
+    opacity: 1;
+}
+
+
+/* SUB MENU LINK */
+
+.h-mobile-sublink {
+    min-height: 40px;
+
+    margin-left: 18px;
+
+    padding:
+        9px 12px
+        9px 18px;
+
+    border-left:
+        2px solid
+        var(--hk-border);
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    color: var(--hk-muted);
+
+    font-size: 12.5px;
+    font-weight: 600;
+
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.h-mobile-sublink i {
+    width: 19px;
+
+    color: var(--hk-primary);
+
+    text-align: center;
+}
+
+
+.h-mobile-sublink:hover,
+.h-mobile-sublink.active {
+    color: var(--hk-primary);
+
+    border-left-color:
+        var(--hk-primary);
+
+    background:
+        var(--hk-hover);
+}
+
+
+/* ACTIVE CHILD */
+
+.h-mobile-sublink.active {
+    font-weight: 700;
+}
+   
+        {% comment %} mobile navbar css end  {% endcomment %}
+    </style>
+
+
+    {% block extra_css %}
+    {% endblock %}
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     TOP NAVBAR
+     ========================================================= -->
+
+<nav
+    class="h-navbar"
+    id="hNavbar"
+>
+
+
+    <!-- =====================================================
+         TOP ROW
+         ===================================================== -->
+
+    <div class="h-navbar-top">
+
+
+        <!-- MOBILE MENU -->
+
+        <button
+            type="button"
+            class="h-menu-toggle"
+            id="hMenuToggle"
+            aria-label="Open navigation"
+            aria-expanded="false"
+        >
+            <i
+                class="fa-solid fa-bars"
+                id="hMenuIcon"
+            ></i>
+        </button>
+
+
+
+        <!-- =================================================
+             HOTEL BRAND
+             ================================================= -->
+
+        <a
+            href="{% url 'housekeeping_dashboard' %}"
+            class="h-navbar-brand"
+        >
+
+            <div class="hk-brand-logo">
+                <i class="fa-solid fa-hotel"></i>
+            </div>
+
+
+            <div class="hk-brand-copy">
+
+                <span class="hk-brand-name">
+
+                    {{ hotel.hotel_name|default:"Hotel ERP" }}
+
+                </span>
+
+
+                <span class="hk-brand-module">
+                    Housekeeping
+                </span>
+
+            </div>
+
+        </a>
+
+
+
+        <!-- =================================================
+             MODULE STATUS
+             ================================================= -->
+
+        <div class="hk-module-pill">
+
+            <span class="hk-module-dot"></span>
+
+            Housekeeping Active
+
+        </div>
+
+
+
+        <!-- =================================================
+             SEARCH
+             ================================================= -->
+
+        <div class="h-topbar-search">
+
+            <i
+                class="
+                    fa-solid
+                    fa-magnifying-glass
+                    h-search-icon
+                "
+            ></i>
+
+
+            <input
+                type="search"
+                class="h-search-input"
+                id="hkGlobalSearch"
+                placeholder="Search housekeeping..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+
+        <!-- =================================================
+             RIGHT ACTIONS
+             ================================================= -->
+
+        <div class="h-topbar-actions">
+
+
+            <!-- THEME -->
+
+            <button
+                type="button"
+                class="hk-topbar-btn"
+                id="themeToggle"
+                title="Toggle theme"
+                aria-label="Toggle theme"
+            >
+
+                <i
+                    class="fa-solid fa-moon"
+                    id="themeIcon"
+                ></i>
+
+            </button>
+
+
+            <div class="h-topbar-divider"></div>
+
+
+            <!-- NOTIFICATION -->
+
+            <button
+                type="button"
+                class="
+                    hk-topbar-btn
+                    hk-notification-btn
+                "
+                title="Notifications"
+                aria-label="Notifications"
+            >
+
+                <i class="fa-regular fa-bell"></i>
+
+                {% if pending_tasks|default:0 %}
+                    <span class="hk-notification-dot"></span>
+                {% endif %}
+
+            </button>
+
+
+            <div class="h-topbar-divider"></div>
+
+
+
+            <!-- USER -->
+
+            <div class="hk-user-area">
+
+                <div class="hk-user-avatar">
+
+                    {% if staff.photo %}
+
+                        <img
+                            src="{{ staff.photo.url }}"
+                            alt="{{ staff.name|default:'Staff' }}"
+                        >
+
+                    {% else %}
+
+                        {{ staff.name|default:"H"|slice:":1"|upper }}
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="hk-user-copy">
+
+                    <span class="hk-user-name">
+
+                        {{ staff.name|default:"Housekeeping Staff" }}
+
+                    </span>
+
+
+                    <span class="hk-user-role">
+                        Housekeeping
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+     DESKTOP NAVIGATION
+===================================================== -->
+
+<div class="h-navbar-menu">
+
+
+    <!-- =================================================
+         DASHBOARD
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_dashboard' %}"
+        class="
+            h-nav-link
+            {% if request.resolver_match.url_name == 'housekeeping_dashboard' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-chart-pie"></i>
+        Dashboard
+    </a>
+
+
+
+    <!-- =================================================
+         OPERATIONS
+    ================================================== -->
+
+    <div class="h-nav-dropdown">
+
+        <button
+            type="button"
+            class="
+                h-nav-link
+                h-nav-dropdown-toggle
+
+                {% if request.resolver_match.url_name == 'housekeeping_rooms_page' or request.resolver_match.url_name == 'housekeeping_tasks_page' %}
+                    active
+                {% endif %}
+            "
+        >
+            <i class="fa-solid fa-list-check"></i>
+
+            Operations
+
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+        </button>
+
+
+        <div class="h-nav-dropdown-menu">
+
+            <a
+                href="{% url 'housekeeping_rooms_page' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_rooms_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-bed"></i>
+                Rooms
+            </a>
+
+
+            <a
+                href="{% url 'housekeeping_tasks_page' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_tasks_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-list-check"></i>
+                Tasks
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         MY WORK
+    ================================================== -->
+
+    <div class="h-nav-dropdown">
+
+        <button
+            type="button"
+            class="
+                h-nav-link
+                h-nav-dropdown-toggle
+
+                {% if request.resolver_match.url_name == 'housekeeping_attendance' or request.resolver_match.url_name == 'housekeeping_shifts' or request.resolver_match.url_name == 'housekeeping_leave' %}
+                    active
+                {% endif %}
+            "
+        >
+            <i class="fa-solid fa-user-clock"></i>
+
+            My Work
+
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+        </button>
+
+
+        <div class="h-nav-dropdown-menu">
+
+
+            <!-- ATTENDANCE -->
+
+            <a
+                href="{% url 'housekeeping_attendance' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_attendance' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-calendar-check"></i>
+                Attendance
+            </a>
+
+
+            <!-- MY SHIFTS -->
+
+            <a
+                href="{% url 'housekeeping_shifts' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_shifts' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-clock"></i>
+                My Shifts
+            </a>
+
+
+            <!-- LEAVE -->
+
+            <a
+                href="{% url 'housekeeping_leave' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_leave' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-calendar-minus"></i>
+                Leave
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         HOUSEKEEPING
+    ================================================== -->
+
+    <div class="h-nav-dropdown">
+
+        <button
+            type="button"
+            class="
+                h-nav-link
+                h-nav-dropdown-toggle
+
+                {% if request.resolver_match.url_name == 'housekeeping_laundry_page' or request.resolver_match.url_name == 'housekeeping_linen_page' or request.resolver_match.url_name == 'housekeeping_stock_page' %}
+                    active
+                {% endif %}
+            "
+        >
+
+            <i class="fa-solid fa-broom"></i>
+
+            Housekeeping
+
+            <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+
+        </button>
+
+
+        <div class="h-nav-dropdown-menu">
+
+
+            <a
+                href="{% url 'housekeeping_laundry_page' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_laundry_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-shirt"></i>
+                Laundry
+            </a>
+
+
+            <a
+                href="{% url 'housekeeping_linen_page' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_linen_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-layer-group"></i>
+                Linen
+            </a>
+
+
+            <a
+                href="{% url 'housekeeping_stock_page' %}"
+                class="
+                    h-dropdown-item
+                    {% if request.resolver_match.url_name == 'housekeeping_stock_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-boxes-stacked"></i>
+                Stock
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         MAINTENANCE
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_maintenance_page' %}"
+        class="
+            h-nav-link
+            {% if request.resolver_match.url_name == 'housekeeping_maintenance_page' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-screwdriver-wrench"></i>
+        Maintenance
+    </a>
+
+
+
+    <!-- =================================================
+         REPORTS
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_reports' %}"
+        class="
+            h-nav-link
+            {% if request.resolver_match.url_name == 'housekeeping_reports' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-chart-column"></i>
+        Reports
+    </a>
+
+
+
+    <!-- =================================================
+         PROFILE
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_profile' %}"
+        class="
+            h-nav-link
+            {% if request.resolver_match.url_name == 'housekeeping_profile' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-user"></i>
+        Profile
+    </a>
+
+
+</div>
+
+
+
+<!-- =====================================================
+     MOBILE NAVIGATION
+===================================================== -->
+
+<div
+    class="h-navbar-menu-mobile"
+    id="hMobileMenu"
+>
+
+    <!-- =================================================
+         DASHBOARD
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_dashboard' %}"
+        class="
+            h-mobile-link
+            {% if request.resolver_match.url_name == 'housekeeping_dashboard' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-chart-pie"></i>
+
+        <span>Dashboard</span>
+    </a>
+
+
+    <!-- =================================================
+         OPERATIONS
+    ================================================== -->
+
+    <div
+        class="
+            h-mobile-group
+            {% if request.resolver_match.url_name == 'housekeeping_rooms_page' or request.resolver_match.url_name == 'housekeeping_tasks_page' %}
+                open
+            {% endif %}
+        "
+    >
+
+        <button
+            type="button"
+            class="
+                h-mobile-group-toggle
+                {% if request.resolver_match.url_name == 'housekeeping_rooms_page' or request.resolver_match.url_name == 'housekeeping_tasks_page' %}
+                    active
+                {% endif %}
+            "
+        >
+            <span class="h-mobile-group-title">
+
+                <i class="fa-solid fa-list-check"></i>
+
+                <span>Operations</span>
+
+            </span>
+
+            <i
+                class="
+                    fa-solid
+                    fa-chevron-down
+                    h-mobile-arrow
+                "
+            ></i>
+
+        </button>
+
+
+        <div class="h-mobile-submenu">
+
+            <a
+                href="{% url 'housekeeping_rooms_page' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_rooms_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-bed"></i>
+                <span>Rooms</span>
+            </a>
+
+
+            <a
+                href="{% url 'housekeeping_tasks_page' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_tasks_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-list-check"></i>
+                <span>Tasks</span>
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         MY WORK
+    ================================================== -->
+
+    <div
+        class="
+            h-mobile-group
+            {% if request.resolver_match.url_name == 'housekeeping_attendance' or request.resolver_match.url_name == 'housekeeping_shifts' or request.resolver_match.url_name == 'housekeeping_leave' %}
+                open
+            {% endif %}
+        "
+    >
+
+        <button
+            type="button"
+            class="
+                h-mobile-group-toggle
+                {% if request.resolver_match.url_name == 'housekeeping_attendance' or request.resolver_match.url_name == 'housekeeping_shifts' or request.resolver_match.url_name == 'housekeeping_leave' %}
+                    active
+                {% endif %}
+            "
+        >
+
+            <span class="h-mobile-group-title">
+
+                <i class="fa-solid fa-user-clock"></i>
+
+                <span>My Work</span>
+
+            </span>
+
+
+            <i
+                class="
+                    fa-solid
+                    fa-chevron-down
+                    h-mobile-arrow
+                "
+            ></i>
+
+        </button>
+
+
+        <div class="h-mobile-submenu">
+
+
+            <!-- ATTENDANCE -->
+
+            <a
+                href="{% url 'housekeeping_attendance' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_attendance' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>Attendance</span>
+            </a>
+
+
+            <!-- MY SHIFTS -->
+
+            <a
+                href="{% url 'housekeeping_shifts' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_shifts' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-clock"></i>
+                <span>My Shifts</span>
+            </a>
+
+
+            <!-- LEAVE -->
+
+            <a
+                href="{% url 'housekeeping_leave' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_leave' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-calendar-minus"></i>
+                <span>Leave</span>
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         HOUSEKEEPING
+    ================================================== -->
+
+    <div
+        class="
+            h-mobile-group
+            {% if request.resolver_match.url_name == 'housekeeping_laundry_page' or request.resolver_match.url_name == 'housekeeping_linen_page' or request.resolver_match.url_name == 'housekeeping_stock_page' %}
+                open
+            {% endif %}
+        "
+    >
+
+        <button
+            type="button"
+            class="
+                h-mobile-group-toggle
+                {% if request.resolver_match.url_name == 'housekeeping_laundry_page' or request.resolver_match.url_name == 'housekeeping_linen_page' or request.resolver_match.url_name == 'housekeeping_stock_page' %}
+                    active
+                {% endif %}
+            "
+        >
+
+            <span class="h-mobile-group-title">
+
+                <i class="fa-solid fa-broom"></i>
+
+                <span>Housekeeping</span>
+
+            </span>
+
+
+            <i
+                class="
+                    fa-solid
+                    fa-chevron-down
+                    h-mobile-arrow
+                "
+            ></i>
+
+        </button>
+
+
+        <div class="h-mobile-submenu">
+
+
+            <!-- LAUNDRY -->
+
+            <a
+                href="{% url 'housekeeping_laundry_page' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_laundry_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-shirt"></i>
+                <span>Laundry</span>
+            </a>
+
+
+            <!-- LINEN -->
+
+            <a
+                href="{% url 'housekeeping_linen_page' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_linen_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Linen</span>
+            </a>
+
+
+            <!-- STOCK -->
+
+            <a
+                href="{% url 'housekeeping_stock_page' %}"
+                class="
+                    h-mobile-sublink
+                    {% if request.resolver_match.url_name == 'housekeeping_stock_page' %}
+                        active
+                    {% endif %}
+                "
+            >
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>Stock</span>
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         MAINTENANCE
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_maintenance_page' %}"
+        class="
+            h-mobile-link
+            {% if request.resolver_match.url_name == 'housekeeping_maintenance_page' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-screwdriver-wrench"></i>
+
+        <span>Maintenance</span>
+    </a>
+
+
+    <!-- =================================================
+         REPORTS
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_reports' %}"
+        class="
+            h-mobile-link
+            {% if request.resolver_match.url_name == 'housekeeping_reports' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-chart-column"></i>
+
+        <span>Reports</span>
+    </a>
+
+
+    <!-- =================================================
+         PROFILE
+    ================================================== -->
+
+    <a
+        href="{% url 'housekeeping_profile' %}"
+        class="
+            h-mobile-link
+            {% if request.resolver_match.url_name == 'housekeeping_profile' %}
+                active
+            {% endif %}
+        "
+    >
+        <i class="fa-solid fa-user"></i>
+
+        <span>Profile</span>
+    </a>
+
+</div>
+
+
+
+
+</nav>
+
+
+
+<!-- =========================================================
+     MAIN PAGE
+     ========================================================= -->
+
+<main class="admio-main">
+
+    <div class="admio-content">
+
+        {% block content %}
+        {% endblock %}
+
+    </div>
+
+</main>
+
+
+
+<!-- =========================================================
+     TOAST
+     ========================================================= -->
+
+<div
+    class="hk-toast"
+    id="hkToast"
+></div>
+
+
+
+<!-- =========================================================
+     BOOTSTRAP JS
+     ========================================================= -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+></script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    const menuToggle =
+        document.getElementById("hMenuToggle");
+
+    const menuIcon =
+        document.getElementById("hMenuIcon");
+
+    const mobileMenu =
+        document.getElementById("hMobileMenu");
+
+    const themeToggle =
+        document.getElementById("themeToggle");
+
+    const themeIcon =
+        document.getElementById("themeIcon");
+
+    const globalSearch =
+        document.getElementById("hkGlobalSearch");
+
+
+    /* =========================================================
+       MOBILE MAIN MENU
+    ========================================================= */
+
+    if (
+        menuToggle &&
+        mobileMenu
+    ) {
+
+        menuToggle.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+                const isOpen =
+                    mobileMenu.classList.toggle(
+                        "open"
+                    );
+
+
+                /* ARIA */
+
+                menuToggle.setAttribute(
+                    "aria-expanded",
+                    isOpen
+                        ? "true"
+                        : "false"
+                );
+
+
+                /* HAMBURGER / CLOSE ICON */
+
+                if (menuIcon) {
+
+                    menuIcon.classList.toggle(
+                        "fa-bars",
+                        !isOpen
+                    );
+
+                    menuIcon.classList.toggle(
+                        "fa-xmark",
+                        isOpen
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       MOBILE ACCORDION MENU
+
+       Operations
+          Rooms
+          Tasks
+
+       My Work
+          Attendance
+          My Shifts
+          Leave
+
+       Housekeeping
+          Laundry
+          Linen
+          Stock
+    ========================================================= */
+
+    const mobileGroups =
+        document.querySelectorAll(
+            ".h-mobile-group"
+        );
+
+
+    mobileGroups.forEach(
+        function (group) {
+
+            const toggle =
+                group.querySelector(
+                    ".h-mobile-group-toggle"
+                );
+
+
+            if (!toggle) {
+                return;
+            }
+
+
+            toggle.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+
+                    const currentlyOpen =
+                        group.classList.contains(
+                            "open"
+                        );
+
+
+                    /* -----------------------------------------
+                       CLOSE ALL OTHER MOBILE GROUPS
+                    ----------------------------------------- */
+
+                    mobileGroups.forEach(
+                        function (otherGroup) {
+
+                            if (
+                                otherGroup !== group
+                            ) {
+
+                                otherGroup.classList.remove(
+                                    "open"
+                                );
+
+                            }
+
+                        }
+                    );
+
+
+                    /* -----------------------------------------
+                       TOGGLE CURRENT GROUP
+                    ----------------------------------------- */
+
+                    if (currentlyOpen) {
+
+                        group.classList.remove(
+                            "open"
+                        );
+
+                    } else {
+
+                        group.classList.add(
+                            "open"
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    /* =========================================================
+       CLOSE MOBILE MENU AFTER CLICKING A LINK
+    ========================================================= */
+
+    const mobileLinks =
+        document.querySelectorAll(
+            ".h-mobile-link, .h-mobile-sublink"
+        );
+
+
+    mobileLinks.forEach(
+        function (link) {
+
+            link.addEventListener(
+                "click",
+                function () {
+
+                    if (!mobileMenu) {
+                        return;
+                    }
+
+
+                    mobileMenu.classList.remove(
+                        "open"
+                    );
+
+
+                    if (menuToggle) {
+
+                        menuToggle.setAttribute(
+                            "aria-expanded",
+                            "false"
+                        );
+
+                    }
+
+
+                    if (menuIcon) {
+
+                        menuIcon.classList.remove(
+                            "fa-xmark"
+                        );
+
+                        menuIcon.classList.add(
+                            "fa-bars"
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
+
+    /* =========================================================
+       DESKTOP NAVIGATION DROPDOWNS
+    ========================================================= */
+
+    const desktopDropdowns =
+        document.querySelectorAll(
+            ".h-nav-dropdown"
+        );
+
+
+    desktopDropdowns.forEach(
+        function (dropdown) {
+
+            const toggle =
+                dropdown.querySelector(
+                    ".h-nav-dropdown-toggle"
+                );
+
+            const menu =
+                dropdown.querySelector(
+                    ".h-nav-dropdown-menu"
+                );
+
+
+            if (
+                !toggle ||
+                !menu
+            ) {
+                return;
+            }
+
+
+            toggle.addEventListener(
+                "click",
+                function (event) {
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+
+                    const currentlyOpen =
+                        dropdown.classList.contains(
+                            "open"
+                        );
+
+
+                    /* CLOSE OTHER DROPDOWNS */
+
+                    desktopDropdowns.forEach(
+                        function (otherDropdown) {
+
+                            if (
+                                otherDropdown !== dropdown
+                            ) {
+
+                                otherDropdown.classList.remove(
+                                    "open"
+                                );
+
+                            }
+
+                        }
+                    );
+
+
+                    /* CLOSE CURRENT */
+
+                    if (currentlyOpen) {
+
+                        dropdown.classList.remove(
+                            "open"
+                        );
+
+                        return;
+
+                    }
+
+
+                    /* OPEN CURRENT */
+
+                    dropdown.classList.add(
+                        "open"
+                    );
+
+
+                    /* -----------------------------------------
+                       POSITION DROPDOWN UNDER BUTTON
+                    ----------------------------------------- */
+
+                    const rect =
+                        toggle.getBoundingClientRect();
+
+
+                    menu.style.top =
+                        (
+                            rect.bottom + 6
+                        ) + "px";
+
+
+                    let left =
+                        rect.left;
+
+
+                    /* PREVENT RIGHT-SIDE OVERFLOW */
+
+                    const menuWidth =
+                        menu.offsetWidth || 210;
+
+
+                    if (
+                        left + menuWidth >
+                        window.innerWidth - 12
+                    ) {
+
+                        left =
+                            window.innerWidth -
+                            menuWidth -
+                            12;
+
+                    }
+
+
+                    /* PREVENT LEFT OVERFLOW */
+
+                    if (left < 12) {
+                        left = 12;
+                    }
+
+
+                    menu.style.left =
+                        left + "px";
+
+                }
+            );
+
+        }
+    );
+
+
+    /* =========================================================
+       CLOSE MENUS WHEN CLICKING OUTSIDE
+    ========================================================= */
+
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            /* -----------------------------------------
+               DESKTOP DROPDOWNS
+            ----------------------------------------- */
+
+            desktopDropdowns.forEach(
+                function (dropdown) {
+
+                    if (
+                        !dropdown.contains(
+                            event.target
+                        )
+                    ) {
+
+                        dropdown.classList.remove(
+                            "open"
+                        );
+
+                    }
+
+                }
+            );
+
+
+            /* -----------------------------------------
+               MOBILE MAIN MENU
+            ----------------------------------------- */
+
+            if (
+                mobileMenu &&
+                menuToggle &&
+                mobileMenu.classList.contains(
+                    "open"
+                ) &&
+                !mobileMenu.contains(
+                    event.target
+                ) &&
+                !menuToggle.contains(
+                    event.target
+                )
+            ) {
+
+                mobileMenu.classList.remove(
+                    "open"
+                );
+
+
+                menuToggle.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+
+                if (menuIcon) {
+
+                    menuIcon.classList.remove(
+                        "fa-xmark"
+                    );
+
+                    menuIcon.classList.add(
+                        "fa-bars"
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /* =========================================================
+       REPOSITION / CLOSE DESKTOP DROPDOWNS ON RESIZE
+    ========================================================= */
+
+    window.addEventListener(
+        "resize",
+        function () {
+
+            desktopDropdowns.forEach(
+                function (dropdown) {
+
+                    dropdown.classList.remove(
+                        "open"
+                    );
+
+                }
+            );
+
+
+            /*
+             * Desktop reached:
+             * close mobile navigation.
+             */
+
+            if (
+                window.innerWidth > 900 &&
+                mobileMenu
+            ) {
+
+                mobileMenu.classList.remove(
+                    "open"
+                );
+
+
+                if (menuToggle) {
+
+                    menuToggle.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+
+                }
+
+
+                if (menuIcon) {
+
+                    menuIcon.classList.remove(
+                        "fa-xmark"
+                    );
+
+                    menuIcon.classList.add(
+                        "fa-bars"
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /* =========================================================
+       THEME
+    ========================================================= */
+
+    function applyTheme(theme) {
+
+        document.documentElement.setAttribute(
+            "data-theme",
+            theme
+        );
+
+
+        if (!themeIcon) {
+            return;
+        }
+
+
+        if (theme === "dark") {
+
+            themeIcon.classList.remove(
+                "fa-moon"
+            );
+
+            themeIcon.classList.add(
+                "fa-sun"
+            );
+
+        } else {
+
+            themeIcon.classList.remove(
+                "fa-sun"
+            );
+
+            themeIcon.classList.add(
+                "fa-moon"
+            );
+
+        }
+
+    }
+
+
+    /* LOAD SAVED THEME */
+
+    let savedTheme = null;
+
+    try {
+
+        savedTheme =
+            localStorage.getItem(
+                "housekeeping-theme"
+            );
+
+    } catch (error) {
+
+        savedTheme = null;
+
+    }
+
+
+    if (
+        savedTheme !== "dark" &&
+        savedTheme !== "light"
+    ) {
+
+        savedTheme = "light";
+
+    }
+
+
+    applyTheme(savedTheme);
+
+
+    /* THEME BUTTON */
+
+    if (themeToggle) {
+
+        themeToggle.addEventListener(
+            "click",
+            function () {
+
+                const currentTheme =
+                    document.documentElement.getAttribute(
+                        "data-theme"
+                    ) || "light";
+
+
+                const newTheme =
+                    currentTheme === "dark"
+                        ? "light"
+                        : "dark";
+
+
+                applyTheme(newTheme);
+
+
+                try {
+
+                    localStorage.setItem(
+                        "housekeeping-theme",
+                        newTheme
+                    );
+
+                } catch (error) {
+
+                    /*
+                     * Local storage may be unavailable.
+                     * Theme still works for current page.
+                     */
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       GLOBAL SEARCH
+    ========================================================= */
+
+    if (globalSearch) {
+
+        globalSearch.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key !== "Enter") {
+                    return;
+                }
+
+
+                const query =
+                    globalSearch.value
+                        .trim()
+                        .toLowerCase();
+
+
+                if (!query) {
+                    return;
+                }
+
+
+                /*
+                 * Basic navigation search.
+                 */
+
+                const searchableLinks =
+                    document.querySelectorAll(
+                        ".h-nav-link[href], " +
+                        ".h-dropdown-item[href], " +
+                        ".h-mobile-link[href], " +
+                        ".h-mobile-sublink[href]"
+                    );
+
+
+                let matchedLink = null;
+
+
+                searchableLinks.forEach(
+                    function (link) {
+
+                        if (matchedLink) {
+                            return;
+                        }
+
+
+                        const text =
+                            link.textContent
+                                .trim()
+                                .toLowerCase();
+
+
+                        if (
+                            text.includes(query)
+                        ) {
+
+                            matchedLink = link;
+
+                        }
+
+                    }
+                );
+
+
+                if (
+                    matchedLink &&
+                    matchedLink.href
+                ) {
+
+                    window.location.href =
+                        matchedLink.href;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       ESC KEY
+       Close open menus.
+    ========================================================= */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key !== "Escape") {
+                return;
+            }
+
+
+            /* DESKTOP */
+
+            desktopDropdowns.forEach(
+                function (dropdown) {
+
+                    dropdown.classList.remove(
+                        "open"
+                    );
+
+                }
+            );
+
+
+            /* MOBILE */
+
+            if (mobileMenu) {
+
+                mobileMenu.classList.remove(
+                    "open"
+                );
+
+            }
+
+
+            if (menuToggle) {
+
+                menuToggle.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+
+            }
+
+
+            if (menuIcon) {
+
+                menuIcon.classList.remove(
+                    "fa-xmark"
+                );
+
+                menuIcon.classList.add(
+                    "fa-bars"
+                );
+
+            }
+
+        }
+    );
+
+});
+</script>
+
+
+{% block extra_js %}
+{% endblock %}
+
+
+</body>
+
+</html>

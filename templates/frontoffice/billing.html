@@ -1,0 +1,3456 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+{% block title %}Billing | Front Office{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+.billing-page {
+    width: 100%;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.billing-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.billing-header h1 {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.billing-header p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.billing-refresh-btn {
+    min-height: 39px;
+    padding: 8px 14px;
+
+    border: 1px solid #d9dee7;
+    border-radius: 8px;
+
+    background: var(--bs-body-bg, #fff);
+    color: inherit;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.billing-refresh-btn:hover {
+    background: #f8fafc;
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+.billing-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.billing-stat-card {
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    padding: 18px;
+
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    min-height: 98px;
+}
+
+.billing-stat-icon {
+    width: 44px;
+    height: 44px;
+
+    flex: 0 0 44px;
+
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 17px;
+}
+
+.billing-stat-green {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.billing-stat-red {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.billing-stat-blue {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.billing-stat-amber {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.billing-stat-value {
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.billing-stat-label {
+    margin-top: 6px;
+
+    font-size: 11px;
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   MAIN CARD
+========================================================= */
+
+.billing-card {
+    background: var(--bs-body-bg, #fff);
+
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    overflow: hidden;
+}
+
+.billing-card-header {
+    padding: 16px 18px;
+
+    border-bottom: 1px solid #edf0f3;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    flex-wrap: wrap;
+}
+
+.billing-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.billing-card-title i {
+    color: #635bff;
+}
+
+
+/* =========================================================
+   SEARCH + FILTER
+========================================================= */
+
+.billing-tools {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    flex-wrap: wrap;
+}
+
+.billing-search {
+    position: relative;
+}
+
+.billing-search i {
+    position: absolute;
+
+    left: 12px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+.billing-search input {
+    width: 220px;
+    height: 37px;
+
+    padding: 7px 11px 7px 34px;
+
+    border: 1px solid #d9dee7;
+    border-radius: 7px;
+
+    background: var(--bs-body-bg, #fff);
+    color: inherit;
+
+    font-size: 11px;
+}
+
+.billing-search input:focus {
+    outline: none;
+
+    border-color: #635bff;
+
+    box-shadow:
+        0 0 0 3px rgba(99,91,255,.09);
+}
+
+.billing-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    flex-wrap: wrap;
+}
+
+.billing-filter-btn {
+    border: 1px solid #d9dee7;
+    border-radius: 6px;
+
+    background: var(--bs-body-bg, #fff);
+    color: #6b7280;
+
+    padding: 6px 10px;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.billing-filter-btn.active {
+    background: #635bff;
+    border-color: #635bff;
+    color: #fff;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.billing-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.billing-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 1050px;
+}
+
+.billing-table th {
+    padding: 11px 14px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    background: #f8fafc;
+
+    color: #6b7280;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-align: left;
+
+    text-transform: uppercase;
+    letter-spacing: .04em;
+
+    white-space: nowrap;
+}
+
+.billing-table td {
+    padding: 13px 14px;
+
+    border-bottom: 1px solid #edf0f3;
+
+    font-size: 11px;
+
+    vertical-align: middle;
+}
+
+.billing-table tbody tr:hover {
+    background: rgba(99,91,255,.025);
+}
+
+.billing-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.invoice-number {
+    font-weight: 700;
+    color: #635bff;
+}
+
+.invoice-guest {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.invoice-avatar {
+    width: 29px;
+    height: 29px;
+
+    flex: 0 0 29px;
+
+    border-radius: 7px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #635bff,
+            #8b5cf6
+        );
+
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.invoice-guest-name {
+    font-weight: 600;
+}
+
+.invoice-guest-email {
+    margin-top: 2px;
+
+    color: #9ca3af;
+    font-size: 9px;
+}
+
+.invoice-room {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 4px 7px;
+
+    border-radius: 5px;
+
+    background: #eef2ff;
+    color: #4f46e5;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.money {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.money-paid {
+    color: #15803d;
+}
+
+.money-due {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.billing-status {
+    display: inline-flex;
+
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: capitalize;
+}
+
+.billing-status-paid {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.billing-status-partial {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.billing-status-pending {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.billing-status-open {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.billing-status-default {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.billing-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.billing-action-btn {
+    width: 31px;
+    height: 31px;
+
+    border: 1px solid #d9dee7;
+    border-radius: 6px;
+
+    background: var(--bs-body-bg, #fff);
+    color: #4b5563;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    font-size: 10px;
+}
+
+.billing-action-btn:hover {
+    border-color: #635bff;
+    color: #635bff;
+}
+
+
+/* =========================================================
+   EMPTY / LOADING
+========================================================= */
+
+.billing-empty {
+    padding: 55px 20px;
+
+    text-align: center;
+
+    color: #6b7280;
+}
+
+.billing-empty i {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 25px;
+    opacity: .6;
+}
+
+.billing-empty strong {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: inherit;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.billing-modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 99999;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15,23,42,.55);
+
+    backdrop-filter: blur(2px);
+}
+
+.billing-modal.show {
+    display: flex;
+}
+
+.billing-modal-dialog {
+    width: 100%;
+    max-width: 780px;
+
+    max-height: calc(100vh - 40px);
+
+    overflow-y: auto;
+
+    background: var(--bs-body-bg, #fff);
+
+    border-radius: 13px;
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.25);
+}
+
+.billing-modal-header {
+    padding: 17px 20px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    gap: 15px;
+}
+
+.billing-modal-title {
+    margin: 0;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.billing-modal-subtitle {
+    margin-top: 3px;
+
+    color: #6b7280;
+    font-size: 10px;
+}
+
+.billing-modal-close {
+    width: 34px;
+    height: 34px;
+
+    border: 0;
+    border-radius: 7px;
+
+    background: transparent;
+    color: #6b7280;
+
+    font-size: 20px;
+
+    cursor: pointer;
+}
+
+.billing-modal-close:hover {
+    background: #f3f4f6;
+}
+
+.billing-modal-body {
+    padding: 20px;
+}
+
+.billing-modal-footer {
+    padding: 14px 20px;
+
+    border-top: 1px solid #e5e7eb;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+
+    flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   INVOICE DETAIL
+========================================================= */
+
+.invoice-detail-head {
+    padding: 17px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+
+    margin-bottom: 15px;
+
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.invoice-detail-hotel {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.invoice-detail-number {
+    color: #635bff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-align: right;
+}
+
+.invoice-detail-grid {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 12px;
+
+    margin-bottom: 15px;
+}
+
+.invoice-detail-box {
+    padding: 14px;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.invoice-detail-box-title {
+    margin-bottom: 8px;
+
+    color: #6b7280;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.invoice-detail-row {
+    display: flex;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 4px 0;
+
+    font-size: 11px;
+}
+
+.invoice-detail-row span:first-child {
+    color: #6b7280;
+}
+
+.invoice-total-box {
+    margin-left: auto;
+
+    width: 330px;
+    max-width: 100%;
+
+    padding: 15px;
+
+    border-radius: 8px;
+
+    background: #f8fafc;
+}
+
+.invoice-total-row {
+    display: flex;
+    justify-content: space-between;
+
+    padding: 5px 0;
+
+    font-size: 11px;
+}
+
+.invoice-total-row.grand {
+    margin-top: 7px;
+    padding-top: 10px;
+
+    border-top: 1px solid #d9dee7;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.billing-btn {
+    min-height: 36px;
+
+    padding: 7px 12px;
+
+    border-radius: 7px;
+
+    border: 1px solid #d9dee7;
+
+    background: var(--bs-body-bg, #fff);
+    color: inherit;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.billing-btn-primary {
+    border-color: #635bff;
+    background: #635bff;
+    color: #fff;
+}
+
+.billing-btn-primary:hover {
+    background: #5148ef;
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.billing-toast-container {
+    position: fixed;
+
+    top: 90px;
+    right: 22px;
+
+    z-index: 100001;
+}
+
+.billing-toast {
+    width: 320px;
+    max-width: calc(100vw - 40px);
+
+    padding: 11px 14px;
+
+    margin-bottom: 8px;
+
+    border-radius: 8px;
+
+    background: #dcfce7;
+    color: #15803d;
+
+    border: 1px solid #86efac;
+
+    font-size: 11px;
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,.13);
+}
+
+.billing-toast.error {
+    background: #fee2e2;
+    color: #dc2626;
+
+    border-color: #fca5a5;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-bs-theme="dark"] .billing-stat-card,
+[data-bs-theme="dark"] .billing-card,
+[data-bs-theme="dark"] .billing-modal-dialog,
+[data-bs-theme="dark"] .invoice-detail-head,
+[data-bs-theme="dark"] .invoice-detail-box {
+    border-color: rgba(255,255,255,.09);
+}
+
+[data-bs-theme="dark"] .billing-table th,
+[data-bs-theme="dark"] .invoice-total-box {
+    background: rgba(255,255,255,.04);
+}
+
+[data-bs-theme="dark"] .billing-refresh-btn,
+[data-bs-theme="dark"] .billing-filter-btn,
+[data-bs-theme="dark"] .billing-action-btn,
+[data-bs-theme="dark"] .billing-btn {
+    background: rgba(255,255,255,.04);
+
+    border-color: rgba(255,255,255,.1);
+
+    color: #d1d5db;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .billing-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+
+    .billing-header {
+        flex-direction: column;
+    }
+
+    .billing-card-header {
+        align-items: stretch;
+    }
+
+    .billing-tools {
+        width: 100%;
+    }
+
+    .billing-search {
+        width: 100%;
+    }
+
+    .billing-search input {
+        width: 100%;
+    }
+
+    .invoice-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .billing-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="billing-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="billing-header">
+
+        <div>
+
+            <h1>
+                Billing Summary
+            </h1>
+
+            <p>
+                Financial overview and guest invoices
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="billing-refresh-btn"
+            onclick="refreshBilling()"
+        >
+
+            <i class="fas fa-sync-alt"></i>
+
+            Refresh
+
+        </button>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STATISTICS
+    ====================================================== -->
+
+    <div class="billing-stats">
+
+
+        <div class="billing-stat-card">
+
+            <div class="
+                billing-stat-icon
+                billing-stat-green
+            ">
+                <i class="fas fa-coins"></i>
+            </div>
+
+            <div>
+
+                <div
+                    class="billing-stat-value"
+                    id="bs-revenue"
+                >
+                    —
+                </div>
+
+                <div class="billing-stat-label">
+                    Today's Revenue
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="billing-stat-card">
+
+            <div class="
+                billing-stat-icon
+                billing-stat-red
+            ">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <div>
+
+                <div
+                    class="billing-stat-value"
+                    id="bs-pending"
+                >
+                    —
+                </div>
+
+                <div class="billing-stat-label">
+                    Pending Balance
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="billing-stat-card">
+
+            <div class="
+                billing-stat-icon
+                billing-stat-blue
+            ">
+                <i class="fas fa-folder-open"></i>
+            </div>
+
+            <div>
+
+                <div
+                    class="billing-stat-value"
+                    id="bs-open"
+                >
+                    —
+                </div>
+
+                <div class="billing-stat-label">
+                    Open Folios
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="billing-stat-card">
+
+            <div class="
+                billing-stat-icon
+                billing-stat-amber
+            ">
+                <i class="fas fa-check-double"></i>
+            </div>
+
+            <div>
+
+                <div
+                    class="billing-stat-value"
+                    id="bs-settled"
+                >
+                    —
+                </div>
+
+                <div class="billing-stat-label">
+                    Settled Today
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         INVOICE TABLE
+    ====================================================== -->
+
+    <div class="billing-card">
+
+        <div class="billing-card-header">
+
+            <div class="billing-card-title">
+
+                <i class="fas fa-receipt"></i>
+
+                All Invoices
+
+            </div>
+
+
+            <div class="billing-tools">
+
+
+                <div class="billing-search">
+
+                    <i class="fas fa-search"></i>
+
+                    <input
+                        type="text"
+                        id="billingInvSearch"
+                        placeholder="Search guest, invoice or room..."
+                        oninput="renderBillingTable()"
+                    >
+
+                </div>
+
+
+                <div
+                    class="billing-filter"
+                    id="billingInvFilterBar"
+                >
+
+                    <button
+                        type="button"
+                        class="billing-filter-btn active"
+                        onclick="filterBillingByStatus('all', this)"
+                    >
+                        All
+                    </button>
+
+                    <button
+                        type="button"
+                        class="billing-filter-btn"
+                        onclick="filterBillingByStatus('paid', this)"
+                    >
+                        Paid
+                    </button>
+
+                    <button
+                        type="button"
+                        class="billing-filter-btn"
+                        onclick="filterBillingByStatus('partial', this)"
+                    >
+                        Partial
+                    </button>
+
+                    <button
+                        type="button"
+                        class="billing-filter-btn"
+                        onclick="filterBillingByStatus('pending', this)"
+                    >
+                        Pending
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="billing-table-wrap">
+
+            <table class="billing-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Invoice #</th>
+
+                        <th>Guest</th>
+
+                        <th>Room</th>
+
+                        <th>Date</th>
+
+                        <th>Total</th>
+
+                        <th>Paid</th>
+
+                        <th>Balance</th>
+
+                        <th>Status</th>
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="billingInvoiceTbody">
+
+                    <tr>
+
+                        <td colspan="9">
+
+                            <div class="billing-empty">
+
+                                <i class="fas fa-spinner fa-spin"></i>
+
+                                Loading invoices...
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================================================
+     INVOICE DETAIL MODAL
+========================================================== -->
+
+<div
+    class="billing-modal"
+    id="invoiceDetailModal"
+>
+
+    <div class="billing-modal-dialog">
+
+
+        <div class="billing-modal-header">
+
+            <div>
+
+                <h3
+                    class="billing-modal-title"
+                    id="invDetailTitle"
+                >
+                    Invoice
+                </h3>
+
+                <div
+                    class="billing-modal-subtitle"
+                    id="invDetailSubtitle"
+                >
+                    Invoice details
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="billing-modal-close"
+                onclick="closeBillingModal()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div
+            class="billing-modal-body"
+            id="invoiceDetailBody"
+        >
+
+            Loading...
+
+        </div>
+
+
+        <div class="billing-modal-footer">
+
+            <button
+                type="button"
+                class="billing-btn"
+                onclick="closeBillingModal()"
+            >
+                Close
+            </button>
+
+
+            <button
+                type="button"
+                class="billing-btn"
+                id="invDetailEmailBtn"
+                onclick="emailInvoice()"
+                style="display:none;"
+            >
+
+                <i class="fas fa-envelope"></i>
+
+                Email
+
+            </button>
+
+
+            <button
+                type="button"
+                class="
+                    billing-btn
+                    billing-btn-primary
+                "
+                id="invDetailPrintBtn"
+                onclick="printInvoiceDetail()"
+                style="display:none;"
+            >
+
+                <i class="fas fa-print"></i>
+
+                Print Invoice
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div
+    class="billing-toast-container"
+    id="billingToastContainer"
+></div>
+
+
+{% csrf_token %}
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+/* ==========================================================
+   STATE
+========================================================== */
+
+let billingInvoices = [];
+
+let billingStatusFilter = 'all';
+
+let currentInvoice = null;
+
+
+/* ==========================================================
+   CSRF
+========================================================== */
+
+function getBillingCsrf() {
+
+    const input =
+        document.querySelector(
+            '[name="csrfmiddlewaretoken"]'
+        );
+
+    if (input) {
+        return input.value;
+    }
+
+
+    const cookie =
+        document.cookie
+            .split('; ')
+            .find(
+                row =>
+                    row.startsWith(
+                        'csrftoken='
+                    )
+            );
+
+
+    return cookie
+        ? decodeURIComponent(
+            cookie.split('=')[1]
+        )
+        : '';
+}
+
+
+/* ==========================================================
+   SAFE HTML
+========================================================== */
+
+function billingEscape(value) {
+
+    return String(
+        value ?? ''
+    )
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+
+/* ==========================================================
+   MONEY
+========================================================== */
+
+function billingMoney(value) {
+
+    const amount =
+        Number(value || 0);
+
+
+    return new Intl.NumberFormat(
+        'en-IN',
+        {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    ).format(amount);
+}
+
+
+/* ==========================================================
+   TOAST
+========================================================== */
+
+function billingToast(
+    message,
+    type = 'success'
+) {
+
+    const container =
+        document.getElementById(
+            'billingToastContainer'
+        );
+
+
+    const item =
+        document.createElement(
+            'div'
+        );
+
+
+    item.className =
+        'billing-toast' +
+        (
+            type === 'error'
+                ? ' error'
+                : ''
+        );
+
+
+    item.textContent =
+        message;
+
+
+    container.appendChild(
+        item
+    );
+
+
+    window.setTimeout(
+        () => item.remove(),
+        4000
+    );
+}
+
+
+/* ==========================================================
+   FETCH JSON
+========================================================== */
+
+async function billingFetch(
+    url,
+    options = {}
+) {
+
+    const response =
+        await fetch(
+            url,
+            options
+        );
+
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.error ||
+            data.message ||
+            `Request failed (${response.status})`
+        );
+    }
+
+
+    return data;
+}
+
+
+
+
+
+
+
+/* ==========================================================
+   LOAD SUMMARY
+
+   These URLs are the same URLs used by your old
+   Front Office Billing panel.
+========================================================== */
+
+async function loadBillingSummary() {
+
+    try {
+
+        const response = await fetch(
+            "/api/billing/summary/",
+            {
+                method: "GET",
+                credentials: "same-origin",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        );
+
+
+        const data = await response.json();
+
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.error ||
+                "Unable to load billing summary."
+            );
+
+        }
+
+
+        // ==========================================
+        // TODAY'S REVENUE
+        // ==========================================
+
+        const revenueElement =
+            document.getElementById(
+                "bs-revenue"
+            );
+
+        if (revenueElement) {
+
+            revenueElement.textContent =
+                billingMoney(
+                    data.today_revenue
+                );
+
+        }
+
+
+        // ==========================================
+        // PENDING BALANCE
+        // ==========================================
+
+        const pendingElement =
+            document.getElementById(
+                "bs-pending"
+            );
+
+        if (pendingElement) {
+
+            pendingElement.textContent =
+                billingMoney(
+                  data.pending_balance
+                );
+
+        }
+
+
+        // ==========================================
+        // OPEN FOLIOS
+        // ==========================================
+
+        const openElement =
+            document.getElementById(
+                "bs-open"
+            );
+
+        if (openElement) {
+
+            openElement.textContent =
+                Number(
+                    data.open_folios || 0
+                );
+
+        }
+
+
+        // ==========================================
+        // SETTLED TODAY
+        // ==========================================
+
+        const settledElement =
+            document.getElementById(
+                "bs-settled"
+            );
+
+        if (settledElement) {
+
+            settledElement.textContent =
+                Number(
+                    data.settled_today || 0
+                );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Billing summary error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* ==========================================================
+   LOAD INVOICES
+========================================================== */
+
+async function loadBillingInvoices() {
+
+    const tbody =
+        document.getElementById(
+            'billingInvoiceTbody'
+        );
+
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td colspan="9">
+
+                <div class="billing-empty">
+
+                    <i class="fas fa-spinner fa-spin"></i>
+
+                    Loading invoices...
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    `;
+
+
+    try {
+
+        const data =
+            await billingFetch(
+                '/api/billing/invoice/list/'
+            );
+
+
+        billingInvoices =
+            Array.isArray(data.invoices)
+                ? data.invoices
+                : [];
+
+
+        renderBillingTable();
+
+
+    } catch (error) {
+
+        console.error(
+            'BILLING INVOICE ERROR:',
+            error
+        );
+
+
+        billingInvoices = [];
+
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td colspan="9">
+
+                    <div class="billing-empty">
+
+                        <i class="fas fa-exclamation-triangle"></i>
+
+                        <strong>
+                            Unable to load invoices
+                        </strong>
+
+                        <span>
+                            ${billingEscape(error.message)}
+                        </span>
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+        `;
+    }
+}
+
+
+/* ==========================================================
+   STATUS CLASS
+========================================================== */
+
+function billingStatusClass(
+    status
+) {
+
+    const value =
+        String(
+            status || ''
+        ).toLowerCase();
+
+
+    if (value === 'paid') {
+
+        return 'billing-status-paid';
+    }
+
+
+    if (value === 'partial') {
+
+        return 'billing-status-partial';
+    }
+
+
+    if (value === 'pending') {
+
+        return 'billing-status-pending';
+    }
+
+
+    if (value === 'open') {
+
+        return 'billing-status-open';
+    }
+
+
+    return 'billing-status-default';
+}
+
+
+/* ==========================================================
+   FILTER
+========================================================== */
+
+function filterBillingByStatus(
+    status,
+    button
+) {
+
+    billingStatusFilter =
+        status;
+
+
+    document
+        .querySelectorAll(
+            '#billingInvFilterBar .billing-filter-btn'
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    'active'
+                )
+        );
+
+
+    if (button) {
+
+        button.classList.add(
+            'active'
+        );
+    }
+
+
+    renderBillingTable();
+}
+
+
+/* ==========================================================
+   RENDER TABLE
+========================================================== */
+
+function renderBillingTable() {
+
+    const tbody =
+        document.getElementById(
+            'billingInvoiceTbody'
+        );
+
+
+    const search =
+        (
+            document.getElementById(
+                'billingInvSearch'
+            )?.value || ''
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const filtered =
+        billingInvoices.filter(
+            invoice => {
+
+                const status =
+                    String(
+                        invoice.status || ''
+                    ).toLowerCase();
+
+
+                const statusMatch =
+                    billingStatusFilter === 'all' ||
+                    status === billingStatusFilter;
+
+
+                const searchText = [
+
+                    invoice.invoice_number,
+
+                    invoice.guest_name,
+
+                    invoice.guest_email,
+
+                    invoice.room_number
+
+                ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+
+                const searchMatch =
+                    !search ||
+                    searchText.includes(
+                        search
+                    );
+
+
+                return (
+                    statusMatch &&
+                    searchMatch
+                );
+            }
+        );
+
+
+    if (!filtered.length) {
+
+        tbody.innerHTML = `
+
+            <tr>
+
+                <td colspan="9">
+
+                    <div class="billing-empty">
+
+                        <i class="fas fa-receipt"></i>
+
+                        <strong>
+                            No invoices found
+                        </strong>
+
+                        <span>
+                            No invoices match the current filter.
+                        </span>
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        filtered
+            .map(
+                buildBillingRow
+            )
+            .join('');
+}
+
+
+/* ==========================================================
+   TABLE ROW
+========================================================== */
+
+function buildBillingRow(
+    invoice
+) {
+
+    const guestName =
+        invoice.guest_name ||
+        'Guest';
+
+
+    const initial =
+        guestName
+            .charAt(0)
+            .toUpperCase();
+
+
+    const total =
+        Number(
+            invoice.grand_total || 0
+        );
+
+
+    const paid =
+        Number(
+            invoice.paid ??
+            invoice.total_paid ??
+            0
+        );
+
+
+    const balance =
+        Number(
+            invoice.balance ??
+            invoice.balance_due ??
+            0
+        );
+
+
+    let date = '—';
+
+
+    if (invoice.generated_at) {
+
+        const parsed =
+            new Date(
+                invoice.generated_at
+            );
+
+
+        if (
+            !Number.isNaN(
+                parsed.getTime()
+            )
+        ) {
+
+            date =
+                parsed.toLocaleDateString(
+                    'en-IN',
+                    {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                    }
+                );
+        }
+    }
+
+
+    return `
+
+        <tr>
+
+            <td>
+
+                <span class="invoice-number">
+
+                    ${billingEscape(
+                        invoice.invoice_number ||
+                        '—'
+                    )}
+
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <div class="invoice-guest">
+
+                    <div class="invoice-avatar">
+
+                        ${billingEscape(initial)}
+
+                    </div>
+
+
+                    <div>
+
+                        <div class="invoice-guest-name">
+
+                            ${billingEscape(
+                                guestName
+                            )}
+
+                        </div>
+
+
+                        ${
+                            invoice.guest_email
+                                ? `
+
+                                    <div class="invoice-guest-email">
+
+                                        ${billingEscape(
+                                            invoice.guest_email
+                                        )}
+
+                                    </div>
+
+                                `
+                                : ''
+                        }
+
+                    </div>
+
+                </div>
+
+            </td>
+
+
+            <td>
+
+                ${
+                    invoice.room_number
+                        ? `
+
+                            <span class="invoice-room">
+
+                                <i class="fas fa-door-open"></i>
+
+                                ${billingEscape(
+                                    invoice.room_number
+                                )}
+
+                            </span>
+
+                        `
+                        : '—'
+                }
+
+            </td>
+
+
+            <td>
+                ${billingEscape(date)}
+            </td>
+
+
+            <td class="money">
+
+                ${billingMoney(total)}
+
+            </td>
+
+
+            <td class="money money-paid">
+
+                ${billingMoney(paid)}
+
+            </td>
+
+
+            <td class="
+                money
+                ${balance > 0
+                    ? 'money-due'
+                    : 'money-paid'}
+            ">
+
+                ${billingMoney(balance)}
+
+            </td>
+
+
+            <td>
+
+                <span class="
+                    billing-status
+                    ${billingStatusClass(
+                        invoice.status
+                    )}
+                ">
+
+                    ${billingEscape(
+                        invoice.status ||
+                        '—'
+                    )}
+
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <div class="billing-actions">
+
+
+                    <button
+                        type="button"
+                        class="billing-action-btn"
+                        title="View Invoice"
+                        onclick="openInvoiceDetail(
+                            ${Number(invoice.id)}
+                        )"
+                    >
+
+                        <i class="fas fa-eye"></i>
+
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="billing-action-btn"
+                        title="Print Invoice"
+                        onclick="printSingleInvoice(
+                            ${Number(invoice.id)}
+                        )"
+                    >
+
+                        <i class="fas fa-print"></i>
+
+                    </button>
+
+
+                    ${
+                        invoice.guest_email
+                            ? `
+
+                                <button
+                                    type="button"
+                                    class="billing-action-btn"
+                                    title="Email Invoice"
+                                    onclick="resendInvoiceEmail(
+                                        ${Number(invoice.id)}
+                                    )"
+                                >
+
+                                    <i class="fas fa-envelope"></i>
+
+                                </button>
+
+                            `
+                            : ''
+                    }
+
+                </div>
+
+            </td>
+
+        </tr>
+
+    `;
+}
+
+
+/* ==========================================================
+   MODAL
+========================================================== */
+
+function openBillingModal() {
+
+    document
+        .getElementById(
+            'invoiceDetailModal'
+        )
+        .classList.add(
+            'show'
+        );
+
+
+    document.body.style.overflow =
+        'hidden';
+}
+
+
+function closeBillingModal() {
+
+    document
+        .getElementById(
+            'invoiceDetailModal'
+        )
+        .classList.remove(
+            'show'
+        );
+
+
+    document.body.style.overflow =
+        '';
+}
+
+
+/* ==========================================================
+   OPEN INVOICE
+========================================================== */
+
+async function openInvoiceDetail(
+    invoiceId
+) {
+
+    currentInvoice = null;
+
+
+    document.getElementById(
+        'invDetailTitle'
+    ).textContent =
+        `Invoice #${invoiceId}`;
+
+
+    document.getElementById(
+        'invDetailSubtitle'
+    ).textContent =
+        'Loading invoice...';
+
+
+    document.getElementById(
+        'invoiceDetailBody'
+    ).innerHTML = `
+
+        <div class="billing-empty">
+
+            <i class="fas fa-spinner fa-spin"></i>
+
+            Loading invoice details...
+
+        </div>
+
+    `;
+
+
+    document.getElementById(
+        'invDetailPrintBtn'
+    ).style.display =
+        'none';
+
+
+    document.getElementById(
+        'invDetailEmailBtn'
+    ).style.display =
+        'none';
+
+
+    openBillingModal();
+
+
+    try {
+
+        const data =
+            await billingFetch(
+                `/api/billing/invoice/${invoiceId}/`,
+                {
+                    headers: {
+                        'X-CSRFToken':
+                            getBillingCsrf()
+                    }
+                }
+            );
+
+
+        const invoice =
+            data.invoice ||
+            data;
+
+
+        currentInvoice =
+            invoice;
+
+
+        renderInvoiceDetail(
+            invoice
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            'INVOICE DETAIL ERROR:',
+            error
+        );
+
+
+        const cached =
+            billingInvoices.find(
+                item =>
+                    String(item.id) ===
+                    String(invoiceId)
+            );
+
+
+        if (cached) {
+
+            currentInvoice =
+                cached;
+
+
+            renderInvoiceDetail(
+                cached
+            );
+
+        } else {
+
+            document.getElementById(
+                'invoiceDetailBody'
+            ).innerHTML = `
+
+                <div class="billing-empty">
+
+                    <i class="fas fa-exclamation-triangle"></i>
+
+                    <strong>
+                        Unable to load invoice
+                    </strong>
+
+                    <span>
+                        ${billingEscape(error.message)}
+                    </span>
+
+                </div>
+
+            `;
+        }
+    }
+}
+
+
+/* ==========================================================
+   RENDER INVOICE DETAIL
+========================================================== */
+
+function renderInvoiceDetail(
+    invoice
+) {
+
+    const guestName =
+        invoice.guest_name ||
+        '—';
+
+
+    const roomNumber =
+        invoice.room_number ||
+        '—';
+
+
+    const total =
+        Number(
+            invoice.grand_total || 0
+        );
+
+
+    const paid =
+        Number(
+            invoice.paid ??
+            invoice.total_paid ??
+            0
+        );
+
+
+    const balance =
+        Number(
+            invoice.balance ??
+            invoice.balance_due ??
+            0
+        );
+
+
+    document.getElementById(
+        'invDetailTitle'
+    ).textContent =
+        invoice.invoice_number
+            ? `Invoice ${invoice.invoice_number}`
+            : 'Invoice Details';
+
+
+    document.getElementById(
+        'invDetailSubtitle'
+    ).textContent =
+        `${guestName} · Room ${roomNumber}`;
+
+
+    let chargesHtml = '';
+
+
+    if (
+        Array.isArray(invoice.charges) &&
+        invoice.charges.length
+    ) {
+
+        chargesHtml = `
+
+            <div
+                class="invoice-detail-box"
+                style="margin-bottom:15px;"
+            >
+
+                <div class="invoice-detail-box-title">
+                    Charges
+                </div>
+
+
+                ${invoice.charges.map(charge => `
+
+                    <div class="invoice-detail-row">
+
+                        <span>
+                            ${billingEscape(
+                                charge.description ||
+                                charge.charge_type ||
+                                'Charge'
+                            )}
+                        </span>
+
+                        <strong>
+
+                            ${billingMoney(
+                                charge.total ??
+                                charge.amount ??
+                                0
+                            )}
+
+                        </strong>
+
+                    </div>
+
+                `).join('')}
+
+            </div>
+
+        `;
+    }
+
+
+    document.getElementById(
+        'invoiceDetailBody'
+    ).innerHTML = `
+
+        <div class="invoice-detail-head">
+
+            <div>
+
+                <div class="invoice-detail-hotel">
+
+                    ${billingEscape(
+                        invoice.hotel_name ||
+                        "{{ hotel.name|default:'Hotel'|escapejs }}"
+                    )}
+
+                </div>
+
+                <div
+                    style="
+                        color:#6b7280;
+                        font-size:10px;
+                        margin-top:4px;
+                    "
+                >
+                    Guest Invoice
+                </div>
+
+            </div>
+
+
+            <div class="invoice-detail-number">
+
+                ${billingEscape(
+                    invoice.invoice_number ||
+                    ''
+                )}
+
+            </div>
+
+        </div>
+
+
+
+        <div class="invoice-detail-grid">
+
+
+            <div class="invoice-detail-box">
+
+                <div class="invoice-detail-box-title">
+                    Guest
+                </div>
+
+                <div class="invoice-detail-row">
+
+                    <span>Name</span>
+
+                    <strong>
+                        ${billingEscape(
+                            guestName
+                        )}
+                    </strong>
+
+                </div>
+
+
+                ${
+                    invoice.guest_email
+                        ? `
+
+                            <div class="invoice-detail-row">
+
+                                <span>Email</span>
+
+                                <strong>
+                                    ${billingEscape(
+                                        invoice.guest_email
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        `
+                        : ''
+                }
+
+
+                ${
+                    invoice.guest_phone
+                        ? `
+
+                            <div class="invoice-detail-row">
+
+                                <span>Phone</span>
+
+                                <strong>
+                                    ${billingEscape(
+                                        invoice.guest_phone
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        `
+                        : ''
+                }
+
+            </div>
+
+
+
+            <div class="invoice-detail-box">
+
+                <div class="invoice-detail-box-title">
+                    Stay
+                </div>
+
+
+                <div class="invoice-detail-row">
+
+                    <span>Room</span>
+
+                    <strong>
+                        ${billingEscape(
+                            roomNumber
+                        )}
+                    </strong>
+
+                </div>
+
+
+                ${
+                    invoice.check_in
+                        ? `
+
+                            <div class="invoice-detail-row">
+
+                                <span>Check-In</span>
+
+                                <strong>
+                                    ${billingEscape(
+                                        invoice.check_in
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        `
+                        : ''
+                }
+
+
+                ${
+                    invoice.check_out
+                        ? `
+
+                            <div class="invoice-detail-row">
+
+                                <span>Check-Out</span>
+
+                                <strong>
+                                    ${billingEscape(
+                                        invoice.check_out
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        `
+                        : ''
+                }
+
+            </div>
+
+        </div>
+
+
+        ${chargesHtml}
+
+
+        <div class="invoice-total-box">
+
+            <div class="invoice-total-row">
+
+                <span>Total</span>
+
+                <strong>
+                    ${billingMoney(total)}
+                </strong>
+
+            </div>
+
+
+            <div class="invoice-total-row">
+
+                <span>Paid</span>
+
+                <strong class="money-paid">
+
+                    ${billingMoney(paid)}
+
+                </strong>
+
+            </div>
+
+
+            <div class="invoice-total-row">
+
+                <span>Balance</span>
+
+                <strong
+                    class="${
+                        balance > 0
+                            ? 'money-due'
+                            : 'money-paid'
+                    }"
+                >
+
+                    ${billingMoney(balance)}
+
+                </strong>
+
+            </div>
+
+
+            <div class="invoice-total-row grand">
+
+                <span>Status</span>
+
+                <span class="
+                    billing-status
+                    ${billingStatusClass(
+                        invoice.status
+                    )}
+                ">
+
+                    ${billingEscape(
+                        invoice.status ||
+                        '—'
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    document.getElementById(
+        'invDetailPrintBtn'
+    ).style.display =
+        'inline-flex';
+
+
+    const emailButton =
+        document.getElementById(
+            'invDetailEmailBtn'
+        );
+
+
+    if (invoice.guest_email) {
+
+        emailButton.style.display =
+            'inline-flex';
+
+
+        emailButton.dataset.invoiceId =
+            invoice.id;
+
+
+        emailButton.dataset.email =
+            invoice.guest_email;
+
+    } else {
+
+        emailButton.style.display =
+            'none';
+    }
+}
+
+
+/* ==========================================================
+   PRINT HTML
+========================================================== */
+
+function buildPrintableInvoice(
+    invoice
+) {
+
+    const total =
+        Number(
+            invoice.grand_total || 0
+        );
+
+
+    const paid =
+        Number(
+            invoice.paid ??
+            invoice.total_paid ??
+            0
+        );
+
+
+    const balance =
+        Number(
+            invoice.balance ??
+            invoice.balance_due ??
+            0
+        );
+
+
+    const charges =
+        Array.isArray(invoice.charges)
+            ? invoice.charges
+            : [];
+
+
+    return `
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+${billingEscape(
+    invoice.invoice_number ||
+    'Invoice'
+)}
+</title>
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    color: #111827;
+    padding: 35px;
+    font-size: 13px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+
+    border-bottom: 2px solid #111827;
+}
+
+.hotel {
+    font-size: 23px;
+    font-weight: 700;
+}
+
+.invoice-no {
+    font-size: 17px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 25px;
+
+    margin-bottom: 25px;
+}
+
+.label {
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.value {
+    font-weight: 600;
+    margin-top: 3px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th,
+td {
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+th {
+    background: #f8fafc;
+    font-size: 11px;
+}
+
+.amount {
+    text-align: right;
+}
+
+.summary {
+    width: 330px;
+    max-width: 100%;
+
+    margin-left: auto;
+    margin-top: 25px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+
+    padding: 6px 0;
+}
+
+.summary-total {
+    border-top: 2px solid #111827;
+
+    margin-top: 5px;
+    padding-top: 10px;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.footer {
+    margin-top: 45px;
+    padding-top: 18px;
+
+    border-top: 1px solid #e5e7eb;
+
+    color: #6b7280;
+    font-size: 11px;
+
+    text-align: center;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+    <div>
+
+        <div class="hotel">
+
+            ${billingEscape(
+                invoice.hotel_name ||
+                "{{ hotel.name|default:'Hotel'|escapejs }}"
+            )}
+
+        </div>
+
+        <div style="margin-top:5px;color:#6b7280;">
+            Guest Invoice
+        </div>
+
+    </div>
+
+
+    <div>
+
+        <div class="invoice-no">
+
+            ${billingEscape(
+                invoice.invoice_number ||
+                ''
+            )}
+
+        </div>
+
+        <div style="
+            text-align:right;
+            margin-top:5px;
+            color:#6b7280;
+        ">
+
+            ${billingEscape(
+                invoice.generated_at ||
+                ''
+            )}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="info">
+
+    <div>
+
+        <div class="label">
+            Guest
+        </div>
+
+        <div class="value">
+
+            ${billingEscape(
+                invoice.guest_name ||
+                '—'
+            )}
+
+        </div>
+
+        ${
+            invoice.guest_email
+                ? `
+
+                    <div style="margin-top:5px;">
+
+                        ${billingEscape(
+                            invoice.guest_email
+                        )}
+
+                    </div>
+
+                `
+                : ''
+        }
+
+    </div>
+
+
+    <div>
+
+        <div class="label">
+            Room
+        </div>
+
+        <div class="value">
+
+            ${billingEscape(
+                invoice.room_number ||
+                '—'
+            )}
+
+        </div>
+
+        <div style="margin-top:5px;">
+
+            ${billingEscape(
+                invoice.check_in ||
+                ''
+            )}
+
+            ${invoice.check_out ? ' → ' : ''}
+
+            ${billingEscape(
+                invoice.check_out ||
+                ''
+            )}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<table>
+
+<thead>
+
+<tr>
+
+    <th>Description</th>
+
+    <th class="amount">
+        Amount
+    </th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+${
+    charges.length
+        ?
+
+        charges.map(
+            charge => `
+
+                <tr>
+
+                    <td>
+
+                        ${billingEscape(
+                            charge.description ||
+                            charge.charge_type ||
+                            'Charge'
+                        )}
+
+                    </td>
+
+                    <td class="amount">
+
+                        ${billingMoney(
+                            charge.total ??
+                            charge.amount ??
+                            0
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `
+        ).join('')
+
+        :
+
+        `
+
+            <tr>
+
+                <td>
+                    Accommodation / Charges
+                </td>
+
+                <td class="amount">
+
+                    ${billingMoney(total)}
+
+                </td>
+
+            </tr>
+
+        `
+}
+
+</tbody>
+
+</table>
+
+
+
+<div class="summary">
+
+    <div class="summary-row">
+
+        <span>Total</span>
+
+        <strong>
+            ${billingMoney(total)}
+        </strong>
+
+    </div>
+
+
+    <div class="summary-row">
+
+        <span>Paid</span>
+
+        <strong>
+            ${billingMoney(paid)}
+        </strong>
+
+    </div>
+
+
+    <div class="summary-row summary-total">
+
+        <span>Balance</span>
+
+        <span>
+            ${billingMoney(balance)}
+        </span>
+
+    </div>
+
+</div>
+
+
+
+<div class="footer">
+
+    Thank you for staying with us.
+
+    <br>
+
+    This is a computer-generated invoice.
+
+</div>
+
+
+</body>
+
+</html>
+
+    `;
+}
+
+
+/* ==========================================================
+   PRINT CURRENT
+========================================================== */
+
+function printInvoiceDetail() {
+
+    if (!currentInvoice) {
+
+        billingToast(
+            'Invoice is not loaded.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    const popup =
+        window.open(
+            '',
+            '_blank'
+        );
+
+
+    if (!popup) {
+
+        billingToast(
+            'Please allow pop-ups to print invoices.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    popup.document.write(
+        buildPrintableInvoice(
+            currentInvoice
+        )
+    );
+
+
+    popup.document.close();
+
+
+    window.setTimeout(
+        () => {
+
+            popup.focus();
+
+            popup.print();
+
+        },
+        500
+    );
+}
+
+
+/* ==========================================================
+   PRINT TABLE INVOICE
+========================================================== */
+
+async function printSingleInvoice(
+    invoiceId
+) {
+
+    try {
+
+        const data =
+            await billingFetch(
+                `/api/billing/invoice/${invoiceId}/`,
+                {
+                    headers: {
+                        'X-CSRFToken':
+                            getBillingCsrf()
+                    }
+                }
+            );
+
+
+        const invoice =
+            data.invoice ||
+            data;
+
+
+        const popup =
+            window.open(
+                '',
+                '_blank'
+            );
+
+
+        if (!popup) {
+
+            throw new Error(
+                'Please allow pop-ups to print invoices.'
+            );
+        }
+
+
+        popup.document.write(
+            buildPrintableInvoice(
+                invoice
+            )
+        );
+
+
+        popup.document.close();
+
+
+        window.setTimeout(
+            () => popup.print(),
+            500
+        );
+
+
+    } catch (error) {
+
+        billingToast(
+            error.message,
+            'error'
+        );
+    }
+}
+
+
+/* ==========================================================
+   EMAIL CURRENT INVOICE
+========================================================== */
+
+async function emailInvoice() {
+
+    if (!currentInvoice) {
+
+        billingToast(
+            'Invoice is not loaded.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    if (!currentInvoice.guest_email) {
+
+        billingToast(
+            'Guest email is not available.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    await sendInvoiceEmail(
+        currentInvoice.id,
+        currentInvoice.guest_email
+    );
+}
+
+
+/* ==========================================================
+   RESEND EMAIL
+========================================================== */
+
+async function resendInvoiceEmail(
+    invoiceId
+) {
+
+    const invoice =
+        billingInvoices.find(
+            item =>
+                String(item.id) ===
+                String(invoiceId)
+        );
+
+
+    if (
+        !invoice ||
+        !invoice.guest_email
+    ) {
+
+        billingToast(
+            'Guest email is not available.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    if (
+        !window.confirm(
+            `Send invoice to ${invoice.guest_email}?`
+        )
+    ) {
+
+        return;
+    }
+
+
+    await sendInvoiceEmail(
+        invoiceId,
+        invoice.guest_email
+    );
+}
+
+
+/* ==========================================================
+   SEND EMAIL
+========================================================== */
+
+async function sendInvoiceEmail(
+    invoiceId,
+    email
+) {
+
+    try {
+
+        const data =
+            await billingFetch(
+                `/api/billing/invoice/${invoiceId}/send-email/`,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'X-CSRFToken':
+                            getBillingCsrf()
+                    }
+                }
+            );
+
+
+        if (
+            data.success === false
+        ) {
+
+            throw new Error(
+                data.error ||
+                'Unable to send invoice.'
+            );
+        }
+
+
+        billingToast(
+            `Invoice sent to ${
+                data.email_sent_to ||
+                email
+            }`
+        );
+
+
+    } catch (error) {
+
+        billingToast(
+            error.message,
+            'error'
+        );
+    }
+}
+
+
+/* ==========================================================
+   REFRESH
+========================================================== */
+
+async function refreshBilling() {
+
+    await Promise.all([
+        loadBillingSummary(),
+        loadBillingInvoices()
+    ]);
+}
+
+
+/* ==========================================================
+   CLOSE MODAL BY BACKDROP
+========================================================== */
+
+document
+    .getElementById(
+        'invoiceDetailModal'
+    )
+    .addEventListener(
+        'click',
+        function(event) {
+
+            if (
+                event.target === this
+            ) {
+
+                closeBillingModal();
+            }
+        }
+    );
+
+
+document.addEventListener(
+    'keydown',
+    function(event) {
+
+        if (
+            event.key === 'Escape'
+        ) {
+
+            closeBillingModal();
+        }
+    }
+);
+
+
+/* ==========================================================
+   INITIALIZE
+========================================================== */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function() {
+
+        refreshBilling();
+
+    }
+);
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,3087 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}My Leave | Hotel ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ============================================================
+   LEAVE PAGE
+============================================================ */
+
+.leave-page {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HERO
+============================================================ */
+
+.leave-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 104px;
+
+    margin-bottom: 24px;
+    padding: 22px 28px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            115deg,
+            #712cf9 0%,
+            #4c1d95 48%,
+            #172554 100%
+        );
+
+    color: #fff;
+
+    box-shadow:
+        0 10px 30px rgba(91, 33, 182, .16);
+}
+
+
+.leave-hero::before {
+    content: "";
+
+    position: absolute;
+
+    width: 210px;
+    height: 210px;
+
+    right: 40px;
+    top: -110px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.055);
+}
+
+
+.leave-hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 135px;
+    height: 135px;
+
+    right: 95px;
+    bottom: -95px;
+
+    border-radius: 50%;
+
+    background: rgba(14,165,233,.12);
+}
+
+
+.leave-hero-left {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+}
+
+
+.leave-hero-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background: rgba(255,255,255,.12);
+
+    font-size: 21px;
+}
+
+
+.leave-hero-title {
+    margin-bottom: 5px;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+
+.leave-hero-text {
+    color: rgba(255,255,255,.75);
+
+    font-size: 13px;
+}
+
+
+.leave-hero-right {
+    position: relative;
+    z-index: 2;
+}
+
+
+.apply-leave-btn {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 18px;
+
+    border: 1px solid rgba(255,255,255,.28);
+    border-radius: 22px;
+
+    background: rgba(255,255,255,.09);
+
+    color: #fff;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .2s ease;
+}
+
+
+.apply-leave-btn:hover {
+    background: rgba(255,255,255,.17);
+    transform: translateY(-1px);
+}
+
+
+/* ============================================================
+   PAGE HEADER
+============================================================ */
+
+.leave-heading-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+}
+
+
+.leave-heading-left h1 {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 32px;
+    font-weight: 800;
+
+    letter-spacing: -.04em;
+
+    line-height: 1.15;
+}
+
+
+.leave-heading-left p {
+    margin: 7px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   WORK TABS
+============================================================ */
+
+.work-tabs {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 6px;
+
+    margin-bottom: 24px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.work-tab {
+    min-height: 38px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border-radius: 8px;
+
+    color: var(--acc-muted);
+
+    text-decoration: none;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    transition: .2s ease;
+}
+
+
+.work-tab:hover {
+    background: var(--acc-bg);
+    color: var(--acc-text);
+}
+
+
+.work-tab.active {
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #fff;
+
+    box-shadow:
+        0 5px 13px rgba(124,58,237,.20);
+}
+
+
+/* ============================================================
+   KPI GRID
+============================================================ */
+
+.leave-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0,1fr));
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+/* ============================================================
+   KPI CARD
+============================================================ */
+
+.leave-stat-card {
+    position: relative;
+
+    min-width: 0;
+    min-height: 205px;
+
+    overflow: hidden;
+
+    padding: 24px 25px 0;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 17px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 7px rgba(15,23,42,.035);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+
+.leave-stat-card:hover {
+    transform: translateY(-3px);
+
+    border-color: rgba(124,58,237,.22);
+
+    box-shadow:
+        0 12px 28px rgba(15,23,42,.08);
+}
+
+
+.leave-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+
+.leave-stat-icon {
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 52px;
+
+    border-radius: 14px;
+
+    font-size: 20px;
+}
+
+
+.leave-stat-icon.purple {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.leave-stat-icon.amber {
+    background: #fff3d4;
+    color: #f59e0b;
+}
+
+
+.leave-stat-icon.green {
+    background: #dff9ed;
+    color: #10b981;
+}
+
+
+.leave-stat-icon.cyan {
+    background: #e4f8fb;
+    color: #06a6bd;
+}
+
+
+.leave-stat-chip {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 6px 10px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.leave-stat-chip.purple {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.leave-stat-chip.amber {
+    background: #fff3d4;
+    color: #d97706;
+}
+
+
+.leave-stat-chip.green {
+    background: #dff9ed;
+    color: #059669;
+}
+
+
+.leave-stat-chip.cyan {
+    background: #e4f8fb;
+    color: #0891b2;
+}
+
+
+.leave-stat-value {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 36px;
+    font-weight: 800;
+
+    line-height: 1.1;
+
+    letter-spacing: -.04em;
+}
+
+
+.leave-stat-label {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 500;
+}
+
+
+.leave-stat-description {
+    margin-top: 4px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   DECORATIVE MINI BARS
+============================================================ */
+
+.leave-mini-bars {
+    position: absolute;
+
+    left: 25px;
+    right: 25px;
+    bottom: 0;
+
+    height: 48px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 4px;
+}
+
+
+.leave-mini-bars span {
+    flex: 1;
+
+    min-width: 0;
+
+    border-radius: 5px 5px 0 0;
+}
+
+
+.leave-mini-bars.purple span {
+    background: #8b5cf6;
+}
+
+
+.leave-mini-bars.amber span {
+    background: #f59e0b;
+}
+
+
+.leave-mini-bars.green span {
+    background: #10b981;
+}
+
+
+.leave-mini-bars.cyan span {
+    background: #06b6d4;
+}
+
+
+.leave-mini-bars span:nth-child(1) { opacity: .24; }
+.leave-mini-bars span:nth-child(2) { opacity: .34; }
+.leave-mini-bars span:nth-child(3) { opacity: .42; }
+.leave-mini-bars span:nth-child(4) { opacity: .52; }
+.leave-mini-bars span:nth-child(5) { opacity: .61; }
+.leave-mini-bars span:nth-child(6) { opacity: .72; }
+.leave-mini-bars span:nth-child(7) { opacity: .85; }
+
+
+/* ============================================================
+   LEAVE HISTORY CARD
+============================================================ */
+
+.leave-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    margin-bottom: 24px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 15px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.leave-card-header {
+    min-height: 74px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 21px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.leave-card-title {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.leave-card-title i {
+    margin-right: 7px;
+
+    color: #7c3aed;
+}
+
+
+.leave-card-subtitle {
+    margin: 4px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   FILTER
+============================================================ */
+
+.leave-filter-wrap {
+    position: relative;
+}
+
+
+.leave-filter-wrap i {
+    position: absolute;
+
+    left: 13px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+
+    pointer-events: none;
+}
+
+
+.leave-filter {
+    height: 40px;
+
+    min-width: 145px;
+
+    padding: 0 34px 0 34px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-surface);
+    color: var(--acc-text);
+
+    font-size: 12px;
+
+    cursor: pointer;
+}
+
+
+.leave-filter:focus {
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124,58,237,.10);
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.leave-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.leave-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.leave-table th {
+    padding: 13px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    background:
+        rgba(148,163,184,.05);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-align: left;
+
+    text-transform: uppercase;
+
+    letter-spacing: .04em;
+
+    white-space: nowrap;
+}
+
+
+.leave-table td {
+    padding: 16px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+
+.leave-table tbody tr {
+    transition: background .15s ease;
+}
+
+
+.leave-table tbody tr:hover {
+    background: rgba(124,58,237,.025);
+}
+
+
+.leave-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+.leave-type-cell {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 150px;
+}
+
+
+.leave-type-icon {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+
+    font-size: 13px;
+}
+
+
+.leave-duration-main {
+    display: block;
+
+    color: var(--acc-text);
+
+    font-weight: 700;
+}
+
+
+.leave-duration-sub {
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.leave-reason {
+    max-width: 250px;
+
+    color: var(--acc-muted);
+
+    line-height: 1.45;
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.leave-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 6px 10px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.leave-status::before {
+    content: "";
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+
+.leave-status.pending {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+
+.leave-status.approved {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+.leave-status.rejected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+============================================================ */
+
+.leave-empty {
+    padding: 60px 20px;
+
+    color: var(--acc-muted);
+
+    text-align: center;
+}
+
+
+.leave-empty-icon {
+    width: 60px;
+    height: 60px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 15px;
+
+    border-radius: 16px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+
+    font-size: 23px;
+}
+
+
+.leave-empty h3 {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 15px;
+}
+
+
+.leave-empty p {
+    margin: 0;
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   MODAL BACKDROP
+============================================================ */
+
+.leave-modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(15,23,42,.56);
+
+    backdrop-filter: blur(3px);
+}
+
+
+.leave-modal.show {
+    display: flex;
+}
+
+
+/* ============================================================
+   MODAL CARD
+============================================================ */
+
+.leave-modal-card {
+    width: 100%;
+    max-width: 620px;
+
+    max-height: calc(100vh - 40px);
+
+    overflow-y: auto;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 17px;
+
+    background: var(--acc-surface);
+
+    color: var(--acc-text);
+
+    box-shadow:
+        0 24px 70px rgba(0,0,0,.25);
+
+    animation:
+        leaveModalOpen .18s ease;
+}
+
+
+@keyframes leaveModalOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+
+/* ============================================================
+   MODAL HEADER
+============================================================ */
+
+.leave-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 20px 22px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.leave-modal-heading {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+}
+
+
+.leave-modal-heading-icon {
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 43px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.leave-modal-header h3 {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.leave-modal-header p {
+    margin: 4px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+
+    flex: 0 0 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    background: var(--acc-bg);
+    color: var(--acc-muted);
+
+    cursor: pointer;
+
+    transition: .2s ease;
+}
+
+
+.modal-close:hover {
+    color: var(--acc-text);
+
+    border-color:
+        rgba(124,58,237,.25);
+
+    background:
+        rgba(124,58,237,.07);
+}
+
+
+/* ============================================================
+   MODAL BODY
+============================================================ */
+
+.leave-modal-body {
+    padding: 22px;
+}
+
+
+.modal-message {
+    display: none;
+
+    margin-bottom: 17px;
+    padding: 12px 14px;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+}
+
+
+.modal-message.show {
+    display: block;
+}
+
+
+.modal-message.success {
+    border: 1px solid rgba(16,185,129,.18);
+
+    background: rgba(16,185,129,.10);
+
+    color: #059669;
+}
+
+
+.modal-message.error {
+    border: 1px solid rgba(239,68,68,.18);
+
+    background: rgba(239,68,68,.10);
+
+    color: #dc2626;
+}
+
+
+/* ============================================================
+   FORM
+============================================================ */
+
+.leave-form-grid,
+.leave-dates {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 14px;
+}
+
+
+.leave-field {
+    margin-bottom: 16px;
+}
+
+
+.leave-field label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--acc-text);
+
+    font-size: 12px;
+    font-weight: 650;
+}
+
+
+.leave-required {
+    color: #ef4444;
+}
+
+
+.leave-field input,
+.leave-field select,
+.leave-field textarea {
+    width: 100%;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-surface);
+    color: var(--acc-text);
+
+    box-sizing: border-box;
+
+    font-size: 13px;
+
+    transition:
+        border-color .15s ease,
+        box-shadow .15s ease;
+}
+
+
+.leave-field input,
+.leave-field select {
+    height: 44px;
+
+    padding: 0 12px;
+}
+
+
+.leave-field textarea {
+    min-height: 105px;
+
+    padding: 11px 12px;
+
+    resize: vertical;
+
+    line-height: 1.5;
+}
+
+
+.leave-field input:focus,
+.leave-field select:focus,
+.leave-field textarea:focus {
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124,58,237,.10);
+}
+
+
+.leave-field textarea::placeholder {
+    color: var(--acc-muted);
+}
+
+
+.leave-help {
+    display: block;
+
+    margin-top: 5px;
+
+    color: var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   DURATION PREVIEW
+============================================================ */
+
+.leave-duration-preview {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    padding: 14px;
+
+    margin-bottom: 17px;
+
+    border: 1px solid rgba(124,58,237,.15);
+    border-radius: 11px;
+
+    background:
+        rgba(124,58,237,.055);
+}
+
+
+.leave-duration-preview-icon {
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.leave-duration-preview small {
+    display: block;
+
+    margin-bottom: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.leave-duration-preview strong {
+    color: var(--acc-text);
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   SUBMIT BUTTON
+============================================================ */
+
+.submit-leave {
+    width: 100%;
+    height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 18px rgba(124,58,237,.22);
+
+    transition: .2s ease;
+}
+
+
+.submit-leave:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 10px 22px rgba(124,58,237,.26);
+}
+
+
+.submit-leave:disabled {
+    opacity: .65;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* ============================================================
+   DARK MODE
+============================================================ */
+
+[data-theme="dark"] .leave-stat-icon.purple,
+[data-theme="dark"] .leave-type-icon,
+[data-theme="dark"] .leave-modal-heading-icon,
+[data-theme="dark"] .leave-duration-preview-icon,
+[data-theme="dark"] .leave-empty-icon {
+
+    background:
+        rgba(124,58,237,.15);
+}
+
+
+[data-theme="dark"] .leave-stat-icon.amber {
+    background:
+        rgba(245,158,11,.13);
+}
+
+
+[data-theme="dark"] .leave-stat-icon.green {
+    background:
+        rgba(16,185,129,.13);
+}
+
+
+[data-theme="dark"] .leave-stat-icon.cyan {
+    background:
+        rgba(6,182,212,.13);
+}
+
+
+[data-theme="dark"] .leave-stat-chip.purple {
+    background: rgba(124,58,237,.15);
+}
+
+
+[data-theme="dark"] .leave-stat-chip.amber {
+    background: rgba(245,158,11,.13);
+}
+
+
+[data-theme="dark"] .leave-stat-chip.green {
+    background: rgba(16,185,129,.13);
+}
+
+
+[data-theme="dark"] .leave-stat-chip.cyan {
+    background: rgba(6,182,212,.13);
+}
+
+
+[data-theme="dark"] .leave-status.pending {
+    background: rgba(245,158,11,.13);
+    color: #fbbf24;
+}
+
+
+[data-theme="dark"] .leave-status.approved {
+    background: rgba(16,185,129,.13);
+    color: #34d399;
+}
+
+
+[data-theme="dark"] .leave-status.rejected {
+    background: rgba(239,68,68,.13);
+    color: #f87171;
+}
+
+
+[data-theme="dark"] .leave-duration-preview {
+    background:
+        rgba(124,58,237,.08);
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1250px) {
+
+    .leave-stat-grid {
+        grid-template-columns:
+            repeat(2, minmax(0,1fr));
+    }
+
+}
+
+
+@media (max-width: 767px) {
+
+    .leave-hero {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 18px;
+    }
+
+
+    .leave-hero-right {
+        width: 100%;
+    }
+
+
+    .apply-leave-btn {
+        width: 100%;
+    }
+
+
+    .leave-heading-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .leave-heading-left h1 {
+        font-size: 28px;
+    }
+
+
+    .work-tabs {
+        width: 100%;
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+
+    .work-tab {
+        padding: 0 8px;
+    }
+
+
+    .leave-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .leave-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .leave-filter-wrap,
+    .leave-filter {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .leave-hero {
+        padding: 20px;
+    }
+
+
+    .leave-form-grid,
+    .leave-dates {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+
+    .leave-modal {
+        padding: 10px;
+    }
+
+
+    .leave-modal-card {
+        max-height:
+            calc(100vh - 20px);
+    }
+
+
+    .leave-modal-header,
+    .leave-modal-body {
+        padding: 17px;
+    }
+
+
+    .leave-stat-card {
+        min-height: 195px;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="leave-page">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="leave-hero">
+
+        <div class="leave-hero-left">
+
+            <div class="leave-hero-icon">
+                <i class="fa-solid fa-calendar-minus"></i>
+            </div>
+
+            <div>
+
+                <div class="leave-hero-title">
+                    My Leave
+                </div>
+
+                <div class="leave-hero-text">
+                    Apply for leave, monitor approval status and
+                    review your complete leave history.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="leave-hero-right">
+
+            <button
+                type="button"
+                class="apply-leave-btn"
+                onclick="openLeaveModal()"
+            >
+                <i class="fa-solid fa-plus"></i>
+                Apply Leave
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PAGE HEADING
+    ====================================================== -->
+
+    <div class="leave-heading-row">
+
+        <div class="leave-heading-left">
+
+            <h1>
+                Leave Management
+            </h1>
+
+            <p>
+                View your requests, leave status and approved
+                leave days from one place.
+            </p>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         WORK NAVIGATION
+    ====================================================== -->
+
+    <nav class="work-tabs">
+
+        <a
+            href="{% url 'accountant_my_attendance' %}"
+            class="work-tab"
+        >
+            <i class="fa-solid fa-calendar-check"></i>
+            Attendance
+        </a>
+
+
+        <a
+            href="{% url 'accountant_my_shift' %}"
+            class="work-tab"
+        >
+            <i class="fa-solid fa-clock"></i>
+            My Shift
+        </a>
+
+
+        <a
+            href="{% url 'accountant_my_leave' %}"
+            class="work-tab active"
+        >
+            <i class="fa-solid fa-calendar-minus"></i>
+            Leave
+        </a>
+
+    </nav>
+
+
+
+    <!-- =====================================================
+         LEAVE KPI CARDS
+    ====================================================== -->
+
+    <section class="leave-stat-grid">
+
+
+        <!-- TOTAL REQUESTS -->
+
+        <article class="leave-stat-card">
+
+            <div class="leave-stat-top">
+
+                <div class="leave-stat-icon purple">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+
+                <div class="leave-stat-chip purple">
+                    <i class="fa-solid fa-list-check"></i>
+                    Requests
+                </div>
+
+            </div>
+
+
+            <div class="leave-stat-value">
+                {{ total_leave_count|default:0 }}
+            </div>
+
+            <div class="leave-stat-label">
+                Total Requests
+            </div>
+
+            <div class="leave-stat-description">
+                All leave applications submitted
+            </div>
+
+
+            <div class="leave-mini-bars purple">
+
+                <span style="height:25%;"></span>
+                <span style="height:42%;"></span>
+                <span style="height:35%;"></span>
+                <span style="height:58%;"></span>
+                <span style="height:49%;"></span>
+                <span style="height:72%;"></span>
+                <span style="height:88%;"></span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- PENDING -->
+
+        <article class="leave-stat-card">
+
+            <div class="leave-stat-top">
+
+                <div class="leave-stat-icon amber">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+
+                <div class="leave-stat-chip amber">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    Pending
+                </div>
+
+            </div>
+
+
+            <div class="leave-stat-value">
+                {{ pending_leave_count|default:0 }}
+            </div>
+
+            <div class="leave-stat-label">
+                Pending Requests
+            </div>
+
+            <div class="leave-stat-description">
+                Waiting for approval
+            </div>
+
+
+            <div class="leave-mini-bars amber">
+
+                <span style="height:32%;"></span>
+                <span style="height:48%;"></span>
+                <span style="height:40%;"></span>
+                <span style="height:63%;"></span>
+                <span style="height:52%;"></span>
+                <span style="height:67%;"></span>
+                <span style="height:81%;"></span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- APPROVED -->
+
+        <article class="leave-stat-card">
+
+            <div class="leave-stat-top">
+
+                <div class="leave-stat-icon green">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div class="leave-stat-chip green">
+                    <i class="fa-solid fa-check"></i>
+                    Approved
+                </div>
+
+            </div>
+
+
+            <div class="leave-stat-value">
+                {{ approved_leave_count|default:0 }}
+            </div>
+
+            <div class="leave-stat-label">
+                Approved Requests
+            </div>
+
+            <div class="leave-stat-description">
+                Leave requests successfully approved
+            </div>
+
+
+            <div class="leave-mini-bars green">
+
+                <span style="height:24%;"></span>
+                <span style="height:37%;"></span>
+                <span style="height:46%;"></span>
+                <span style="height:55%;"></span>
+                <span style="height:65%;"></span>
+                <span style="height:75%;"></span>
+                <span style="height:90%;"></span>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- APPROVED DAYS -->
+
+        <article class="leave-stat-card">
+
+            <div class="leave-stat-top">
+
+                <div class="leave-stat-icon cyan">
+                    <i class="fa-solid fa-umbrella-beach"></i>
+                </div>
+
+                <div class="leave-stat-chip cyan">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    Days
+                </div>
+
+            </div>
+
+
+            <div class="leave-stat-value">
+                {{ approved_days|default:0 }}
+            </div>
+
+            <div class="leave-stat-label">
+                Approved Leave Days
+            </div>
+
+            <div class="leave-stat-description">
+                Total approved leave duration
+            </div>
+
+
+            <div class="leave-mini-bars cyan">
+
+                <span style="height:28%;"></span>
+                <span style="height:43%;"></span>
+                <span style="height:36%;"></span>
+                <span style="height:56%;"></span>
+                <span style="height:68%;"></span>
+                <span style="height:62%;"></span>
+                <span style="height:87%;"></span>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         LEAVE HISTORY
+    ====================================================== -->
+
+    <section class="leave-card">
+
+
+        <div class="leave-card-header">
+
+            <div>
+
+                <h2 class="leave-card-title">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Leave History
+                </h2>
+
+                <p class="leave-card-subtitle">
+                    Track all your submitted leave requests
+                    and their current approval status.
+                </p>
+
+            </div>
+
+
+            <form method="get">
+
+                <div class="leave-filter-wrap">
+
+                    <i class="fa-solid fa-filter"></i>
+
+                    <select
+                        name="status"
+                        class="leave-filter"
+                        onchange="this.form.submit()"
+                    >
+
+                        <option value="">
+                            All Status
+                        </option>
+
+                        <option
+                            value="Pending"
+                            {% if selected_status == "Pending" %}selected{% endif %}
+                        >
+                            Pending
+                        </option>
+
+                        <option
+                            value="Approved"
+                            {% if selected_status == "Approved" %}selected{% endif %}
+                        >
+                            Approved
+                        </option>
+
+                        <option
+                            value="Rejected"
+                            {% if selected_status == "Rejected" %}selected{% endif %}
+                        >
+                            Rejected
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+
+        {% if leaves %}
+
+        <div class="leave-table-wrap">
+
+            <table class="leave-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Applied</th>
+
+                        <th>Leave Type</th>
+
+                        <th>From</th>
+
+                        <th>To</th>
+
+                        <th>Duration</th>
+
+                        <th>Reason</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for leave in leaves %}
+
+                    <tr>
+
+
+                        <!-- APPLIED -->
+
+                        <td>
+                            {{ leave.applied_at|date:"d M Y" }}
+                        </td>
+
+
+                        <!-- TYPE -->
+
+                        <td>
+
+                            <div class="leave-type-cell">
+
+                                <div class="leave-type-icon">
+                                    <i class="fa-solid fa-calendar-minus"></i>
+                                </div>
+
+                                <strong>
+                                    {{ leave.leave_type }}
+                                </strong>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- FROM -->
+
+                        <td>
+                            {{ leave.from_date|date:"d M Y" }}
+                        </td>
+
+
+                        <!-- TO -->
+
+                        <td>
+                            {{ leave.to_date|date:"d M Y" }}
+                        </td>
+
+
+                        <!-- DURATION -->
+
+                        <td>
+
+                            <span class="leave-duration-main">
+
+                                {{ leave.duration_days }}
+
+                                {% if leave.duration_days == 1 %}
+                                    Day
+                                {% else %}
+                                    Days
+                                {% endif %}
+
+                            </span>
+
+
+                            {% if leave.duration_type != "Full Day" %}
+
+                                <span class="leave-duration-sub">
+                                    {{ leave.duration_type }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- REASON -->
+
+                        <td>
+
+                            <div class="leave-reason">
+                                {{ leave.display_reason|default:"—" }}
+                            </div>
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% if leave.status == "Approved" %}
+
+                                <span class="leave-status approved">
+                                    Approved
+                                </span>
+
+                            {% elif leave.status == "Rejected" %}
+
+                                <span class="leave-status rejected">
+                                    Rejected
+                                </span>
+
+                            {% else %}
+
+                                <span class="leave-status pending">
+                                    Pending
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+
+        <div class="leave-empty">
+
+            <div class="leave-empty-icon">
+                <i class="fa-regular fa-calendar-xmark"></i>
+            </div>
+
+            <h3>
+                No leave requests
+            </h3>
+
+            <p>
+                You have not submitted any leave requests yet.
+            </p>
+
+        </div>
+
+
+        {% endif %}
+
+
+    </section>
+
+
+</div>
+
+
+
+<!-- ============================================================
+     APPLY LEAVE MODAL
+============================================================ -->
+
+<div
+    class="leave-modal"
+    id="leaveModal"
+>
+
+    <div class="leave-modal-card">
+
+
+        <!-- HEADER -->
+
+        <div class="leave-modal-header">
+
+            <div class="leave-modal-heading">
+
+                <div class="leave-modal-heading-icon">
+                    <i class="fa-solid fa-calendar-plus"></i>
+                </div>
+
+                <div>
+
+                    <h3>
+                        Apply for Leave
+                    </h3>
+
+                    <p>
+                        Submit a new leave request for approval.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeLeaveModal()"
+                aria-label="Close"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+
+        <!-- BODY -->
+
+        <div class="leave-modal-body">
+
+
+            <div
+                id="leaveMessage"
+                class="modal-message"
+            ></div>
+
+
+            <form id="leaveForm">
+
+                {% csrf_token %}
+
+
+                <!-- TYPE + DURATION -->
+
+                <div class="leave-form-grid">
+
+
+                    <div class="leave-field">
+
+                        <label for="leaveType">
+
+                            Leave Type
+
+                            <span class="leave-required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <select
+                            name="leave_type"
+                            id="leaveType"
+                            required
+                        >
+
+                            <option value="">
+                                Select leave type
+                            </option>
+
+                            <option value="Casual Leave">
+                                Casual Leave
+                            </option>
+
+                            <option value="Sick Leave">
+                                Sick Leave
+                            </option>
+
+                            <option value="Annual Leave">
+                                Annual Leave
+                            </option>
+
+                            <option value="Emergency Leave">
+                                Emergency Leave
+                            </option>
+
+                            <option value="Unpaid Leave">
+                                Unpaid Leave
+                            </option>
+
+                            <option value="Other">
+                                Other
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <div class="leave-field">
+
+                        <label for="durationType">
+
+                            Duration
+
+                            <span class="leave-required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <select
+                            name="duration_type"
+                            id="durationType"
+                            required
+                        >
+
+                            <option value="Full Day">
+                                Full Day
+                            </option>
+
+                            <option value="First Half">
+                                First Half
+                            </option>
+
+                            <option value="Second Half">
+                                Second Half
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- DATES -->
+
+                <div class="leave-dates">
+
+
+                    <div class="leave-field">
+
+                        <label for="leaveFromDate">
+
+                            From Date
+
+                            <span class="leave-required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <input
+                            type="date"
+                            name="from_date"
+                            id="leaveFromDate"
+                            min="{{ today|date:'Y-m-d' }}"
+                            required
+                        >
+
+                    </div>
+
+
+
+                    <div class="leave-field">
+
+                        <label for="leaveToDate">
+
+                            To Date
+
+                            <span class="leave-required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <input
+                            type="date"
+                            name="to_date"
+                            id="leaveToDate"
+                            min="{{ today|date:'Y-m-d' }}"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- DURATION PREVIEW -->
+
+                <div class="leave-duration-preview">
+
+                    <div class="leave-duration-preview-icon">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Leave Duration
+                        </small>
+
+                        <strong id="leaveDurationDisplay">
+                            Select dates to calculate duration
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- REASON -->
+
+                <div class="leave-field">
+
+                    <label for="leaveReason">
+
+                        Reason
+
+                        <span class="leave-required">
+                            *
+                        </span>
+
+                    </label>
+
+
+                    <textarea
+                        name="reason"
+                        id="leaveReason"
+                        placeholder="Enter the reason for your leave..."
+                        required
+                    ></textarea>
+
+
+                    <small class="leave-help">
+                        Briefly explain why you are requesting leave.
+                    </small>
+
+                </div>
+
+
+
+                <!-- SUBMIT -->
+
+                <button
+                    type="submit"
+                    class="submit-leave"
+                    id="leaveSubmitButton"
+                >
+
+                    <i class="fa-solid fa-paper-plane"></i>
+
+                    <span>
+                        Submit Leave Request
+                    </span>
+
+                </button>
+
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* ========================================================
+           ELEMENTS
+        ======================================================== */
+
+        const leaveModal =
+            document.getElementById("leaveModal");
+
+        const leaveForm =
+            document.getElementById("leaveForm");
+
+        const leaveType =
+            document.getElementById("leaveType");
+
+        const durationType =
+            document.getElementById("durationType");
+
+        const fromDate =
+            document.getElementById("leaveFromDate");
+
+        const toDate =
+            document.getElementById("leaveToDate");
+
+        const durationDisplay =
+            document.getElementById(
+                "leaveDurationDisplay"
+            );
+
+        const leaveReason =
+            document.getElementById(
+                "leaveReason"
+            );
+
+        const leaveMessage =
+            document.getElementById(
+                "leaveMessage"
+            );
+
+        const submitButton =
+            document.getElementById(
+                "leaveSubmitButton"
+            );
+
+
+        if (
+            !leaveModal ||
+            !leaveForm ||
+            !leaveType ||
+            !durationType ||
+            !fromDate ||
+            !toDate ||
+            !durationDisplay ||
+            !leaveReason ||
+            !leaveMessage ||
+            !submitButton
+        ) {
+            return;
+        }
+
+
+
+        /* ========================================================
+           OPEN MODAL
+        ======================================================== */
+
+        window.openLeaveModal =
+            function () {
+
+                leaveMessage.className =
+                    "modal-message";
+
+                leaveMessage.textContent = "";
+
+                leaveModal.classList.add(
+                    "show"
+                );
+
+                document.body.style.overflow =
+                    "hidden";
+
+            };
+
+
+
+        /* ========================================================
+           CLOSE MODAL
+        ======================================================== */
+
+        window.closeLeaveModal =
+            function () {
+
+                leaveModal.classList.remove(
+                    "show"
+                );
+
+                document.body.style.overflow =
+                    "";
+
+            };
+
+
+
+        /* ========================================================
+           BACKDROP CLICK
+        ======================================================== */
+
+        leaveModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (event.target === leaveModal) {
+
+                    window.closeLeaveModal();
+
+                }
+
+            }
+        );
+
+
+
+        /* ========================================================
+           ESC CLOSE
+        ======================================================== */
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Escape" &&
+                    leaveModal.classList.contains(
+                        "show"
+                    )
+                ) {
+
+                    window.closeLeaveModal();
+
+                }
+
+            }
+        );
+
+
+
+        /* ========================================================
+           DATE HELPERS
+        ======================================================== */
+
+        function isHalfDay() {
+
+            return (
+                durationType.value ===
+                    "First Half"
+                ||
+                durationType.value ===
+                    "Second Half"
+            );
+
+        }
+
+
+
+        /* ========================================================
+           FROM DATE CHANGE
+        ======================================================== */
+
+        fromDate.addEventListener(
+            "change",
+            function () {
+
+                if (!this.value) {
+
+                    updateLeaveDuration();
+
+                    return;
+
+                }
+
+
+                toDate.min =
+                    this.value;
+
+
+                if (isHalfDay()) {
+
+                    toDate.value =
+                        this.value;
+
+                }
+
+                else if (
+                    !toDate.value ||
+                    toDate.value < this.value
+                ) {
+
+                    toDate.value =
+                        this.value;
+
+                }
+
+
+                updateLeaveDuration();
+
+            }
+        );
+
+
+
+        /* ========================================================
+           TO DATE CHANGE
+        ======================================================== */
+
+        toDate.addEventListener(
+            "change",
+            function () {
+
+                if (
+                    isHalfDay() &&
+                    fromDate.value
+                ) {
+
+                    toDate.value =
+                        fromDate.value;
+
+                }
+
+
+                updateLeaveDuration();
+
+            }
+        );
+
+
+
+        /* ========================================================
+           DURATION TYPE CHANGE
+        ======================================================== */
+
+        durationType.addEventListener(
+            "change",
+            function () {
+
+                if (
+                    isHalfDay() &&
+                    fromDate.value
+                ) {
+
+                    toDate.value =
+                        fromDate.value;
+
+                    toDate.min =
+                        fromDate.value;
+
+                }
+
+
+                updateLeaveDuration();
+
+            }
+        );
+
+
+
+        /* ========================================================
+           CALCULATE DURATION
+        ======================================================== */
+
+        function updateLeaveDuration() {
+
+            const start =
+                fromDate.value;
+
+            const end =
+                toDate.value;
+
+            const type =
+                durationType.value;
+
+
+            if (!start || !end) {
+
+                durationDisplay.textContent =
+                    "Select dates to calculate duration";
+
+                return;
+
+            }
+
+
+            if (
+                type === "First Half" ||
+                type === "Second Half"
+            ) {
+
+                if (end !== start) {
+
+                    toDate.value =
+                        start;
+
+                }
+
+
+                durationDisplay.textContent =
+                    "0.5 Day • " + type;
+
+                return;
+
+            }
+
+
+            const startDate =
+                new Date(
+                    start + "T00:00:00"
+                );
+
+            const endDate =
+                new Date(
+                    end + "T00:00:00"
+                );
+
+
+            if (endDate < startDate) {
+
+                durationDisplay.textContent =
+                    "Invalid date range";
+
+                return;
+
+            }
+
+
+            const millisecondsPerDay =
+                1000 * 60 * 60 * 24;
+
+
+            const days =
+                Math.floor(
+                    (
+                        endDate.getTime() -
+                        startDate.getTime()
+                    )
+                    /
+                    millisecondsPerDay
+                ) + 1;
+
+
+            durationDisplay.textContent =
+                days === 1
+                    ? "1 Day"
+                    : days + " Days";
+
+        }
+
+
+
+        /* ========================================================
+           ERROR MESSAGE
+        ======================================================== */
+
+        function showLeaveError(message) {
+
+            leaveMessage.className =
+                "modal-message show error";
+
+            leaveMessage.textContent =
+                message;
+
+        }
+
+
+
+        /* ========================================================
+           SUBMIT LEAVE
+        ======================================================== */
+
+        leaveForm.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+
+                /* -----------------------------------------------
+                   VALUES
+                ----------------------------------------------- */
+
+                const selectedLeaveType =
+                    leaveType.value.trim();
+
+                const selectedDurationType =
+                    durationType.value.trim();
+
+                const selectedFromDate =
+                    fromDate.value;
+
+                const selectedToDate =
+                    toDate.value;
+
+                const originalReason =
+                    leaveReason.value.trim();
+
+
+
+                /* -----------------------------------------------
+                   VALIDATION
+                ----------------------------------------------- */
+
+                if (!selectedLeaveType) {
+
+                    showLeaveError(
+                        "Please select a leave type."
+                    );
+
+                    leaveType.focus();
+
+                    return;
+
+                }
+
+
+                if (!selectedDurationType) {
+
+                    showLeaveError(
+                        "Please select a duration."
+                    );
+
+                    durationType.focus();
+
+                    return;
+
+                }
+
+
+                if (
+                    !selectedFromDate ||
+                    !selectedToDate
+                ) {
+
+                    showLeaveError(
+                        "Please select the leave dates."
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    new Date(selectedToDate)
+                    <
+                    new Date(selectedFromDate)
+                ) {
+
+                    showLeaveError(
+                        "To date cannot be before from date."
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    (
+                        selectedDurationType ===
+                            "First Half"
+                        ||
+                        selectedDurationType ===
+                            "Second Half"
+                    )
+                    &&
+                    selectedFromDate !==
+                        selectedToDate
+                ) {
+
+                    showLeaveError(
+                        "Half-day leave can only be requested for one date."
+                    );
+
+                    return;
+
+                }
+
+
+                if (!originalReason) {
+
+                    showLeaveError(
+                        "Please enter a reason for your leave."
+                    );
+
+                    leaveReason.focus();
+
+                    return;
+
+                }
+
+
+
+                /* -----------------------------------------------
+                   CSRF
+                ----------------------------------------------- */
+
+                const csrfInput =
+                    leaveForm.querySelector(
+                        "[name=csrfmiddlewaretoken]"
+                    );
+
+
+                if (!csrfInput) {
+
+                    showLeaveError(
+                        "Security token is missing. Please refresh the page."
+                    );
+
+                    return;
+
+                }
+
+
+                const csrfToken =
+                    csrfInput.value;
+
+
+
+                /* -----------------------------------------------
+                   FORM DATA
+                ----------------------------------------------- */
+
+                const formData =
+                    new FormData();
+
+
+                formData.append(
+                    "leave_type",
+                    selectedLeaveType
+                );
+
+
+                formData.append(
+                    "duration_type",
+                    selectedDurationType
+                );
+
+
+                formData.append(
+                    "from_date",
+                    selectedFromDate
+                );
+
+
+                formData.append(
+                    "to_date",
+                    selectedToDate
+                );
+
+
+                formData.append(
+                    "reason",
+                    originalReason
+                );
+
+
+                formData.append(
+                    "csrfmiddlewaretoken",
+                    csrfToken
+                );
+
+
+
+                /* -----------------------------------------------
+                   RESET MESSAGE
+                ----------------------------------------------- */
+
+                leaveMessage.className =
+                    "modal-message";
+
+                leaveMessage.textContent =
+                    "";
+
+
+
+                /* -----------------------------------------------
+                   LOADING
+                ----------------------------------------------- */
+
+                submitButton.disabled =
+                    true;
+
+
+                submitButton.innerHTML =
+                    `
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                    <span>Submitting...</span>
+                    `;
+
+
+
+                /* -----------------------------------------------
+                   REQUEST
+                ----------------------------------------------- */
+
+                try {
+
+                    const response =
+                        await fetch(
+                            "{% url 'apply_leave' %}",
+                            {
+                                method: "POST",
+
+                                credentials:
+                                    "same-origin",
+
+                                body:
+                                    formData,
+
+                                headers: {
+
+                                    "X-Requested-With":
+                                        "XMLHttpRequest",
+
+                                    "X-CSRFToken":
+                                        csrfToken
+
+                                }
+
+                            }
+                        );
+
+
+                    const contentType =
+                        response.headers.get(
+                            "content-type"
+                        );
+
+
+                    if (
+                        !contentType ||
+                        !contentType.includes(
+                            "application/json"
+                        )
+                    ) {
+
+                        throw new Error(
+                            "Server returned an invalid response."
+                        );
+
+                    }
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
+
+                        throw new Error(
+                            data.message ||
+                            data.error ||
+                            "Unable to submit leave request."
+                        );
+
+                    }
+
+
+
+                    /* -------------------------------------------
+                       SUCCESS
+                    ------------------------------------------- */
+
+                    leaveMessage.className =
+                        "modal-message show success";
+
+
+                    leaveMessage.textContent =
+                        data.message ||
+                        "Leave request submitted successfully.";
+
+
+                    leaveForm.reset();
+
+
+                    durationDisplay.textContent =
+                        "Select dates to calculate duration";
+
+
+                    setTimeout(
+                        function () {
+
+                            window.location.reload();
+
+                        },
+                        900
+                    );
+
+                }
+
+
+                catch (error) {
+
+                    showLeaveError(
+                        error.message ||
+                        "Unable to submit leave request."
+                    );
+
+                }
+
+
+                finally {
+
+                    submitButton.disabled =
+                        false;
+
+
+                    submitButton.innerHTML =
+                        `
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Submit Leave Request</span>
+                        `;
+
+                }
+
+            }
+        );
+
+
+    }
+);
+
+</script>
+
+{% endblock %}

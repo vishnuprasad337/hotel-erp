@@ -1,0 +1,4354 @@
+{% extends "housekeeping/base.html" %}
+{% load static %}
+
+{% block title %}Linen Management{% endblock %}
+
+{% block extra_css %}
+<link
+    rel="stylesheet"
+    href="{% static 'housekeeping/assets/css/linen.css' %}"
+>
+{% endblock %}
+
+{% block content %}
+
+<div class="hk-page hk-linen-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="hk-page-header">
+
+        <div>
+            <div class="hk-eyebrow">HOUSEKEEPING</div>
+
+            <h1>Linen Management</h1>
+
+            <p>
+                Dispatch, track and confirm the return of hotel linen.
+            </p>
+        </div>
+
+        <div class="hk-page-actions">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="linenRefresh()"
+            >
+                <i class="fa-solid fa-rotate-right"></i>
+                Refresh
+            </button>
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                onclick="openDispatchModal()"
+            >
+                <i class="fa-solid fa-paper-plane"></i>
+                Dispatch Batch
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         KPI CARDS
+    ====================================================== -->
+
+    <div class="hk-linen-stats">
+
+        <div class="hk-linen-stat-card">
+
+            <div class="hk-linen-stat-icon blue">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-linen-stat-value"
+                    id="linenKpiTotal"
+                >
+                    —
+                </div>
+
+                <div class="hk-linen-stat-label">
+                    Total Batches
+                </div>
+
+                <div class="hk-linen-stat-help">
+                    All linen dispatches
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-linen-stat-card">
+
+            <div class="hk-linen-stat-icon warning">
+                <i class="fa-solid fa-paper-plane"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-linen-stat-value"
+                    id="linenKpiDispatched"
+                >
+                    —
+                </div>
+
+                <div class="hk-linen-stat-label">
+                    Dispatched
+                </div>
+
+                <div class="hk-linen-stat-help">
+                    Waiting for return
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-linen-stat-card">
+
+            <div class="hk-linen-stat-icon orange">
+                <i class="fa-solid fa-circle-half-stroke"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-linen-stat-value"
+                    id="linenKpiPartial"
+                >
+                    —
+                </div>
+
+                <div class="hk-linen-stat-label">
+                    Partial
+                </div>
+
+                <div class="hk-linen-stat-help">
+                    Partially returned
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="hk-linen-stat-card">
+
+            <div class="hk-linen-stat-icon success">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+
+            <div>
+                <div
+                    class="hk-linen-stat-value"
+                    id="linenKpiReceived"
+                >
+                    —
+                </div>
+
+                <div class="hk-linen-stat-label">
+                    Received
+                </div>
+
+                <div class="hk-linen-stat-help">
+                    Fully returned
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         BATCHES CARD
+    ====================================================== -->
+
+    <section class="hk-linen-card">
+
+        <!-- CARD HEADER -->
+
+        <div class="hk-linen-card-header">
+
+            <div>
+                <h2>All Linen Batches</h2>
+
+                <p>
+                    Track linen sent to external or in-house laundry.
+                </p>
+            </div>
+
+
+            <div
+                class="hk-linen-status-tabs"
+                id="linenStatusTabs"
+            >
+
+                <button
+                    type="button"
+                    class="hk-linen-tab active"
+                    onclick="linenSetStatus('all', this)"
+                >
+                    All
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-linen-tab"
+                    onclick="linenSetStatus('dispatched', this)"
+                >
+                    Dispatched
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-linen-tab"
+                    onclick="linenSetStatus('partial', this)"
+                >
+                    Partial
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-linen-tab"
+                    onclick="linenSetStatus('received', this)"
+                >
+                    Received
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             FILTERS
+        ================================================== -->
+
+        <div class="hk-linen-toolbar">
+
+            <div class="hk-linen-search">
+
+                <i class="fa-solid fa-magnifying-glass"></i>
+
+                <input
+                    type="search"
+                    id="linenSearch"
+                    placeholder="Search batch, laundry or contact..."
+                    oninput="linenApplyFilters()"
+                >
+
+            </div>
+
+
+            <div class="hk-linen-date-field">
+
+                <span>From</span>
+
+                <input
+                    type="date"
+                    id="linenDateFrom"
+                    onchange="linenApplyFilters()"
+                >
+
+            </div>
+
+
+            <div class="hk-linen-date-field">
+
+                <span>To</span>
+
+                <input
+                    type="date"
+                    id="linenDateTo"
+                    onchange="linenApplyFilters()"
+                >
+
+            </div>
+
+
+            <select
+                id="linenSortSelect"
+                class="hk-linen-select"
+                onchange="linenApplyFilters()"
+            >
+                <option value="newest">
+                    Newest first
+                </option>
+
+                <option value="oldest">
+                    Oldest first
+                </option>
+
+                <option value="pieces_asc">
+                    Fewest pieces
+                </option>
+
+                <option value="pieces_desc">
+                    Most pieces
+                </option>
+            </select>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary hk-btn-sm"
+                onclick="linenClearFilters()"
+            >
+                <i class="fa-solid fa-xmark"></i>
+                Clear
+            </button>
+
+
+            <span
+                class="hk-linen-filter-count"
+                id="linenFilterCount"
+            >
+                0 batches
+            </span>
+
+        </div>
+
+
+        <!-- =================================================
+             VIEW SWITCHER
+        ================================================== -->
+
+        <div class="hk-linen-viewbar">
+
+            <div class="hk-linen-viewbar-left">
+
+                <span>View</span>
+
+                <button
+                    type="button"
+                    id="linenViewGrid"
+                    class="hk-linen-view-btn active"
+                    onclick="linenSetView('grid')"
+                >
+                    <i class="fa-solid fa-grip"></i>
+                    Cards
+                </button>
+
+                <button
+                    type="button"
+                    id="linenViewTable"
+                    class="hk-linen-view-btn"
+                    onclick="linenSetView('table')"
+                >
+                    <i class="fa-solid fa-table"></i>
+                    Table
+                </button>
+
+            </div>
+
+            <span class="hk-linen-sort-info">
+                <i class="fa-solid fa-arrow-down-wide-short"></i>
+                Sorted by selected order
+            </span>
+
+        </div>
+
+
+        <!-- =================================================
+             GRID VIEW
+        ================================================== -->
+
+        <div class="hk-linen-content">
+
+            <div
+                id="linenGridView"
+                class="hk-linen-grid"
+            >
+
+                <div class="hk-linen-loading">
+
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+
+                    <span>
+                        Loading linen batches...
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- =============================================
+                 TABLE VIEW
+            ============================================== -->
+
+            <div
+                id="linenTableView"
+                class="hk-linen-table-wrap"
+                style="display:none;"
+            >
+
+                <table class="hk-linen-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Batch</th>
+                            <th>Laundry</th>
+                            <th>Contact</th>
+                            <th>Dispatched By</th>
+                            <th>Pieces</th>
+                            <th>Cost</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="linenTableBody">
+
+                        <tr>
+                            <td
+                                colspan="9"
+                                class="hk-linen-table-empty"
+                            >
+                                Loading...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PAGINATION
+        ================================================== -->
+
+        <div
+            class="hk-linen-pagination"
+            id="linenPaginationBar"
+            style="display:none;"
+        >
+
+            <div
+                class="hk-linen-page-info"
+                id="linenPageInfo"
+            ></div>
+
+
+            <div
+                class="hk-linen-page-buttons"
+                id="linenPageBtns"
+            ></div>
+
+
+            <div class="hk-linen-per-page">
+
+                <span>Per page</span>
+
+                <select
+                    id="linenPerPage"
+                    onchange="linenChangePerPage()"
+                >
+                    <option value="9" selected>9</option>
+                    <option value="18">18</option>
+                    <option value="36">36</option>
+                    <option value="9999">All</option>
+                </select>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =========================================================
+     DISPATCH LINEN MODAL
+========================================================== -->
+
+<div
+    id="linenDispatchModal"
+    class="hk-modal-backdrop"
+>
+
+    <div class="hk-modal hk-modal-lg">
+
+        <div class="hk-modal-header">
+
+            <div>
+
+                <div class="hk-modal-icon">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </div>
+
+                <div>
+                    <h3>Dispatch Linen Batch</h3>
+
+                    <p>
+                        Record linen being sent to laundry.
+                    </p>
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                onclick="closeDispatchModal()"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="hk-modal-body">
+
+            <!-- VENDOR -->
+
+            <div class="hk-form-section-title">
+                Laundry Details
+            </div>
+
+
+            <div class="hk-form-grid">
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Vendor / Laundry Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dispatchSentTo"
+                        placeholder="e.g. Sunshine Laundry"
+                    >
+
+                </div>
+
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Contact Person
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dispatchLaundryContact"
+                        placeholder="Contact person"
+                    >
+
+                </div>
+
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Contact Phone
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="dispatchLaundryPhone"
+                        placeholder="+91 98765 43210"
+                    >
+
+                </div>
+
+
+                <div class="hk-form-group">
+
+                    <label>
+                        Expected Return Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dispatchExpectedReturn"
+                    >
+
+                </div>
+
+
+                <div class="hk-form-group hk-form-full">
+
+                    <label>
+                        Note
+                    </label>
+
+                    <textarea
+                        id="dispatchNote"
+                        rows="3"
+                        placeholder="Special instructions or additional information..."
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+
+            <!-- ITEMS -->
+
+            <div class="hk-linen-items-heading">
+
+                <div>
+
+                    <div class="hk-form-section-title">
+                        Linen Items
+                    </div>
+
+                    <p>
+                        Add every item included in this batch.
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="hk-btn hk-btn-secondary hk-btn-sm"
+                    onclick="addDispatchItem()"
+                >
+                    <i class="fa-solid fa-plus"></i>
+                    Add Item
+                </button>
+
+            </div>
+
+
+            <div class="hk-dispatch-columns">
+
+                <span>Item / Label</span>
+                <span>Quantity</span>
+                <span>Price / pc</span>
+                <span></span>
+
+            </div>
+
+
+            <div id="dispatchItemsList"></div>
+
+
+            <div class="hk-dispatch-summary">
+
+                <div>
+
+                    <span>Total Pieces</span>
+
+                    <strong id="dispatchTotalPieces">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>Total Value</span>
+
+                    <strong id="dispatchTotalValue">
+                        ₹0.00
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="hk-modal-footer">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="closeDispatchModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                id="dispatchSubmitBtn"
+                onclick="submitDispatch()"
+            >
+                <i class="fa-solid fa-paper-plane"></i>
+                Dispatch Batch
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     BATCH DETAIL MODAL
+========================================================== -->
+
+<div
+    id="linenDetailModal"
+    class="hk-modal-backdrop"
+>
+
+    <div class="hk-modal hk-modal-lg">
+
+        <div class="hk-modal-header">
+
+            <div>
+
+                <div class="hk-modal-icon">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+
+                <div>
+
+                    <h3 id="linenDetailTitle">
+                        Batch Details
+                    </h3>
+
+                    <p>
+                        Review items and confirm returned quantities.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                onclick="closeDetailModal()"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div
+            class="hk-modal-body"
+            id="linenDetailBody"
+        >
+
+            <div class="hk-linen-loading">
+
+                <i class="fa-solid fa-spinner fa-spin"></i>
+
+                Loading batch...
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="hk-modal-footer"
+            id="linenDetailFooter"
+        >
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="closeDetailModal()"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MISSING REASON MODAL
+========================================================== -->
+
+<div
+    id="reasonModal"
+    class="hk-modal-backdrop"
+>
+
+    <div class="hk-modal hk-modal-sm">
+
+        <div class="hk-modal-header">
+
+            <div>
+                <h3 id="reasonModalTitle">
+                    Add Missing Reason
+                </h3>
+
+                <p>
+                    Configure a linen missing-item reason.
+                </p>
+            </div>
+
+
+            <button
+                type="button"
+                class="hk-modal-close"
+                onclick="closeReasonModal()"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="hk-modal-body">
+
+            <div class="hk-form-group">
+
+                <label>
+                    Reason Label
+                    <span class="hk-required">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    id="reasonLabelInput"
+                    placeholder="e.g. Damaged during laundry"
+                >
+
+            </div>
+
+
+            <div class="hk-form-group">
+
+                <label>
+                    Display Order
+                </label>
+
+                <input
+                    type="number"
+                    id="reasonOrderInput"
+                    value="0"
+                    min="0"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="hk-modal-footer">
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-secondary"
+                onclick="closeReasonModal()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="hk-btn hk-btn-primary"
+                id="reasonSubmitBtn"
+                onclick="submitReason()"
+            >
+                <i class="fa-solid fa-check"></i>
+                Save
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+/* ============================================================
+   LINEN STATE
+============================================================ */
+
+const LB = {
+
+    all: [],
+
+    filtered: [],
+
+    page: 1,
+
+    perPage: 9,
+
+    view: "grid",
+
+    statusFilter: "all",
+
+    activeBatch: null
+};
+
+
+const MR = {
+    list: [],
+    editing: null
+};
+
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+function lbCsrf() {
+
+    const cookie =
+        document.cookie
+            .split(";")
+            .find(
+                item =>
+                    item
+                        .trim()
+                        .startsWith("csrftoken=")
+            );
+
+    return cookie
+        ? decodeURIComponent(
+            cookie.trim().split("=")[1]
+        )
+        : "";
+}
+
+
+function lbFetch(url, options = {}) {
+
+    return fetch(
+        url,
+        {
+            ...options,
+
+            headers: {
+
+                "X-CSRFToken": lbCsrf(),
+
+                ...(
+                    !(options.body instanceof FormData)
+                        ? {
+                            "Content-Type":
+                                "application/json"
+                        }
+                        : {}
+                ),
+
+                ...(options.headers || {})
+            }
+        }
+    );
+}
+
+
+function lbEsc(value) {
+
+    return String(
+        value ?? ""
+    ).replace(
+        /[&<>"']/g,
+        char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[char]
+    );
+}
+
+
+function lbDate(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+    try {
+
+        return new Date(
+            value
+        ).toLocaleDateString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+
+    }
+
+    catch {
+
+        return value;
+
+    }
+}
+
+
+function lbDateTime(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+    try {
+
+        return new Date(
+            value
+        ).toLocaleString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    }
+
+    catch {
+
+        return value;
+
+    }
+}
+
+
+function lbRupee(value) {
+
+    const amount =
+        parseFloat(value) || 0;
+
+    return "₹" +
+        amount.toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+
+function lbPct(batch) {
+
+    const total =
+        Number(batch.total_pieces) || 0;
+
+    const received =
+        Number(batch.received_pieces) || 0;
+
+    if (!total) {
+        return 0;
+    }
+
+    return Math.min(
+        100,
+        Math.round(
+            received / total * 100
+        )
+    );
+}
+
+
+function lbToast(
+    message,
+    type = "success"
+) {
+
+    let stack =
+        document.getElementById(
+            "hkLinenToastStack"
+        );
+
+
+    if (!stack) {
+
+        stack =
+            document.createElement(
+                "div"
+            );
+
+        stack.id =
+            "hkLinenToastStack";
+
+        stack.className =
+            "hk-linen-toast-stack";
+
+        document.body.appendChild(
+            stack
+        );
+    }
+
+
+    const element =
+        document.createElement(
+            "div"
+        );
+
+
+    element.className =
+        "hk-linen-toast " +
+        (
+            type === "error"
+                ? "error"
+                : "success"
+        );
+
+
+    element.innerHTML =
+
+        '<i class="fa-solid ' +
+
+        (
+            type === "error"
+                ? "fa-circle-exclamation"
+                : "fa-circle-check"
+        )
+
+        + '"></i><span></span>';
+
+
+    element
+        .querySelector("span")
+        .textContent = message;
+
+
+    stack.appendChild(
+        element
+    );
+
+
+    requestAnimationFrame(
+        () =>
+            element.classList.add(
+                "show"
+            )
+    );
+
+
+    setTimeout(
+        () => {
+
+            element.classList.remove(
+                "show"
+            );
+
+            setTimeout(
+                () => element.remove(),
+                250
+            );
+
+        },
+        3200
+    );
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+function linenStatusBadge(status) {
+
+    const safeStatus =
+        status || "unknown";
+
+    let icon =
+        "fa-circle";
+
+    if (
+        safeStatus === "received"
+    ) {
+        icon =
+            "fa-circle-check";
+    }
+
+    else if (
+        safeStatus === "partial"
+    ) {
+        icon =
+            "fa-circle-half-stroke";
+    }
+
+    else if (
+        safeStatus === "dispatched"
+    ) {
+        icon =
+            "fa-paper-plane";
+    }
+
+
+    return `
+        <span class="hk-linen-status ${lbEsc(safeStatus)}">
+
+            <i class="fa-solid ${icon}"></i>
+
+            ${lbEsc(
+                safeStatus
+                    .replaceAll("_", " ")
+            )}
+
+        </span>
+    `;
+}
+
+
+/* ============================================================
+   LOAD BATCHES
+============================================================ */
+
+async function loadLinenBatches() {
+
+    const grid =
+        document.getElementById(
+            "linenGridView"
+        );
+
+
+    const tbody =
+        document.getElementById(
+            "linenTableBody"
+        );
+
+
+    grid.innerHTML = `
+        <div class="hk-linen-loading">
+
+            <i class="fa-solid fa-spinner fa-spin"></i>
+
+            <span>Loading linen batches...</span>
+
+        </div>
+    `;
+
+
+    tbody.innerHTML = `
+        <tr>
+            <td
+                colspan="9"
+                class="hk-linen-table-empty"
+            >
+                Loading...
+            </td>
+        </tr>
+    `;
+
+
+    try {
+
+        const response =
+            await lbFetch(
+                "/inventory/linen/batches/"
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to load linen batches."
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        LB.all =
+            Array.isArray(data)
+                ? data
+                : (
+                    data.batches ||
+                    []
+                );
+
+
+        LB.page = 1;
+
+
+        updateLinenKpis();
+
+        linenApplyFilters();
+
+    }
+
+    catch (error) {
+
+        grid.innerHTML = `
+            <div class="hk-linen-empty">
+
+                <i class="fa-solid fa-triangle-exclamation"></i>
+
+                <h3>Could not load linen batches</h3>
+
+                <p>${lbEsc(error.message)}</p>
+
+                <button
+                    class="hk-btn hk-btn-secondary hk-btn-sm"
+                    onclick="linenRefresh()"
+                >
+                    Try Again
+                </button>
+
+            </div>
+        `;
+
+
+        tbody.innerHTML = `
+            <tr>
+
+                <td
+                    colspan="9"
+                    class="hk-linen-table-empty"
+                >
+                    Could not load batches.
+                </td>
+
+            </tr>
+        `;
+
+    }
+
+}
+
+
+function linenRefresh() {
+
+    loadLinenBatches();
+
+}
+
+
+/* ============================================================
+   KPI
+============================================================ */
+
+function updateLinenKpis() {
+
+    const total =
+        LB.all.length;
+
+
+    const dispatched =
+        LB.all.filter(
+            batch =>
+                batch.status ===
+                "dispatched"
+        ).length;
+
+
+    const partial =
+        LB.all.filter(
+            batch =>
+                batch.status ===
+                "partial"
+        ).length;
+
+
+    const received =
+        LB.all.filter(
+            batch =>
+                batch.status ===
+                "received"
+        ).length;
+
+
+    document.getElementById(
+        "linenKpiTotal"
+    ).textContent = total;
+
+
+    document.getElementById(
+        "linenKpiDispatched"
+    ).textContent = dispatched;
+
+
+    document.getElementById(
+        "linenKpiPartial"
+    ).textContent = partial;
+
+
+    document.getElementById(
+        "linenKpiReceived"
+    ).textContent = received;
+
+}
+
+
+/* ============================================================
+   FILTER
+============================================================ */
+
+function linenSetStatus(
+    status,
+    button
+) {
+
+    LB.statusFilter =
+        status;
+
+    LB.page = 1;
+
+
+    document
+        .querySelectorAll(
+            "#linenStatusTabs .hk-linen-tab"
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    "active"
+                )
+        );
+
+
+    button?.classList.add(
+        "active"
+    );
+
+
+    linenApplyFilters();
+
+}
+
+
+function linenApplyFilters() {
+
+    const query =
+        (
+            document
+                .getElementById(
+                    "linenSearch"
+                )
+                ?.value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const dateFrom =
+        document
+            .getElementById(
+                "linenDateFrom"
+            )
+            ?.value || "";
+
+
+    const dateTo =
+        document
+            .getElementById(
+                "linenDateTo"
+            )
+            ?.value || "";
+
+
+    const sort =
+        document
+            .getElementById(
+                "linenSortSelect"
+            )
+            ?.value || "newest";
+
+
+    let list =
+        [...LB.all];
+
+
+    if (
+        LB.statusFilter !==
+        "all"
+    ) {
+
+        list =
+            list.filter(
+                batch =>
+                    batch.status ===
+                    LB.statusFilter
+            );
+
+    }
+
+
+    if (query) {
+
+        list =
+            list.filter(
+                batch => {
+
+                    const text = [
+                        batch.batch_code,
+                        batch.sent_to_laundry,
+                        batch.laundry_contact,
+                        batch.laundry_phone,
+                        batch.dispatched_by
+                    ]
+                    .join(" ")
+                    .toLowerCase();
+
+
+                    return text.includes(
+                        query
+                    );
+
+                }
+            );
+
+    }
+
+
+    if (dateFrom) {
+
+        const start =
+            new Date(
+                dateFrom
+            );
+
+        start.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+
+        list =
+            list.filter(
+                batch =>
+                    batch.dispatched_at &&
+                    new Date(
+                        batch.dispatched_at
+                    ) >= start
+            );
+
+    }
+
+
+    if (dateTo) {
+
+        const end =
+            new Date(
+                dateTo
+            );
+
+        end.setHours(
+            23,
+            59,
+            59,
+            999
+        );
+
+
+        list =
+            list.filter(
+                batch =>
+                    batch.dispatched_at &&
+                    new Date(
+                        batch.dispatched_at
+                    ) <= end
+            );
+
+    }
+
+
+    list.sort(
+        (a, b) => {
+
+            if (
+                sort === "oldest"
+            ) {
+
+                return (
+                    new Date(
+                        a.dispatched_at || 0
+                    ) -
+                    new Date(
+                        b.dispatched_at || 0
+                    )
+                );
+
+            }
+
+
+            if (
+                sort === "pieces_asc"
+            ) {
+
+                return (
+                    Number(
+                        a.total_pieces
+                    ) -
+                    Number(
+                        b.total_pieces
+                    )
+                );
+
+            }
+
+
+            if (
+                sort === "pieces_desc"
+            ) {
+
+                return (
+                    Number(
+                        b.total_pieces
+                    ) -
+                    Number(
+                        a.total_pieces
+                    )
+                );
+
+            }
+
+
+            return (
+                new Date(
+                    b.dispatched_at || 0
+                ) -
+                new Date(
+                    a.dispatched_at || 0
+                )
+            );
+
+        }
+    );
+
+
+    LB.filtered =
+        list;
+
+
+    document.getElementById(
+        "linenFilterCount"
+    ).textContent =
+        `${list.length} batch${
+            list.length === 1
+                ? ""
+                : "es"
+        }`;
+
+
+    linenRender();
+
+}
+
+
+function linenClearFilters() {
+
+    document.getElementById(
+        "linenSearch"
+    ).value = "";
+
+
+    document.getElementById(
+        "linenDateFrom"
+    ).value = "";
+
+
+    document.getElementById(
+        "linenDateTo"
+    ).value = "";
+
+
+    document.getElementById(
+        "linenSortSelect"
+    ).value =
+        "newest";
+
+
+    LB.statusFilter =
+        "all";
+
+    LB.page = 1;
+
+
+    document
+        .querySelectorAll(
+            "#linenStatusTabs .hk-linen-tab"
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .querySelector(
+            "#linenStatusTabs .hk-linen-tab"
+        )
+        ?.classList.add(
+            "active"
+        );
+
+
+    linenApplyFilters();
+
+}
+
+
+/* ============================================================
+   VIEW
+============================================================ */
+
+function linenSetView(view) {
+
+    LB.view =
+        view;
+
+
+    document.getElementById(
+        "linenViewGrid"
+    ).classList.toggle(
+        "active",
+        view === "grid"
+    );
+
+
+    document.getElementById(
+        "linenViewTable"
+    ).classList.toggle(
+        "active",
+        view === "table"
+    );
+
+
+    linenRender();
+
+}
+
+
+/* ============================================================
+   RENDER
+============================================================ */
+
+function linenRender() {
+
+    const total =
+        LB.filtered.length;
+
+
+    const totalPages =
+        Math.max(
+            1,
+            Math.ceil(
+                total /
+                LB.perPage
+            )
+        );
+
+
+    LB.page =
+        Math.min(
+            Math.max(
+                1,
+                LB.page
+            ),
+            totalPages
+        );
+
+
+    const start =
+        (
+            LB.page - 1
+        ) * LB.perPage;
+
+
+    const batches =
+        LB.filtered.slice(
+            start,
+            start +
+            LB.perPage
+        );
+
+
+    const grid =
+        document.getElementById(
+            "linenGridView"
+        );
+
+
+    const table =
+        document.getElementById(
+            "linenTableView"
+        );
+
+
+    if (
+        LB.view === "grid"
+    ) {
+
+        grid.style.display =
+            "grid";
+
+        table.style.display =
+            "none";
+
+        renderLinenGrid(
+            batches
+        );
+
+    }
+
+    else {
+
+        grid.style.display =
+            "none";
+
+        table.style.display =
+            "block";
+
+        renderLinenTable(
+            batches
+        );
+
+    }
+
+
+    renderLinenPagination(
+        total,
+        totalPages,
+        start
+    );
+
+}
+
+
+/* ============================================================
+   GRID
+============================================================ */
+
+function renderLinenGrid(
+    batches
+) {
+
+    const grid =
+        document.getElementById(
+            "linenGridView"
+        );
+
+
+    if (!batches.length) {
+
+        grid.innerHTML = `
+            <div class="hk-linen-empty">
+
+                <div class="hk-linen-empty-icon">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+
+                <h3>No linen batches found</h3>
+
+                <p>
+                    No batches match the current filters.
+                </p>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    grid.innerHTML =
+        batches.map(
+            batch => {
+
+                const percentage =
+                    lbPct(batch);
+
+
+                const totalCost =
+                    parseFloat(
+                        batch.total_cost ||
+                        0
+                    );
+
+
+                const missingCost =
+                    parseFloat(
+                        batch.missing_cost ||
+                        0
+                    );
+
+
+                const payable =
+                    Math.max(
+                        0,
+                        totalCost -
+                        missingCost
+                    );
+
+
+                return `
+
+                <article
+                    class="hk-linen-batch-card"
+                    onclick="openDetailModal(${batch.id})"
+                >
+
+                    <div class="hk-linen-batch-top">
+
+                        <div>
+
+                            <span class="hk-linen-batch-label">
+                                BATCH
+                            </span>
+
+                            <h3>
+                                ${lbEsc(
+                                    batch.batch_code ||
+                                    "—"
+                                )}
+                            </h3>
+
+                        </div>
+
+                        ${linenStatusBadge(
+                            batch.status
+                        )}
+
+                    </div>
+
+
+                    <div class="hk-linen-vendor">
+
+                        <div class="hk-linen-vendor-icon">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+
+                        <div>
+
+                            <span>Sent to</span>
+
+                            <strong>
+                                ${lbEsc(
+                                    batch.sent_to_laundry ||
+                                    "Not specified"
+                                )}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="hk-linen-meta">
+
+                        ${
+                            batch.laundry_contact
+                                ? `
+                                <span>
+                                    <i class="fa-regular fa-user"></i>
+                                    ${lbEsc(batch.laundry_contact)}
+                                </span>
+                                `
+                                : ""
+                        }
+
+                        ${
+                            batch.laundry_phone
+                                ? `
+                                <span>
+                                    <i class="fa-solid fa-phone"></i>
+                                    ${lbEsc(batch.laundry_phone)}
+                                </span>
+                                `
+                                : ""
+                        }
+
+                        <span>
+                            <i class="fa-regular fa-calendar"></i>
+                            ${lbDate(batch.dispatched_at)}
+                        </span>
+
+                    </div>
+
+
+                    <div class="hk-linen-progress-section">
+
+                        <div class="hk-linen-progress-head">
+
+                            <span>Items received</span>
+
+                            <strong>
+                                ${
+                                    batch.received_pieces ||
+                                    0
+                                }
+                                /
+                                ${
+                                    batch.total_pieces ||
+                                    0
+                                }
+                            </strong>
+
+                        </div>
+
+                        <div class="hk-linen-progress">
+
+                            <div
+                                class="
+                                    hk-linen-progress-fill
+                                    ${
+                                        percentage === 100
+                                            ? "complete"
+                                            : percentage > 0
+                                                ? "partial"
+                                                : ""
+                                    }
+                                "
+                                style="width:${percentage}%"
+                            ></div>
+
+                        </div>
+
+                        <span class="hk-linen-progress-percent">
+                            ${percentage}% returned
+                        </span>
+
+                    </div>
+
+
+                    ${
+                        totalCost > 0
+                            ? `
+                            <div class="hk-linen-cost-row">
+
+                                <div>
+                                    <span>Total</span>
+                                    <strong>
+                                        ${lbRupee(totalCost)}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Missing</span>
+                                    <strong class="danger">
+                                        ${lbRupee(missingCost)}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Payable</span>
+                                    <strong class="success">
+                                        ${lbRupee(payable)}
+                                    </strong>
+                                </div>
+
+                            </div>
+                            `
+                            : ""
+                    }
+
+
+                    <div class="hk-linen-batch-footer">
+
+                        <button
+                            type="button"
+                            class="hk-btn hk-btn-secondary hk-btn-sm"
+                            onclick="
+                                event.stopPropagation();
+                                openDetailModal(${batch.id});
+                            "
+                        >
+                            <i class="fa-regular fa-eye"></i>
+                            View
+                        </button>
+
+
+                        ${
+                            batch.status !==
+                            "received"
+                                ? `
+                                <button
+                                    type="button"
+                                    class="hk-btn hk-btn-success hk-btn-sm"
+                                    onclick="
+                                        event.stopPropagation();
+                                        quickConfirm(${batch.id});
+                                    "
+                                >
+                                    <i class="fa-solid fa-check-double"></i>
+                                    Confirm All
+                                </button>
+                                `
+                                : `
+                                <span class="hk-linen-received-text">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Fully received
+                                </span>
+                                `
+                        }
+
+                    </div>
+
+                </article>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+function renderLinenTable(
+    batches
+) {
+
+    const tbody =
+        document.getElementById(
+            "linenTableBody"
+        );
+
+
+    if (!batches.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="9"
+                    class="hk-linen-table-empty"
+                >
+                    No linen batches found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        batches.map(
+            batch => {
+
+                const totalCost =
+                    parseFloat(
+                        batch.total_cost ||
+                        0
+                    );
+
+
+                const missingCost =
+                    parseFloat(
+                        batch.missing_cost ||
+                        0
+                    );
+
+
+                const payable =
+                    Math.max(
+                        0,
+                        totalCost -
+                        missingCost
+                    );
+
+
+                return `
+
+                <tr
+                    onclick="openDetailModal(${batch.id})"
+                >
+
+                    <td>
+                        <strong>
+                            ${lbEsc(batch.batch_code)}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${lbEsc(
+                            batch.sent_to_laundry ||
+                            "—"
+                        )}
+                    </td>
+
+                    <td>
+
+                        <strong class="hk-table-contact">
+                            ${lbEsc(
+                                batch.laundry_contact ||
+                                "—"
+                            )}
+                        </strong>
+
+                        ${
+                            batch.laundry_phone
+                                ? `
+                                <small>
+                                    ${lbEsc(batch.laundry_phone)}
+                                </small>
+                                `
+                                : ""
+                        }
+
+                    </td>
+
+                    <td>
+                        ${lbEsc(
+                            batch.dispatched_by ||
+                            "—"
+                        )}
+                    </td>
+
+                    <td>
+
+                        <strong>
+                            ${
+                                batch.received_pieces ||
+                                0
+                            }
+                            /
+                            ${
+                                batch.total_pieces ||
+                                0
+                            }
+                        </strong>
+
+                    </td>
+
+                    <td>
+
+                        <strong>
+                            ${lbRupee(payable)}
+                        </strong>
+
+                    </td>
+
+                    <td>
+                        ${linenStatusBadge(
+                            batch.status
+                        )}
+                    </td>
+
+                    <td>
+                        ${lbDate(
+                            batch.dispatched_at
+                        )}
+                    </td>
+
+                    <td
+                        onclick="event.stopPropagation()"
+                    >
+
+                        <div class="hk-table-actions">
+
+                            <button
+                                type="button"
+                                class="hk-icon-btn"
+                                title="View"
+                                onclick="openDetailModal(${batch.id})"
+                            >
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+
+                            ${
+                                batch.status !==
+                                "received"
+                                    ? `
+                                    <button
+                                        type="button"
+                                        class="hk-icon-btn success"
+                                        title="Confirm all"
+                                        onclick="quickConfirm(${batch.id})"
+                                    >
+                                        <i class="fa-solid fa-check-double"></i>
+                                    </button>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+                `;
+
+            }
+        ).join("");
+
+}
+
+
+/* ============================================================
+   PAGINATION
+============================================================ */
+
+function renderLinenPagination(
+    total,
+    totalPages,
+    start
+) {
+
+    const bar =
+        document.getElementById(
+            "linenPaginationBar"
+        );
+
+
+    const info =
+        document.getElementById(
+            "linenPageInfo"
+        );
+
+
+    const buttons =
+        document.getElementById(
+            "linenPageBtns"
+        );
+
+
+    const from =
+        total === 0
+            ? 0
+            : start + 1;
+
+
+    const to =
+        Math.min(
+            start +
+            LB.perPage,
+            total
+        );
+
+
+    info.textContent =
+        total
+            ? `Showing ${from}–${to} of ${total}`
+            : "No batches";
+
+
+    bar.style.display =
+        total > LB.perPage
+            ? "flex"
+            : "none";
+
+
+    let html = `
+        <button
+            class="hk-page-btn"
+            onclick="linenGoPage(${LB.page - 1})"
+            ${LB.page === 1 ? "disabled" : ""}
+        >
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+    `;
+
+
+    for (
+        let page = 1;
+        page <= totalPages;
+        page++
+    ) {
+
+        html += `
+            <button
+                class="
+                    hk-page-btn
+                    ${
+                        page === LB.page
+                            ? "active"
+                            : ""
+                    }
+                "
+                onclick="linenGoPage(${page})"
+            >
+                ${page}
+            </button>
+        `;
+
+    }
+
+
+    html += `
+        <button
+            class="hk-page-btn"
+            onclick="linenGoPage(${LB.page + 1})"
+            ${
+                LB.page === totalPages
+                    ? "disabled"
+                    : ""
+            }
+        >
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    `;
+
+
+    buttons.innerHTML =
+        html;
+
+}
+
+
+function linenGoPage(page) {
+
+    const totalPages =
+        Math.max(
+            1,
+            Math.ceil(
+                LB.filtered.length /
+                LB.perPage
+            )
+        );
+
+
+    if (
+        page < 1 ||
+        page > totalPages
+    ) {
+        return;
+    }
+
+
+    LB.page =
+        page;
+
+
+    linenRender();
+
+}
+
+
+function linenChangePerPage() {
+
+    LB.perPage =
+        parseInt(
+            document
+                .getElementById(
+                    "linenPerPage"
+                )
+                .value
+        ) || 9;
+
+
+    LB.page = 1;
+
+    linenRender();
+
+}
+
+
+/* ============================================================
+   QUICK CONFIRM
+============================================================ */
+
+async function quickConfirm(
+    batchId
+) {
+
+    if (
+        !confirm(
+            "Mark all items in this batch as received?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await lbFetch(
+                `/inventory/linen/batches/${batchId}/confirm/`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({})
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data.error ||
+                "Unable to confirm batch."
+            );
+
+        }
+
+
+        const index =
+            LB.all.findIndex(
+                batch =>
+                    batch.id === batchId
+            );
+
+
+        if (
+            index !== -1
+        ) {
+
+            LB.all[index] =
+                data;
+
+        }
+
+
+        updateLinenKpis();
+
+        linenApplyFilters();
+
+
+        lbToast(
+            "Linen batch fully received.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   DISPATCH MODAL
+============================================================ */
+
+function openDispatchModal() {
+
+    [
+        "dispatchSentTo",
+        "dispatchLaundryContact",
+        "dispatchLaundryPhone",
+        "dispatchExpectedReturn",
+        "dispatchNote"
+    ].forEach(
+        id => {
+
+            const element =
+                document.getElementById(
+                    id
+                );
+
+            if (element) {
+                element.value = "";
+            }
+
+        }
+    );
+
+
+    document.getElementById(
+        "dispatchItemsList"
+    ).innerHTML = "";
+
+
+    addDispatchItem();
+
+    addDispatchItem();
+
+    addDispatchItem();
+
+
+    updateDispatchTotal();
+
+
+    document.getElementById(
+        "linenDispatchModal"
+    ).classList.add(
+        "open"
+    );
+
+}
+
+
+function closeDispatchModal() {
+
+    document.getElementById(
+        "linenDispatchModal"
+    ).classList.remove(
+        "open"
+    );
+
+}
+
+
+/* ============================================================
+   DISPATCH ITEMS
+============================================================ */
+
+function addDispatchItem(
+    label = "",
+    quantity = "",
+    price = ""
+) {
+
+    const list =
+        document.getElementById(
+            "dispatchItemsList"
+        );
+
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+
+    row.className =
+        "hk-dispatch-item-row";
+
+
+    row.innerHTML = `
+
+        <input
+            type="text"
+            class="dispatch-label"
+            placeholder="e.g. Bed Sheet"
+            value="${lbEsc(label)}"
+        >
+
+        <input
+            type="number"
+            class="dispatch-qty"
+            placeholder="0"
+            min="1"
+            value="${lbEsc(quantity)}"
+            oninput="updateDispatchTotal()"
+        >
+
+        <input
+            type="number"
+            class="dispatch-price"
+            placeholder="0.00"
+            min="0"
+            step="0.01"
+            value="${lbEsc(price)}"
+            oninput="updateDispatchTotal()"
+        >
+
+        <button
+            type="button"
+            class="hk-dispatch-remove"
+            onclick="
+                this.closest('.hk-dispatch-item-row').remove();
+                updateDispatchTotal();
+            "
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+    `;
+
+
+    list.appendChild(
+        row
+    );
+
+}
+
+
+function updateDispatchTotal() {
+
+    let pieces = 0;
+
+    let amount = 0;
+
+
+    document
+        .querySelectorAll(
+            ".hk-dispatch-item-row"
+        )
+        .forEach(
+            row => {
+
+                const quantity =
+                    parseInt(
+                        row.querySelector(
+                            ".dispatch-qty"
+                        )?.value
+                    ) || 0;
+
+
+                const price =
+                    parseFloat(
+                        row.querySelector(
+                            ".dispatch-price"
+                        )?.value
+                    ) || 0;
+
+
+                pieces +=
+                    quantity;
+
+
+                amount +=
+                    quantity *
+                    price;
+
+            }
+        );
+
+
+    document.getElementById(
+        "dispatchTotalPieces"
+    ).textContent =
+        pieces;
+
+
+    document.getElementById(
+        "dispatchTotalValue"
+    ).textContent =
+        lbRupee(
+            amount
+        );
+
+}
+
+
+/* ============================================================
+   SUBMIT DISPATCH
+============================================================ */
+
+async function submitDispatch() {
+
+    const items = [];
+
+
+    document
+        .querySelectorAll(
+            ".hk-dispatch-item-row"
+        )
+        .forEach(
+            row => {
+
+                const label =
+                    row.querySelector(
+                        ".dispatch-label"
+                    )
+                    ?.value
+                    .trim();
+
+
+                const quantity =
+                    parseInt(
+                        row.querySelector(
+                            ".dispatch-qty"
+                        )?.value
+                    ) || 0;
+
+
+                const price =
+                    parseFloat(
+                        row.querySelector(
+                            ".dispatch-price"
+                        )?.value
+                    ) || 0;
+
+
+                if (
+                    label &&
+                    quantity > 0
+                ) {
+
+                    items.push({
+                        label: label,
+                        quantity: quantity,
+                        item_price: price
+                    });
+
+                }
+
+            }
+        );
+
+
+    if (!items.length) {
+
+        lbToast(
+            "Add at least one linen item.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const payload = {
+
+        items: items,
+
+        sent_to_laundry:
+            document
+                .getElementById(
+                    "dispatchSentTo"
+                )
+                .value
+                .trim(),
+
+        laundry_contact:
+            document
+                .getElementById(
+                    "dispatchLaundryContact"
+                )
+                .value
+                .trim(),
+
+        laundry_phone:
+            document
+                .getElementById(
+                    "dispatchLaundryPhone"
+                )
+                .value
+                .trim(),
+
+        expected_return_date:
+            document
+                .getElementById(
+                    "dispatchExpectedReturn"
+                )
+                .value || null,
+
+        note:
+            document
+                .getElementById(
+                    "dispatchNote"
+                )
+                .value
+                .trim()
+    };
+
+
+    const button =
+        document.getElementById(
+            "dispatchSubmitBtn"
+        );
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        Dispatching...
+    `;
+
+
+    try {
+
+        const response =
+            await lbFetch(
+                "/inventory/linen/dispatch/",
+                {
+                    method: "POST",
+                    body: JSON.stringify(
+                        payload
+                    )
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                data.error ||
+                "Unable to dispatch batch."
+            );
+
+        }
+
+
+        closeDispatchModal();
+
+
+        LB.all.unshift(
+            data
+        );
+
+
+        updateLinenKpis();
+
+        linenApplyFilters();
+
+
+        lbToast(
+            `Batch ${
+                data.batch_code ||
+                ""
+            } dispatched successfully.`,
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+    finally {
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            original;
+
+    }
+
+}
+
+
+/* ============================================================
+   DETAIL
+============================================================ */
+
+async function openDetailModal(
+    batchId
+) {
+
+    const modal =
+        document.getElementById(
+            "linenDetailModal"
+        );
+
+
+    modal.classList.add(
+        "open"
+    );
+
+
+    document.getElementById(
+        "linenDetailBody"
+    ).innerHTML = `
+
+        <div class="hk-linen-loading">
+
+            <i class="fa-solid fa-spinner fa-spin"></i>
+
+            Loading batch...
+
+        </div>
+
+    `;
+
+
+    try {
+
+        const response =
+            await lbFetch(
+                `/inventory/linen/batches/${batchId}/`
+            );
+
+
+        const batch =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                batch.error ||
+                "Unable to load batch."
+            );
+
+        }
+
+
+        LB.activeBatch =
+            batch;
+
+
+        renderDetailModal(
+            batch
+        );
+
+    }
+
+    catch (error) {
+
+        document.getElementById(
+            "linenDetailBody"
+        ).innerHTML = `
+
+            <div class="hk-linen-empty">
+
+                <i class="fa-solid fa-triangle-exclamation"></i>
+
+                <h3>Could not load batch</h3>
+
+                <p>${lbEsc(error.message)}</p>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+function closeDetailModal() {
+
+    document.getElementById(
+        "linenDetailModal"
+    ).classList.remove(
+        "open"
+    );
+
+
+    LB.activeBatch =
+        null;
+
+}
+
+
+/* ============================================================
+   DETAIL RENDER
+============================================================ */
+
+function renderDetailModal(
+    batch
+) {
+
+    const percentage =
+        lbPct(batch);
+
+
+    const totalCost =
+        parseFloat(
+            batch.total_cost ||
+            0
+        );
+
+
+    const missingCost =
+        parseFloat(
+            batch.missing_cost ||
+            0
+        );
+
+
+    const payable =
+        Math.max(
+            0,
+            totalCost -
+            missingCost
+        );
+
+
+    document.getElementById(
+        "linenDetailTitle"
+    ).textContent =
+        batch.batch_code ||
+        "Batch Details";
+
+
+    document.getElementById(
+        "linenDetailBody"
+    ).innerHTML = `
+
+        <div class="hk-linen-detail-meta">
+
+            ${detailField(
+                "Laundry",
+                batch.sent_to_laundry
+            )}
+
+            ${detailField(
+                "Contact Person",
+                batch.laundry_contact
+            )}
+
+            ${detailField(
+                "Phone",
+                batch.laundry_phone
+            )}
+
+            ${detailField(
+                "Dispatched By",
+                batch.dispatched_by
+            )}
+
+            ${detailField(
+                "Dispatched At",
+                lbDateTime(
+                    batch.dispatched_at
+                )
+            )}
+
+            ${detailField(
+                "Expected Return",
+                lbDate(
+                    batch.expected_return_date
+                )
+            )}
+
+            ${detailField(
+                "Received At",
+                batch.received_at
+                    ? lbDateTime(
+                        batch.received_at
+                    )
+                    : "Pending"
+            )}
+
+            ${
+                batch.note
+                    ? detailField(
+                        "Note",
+                        batch.note,
+                        true
+                    )
+                    : ""
+            }
+
+        </div>
+
+
+        ${
+            totalCost > 0
+                ? `
+                <div class="hk-linen-detail-costs">
+
+                    <div>
+                        <span>Total Value</span>
+                        <strong>
+                            ${lbRupee(totalCost)}
+                        </strong>
+                    </div>
+
+                    <div class="danger">
+                        <span>Missing Deduction</span>
+                        <strong>
+                            −${lbRupee(missingCost)}
+                        </strong>
+                    </div>
+
+                    <div class="success">
+                        <span>Payable</span>
+                        <strong>
+                            ${lbRupee(payable)}
+                        </strong>
+                    </div>
+
+                </div>
+                `
+                : ""
+        }
+
+
+        <div class="hk-linen-detail-progress">
+
+            <div>
+
+                <span>Items received</span>
+
+                <strong>
+                    ${
+                        batch.received_pieces ||
+                        0
+                    }
+                    /
+                    ${
+                        batch.total_pieces ||
+                        0
+                    }
+                    (${percentage}%)
+                </strong>
+
+            </div>
+
+            <div class="hk-linen-progress">
+
+                <div
+                    class="
+                        hk-linen-progress-fill
+                        ${
+                            percentage === 100
+                                ? "complete"
+                                : percentage > 0
+                                    ? "partial"
+                                    : ""
+                        }
+                    "
+                    style="width:${percentage}%"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <div class="hk-linen-checklist-header">
+
+            <h4>Item Checklist</h4>
+
+            <span>
+                Enter the quantity actually returned.
+            </span>
+
+        </div>
+
+
+        <div class="hk-linen-checklist">
+
+            ${
+                (
+                    batch.items ||
+                    []
+                )
+                .map(
+                    item =>
+                        buildItemRow(
+                            batch.id,
+                            item
+                        )
+                )
+                .join("")
+                ||
+                `
+                <div class="hk-linen-empty">
+                    No items found.
+                </div>
+                `
+            }
+
+        </div>
+
+    `;
+
+
+    document.getElementById(
+        "linenDetailFooter"
+    ).innerHTML = `
+
+        <button
+            type="button"
+            class="hk-btn hk-btn-secondary"
+            onclick="closeDetailModal()"
+        >
+            Close
+        </button>
+
+        ${
+            batch.status !==
+            "received"
+                ? `
+                <button
+                    type="button"
+                    class="hk-btn hk-btn-success"
+                    onclick="confirmAllFromDetail(${batch.id})"
+                >
+                    <i class="fa-solid fa-check-double"></i>
+                    Confirm All Received
+                </button>
+                `
+                : ""
+        }
+
+    `;
+
+
+    (
+        batch.items ||
+        []
+    ).forEach(
+        item => {
+
+            if (
+                !item.received &&
+                (
+                    item.is_partial ||
+                    item.missing > 0
+                )
+            ) {
+
+                populateMissingReasonDropdown(
+                    item.id,
+                    item.missing_reason_id
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+function detailField(
+    label,
+    value,
+    full = false
+) {
+
+    return `
+
+        <div
+            class="
+                hk-linen-detail-field
+                ${full ? "full" : ""}
+            "
+        >
+
+            <span>
+                ${lbEsc(label)}
+            </span>
+
+            <strong>
+                ${lbEsc(value || "—")}
+            </strong>
+
+        </div>
+
+    `;
+
+}
+
+
+/* ============================================================
+   ITEM ROW
+============================================================ */
+
+function buildItemRow(
+    batchId,
+    item
+) {
+
+    const sent =
+        Number(
+            item.quantity
+        ) || 0;
+
+
+    const received =
+        item.received_quantity ??
+        (
+            item.received
+                ? sent
+                : 0
+        );
+
+
+    const missing =
+        Math.max(
+            0,
+            sent -
+            received
+        );
+
+
+    const price =
+        parseFloat(
+            item.item_price ||
+            0
+        );
+
+
+    return `
+
+        <div
+            class="
+                hk-linen-item
+                ${
+                    item.received
+                        ? "received"
+                        : item.is_partial
+                            ? "partial"
+                            : ""
+                }
+            "
+            id="linenItem-${item.id}"
+        >
+
+            <div class="hk-linen-item-main">
+
+                <strong>
+                    ${lbEsc(
+                        item.label ||
+                        item.item_label ||
+                        "Item"
+                    )}
+                </strong>
+
+                <span>
+                    Sent: ${sent}
+
+                    ${
+                        price > 0
+                            ? ` · ${lbRupee(price)} / pc`
+                            : ""
+                    }
+                </span>
+
+            </div>
+
+
+            <div class="hk-linen-item-qty">
+
+                <label>Received</label>
+
+                <input
+                    type="number"
+                    min="0"
+                    max="${sent}"
+                    value="${received}"
+                    onchange="
+                        updateItemQty(
+                            ${batchId},
+                            ${item.id},
+                            this.value
+                        )
+                    "
+                    ${
+                        item.received
+                            ? "disabled"
+                            : ""
+                    }
+                >
+
+            </div>
+
+
+            <div class="hk-linen-item-state">
+
+                ${
+                    item.received
+                        ? `
+                        <span class="success">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Received
+                        </span>
+                        `
+                        : missing > 0
+                            ? `
+                            <span class="warning">
+                                ${missing} missing
+                            </span>
+                            `
+                            : `
+                            <span>
+                                Pending
+                            </span>
+                            `
+                }
+
+            </div>
+
+
+            ${
+                !item.received &&
+                missing > 0
+                    ? `
+
+                    <div class="hk-linen-missing">
+
+                        <select
+                            id="missingReason-${item.id}"
+                            onchange="
+                                onReasonChange(
+                                    ${batchId},
+                                    ${item.id}
+                                )
+                            "
+                        >
+                            <option value="">
+                                Select missing reason
+                            </option>
+
+                            <option
+                                value="__loading__"
+                                disabled
+                            >
+                                Loading...
+                            </option>
+                        </select>
+
+
+                        <input
+                            type="text"
+                            id="missingNote-${item.id}"
+                            value="${lbEsc(
+                                item.missing_note ||
+                                ""
+                            )}"
+                            placeholder="Additional note"
+                            onchange="
+                                saveMissingReason(
+                                    ${batchId},
+                                    ${item.id}
+                                )
+                            "
+                        >
+
+
+                        <div
+                            class="hk-custom-reason"
+                            id="customReasonWrap-${item.id}"
+                            style="display:none;"
+                        >
+
+                            <input
+                                type="text"
+                                id="customReasonInput-${item.id}"
+                                placeholder="Describe reason..."
+                            >
+
+                            <button
+                                type="button"
+                                class="hk-btn hk-btn-primary hk-btn-sm"
+                                onclick="
+                                    saveCustomReason(
+                                        ${batchId},
+                                        ${item.id},
+                                        true
+                                    )
+                                "
+                            >
+                                Save
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    `
+                    : ""
+            }
+
+        </div>
+
+    `;
+
+}
+
+
+/* ============================================================
+   UPDATE ITEM QUANTITY
+============================================================ */
+
+async function updateItemQty(
+    batchId,
+    itemId,
+    value
+) {
+
+    const quantity =
+        Math.max(
+            0,
+            parseInt(value) || 0
+        );
+
+
+    try {
+
+        const response =
+            await lbFetch(
+
+                `/inventory/linen/batches/${batchId}/items/${itemId}/receive/`,
+
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+                            received_quantity:
+                                quantity
+                        })
+                }
+
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to update item."
+            );
+
+        }
+
+
+        lbToast(
+            data.missing > 0
+                ? `${data.missing} piece(s) missing.`
+                : "Item quantity updated.",
+            data.missing > 0
+                ? "error"
+                : "success"
+        );
+
+
+        await refreshActiveBatch(
+            batchId
+        );
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+async function refreshActiveBatch(
+    batchId
+) {
+
+    const response =
+        await lbFetch(
+            `/inventory/linen/batches/${batchId}/`
+        );
+
+
+    if (!response.ok) {
+        return;
+    }
+
+
+    const batch =
+        await response.json();
+
+
+    LB.activeBatch =
+        batch;
+
+
+    const index =
+        LB.all.findIndex(
+            item =>
+                item.id === batchId
+        );
+
+
+    if (
+        index !== -1
+    ) {
+
+        LB.all[index] = {
+            ...LB.all[index],
+            ...batch
+        };
+
+    }
+
+
+    renderDetailModal(
+        batch
+    );
+
+
+    updateLinenKpis();
+
+    linenApplyFilters();
+
+}
+
+
+/* ============================================================
+   MISSING REASONS
+============================================================ */
+
+async function loadMissingReasons() {
+
+    try {
+
+        const response =
+            await lbFetch(
+                "/inventory/linen/missing-reasons/"
+            );
+
+
+        const data =
+            await response.json();
+
+
+        MR.list =
+            data.reasons ||
+            [];
+
+    }
+
+    catch {
+
+        MR.list = [];
+
+    }
+
+}
+
+
+async function populateMissingReasonDropdown(
+    itemId,
+    selectedId = null
+) {
+
+    const select =
+        document.getElementById(
+            `missingReason-${itemId}`
+        );
+
+
+    if (!select) {
+        return;
+    }
+
+
+    if (!MR.list.length) {
+
+        await loadMissingReasons();
+
+    }
+
+
+    select.innerHTML = `
+
+        <option value="">
+            Select missing reason
+        </option>
+
+        ${
+            MR.list
+                .map(
+                    reason => `
+
+                    <option
+                        value="${reason.id}"
+                        ${
+                            String(reason.id) ===
+                            String(selectedId)
+                                ? "selected"
+                                : ""
+                        }
+                    >
+                        ${lbEsc(reason.label)}
+                    </option>
+
+                    `
+                )
+                .join("")
+        }
+
+        <option value="__custom__">
+            Other / Custom...
+        </option>
+
+    `;
+
+}
+
+
+function onReasonChange(
+    batchId,
+    itemId
+) {
+
+    const select =
+        document.getElementById(
+            `missingReason-${itemId}`
+        );
+
+
+    const custom =
+        document.getElementById(
+            `customReasonWrap-${itemId}`
+        );
+
+
+    if (
+        select.value ===
+        "__custom__"
+    ) {
+
+        custom.style.display =
+            "flex";
+
+        return;
+
+    }
+
+
+    custom.style.display =
+        "none";
+
+
+    saveMissingReason(
+        batchId,
+        itemId
+    );
+
+}
+
+
+async function saveMissingReason(
+    batchId,
+    itemId
+) {
+
+    const select =
+        document.getElementById(
+            `missingReason-${itemId}`
+        );
+
+
+    const note =
+        document.getElementById(
+            `missingNote-${itemId}`
+        )?.value || "";
+
+
+    if (
+        select?.value ===
+        "__custom__"
+    ) {
+        return;
+    }
+
+
+    try {
+
+        await lbFetch(
+
+            `/inventory/linen/batches/${batchId}/items/${itemId}/receive/`,
+
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        missing_reason_id:
+                            select?.value ||
+                            null,
+
+                        missing_note:
+                            note
+
+                    })
+            }
+
+        );
+
+    }
+
+    catch {
+
+        lbToast(
+            "Unable to save missing reason.",
+            "error"
+        );
+
+    }
+
+}
+
+
+async function saveCustomReason(
+    batchId,
+    itemId,
+    showToast = false
+) {
+
+    const input =
+        document.getElementById(
+            `customReasonInput-${itemId}`
+        );
+
+
+    const text =
+        input?.value.trim();
+
+
+    if (!text) {
+
+        lbToast(
+            "Enter the missing reason.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await lbFetch(
+
+                `/inventory/linen/batches/${batchId}/items/${itemId}/receive/`,
+
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            missing_reason_id:
+                                null,
+
+                            missing_note:
+                                text
+
+                        })
+                }
+
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to save reason."
+            );
+
+        }
+
+
+        if (showToast) {
+
+            lbToast(
+                "Missing reason saved.",
+                "success"
+            );
+
+        }
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CONFIRM ALL FROM DETAIL
+============================================================ */
+
+async function confirmAllFromDetail(
+    batchId
+) {
+
+    if (
+        !confirm(
+            "Confirm that all remaining linen items were received?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await lbFetch(
+
+                `/inventory/linen/batches/${batchId}/confirm/`,
+
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({})
+                }
+
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to confirm batch."
+            );
+
+        }
+
+
+        LB.activeBatch =
+            data;
+
+
+        const index =
+            LB.all.findIndex(
+                batch =>
+                    batch.id === batchId
+            );
+
+
+        if (
+            index !== -1
+        ) {
+
+            LB.all[index] =
+                data;
+
+        }
+
+
+        renderDetailModal(
+            data
+        );
+
+
+        updateLinenKpis();
+
+        linenApplyFilters();
+
+
+        lbToast(
+            "Batch fully received.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   REASON MODAL
+============================================================ */
+
+function openAddReasonModal() {
+
+    MR.editing =
+        null;
+
+
+    document.getElementById(
+        "reasonModalTitle"
+    ).textContent =
+        "Add Missing Reason";
+
+
+    document.getElementById(
+        "reasonLabelInput"
+    ).value = "";
+
+
+    document.getElementById(
+        "reasonOrderInput"
+    ).value =
+        MR.list.length + 1;
+
+
+    document.getElementById(
+        "reasonModal"
+    ).classList.add(
+        "open"
+    );
+
+}
+
+
+function closeReasonModal() {
+
+    document.getElementById(
+        "reasonModal"
+    ).classList.remove(
+        "open"
+    );
+
+
+    MR.editing =
+        null;
+
+}
+
+
+async function submitReason() {
+
+    const label =
+        document.getElementById(
+            "reasonLabelInput"
+        )
+        .value
+        .trim();
+
+
+    const order =
+        parseInt(
+            document.getElementById(
+                "reasonOrderInput"
+            ).value
+        ) || 0;
+
+
+    if (!label) {
+
+        lbToast(
+            "Reason label is required.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "reasonSubmitBtn"
+        );
+
+
+    const original =
+        button.innerHTML;
+
+
+    button.disabled =
+        true;
+
+
+    button.innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        Saving...
+    `;
+
+
+    try {
+
+        let response;
+
+
+        if (MR.editing) {
+
+            response =
+                await lbFetch(
+
+                    `/inventory/linen/missing-reasons/${MR.editing}/`,
+
+                    {
+                        method: "PATCH",
+
+                        body:
+                            JSON.stringify({
+                                label,
+                                order
+                            })
+                    }
+
+                );
+
+        }
+
+        else {
+
+            response =
+                await lbFetch(
+
+                    "/inventory/linen/missing-reasons/manage/",
+
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+                                label,
+                                order
+                            })
+                    }
+
+                );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to save reason."
+            );
+
+        }
+
+
+        closeReasonModal();
+
+
+        await loadMissingReasons();
+
+
+        lbToast(
+            "Missing reason saved.",
+            "success"
+        );
+
+    }
+
+    catch (error) {
+
+        lbToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+    finally {
+
+        button.disabled =
+            false;
+
+        button.innerHTML =
+            original;
+
+    }
+
+}
+
+
+/* ============================================================
+   MODAL BACKDROP
+============================================================ */
+
+[
+    "linenDispatchModal",
+    "linenDetailModal",
+    "reasonModal"
+].forEach(
+    id => {
+
+        const modal =
+            document.getElementById(
+                id
+            );
+
+
+        modal?.addEventListener(
+            "click",
+            event => {
+
+                if (
+                    event.target ===
+                    modal
+                ) {
+
+                    modal.classList.remove(
+                        "open"
+                    );
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/* ============================================================
+   INITIALIZE PAGE
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        loadMissingReasons();
+
+        loadLinenBatches();
+
+    }
+);
+
+</script>
+
+{% endblock %}

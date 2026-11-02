@@ -1,0 +1,2266 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}
+My Profile | Hotel ERP
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+/* ============================================================
+   PAGE
+============================================================ */
+
+.profile-page {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.profile-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.profile-heading h1 {
+    margin: 0;
+    color: var(--acc-text);
+    font-size: 28px;
+    font-weight: 750;
+}
+
+.profile-heading p {
+    margin: 6px 0 0;
+    color: var(--acc-muted);
+}
+
+
+/* ============================================================
+   MAIN GRID
+============================================================ */
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    gap: 22px;
+}
+
+
+/* ============================================================
+   CARD
+============================================================ */
+
+.profile-card {
+    background: var(--acc-surface);
+    border: 1px solid var(--acc-border);
+    border-radius: 16px;
+    box-shadow: 0 5px 25px rgba(15, 23, 42, .05);
+}
+
+
+/* ============================================================
+   LEFT PROFILE CARD
+============================================================ */
+
+.profile-summary {
+    overflow: hidden;
+}
+
+.profile-cover {
+    height: 105px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #4c1d95
+        );
+}
+
+.profile-summary-body {
+    padding: 0 24px 26px;
+    text-align: center;
+}
+
+.profile-avatar-wrap {
+    position: relative;
+
+    width: 110px;
+    height: 110px;
+
+    margin: -55px auto 16px;
+}
+
+.profile-avatar {
+    width: 110px;
+    height: 110px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border: 5px solid var(--acc-surface);
+    border-radius: 50%;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+
+    font-size: 34px;
+    font-weight: 750;
+
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, .14);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 21px;
+    font-weight: 750;
+}
+
+.profile-role {
+    margin-top: 5px;
+
+    color: var(--acc-muted);
+
+    font-size: 13px;
+}
+
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+
+    margin-top: 12px;
+
+    padding: 6px 11px;
+
+    border-radius: 20px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.profile-meta {
+    margin-top: 24px;
+
+    border-top: 1px solid var(--acc-border);
+}
+
+.profile-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid var(--acc-border);
+}
+
+.profile-meta-row:last-child {
+    border-bottom: 0;
+}
+
+.profile-meta-label {
+    color: var(--acc-muted);
+    font-size: 12px;
+}
+
+.profile-meta-value {
+    max-width: 175px;
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+
+    text-align: right;
+
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   RIGHT CONTENT
+============================================================ */
+
+.profile-content {
+    overflow: hidden;
+}
+
+.profile-section {
+    padding: 25px;
+}
+
+.profile-section + .profile-section {
+    border-top: 1px solid var(--acc-border);
+}
+
+.profile-section-header {
+    margin-bottom: 20px;
+}
+
+.profile-section-header h2 {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.profile-section-header p {
+    margin: 5px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   DETAILS
+============================================================ */
+
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.profile-info-item {
+    padding: 16px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 11px;
+}
+
+.profile-info-label {
+    margin-bottom: 6px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.profile-info-value {
+    color: var(--acc-text);
+
+    font-size: 14px;
+    font-weight: 650;
+
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+
+.profile-btn {
+    min-height: 42px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 16px;
+
+    border-radius: 9px;
+
+    font: inherit;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease,
+        background .15s ease;
+}
+
+.profile-btn:hover {
+    transform: translateY(-1px);
+}
+
+.profile-btn-primary {
+    border: 0;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #fff;
+
+    box-shadow:
+        0 7px 17px rgba(124, 58, 237, .22);
+}
+
+.profile-btn-secondary {
+    border: 1px solid var(--acc-border);
+
+    background: var(--acc-surface);
+
+    color: var(--acc-text);
+}
+
+.profile-btn-danger {
+    border: 1px solid #fecaca;
+
+    background: #fff1f2;
+
+    color: #dc2626;
+}
+
+
+/* ============================================================
+   SECURITY
+============================================================ */
+
+.security-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 16px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 11px;
+}
+
+.security-info {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.security-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    border-radius: 10px;
+
+    background: var(--acc-primary-soft);
+
+    color: var(--acc-primary);
+}
+
+.security-title {
+    color: var(--acc-text);
+    font-weight: 650;
+}
+
+.security-description {
+    margin-top: 3px;
+
+    color: var(--acc-muted);
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   REAL MODAL
+============================================================ */
+
+.profile-modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 99999;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 24px;
+
+    background: rgba(15, 23, 42, .58);
+
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.profile-modal.show {
+    display: flex;
+}
+
+.profile-modal-dialog {
+    width: min(620px, 100%);
+    max-height: calc(100vh - 48px);
+
+    overflow: hidden;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 17px;
+
+    /*
+       IMPORTANT:
+       force solid white modal instead of transparent
+       dashboard/window appearance.
+    */
+    background: #ffffff !important;
+
+    box-shadow:
+        0 28px 80px rgba(15, 23, 42, .30);
+
+    animation: profileModalIn .18s ease-out;
+}
+
+.profile-modal-dialog.small {
+    width: min(500px, 100%);
+}
+
+@keyframes profileModalIn {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.profile-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 21px 24px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #5b21b6
+        ) !important;
+
+    color: #ffffff !important;
+}
+
+.profile-modal-header h3 {
+    margin: 0;
+
+    color: #ffffff !important;
+
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.profile-modal-header p {
+    margin: 4px 0 0;
+
+    color: rgba(255,255,255,.78) !important;
+
+    font-size: 12px;
+}
+
+.profile-modal-close {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 9px;
+
+    background: rgba(255,255,255,.10);
+
+    color: #ffffff;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+.profile-modal-body {
+    max-height: calc(100vh - 220px);
+
+    overflow-y: auto;
+
+    padding: 24px;
+
+    background: #ffffff !important;
+}
+
+.profile-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding: 17px 24px;
+
+    border-top: 1px solid #e2e8f0;
+
+    background: #ffffff !important;
+}
+
+
+/* ============================================================
+   FORM
+============================================================ */
+
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.profile-field {
+    min-width: 0;
+}
+
+.profile-field.full {
+    grid-column: 1 / -1;
+}
+
+.profile-field label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #475569;
+
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.profile-control {
+    width: 100%;
+    min-height: 45px;
+
+    box-sizing: border-box;
+
+    padding: 0 13px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+
+    outline: none;
+
+    background: #ffffff !important;
+
+    color: #0f172a !important;
+
+    font: inherit;
+
+    transition:
+        border .15s ease,
+        box-shadow .15s ease;
+}
+
+.profile-control:focus {
+    border-color: #7c3aed;
+
+    box-shadow:
+        0 0 0 3px rgba(124,58,237,.12);
+}
+
+.profile-control[readonly] {
+    background: #f8fafc !important;
+    color: #64748b !important;
+}
+
+.profile-help {
+    margin-top: 6px;
+
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   PHOTO UPLOAD
+============================================================ */
+
+.photo-editor {
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+
+    padding: 15px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+
+    background: #f8fafc;
+}
+
+.photo-preview {
+    width: 72px;
+    height: 72px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    background: #ede9fe;
+
+    color: #7c3aed;
+
+    font-size: 22px;
+    font-weight: 750;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+/* ============================================================
+   ALERT
+============================================================ */
+
+.profile-alert {
+    position: fixed;
+
+    right: 24px;
+    bottom: 24px;
+
+    z-index: 100001;
+
+    min-width: 280px;
+    max-width: 430px;
+
+    display: none;
+
+    padding: 14px 16px;
+
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    color: #0f172a;
+
+    box-shadow:
+        0 16px 50px rgba(15,23,42,.22);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.profile-alert.show {
+    display: block;
+}
+
+.profile-alert.success {
+    border-left: 4px solid #16a34a;
+}
+
+.profile-alert.error {
+    border-left: 4px solid #dc2626;
+}
+
+
+/* ============================================================
+   LOADING
+============================================================ */
+
+.profile-btn.loading {
+    pointer-events: none;
+    opacity: .7;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 900px) {
+
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 620px) {
+
+    .profile-heading {
+        flex-direction: column;
+    }
+
+    .profile-info-grid,
+    .profile-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-field.full {
+        grid-column: auto;
+    }
+
+    .security-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .profile-btn {
+        width: 100%;
+    }
+
+    .profile-modal {
+        padding: 12px;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="profile-page">
+
+    <!-- ======================================================
+         PAGE HEADER
+    ======================================================= -->
+
+    <div class="profile-heading">
+
+        <div>
+
+            <h1>My Profile</h1>
+
+            <p>
+                Manage your personal information and account security.
+            </p>
+
+        </div>
+
+        <button
+            type="button"
+            class="profile-btn profile-btn-primary"
+            onclick="openEditProfileModal()"
+        >
+            <i class="fas fa-pen"></i>
+            Edit Profile
+        </button>
+
+    </div>
+
+
+    <!-- ======================================================
+         LAYOUT
+    ======================================================= -->
+
+    <div class="profile-layout">
+
+
+        <!-- ==================================================
+             LEFT
+        =================================================== -->
+
+        <div class="profile-card profile-summary">
+
+            <div class="profile-cover"></div>
+
+            <div class="profile-summary-body">
+
+                <div class="profile-avatar-wrap">
+
+                    <div
+                        class="profile-avatar"
+                        id="mainProfileAvatar"
+                    >
+
+                        {% if staff.photo %}
+
+                            <img
+                                src="{{ staff.photo.url }}"
+                                alt="{{ staff.name }}"
+                                id="mainProfileImage"
+                            >
+
+                        {% else %}
+
+                            <span id="mainProfileInitial">
+                                {{ staff.name|default:"A"|slice:":1"|upper }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+                <h2
+                    class="profile-name"
+                    id="displayProfileName"
+                >
+                    {{ staff.name|default:"Accountant" }}
+                </h2>
+
+
+                <div class="profile-role">
+
+                    {{ staff.role|default:"Accountant" }}
+
+                </div>
+
+
+                <div class="profile-badge">
+
+                    <i class="fas fa-circle-check"></i>
+
+                    &nbsp;Active Account
+
+                </div>
+
+
+                <div class="profile-meta">
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Employee ID
+                        </span>
+
+                        <span class="profile-meta-value">
+                            {{ staff.employee_id|default:"-" }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Department
+                        </span>
+
+                        <span class="profile-meta-value">
+                            {% if staff.department %}
+                                {{ staff.department.name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-meta-row">
+
+                        <span class="profile-meta-label">
+                            Hotel
+                        </span>
+
+                        <span class="profile-meta-value">
+                            {{ hotel.name|default:"Hotel ERP" }}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ==================================================
+             RIGHT
+        =================================================== -->
+
+        <div class="profile-card profile-content">
+
+
+            <!-- PERSONAL -->
+
+            <div class="profile-section">
+
+                <div class="profile-section-header">
+
+                    <h2>
+                        Personal Information
+                    </h2>
+
+                    <p>
+                        Your contact and employee information.
+                    </p>
+
+                </div>
+
+
+                <div class="profile-info-grid">
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Full Name
+                        </div>
+
+                        <div
+                            class="profile-info-value"
+                            id="displayName"
+                        >
+                            {{ staff.name|default:"-" }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Email Address
+                        </div>
+
+                        <div
+                            class="profile-info-value"
+                            id="displayEmail"
+                        >
+                            {% if staff.user %}
+                                {{ staff.user.email|default:"-" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Phone Number
+                        </div>
+
+                        <div
+                            class="profile-info-value"
+                            id="displayPhone"
+                        >
+                            {{ staff.phone|default:"-" }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Role
+                        </div>
+
+                        <div class="profile-info-value">
+                            {{ staff.role|default:"Accountant" }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Department
+                        </div>
+
+                        <div class="profile-info-value">
+
+                            {% if staff.department %}
+
+                                {{ staff.department.name }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-info-item">
+
+                        <div class="profile-info-label">
+                            Employee ID
+                        </div>
+
+                        <div class="profile-info-value">
+                            {{ staff.employee_id|default:"-" }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- SECURITY -->
+
+            <div class="profile-section">
+
+                <div class="profile-section-header">
+
+                    <h2>
+                        Security
+                    </h2>
+
+                    <p>
+                        Manage the password used to access your account.
+                    </p>
+
+                </div>
+
+
+                <div class="security-row">
+
+                    <div class="security-info">
+
+                        <div class="security-icon">
+
+                            <i class="fas fa-lock"></i>
+
+                        </div>
+
+                        <div>
+
+                            <div class="security-title">
+                                Account Password
+                            </div>
+
+                            <div class="security-description">
+                                Change your password regularly to keep
+                                your account secure.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="profile-btn profile-btn-secondary"
+                        onclick="openPasswordModal()"
+                    >
+                        <i class="fas fa-key"></i>
+                        Change Password
+                    </button>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ==========================================================
+     EDIT PROFILE MODAL
+=========================================================== -->
+
+<div
+    class="profile-modal"
+    id="editProfileModal"
+    aria-hidden="true"
+>
+
+    <div class="profile-modal-dialog">
+
+        <div class="profile-modal-header">
+
+            <div>
+
+                <h3>
+                    Edit Profile
+                </h3>
+
+                <p>
+                    Update your personal information.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="profile-modal-close"
+                onclick="closeProfileModal('editProfileModal')"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <form
+            id="editProfileForm"
+            enctype="multipart/form-data"
+        >
+
+            {% csrf_token %}
+
+
+            <div class="profile-modal-body">
+
+                <div class="profile-form-grid">
+
+
+                    <!-- PHOTO -->
+
+                    <div class="profile-field full">
+
+                        <label>
+                            Profile Photo
+                        </label>
+
+
+                        <div class="photo-editor">
+
+                            <div
+                                class="photo-preview"
+                                id="photoPreview"
+                            >
+
+                                {% if staff.photo %}
+
+                                    <img
+                                        src="{{ staff.photo.url }}"
+                                        alt=""
+                                        id="photoPreviewImage"
+                                    >
+
+                                {% else %}
+
+                                    <span id="photoPreviewInitial">
+                                        {{ staff.name|default:"A"|slice:":1"|upper }}
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+
+                            <div style="flex:1;">
+
+                                <input
+                                    type="file"
+                                    id="profilePhoto"
+                                    name="photo"
+                                    class="profile-control"
+                                    accept="image/jpeg,image/png,image/webp"
+                                >
+
+                                <div class="profile-help">
+                                    JPG, PNG or WEBP. Maximum 5 MB.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- NAME -->
+
+                    <div class="profile-field">
+
+                        <label for="profileName">
+                            Full Name *
+                        </label>
+
+                        <input
+                            type="text"
+                            id="profileName"
+                            name="name"
+                            class="profile-control"
+                            value="{{ staff.name|default:'' }}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- PHONE -->
+
+                    <div class="profile-field">
+
+                        <label for="profilePhone">
+                            Phone Number
+                        </label>
+
+                        <input
+                            type="text"
+                            id="profilePhone"
+                            name="phone"
+                            class="profile-control"
+                            value="{{ staff.phone|default:'' }}"
+                        >
+
+                    </div>
+
+
+                    <!-- EMAIL -->
+
+                    <div class="profile-field full">
+
+                        <label for="profileEmail">
+                            Email Address *
+                        </label>
+
+                        <input
+                            type="email"
+                            id="profileEmail"
+                            name="email"
+                            class="profile-control"
+                            value="{% if staff.user %}{{ staff.user.email|default:'' }}{% endif %}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- EMPLOYEE ID -->
+
+                    <div class="profile-field">
+
+                        <label>
+                            Employee ID
+                        </label>
+
+                        <input
+                            type="text"
+                            class="profile-control"
+                            value="{{ staff.employee_id|default:'' }}"
+                            readonly
+                        >
+
+                    </div>
+
+
+                    <!-- DEPARTMENT -->
+
+                    <div class="profile-field">
+
+                        <label>
+                            Department
+                        </label>
+
+                        <input
+                            type="text"
+                            class="profile-control"
+                            value="{% if staff.department %}{{ staff.department.name }}{% endif %}"
+                            readonly
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-modal-footer">
+
+                <button
+                    type="button"
+                    class="profile-btn profile-btn-secondary"
+                    onclick="closeProfileModal('editProfileModal')"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="profile-btn profile-btn-primary"
+                    id="saveProfileButton"
+                >
+                    <i class="fas fa-check"></i>
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- ==========================================================
+     PASSWORD MODAL
+=========================================================== -->
+
+<div
+    class="profile-modal"
+    id="passwordModal"
+    aria-hidden="true"
+>
+
+    <div class="profile-modal-dialog small">
+
+        <div class="profile-modal-header">
+
+            <div>
+
+                <h3>
+                    Change Password
+                </h3>
+
+                <p>
+                    Enter your current password and choose a new one.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="profile-modal-close"
+                onclick="closeProfileModal('passwordModal')"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <form id="passwordForm">
+
+            {% csrf_token %}
+
+
+            <!-- Required so existing update endpoint
+                 keeps the current profile information -->
+
+            <input
+                type="hidden"
+                name="name"
+                value="{{ staff.name|default:'' }}"
+            >
+
+            <input
+                type="hidden"
+                name="phone"
+                value="{{ staff.phone|default:'' }}"
+            >
+
+            <input
+                type="hidden"
+                name="email"
+                value="{% if staff.user %}{{ staff.user.email|default:'' }}{% endif %}"
+            >
+
+
+            <div class="profile-modal-body">
+
+                <div class="profile-form-grid">
+
+
+                    <div class="profile-field full">
+
+                        <label for="currentPassword">
+                            Current Password *
+                        </label>
+
+                        <input
+                            type="password"
+                            id="currentPassword"
+                            name="current_password"
+                            class="profile-control"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="profile-field full">
+
+                        <label for="newPassword">
+                            New Password *
+                        </label>
+
+                        <input
+                            type="password"
+                            id="newPassword"
+                            name="new_password"
+                            class="profile-control"
+                            minlength="8"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                        <div class="profile-help">
+                            Use at least 8 characters.
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field full">
+
+                        <label for="confirmPassword">
+                            Confirm New Password *
+                        </label>
+
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirm_password"
+                            class="profile-control"
+                            minlength="8"
+                            autocomplete="new-password"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-modal-footer">
+
+                <button
+                    type="button"
+                    class="profile-btn profile-btn-secondary"
+                    onclick="closeProfileModal('passwordModal')"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="profile-btn profile-btn-primary"
+                    id="passwordSaveButton"
+                >
+                    <i class="fas fa-lock"></i>
+                    Update Password
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- ==========================================================
+     NOTIFICATION
+=========================================================== -->
+
+<div
+    class="profile-alert"
+    id="profileAlert"
+></div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       CONFIG
+    ======================================================== */
+
+    const UPDATE_PROFILE_URL =
+        "{% url 'update_staff_profile' %}";
+
+
+    /* ========================================================
+       ELEMENTS
+    ======================================================== */
+
+    const editProfileModal =
+        document.getElementById("editProfileModal");
+
+    const passwordModal =
+        document.getElementById("passwordModal");
+
+    const editProfileForm =
+        document.getElementById("editProfileForm");
+
+    const passwordForm =
+        document.getElementById("passwordForm");
+
+    const profilePhoto =
+        document.getElementById("profilePhoto");
+
+    const profileAlert =
+        document.getElementById("profileAlert");
+
+
+    /* ========================================================
+       OPEN MODALS
+    ======================================================== */
+
+    window.openEditProfileModal = function () {
+
+        editProfileModal.classList.add("show");
+
+        editProfileModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        document.body.style.overflow = "hidden";
+
+    };
+
+
+    window.openPasswordModal = function () {
+
+        passwordModal.classList.add("show");
+
+        passwordModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        document.body.style.overflow = "hidden";
+
+        setTimeout(function () {
+
+            const input =
+                document.getElementById(
+                    "currentPassword"
+                );
+
+            if (input) {
+                input.focus();
+            }
+
+        }, 100);
+
+    };
+
+
+    /* ========================================================
+       CLOSE MODAL
+    ======================================================== */
+
+    window.closeProfileModal = function (id) {
+
+        const modal =
+            document.getElementById(id);
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove("show");
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        document.body.style.overflow = "";
+
+    };
+
+
+    /* ========================================================
+       BACKDROP CLOSE
+    ======================================================== */
+
+    document.querySelectorAll(
+        ".profile-modal"
+    ).forEach(function (modal) {
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (event.target === modal) {
+
+                    closeProfileModal(
+                        modal.id
+                    );
+
+                }
+
+            }
+        );
+
+    });
+
+
+    /* ========================================================
+       ESC CLOSE
+    ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key !== "Escape") {
+                return;
+            }
+
+            document.querySelectorAll(
+                ".profile-modal.show"
+            ).forEach(function (modal) {
+
+                closeProfileModal(
+                    modal.id
+                );
+
+            });
+
+        }
+    );
+
+
+    /* ========================================================
+       ALERT
+    ======================================================== */
+
+    function showAlert(message, type) {
+
+        profileAlert.textContent =
+            message || "Something went wrong.";
+
+        profileAlert.className =
+            "profile-alert show " +
+            (type || "success");
+
+        window.clearTimeout(
+            window.profileAlertTimer
+        );
+
+        window.profileAlertTimer =
+            window.setTimeout(
+                function () {
+
+                    profileAlert.classList.remove(
+                        "show"
+                    );
+
+                },
+                3500
+            );
+
+    }
+
+
+    /* ========================================================
+       PHOTO PREVIEW
+    ======================================================== */
+
+    if (profilePhoto) {
+
+        profilePhoto.addEventListener(
+            "change",
+            function () {
+
+                const file =
+                    this.files &&
+                    this.files[0];
+
+                if (!file) {
+                    return;
+                }
+
+
+                if (file.size > 5 * 1024 * 1024) {
+
+                    showAlert(
+                        "Profile photo must be smaller than 5 MB.",
+                        "error"
+                    );
+
+                    this.value = "";
+
+                    return;
+                }
+
+
+                const reader =
+                    new FileReader();
+
+
+                reader.onload = function (event) {
+
+                    const preview =
+                        document.getElementById(
+                            "photoPreview"
+                        );
+
+                    preview.innerHTML =
+                        '<img src="' +
+                        event.target.result +
+                        '" alt="Profile preview">';
+
+                };
+
+
+                reader.readAsDataURL(file);
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       SAFE JSON
+    ======================================================== */
+
+    async function getResponseJSON(response) {
+
+        const text =
+            await response.text();
+
+        if (!text) {
+
+            return {
+                success: false,
+                error: "The server returned an empty response."
+            };
+
+        }
+
+        try {
+
+            return JSON.parse(text);
+
+        } catch (error) {
+
+            return {
+                success: false,
+                error:
+                    "The server returned an invalid response."
+            };
+
+        }
+
+    }
+
+
+    /* ========================================================
+       UPDATE DISPLAY
+    ======================================================== */
+
+    function updateProfileDisplay(data) {
+
+        const profile =
+            data.profile || data;
+
+
+        if (profile.name !== undefined) {
+
+            const name1 =
+                document.getElementById(
+                    "displayProfileName"
+                );
+
+            const name2 =
+                document.getElementById(
+                    "displayName"
+                );
+
+            if (name1) {
+                name1.textContent =
+                    profile.name || "-";
+            }
+
+            if (name2) {
+                name2.textContent =
+                    profile.name || "-";
+            }
+
+        }
+
+
+        if (profile.email !== undefined) {
+
+            const email =
+                document.getElementById(
+                    "displayEmail"
+                );
+
+            if (email) {
+                email.textContent =
+                    profile.email || "-";
+            }
+
+        }
+
+
+        if (profile.phone !== undefined) {
+
+            const phone =
+                document.getElementById(
+                    "displayPhone"
+                );
+
+            if (phone) {
+                phone.textContent =
+                    profile.phone || "-";
+            }
+
+        }
+
+
+        if (profile.photo) {
+
+            const avatar =
+                document.getElementById(
+                    "mainProfileAvatar"
+                );
+
+            if (avatar) {
+
+                avatar.innerHTML =
+                    '<img src="' +
+                    profile.photo +
+                    '?v=' +
+                    Date.now() +
+                    '" alt="Profile photo">';
+
+            }
+
+        }
+
+    }
+
+
+    /* ========================================================
+       EDIT PROFILE SUBMIT
+    ======================================================== */
+
+    if (editProfileForm) {
+
+        editProfileForm.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+
+                const button =
+                    document.getElementById(
+                        "saveProfileButton"
+                    );
+
+                const oldHTML =
+                    button.innerHTML;
+
+
+                button.classList.add(
+                    "loading"
+                );
+
+                button.disabled = true;
+
+                button.innerHTML =
+                    '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+
+                try {
+
+                    const formData =
+                        new FormData(
+                            editProfileForm
+                        );
+
+
+                    const response =
+                        await fetch(
+                            UPDATE_PROFILE_URL,
+                            {
+                                method: "POST",
+                                body: formData,
+                                credentials: "same-origin",
+                                headers: {
+                                    "X-Requested-With":
+                                        "XMLHttpRequest"
+                                }
+                            }
+                        );
+
+
+                    const data =
+                        await getResponseJSON(
+                            response
+                        );
+
+
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
+
+                        throw new Error(
+                            data.error ||
+                            "Unable to update profile."
+                        );
+
+                    }
+
+
+                    updateProfileDisplay(
+                        data
+                    );
+
+
+                    /*
+                     Update password-form hidden values
+                     so a later password change does not
+                     restore old profile data.
+                    */
+
+                    const profile =
+                        data.profile || data;
+
+
+                    const hiddenName =
+                        passwordForm.querySelector(
+                            '[name="name"]'
+                        );
+
+                    const hiddenPhone =
+                        passwordForm.querySelector(
+                            '[name="phone"]'
+                        );
+
+                    const hiddenEmail =
+                        passwordForm.querySelector(
+                            '[name="email"]'
+                        );
+
+
+                    if (hiddenName) {
+                        hiddenName.value =
+                            profile.name || "";
+                    }
+
+                    if (hiddenPhone) {
+                        hiddenPhone.value =
+                            profile.phone || "";
+                    }
+
+                    if (hiddenEmail) {
+                        hiddenEmail.value =
+                            profile.email || "";
+                    }
+
+
+                    closeProfileModal(
+                        "editProfileModal"
+                    );
+
+
+                    showAlert(
+                        data.message ||
+                        "Profile updated successfully.",
+                        "success"
+                    );
+
+
+                } catch (error) {
+
+                    showAlert(
+                        error.message,
+                        "error"
+                    );
+
+                } finally {
+
+                    button.disabled = false;
+
+                    button.classList.remove(
+                        "loading"
+                    );
+
+                    button.innerHTML =
+                        oldHTML;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CHANGE PASSWORD
+    ======================================================== */
+
+    if (passwordForm) {
+
+        passwordForm.addEventListener(
+            "submit",
+            async function (event) {
+
+                event.preventDefault();
+
+
+                const currentPassword =
+                    document.getElementById(
+                        "currentPassword"
+                    ).value;
+
+                const newPassword =
+                    document.getElementById(
+                        "newPassword"
+                    ).value;
+
+                const confirmPassword =
+                    document.getElementById(
+                        "confirmPassword"
+                    ).value;
+
+
+                if (!currentPassword) {
+
+                    showAlert(
+                        "Enter your current password.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+
+                if (newPassword.length < 8) {
+
+                    showAlert(
+                        "New password must contain at least 8 characters.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+
+                if (
+                    newPassword !==
+                    confirmPassword
+                ) {
+
+                    showAlert(
+                        "New password and confirmation do not match.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+
+                const button =
+                    document.getElementById(
+                        "passwordSaveButton"
+                    );
+
+                const oldHTML =
+                    button.innerHTML;
+
+
+                button.disabled = true;
+
+                button.classList.add(
+                    "loading"
+                );
+
+                button.innerHTML =
+                    '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+
+                try {
+
+                    const formData =
+                        new FormData(
+                            passwordForm
+                        );
+
+
+                    const response =
+                        await fetch(
+                            UPDATE_PROFILE_URL,
+                            {
+                                method: "POST",
+                                body: formData,
+                                credentials: "same-origin",
+                                headers: {
+                                    "X-Requested-With":
+                                        "XMLHttpRequest"
+                                }
+                            }
+                        );
+
+
+                    const data =
+                        await getResponseJSON(
+                            response
+                        );
+
+
+                    if (
+                        !response.ok ||
+                        !data.success
+                    ) {
+
+                        throw new Error(
+                            data.error ||
+                            "Unable to change password."
+                        );
+
+                    }
+
+
+                    passwordForm.reset();
+
+
+                    /*
+                     Reset() also clears hidden fields.
+                     Restore current values.
+                    */
+
+                    passwordForm.querySelector(
+                        '[name="name"]'
+                    ).value =
+                        document.getElementById(
+                            "profileName"
+                        ).value;
+
+                    passwordForm.querySelector(
+                        '[name="phone"]'
+                    ).value =
+                        document.getElementById(
+                            "profilePhone"
+                        ).value;
+
+                    passwordForm.querySelector(
+                        '[name="email"]'
+                    ).value =
+                        document.getElementById(
+                            "profileEmail"
+                        ).value;
+
+
+                    closeProfileModal(
+                        "passwordModal"
+                    );
+
+
+                    showAlert(
+                        "Password changed successfully.",
+                        "success"
+                    );
+
+
+                } catch (error) {
+
+                    showAlert(
+                        error.message,
+                        "error"
+                    );
+
+                } finally {
+
+                    button.disabled = false;
+
+                    button.classList.remove(
+                        "loading"
+                    );
+
+                    button.innerHTML =
+                        oldHTML;
+
+                }
+
+            }
+        );
+
+    }
+
+})();
+
+</script>
+
+{% endblock %}

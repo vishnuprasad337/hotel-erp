@@ -1,0 +1,3446 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}My Attendance | Hotel ERP{% endblock %}
+
+{% block nav_mywork %}active{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* =========================================================
+   ATTENDANCE DASHBOARD
+========================================================= */
+
+.attendance-dashboard {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.attendance-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 104px;
+
+    margin-bottom: 28px;
+    padding: 22px 28px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            115deg,
+            #712cf9 0%,
+            #4c1d95 48%,
+            #172554 100%
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 10px 30px rgba(91, 33, 182, .16);
+}
+
+
+.attendance-hero::before {
+    content: "";
+
+    position: absolute;
+
+    width: 210px;
+    height: 210px;
+
+    right: 40px;
+    top: -110px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.055);
+}
+
+
+.attendance-hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 135px;
+    height: 135px;
+
+    right: 95px;
+    bottom: -95px;
+
+    border-radius: 50%;
+
+    background: rgba(14,165,233,.12);
+}
+
+
+.attendance-hero-left {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+}
+
+
+.attendance-hero-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background: rgba(255,255,255,.12);
+
+    font-size: 21px;
+}
+
+
+.attendance-hero-title {
+    margin-bottom: 5px;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+
+.attendance-hero-text {
+    color: rgba(255,255,255,.75);
+
+    font-size: 13px;
+}
+
+
+.attendance-hero-right {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.attendance-hero-button {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 18px;
+
+    border: 1px solid rgba(255,255,255,.28);
+    border-radius: 22px;
+
+    background: rgba(255,255,255,.09);
+
+    color: #ffffff;
+
+    text-decoration: none;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: .2s ease;
+}
+
+
+.attendance-hero-button:hover {
+    background: rgba(255,255,255,.16);
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   PAGE HEADING
+========================================================= */
+
+.attendance-heading-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 22px;
+}
+
+
+.attendance-heading-left h1 {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.04em;
+
+    line-height: 1.15;
+}
+
+
+.attendance-heading-left p {
+    margin: 7px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   WORK TABS
+========================================================= */
+
+.attendance-tabs {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    flex-wrap: wrap;
+
+    padding: 7px;
+
+    margin-bottom: 24px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.attendance-tab {
+    height: 39px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border-radius: 8px;
+
+    color: var(--acc-muted);
+
+    text-decoration: none;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    transition: .2s ease;
+}
+
+
+.attendance-tab:hover {
+    background: var(--acc-bg);
+    color: var(--acc-text);
+}
+
+
+.attendance-tab.active {
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 5px 14px rgba(124,58,237,.20);
+}
+
+
+/* =========================================================
+   LARGE KPI CARDS
+========================================================= */
+
+.attendance-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0,1fr));
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.attendance-stat-card {
+    position: relative;
+
+    min-width: 0;
+    min-height: 220px;
+
+    overflow: hidden;
+
+    padding: 26px 28px 0;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 17px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 7px rgba(15,23,42,.035);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+
+.attendance-stat-card:hover {
+    transform: translateY(-3px);
+
+    border-color: rgba(124,58,237,.22);
+
+    box-shadow:
+        0 12px 28px rgba(15,23,42,.08);
+}
+
+
+.attendance-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 23px;
+}
+
+
+.attendance-stat-icon {
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 52px;
+
+    border-radius: 14px;
+
+    font-size: 21px;
+}
+
+
+.attendance-stat-icon.green {
+    background: #dff9ed;
+    color: #10b981;
+}
+
+
+.attendance-stat-icon.blue {
+    background: #e5efff;
+    color: #3b82f6;
+}
+
+
+.attendance-stat-icon.purple {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.attendance-stat-icon.amber {
+    background: #fff3d4;
+    color: #f59e0b;
+}
+
+
+.attendance-stat-chip {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 7px 11px;
+
+    border-radius: 20px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.attendance-stat-value {
+    margin: 0 0 5px;
+
+    color: var(--acc-text);
+
+    font-size: 38px;
+    font-weight: 800;
+
+    line-height: 1.1;
+
+    letter-spacing: -.04em;
+
+    white-space: nowrap;
+}
+
+
+.attendance-stat-value.hours-value {
+    font-size: 32px;
+}
+
+
+.attendance-stat-label {
+    color: var(--acc-text);
+
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   MINI BARS
+========================================================= */
+
+.attendance-mini-bars {
+    position: absolute;
+
+    left: 28px;
+    right: 28px;
+    bottom: 0;
+
+    height: 55px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 3px;
+}
+
+
+.attendance-mini-bars span {
+    flex: 1;
+
+    min-width: 0;
+
+    border-radius: 5px 5px 0 0;
+}
+
+
+.attendance-mini-bars.green span {
+    background: #10b981;
+}
+
+
+.attendance-mini-bars.blue span {
+    background: #3b82f6;
+}
+
+
+.attendance-mini-bars.purple span {
+    background: #8b5cf6;
+}
+
+
+.attendance-mini-bars.amber span {
+    background: #f59e0b;
+}
+
+
+.attendance-mini-bars span:nth-child(1) { opacity: .25; }
+.attendance-mini-bars span:nth-child(2) { opacity: .35; }
+.attendance-mini-bars span:nth-child(3) { opacity: .45; }
+.attendance-mini-bars span:nth-child(4) { opacity: .55; }
+.attendance-mini-bars span:nth-child(5) { opacity: .65; }
+.attendance-mini-bars span:nth-child(6) { opacity: .76; }
+.attendance-mini-bars span:nth-child(7) { opacity: .90; }
+
+
+/* =========================================================
+   TODAY SECONDARY CARDS
+========================================================= */
+
+.attendance-secondary-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0,1fr));
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.attendance-secondary-card {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.attendance-secondary-icon {
+    width: 47px;
+    height: 47px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 47px;
+
+    border-radius: 12px;
+
+    font-size: 18px;
+}
+
+
+.attendance-secondary-label {
+    margin-bottom: 4px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+.attendance-secondary-value {
+    color: var(--acc-text);
+
+    font-size: 18px;
+    font-weight: 750;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MAIN CONTENT GRID
+========================================================= */
+
+.attendance-content-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.45fr)
+        minmax(300px, .75fr);
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.attendance-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 15px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.attendance-card-header {
+    min-height: 74px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 21px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.attendance-card-title {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.attendance-card-title i {
+    margin-right: 7px;
+
+    color: #7c3aed;
+}
+
+
+.attendance-card-subtitle {
+    margin: 4px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.attendance-card-body {
+    padding: 24px;
+}
+
+
+/* =========================================================
+   TODAY CLOCK
+========================================================= */
+
+.today-clock-content {
+    min-height: 275px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+}
+
+
+.today-clock-icon {
+    width: 72px;
+    height: 72px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border-radius: 20px;
+
+    font-size: 29px;
+}
+
+
+.today-clock-icon.not-marked {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.today-clock-icon.checked-in {
+    background: #dff9ed;
+    color: #10b981;
+}
+
+
+.today-clock-icon.completed {
+    background: #dff9ed;
+    color: #10b981;
+}
+
+
+.today-clock-title {
+    margin: 0 0 7px;
+
+    color: var(--acc-text);
+
+    font-size: 19px;
+    font-weight: 750;
+}
+
+
+.today-clock-description {
+    margin: 0 0 20px;
+
+    color: var(--acc-muted);
+
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+
+.today-clock-times {
+    display: flex;
+    justify-content: center;
+
+    gap: 35px;
+
+    margin-bottom: 22px;
+}
+
+
+.today-clock-time span {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.today-clock-time strong {
+    color: var(--acc-text);
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   ATTENDANCE BUTTON
+========================================================= */
+
+.attendance-action-btn {
+    min-width: 145px;
+    height: 43px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 19px;
+
+    border: 0;
+    border-radius: 9px;
+
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        opacity .2s ease;
+}
+
+
+.attendance-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+
+.attendance-action-btn:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+.check-in-btn {
+    background:
+        linear-gradient(
+            135deg,
+            #10b981,
+            #059669
+        );
+
+    box-shadow:
+        0 7px 18px rgba(16,185,129,.22);
+}
+
+
+.check-out-btn {
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+
+    box-shadow:
+        0 7px 18px rgba(239,68,68,.20);
+}
+
+
+.attendance-complete {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 10px 14px;
+
+    border-radius: 9px;
+
+    background: rgba(16,185,129,.10);
+    color: #10b981;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   MONTH SUMMARY
+========================================================= */
+
+.attendance-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 16px 0;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.attendance-summary-row:first-child {
+    padding-top: 0;
+}
+
+
+.attendance-summary-row:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+
+.attendance-summary-left {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+
+.attendance-summary-icon {
+    width: 41px;
+    height: 41px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    font-size: 15px;
+}
+
+
+.attendance-summary-name {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+}
+
+
+.attendance-summary-desc {
+    margin-top: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.attendance-summary-value {
+    color: var(--acc-text);
+
+    font-size: 14px;
+    font-weight: 750;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MONTH INPUT
+========================================================= */
+
+.attendance-month-input {
+    height: 38px;
+
+    padding: 0 11px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 8px;
+
+    outline: none;
+
+    background: var(--acc-surface);
+    color: var(--acc-text);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   ATTENDANCE TABLE
+========================================================= */
+
+.attendance-history-card {
+    margin-bottom: 24px;
+}
+
+
+.attendance-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.attendance-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.attendance-table th {
+    padding: 13px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    background:
+        rgba(148,163,184,.05);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-align: left;
+
+    text-transform: uppercase;
+
+    letter-spacing: .04em;
+
+    white-space: nowrap;
+}
+
+
+.attendance-table td {
+    padding: 15px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+
+    white-space: nowrap;
+}
+
+
+.attendance-table tbody tr {
+    transition: background .15s ease;
+}
+
+
+.attendance-table tbody tr:hover {
+    background: rgba(124,58,237,.025);
+}
+
+
+.attendance-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.attendance-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.attendance-status.present {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+.attendance-status.late {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+
+.attendance-status.half-day {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.attendance-status.absent {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+.attendance-status.default {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.attendance-empty {
+    padding: 55px 20px;
+
+    color: var(--acc-muted);
+
+    text-align: center;
+
+    font-size: 13px;
+}
+
+
+.attendance-empty i {
+    display: block;
+
+    margin-bottom: 10px;
+
+    color: #94a3b8;
+
+    font-size: 28px;
+}
+
+
+/* =========================================================
+   MESSAGE / TOAST
+========================================================= */
+
+.attendance-message {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    z-index: 9999;
+
+    min-width: 280px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 14px 17px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 11px;
+
+    background: var(--acc-surface);
+    color: var(--acc-text);
+
+    box-shadow:
+        0 15px 40px rgba(0,0,0,.15);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+.attendance-message.success {
+    border-left: 4px solid #16a34a;
+}
+
+
+.attendance-message.success i {
+    color: #16a34a;
+}
+
+
+.attendance-message.error {
+    border-left: 4px solid #dc2626;
+}
+
+
+.attendance-message.error i {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-theme="dark"] .attendance-stat-icon.green,
+[data-theme="dark"] .attendance-secondary-icon.green,
+[data-theme="dark"] .attendance-summary-icon.green {
+    background: rgba(16,185,129,.13);
+}
+
+
+[data-theme="dark"] .attendance-stat-icon.blue,
+[data-theme="dark"] .attendance-secondary-icon.blue,
+[data-theme="dark"] .attendance-summary-icon.blue {
+    background: rgba(59,130,246,.14);
+}
+
+
+[data-theme="dark"] .attendance-stat-icon.purple,
+[data-theme="dark"] .attendance-secondary-icon.purple,
+[data-theme="dark"] .attendance-summary-icon.purple {
+    background: rgba(124,58,237,.15);
+}
+
+
+[data-theme="dark"] .attendance-stat-icon.amber,
+[data-theme="dark"] .attendance-secondary-icon.amber,
+[data-theme="dark"] .attendance-summary-icon.amber {
+    background: rgba(245,158,11,.13);
+}
+
+
+[data-theme="dark"] .attendance-status.present {
+    background: rgba(16,185,129,.13);
+    color: #34d399;
+}
+
+
+[data-theme="dark"] .attendance-status.late {
+    background: rgba(245,158,11,.13);
+    color: #fbbf24;
+}
+
+
+[data-theme="dark"] .attendance-status.absent {
+    background: rgba(239,68,68,.13);
+    color: #f87171;
+}
+
+
+[data-theme="dark"] .attendance-status.half-day {
+    background: rgba(124,58,237,.15);
+    color: #a78bfa;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1250px) {
+
+    .attendance-stat-grid,
+    .attendance-secondary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0,1fr));
+    }
+
+}
+
+
+@media (max-width: 1000px) {
+
+    .attendance-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 767px) {
+
+    .attendance-hero {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 18px;
+    }
+
+
+    .attendance-hero-right {
+        width: 100%;
+    }
+
+
+    .attendance-heading-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .attendance-heading-left h1 {
+        font-size: 28px;
+    }
+
+
+    .attendance-stat-grid,
+    .attendance-secondary-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .attendance-stat-card {
+        min-height: 215px;
+    }
+
+
+    .today-clock-times {
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+
+    .attendance-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .attendance-month-input {
+        width: 100%;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .attendance-stat-value {
+        font-size: 32px;
+    }
+
+
+    .attendance-stat-value.hours-value {
+        font-size: 27px;
+    }
+
+
+    .attendance-message {
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+
+        min-width: 0;
+    }
+
+}
+
+
+
+
+{% comment %} camera modal css start {% endcomment %}
+/* ============================================================
+   FACE VERIFICATION MODAL
+============================================================ */
+
+.face-check-modal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 99999;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(15, 23, 42, 0.72);
+
+    backdrop-filter:
+        blur(5px);
+}
+
+
+.face-check-modal.active {
+    display: flex;
+}
+
+
+.face-check-dialog {
+    width: 100%;
+    max-width: 510px;
+
+    max-height: calc(100vh - 40px);
+
+    overflow-y: auto;
+
+    padding: 22px;
+
+    border:
+        1px solid var(--acc-border);
+
+    border-radius: 18px;
+
+    background: var(--acc-surface);
+        
+
+    box-shadow:
+        0 25px 70px
+        rgba(0, 0, 0, 0.28);
+}
+
+
+/* HEADER */
+
+.face-check-header {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 18px;
+
+    margin-bottom: 18px;
+}
+
+
+.face-check-heading {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+
+.face-check-icon {
+    width: 42px;
+    height: 42px;
+
+    flex: 0 0 42px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+}
+
+
+.face-check-header h3 {
+    margin: 0 0 4px;
+
+    color:
+        var(--acc-text);
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+
+.face-check-header p {
+    margin: 0;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+.face-check-close {
+    width: 36px;
+    height: 36px;
+
+    flex: 0 0 36px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid var(--acc-border);
+
+    border-radius: 9px;
+
+    background:
+        transparent;
+
+    color:
+        var(--acc-muted);
+
+    cursor: pointer;
+}
+
+
+/* CAMERA */
+
+.face-camera-container {
+    position: relative;
+
+    width: 100%;
+
+    aspect-ratio: 4 / 3;
+
+    overflow: hidden;
+
+    border-radius: 14px;
+
+    background: #020617;
+}
+
+
+#attendanceFaceVideo {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    transform: scaleX(-1);
+}
+
+
+.face-camera-overlay {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    pointer-events: none;
+}
+
+
+.face-camera-oval {
+    width: 185px;
+    height: 235px;
+
+    border:
+        3px solid
+        rgba(255, 255, 255, 0.95);
+
+    border-radius: 50%;
+
+    box-shadow:
+        0 0 0 1000px
+        rgba(0, 0, 0, 0.18);
+}
+
+
+.face-camera-label {
+    position: absolute;
+
+    left: 12px;
+    bottom: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 6px 9px;
+
+    border-radius: 7px;
+
+    background:
+        rgba(0, 0, 0, 0.55);
+
+    color: white;
+
+    font-size: 11px;
+}
+
+
+/* STATUS */
+
+.face-check-status {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    min-height: 44px;
+
+    margin: 15px 0 12px;
+
+    padding: 10px 14px;
+
+    border-radius: 10px;
+
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.face-check-status.loading {
+    background:
+        rgba(37, 99, 235, 0.10);
+
+    color:
+        #2563eb;
+}
+
+
+.face-check-status.success {
+    background:
+        rgba(16, 185, 129, 0.10);
+
+    color:
+        #059669;
+}
+
+
+.face-check-status.error {
+    background:
+        rgba(239, 68, 68, 0.10);
+
+    color:
+        #dc2626;
+}
+
+
+/* HELP */
+
+.face-check-help {
+    display: grid;
+
+    gap: 7px;
+
+    margin-bottom: 15px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.face-check-help div {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+}
+
+
+.face-check-help i {
+    width: 16px;
+
+    color:
+        var(--acc-primary);
+}
+
+
+/* VERIFY */
+
+.face-verify-button {
+    width: 100%;
+
+    min-height: 44px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background:
+        var(--acc-primary);
+
+    color: #ffffff;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.face-verify-button:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+}
+
+
+@media (max-width: 600px) {
+
+    .face-check-dialog {
+        padding: 16px;
+    }
+
+
+    .face-camera-oval {
+        width: 150px;
+        height: 195px;
+    }
+
+}
+
+
+
+/* green / red ring around the camera */
+.face-camera-container.ok  { box-shadow: 0 0 0 4px #16a34a; }
+.face-camera-container.bad { box-shadow: 0 0 0 4px #e11d48; }
+
+/* wrong-face popup */
+.wrong-face-box {
+    text-align: center;
+    padding: 30px 24px;
+}
+
+.wrong-face-icon {
+    width: 82px;
+    height: 82px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #ffe6ea;
+    color: #e11d48;
+    font-size: 36px;
+}
+
+.wrong-face-box h3 {
+    margin: 0 0 8px;
+    color: #be123c;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.wrong-face-box p {
+    margin: 0 0 20px;
+    color: var(--acc-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.wrong-face-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.wrong-face-actions button {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 24px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.wrong-face-actions .btn-retry  { background: #e11d48; color: #fff; }
+.wrong-face-actions .btn-wclose { background: var(--acc-bg); color: var(--acc-text); }
+
+[data-theme="dark"] .wrong-face-icon { background: rgba(225,29,72,.18); color: #fb7185; }
+[data-theme="dark"] .wrong-face-box h3 { color: #fda4af; }
+
+
+
+{% comment %} camera modal css end  {% endcomment %}
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="attendance-dashboard">
+
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
+    <section class="attendance-hero">
+
+        <div class="attendance-hero-left">
+
+            <div class="attendance-hero-icon">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+
+            <div>
+
+                <div class="attendance-hero-title">
+                    Attendance Overview
+                </div>
+
+                <div class="attendance-hero-text">
+                    Track your attendance, working hours,
+                    check-in activity and overtime.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="attendance-hero-right">
+
+            <button
+                type="button"
+                class="attendance-hero-button"
+                onclick="window.location.reload()"
+            >
+                <i class="fa-solid fa-rotate-right"></i>
+                Refresh Data
+            </button>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PAGE HEADING
+    ====================================================== -->
+
+    <div class="attendance-heading-row">
+
+        <div class="attendance-heading-left">
+
+            <h1>
+                My Attendance
+            </h1>
+
+            <p>
+                Review your work activity and attendance records for
+                <strong>{{ today|date:"d F Y" }}</strong>.
+            </p>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         MY WORK NAVIGATION
+    ====================================================== -->
+
+    <nav class="attendance-tabs">
+
+        <a
+            href="{% url 'accountant_my_attendance' %}"
+            class="attendance-tab active"
+        >
+            <i class="fa-solid fa-calendar-check"></i>
+            Attendance
+        </a>
+
+
+        <a
+            href="{% url 'accountant_my_shift' %}"
+            class="attendance-tab"
+        >
+            <i class="fa-solid fa-clock"></i>
+            My Shift
+        </a>
+
+
+        <a
+            href="{% url 'accountant_my_leave' %}"
+            class="attendance-tab"
+        >
+            <i class="fa-solid fa-calendar-minus"></i>
+            Leave
+        </a>
+
+    </nav>
+
+
+
+    <!-- =====================================================
+         MAIN KPI CARDS
+    ====================================================== -->
+
+    <section class="attendance-stat-grid">
+
+
+        <!-- PRESENT -->
+
+        <article class="attendance-stat-card">
+
+            <div class="attendance-stat-top">
+
+                <div class="attendance-stat-icon green">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+
+                <div class="attendance-stat-chip">
+                    <i class="fa-solid fa-calendar"></i>
+                    Month
+                </div>
+
+            </div>
+
+
+            <div class="attendance-stat-value">
+                {{ present_count|default:0 }}
+            </div>
+
+            <div class="attendance-stat-label">
+                Present Days
+            </div>
+
+
+            <div class="attendance-mini-bars green">
+                <span style="height:28%;"></span>
+                <span style="height:44%;"></span>
+                <span style="height:36%;"></span>
+                <span style="height:59%;"></span>
+                <span style="height:67%;"></span>
+                <span style="height:78%;"></span>
+                <span style="height:91%;"></span>
+            </div>
+
+        </article>
+
+
+
+        <!-- LATE -->
+
+        <article class="attendance-stat-card">
+
+            <div class="attendance-stat-top">
+
+                <div class="attendance-stat-icon blue">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+
+                <div class="attendance-stat-chip">
+                    <i class="fa-solid fa-calendar"></i>
+                    Month
+                </div>
+
+            </div>
+
+
+            <div class="attendance-stat-value">
+                {{ late_count|default:0 }}
+            </div>
+
+            <div class="attendance-stat-label">
+                Late Days
+            </div>
+
+
+            <div class="attendance-mini-bars blue">
+                <span style="height:22%;"></span>
+                <span style="height:35%;"></span>
+                <span style="height:30%;"></span>
+                <span style="height:48%;"></span>
+                <span style="height:55%;"></span>
+                <span style="height:69%;"></span>
+                <span style="height:82%;"></span>
+            </div>
+
+        </article>
+
+
+
+        <!-- WORKING HOURS -->
+
+        <article class="attendance-stat-card">
+
+            <div class="attendance-stat-top">
+
+                <div class="attendance-stat-icon purple">
+                    <i class="fa-solid fa-business-time"></i>
+                </div>
+
+                <div class="attendance-stat-chip">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Total
+                </div>
+
+            </div>
+
+
+            <div class="attendance-stat-value hours-value">
+                {{ total_working_hours|default:0|floatformat:2 }}
+            </div>
+
+            <div class="attendance-stat-label">
+                Total Working Hours
+            </div>
+
+
+            <div class="attendance-mini-bars purple">
+                <span style="height:30%;"></span>
+                <span style="height:48%;"></span>
+                <span style="height:38%;"></span>
+                <span style="height:65%;"></span>
+                <span style="height:54%;"></span>
+                <span style="height:78%;"></span>
+                <span style="height:92%;"></span>
+            </div>
+
+        </article>
+
+
+
+        <!-- OVERTIME -->
+
+        <article class="attendance-stat-card">
+
+            <div class="attendance-stat-top">
+
+                <div class="attendance-stat-icon amber">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                </div>
+
+                <div class="attendance-stat-chip">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    Overtime
+                </div>
+
+            </div>
+
+
+            <div class="attendance-stat-value hours-value">
+                {{ overtime_total|default:0|floatformat:2 }}
+            </div>
+
+            <div class="attendance-stat-label">
+                Overtime Hours
+            </div>
+
+
+            <div class="attendance-mini-bars amber">
+                <span style="height:25%;"></span>
+                <span style="height:37%;"></span>
+                <span style="height:43%;"></span>
+                <span style="height:53%;"></span>
+                <span style="height:63%;"></span>
+                <span style="height:74%;"></span>
+                <span style="height:88%;"></span>
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TODAY SECONDARY KPIs
+    ====================================================== -->
+
+    <section class="attendance-secondary-grid">
+
+
+        <!-- CHECK IN -->
+
+        <article class="attendance-secondary-card">
+
+            <div class="attendance-secondary-icon attendance-stat-icon green">
+                <i class="fa-solid fa-right-to-bracket"></i>
+            </div>
+
+            <div>
+
+                <div class="attendance-secondary-label">
+                    Today's Check In
+                </div>
+
+                <div class="attendance-secondary-value">
+
+                    {% if today_attendance.check_in %}
+
+                        {{ today_attendance.check_in|date:"h:i A" }}
+
+                    {% else %}
+
+                        Not checked in
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- CHECK OUT -->
+
+        <article class="attendance-secondary-card">
+
+            <div class="attendance-secondary-icon attendance-stat-icon blue">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+
+            <div>
+
+                <div class="attendance-secondary-label">
+                    Today's Check Out
+                </div>
+
+                <div class="attendance-secondary-value">
+
+                    {% if today_attendance.check_out %}
+
+                        {{ today_attendance.check_out|date:"h:i A" }}
+
+                    {% else %}
+
+                        Not checked out
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- STATUS -->
+
+        <article class="attendance-secondary-card">
+
+            <div class="attendance-secondary-icon attendance-stat-icon purple">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+
+            <div>
+
+                <div class="attendance-secondary-label">
+                    Today's Status
+                </div>
+
+                <div class="attendance-secondary-value">
+
+                    {% if today_attendance %}
+
+                        {{ today_attendance.status|default:"Not Marked" }}
+
+                    {% else %}
+
+                        Not Marked
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <!-- TODAY OVERTIME -->
+
+        <article class="attendance-secondary-card">
+
+            <div class="attendance-secondary-icon attendance-stat-icon amber">
+                <i class="fa-solid fa-stopwatch"></i>
+            </div>
+
+            <div>
+
+                <div class="attendance-secondary-label">
+                    Today's Overtime
+                </div>
+
+                <div class="attendance-secondary-value">
+                    {{ today_attendance.overtime_hours|default:0|floatformat:2 }}
+                    hrs
+                </div>
+
+            </div>
+
+        </article>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         TODAY CLOCK + MONTH SUMMARY
+    ====================================================== -->
+
+    <div class="attendance-content-grid">
+
+
+        <!-- TODAY CLOCK -->
+
+        <section class="attendance-card">
+
+            <div class="attendance-card-header">
+
+                <div>
+
+                    <h2 class="attendance-card-title">
+                        <i class="fa-regular fa-clock"></i>
+                        Today's Attendance
+                    </h2>
+
+                    <p class="attendance-card-subtitle">
+                        Check in and check out for
+                        {{ today|date:"d F Y" }}.
+                    </p>
+
+                </div>
+
+
+                {% if today_attendance %}
+
+    {% if today_attendance.check_in and today_attendance.check_out %}
+
+        {% if today_attendance.status == "Present" %}
+
+            <span class="attendance-status present">
+                <i class="fa-solid fa-circle-check"></i>
+                Present
+            </span>
+
+        {% elif today_attendance.status == "Late" %}
+
+            <span class="attendance-status late">
+                <i class="fa-solid fa-clock"></i>
+                Late
+            </span>
+
+        {% elif today_attendance.status == "Half Day" %}
+
+            <span class="attendance-status half-day">
+                <i class="fa-solid fa-circle-half-stroke"></i>
+                Half Day
+            </span>
+
+        {% elif today_attendance.status == "Absent" %}
+
+            <span class="attendance-status absent">
+                <i class="fa-solid fa-circle-xmark"></i>
+                Absent
+            </span>
+
+        {% else %}
+
+            <span class="attendance-status default">
+                {{ today_attendance.status|default:"Completed" }}
+            </span>
+
+        {% endif %}
+
+
+    {% elif today_attendance.check_in %}
+
+        <span class="attendance-status present">
+            <i class="fa-solid fa-circle"></i>
+            Checked In
+        </span>
+
+    {% else %}
+
+        <span class="attendance-status default">
+            Not Marked
+        </span>
+
+    {% endif %}
+
+{% else %}
+
+    <span class="attendance-status default">
+        Not Marked
+    </span>
+
+{% endif %}
+
+            </div>
+
+
+
+            <div class="attendance-card-body">
+
+                <div class="today-clock-content">
+
+
+                    {% if not today_attendance or not today_attendance.check_in %}
+
+                        <!-- NOT CHECKED IN -->
+
+                        <div class="today-clock-icon not-marked">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </div>
+
+                        <h3 class="today-clock-title">
+                            Ready to start your day?
+                        </h3>
+
+                        <p class="today-clock-description">
+                            Mark your attendance by checking in.
+                            <br>
+                            Your check-in time will be recorded automatically.
+                        </p>
+
+
+                        <button
+                            type="button"
+                            class="attendance-action-btn check-in-btn"
+                            id="checkInButton"
+                            onclick="markAttendance('check_in')"
+                        >
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            Check In
+                        </button>
+
+
+
+                    {% elif today_attendance.check_in and not today_attendance.check_out %}
+
+                        <!-- CURRENTLY CHECKED IN -->
+
+                        <div class="today-clock-icon checked-in">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                        <h3 class="today-clock-title">
+                            You're checked in
+                        </h3>
+
+                        <p class="today-clock-description">
+                            Your attendance is currently active.
+                            <br>
+                            Remember to check out when your work is complete.
+                        </p>
+
+
+                        <div class="today-clock-times">
+
+                            <div class="today-clock-time">
+
+                                <span>
+                                    Check In
+                                </span>
+
+                                <strong>
+                                    {{ today_attendance.check_in|date:"h:i A" }}
+                                </strong>
+
+                            </div>
+
+
+                            <div class="today-clock-time">
+
+                                <span>
+                                    Status
+                                </span>
+
+                                <strong>
+                                    {{ today_attendance.status }}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            class="attendance-action-btn check-out-btn"
+                            id="checkOutButton"
+                            onclick="markAttendance('check_out')"
+                        >
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            Check Out
+                        </button>
+
+
+
+                    {% else %}
+
+                        <!-- COMPLETED -->
+
+                        <div class="today-clock-icon completed">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+
+                        <h3 class="today-clock-title">
+                            You're done for today
+                        </h3>
+
+                        <p class="today-clock-description">
+                            Your attendance has been completed successfully.
+                        </p>
+
+
+                        <div class="today-clock-times">
+
+                            <div class="today-clock-time">
+
+                                <span>
+                                    Check In
+                                </span>
+
+                                <strong>
+                                    {{ today_attendance.check_in|date:"h:i A" }}
+                                </strong>
+
+                            </div>
+
+                            <div class="today-clock-time">
+
+    <span>
+        Check Out
+    </span>
+
+    <strong>
+        {{ today_attendance.check_out|date:"h:i A" }}
+    </strong>
+
+</div>
+
+
+<div class="today-clock-time">
+
+    <span>
+        Status
+    </span>
+
+    <strong>
+        {% if today_attendance.status == "Present" %}
+
+            <span class="attendance-status present">
+                <i class="fa-solid fa-circle-check"></i>
+                Present
+            </span>
+
+        {% elif today_attendance.status == "Late" %}
+
+            <span class="attendance-status late">
+                <i class="fa-solid fa-clock"></i>
+                Late
+            </span>
+
+        {% elif today_attendance.status == "Half Day" %}
+
+            <span class="attendance-status half-day">
+                <i class="fa-solid fa-circle-half-stroke"></i>
+                Half Day
+            </span>
+
+        {% elif today_attendance.status == "Absent" %}
+
+            <span class="attendance-status absent">
+                <i class="fa-solid fa-circle-xmark"></i>
+                Absent
+            </span>
+
+        {% else %}
+
+            <span class="attendance-status default">
+                {{ today_attendance.status|default:"—" }}
+            </span>
+
+        {% endif %}
+    </strong>
+
+</div>
+
+
+<div class="today-clock-time">
+
+    <span>
+        Overtime
+    </span>
+
+    <strong>
+        {{ today_attendance.overtime_hours|default:0|floatformat:2 }}
+        hrs
+    </strong>
+
+</div>
+                            
+
+                        </div>
+
+
+                        {% if today_attendance.status == "Half Day" %}
+
+    <div class="attendance-complete attendance-half-day-message">
+        <i class="fa-solid fa-circle-half-stroke"></i>
+        Attendance completed — Half Day
+    </div>
+
+{% elif today_attendance.status == "Late" %}
+
+    <div class="attendance-complete attendance-late-message">
+        <i class="fa-solid fa-clock"></i>
+        Attendance completed — Late
+    </div>
+
+{% elif today_attendance.status == "Absent" %}
+
+    <div class="attendance-complete attendance-absent-message">
+        <i class="fa-solid fa-circle-xmark"></i>
+        Attendance completed — Absent
+    </div>
+
+{% else %}
+
+    <div class="attendance-complete">
+        <i class="fa-solid fa-circle-check"></i>
+        Attendance completed — Present
+    </div>
+
+{% endif %}
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- MONTH SUMMARY -->
+
+        <section class="attendance-card">
+
+            <div class="attendance-card-header">
+
+                <div>
+
+                    <h2 class="attendance-card-title">
+                        <i class="fa-solid fa-chart-column"></i>
+                        Monthly Summary
+                    </h2>
+
+                    <p class="attendance-card-subtitle">
+                        Attendance performance for selected month
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="attendance-card-body">
+
+
+                <!-- PRESENT -->
+
+                <div class="attendance-summary-row">
+
+                    <div class="attendance-summary-left">
+
+                        <div class="attendance-summary-icon attendance-stat-icon green">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="attendance-summary-name">
+                                Present Days
+                            </div>
+
+                            <div class="attendance-summary-desc">
+                                Days marked present
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="attendance-summary-value">
+                        {{ present_count|default:0 }}
+                    </div>
+
+                </div>
+
+
+
+                <!-- LATE -->
+
+                <div class="attendance-summary-row">
+
+                    <div class="attendance-summary-left">
+
+                        <div class="attendance-summary-icon attendance-stat-icon blue">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="attendance-summary-name">
+                                Late Days
+                            </div>
+
+                            <div class="attendance-summary-desc">
+                                Late attendance records
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="attendance-summary-value">
+                        {{ late_count|default:0 }}
+                    </div>
+
+                </div>
+
+
+
+                <!-- HOURS -->
+
+                <div class="attendance-summary-row">
+
+                    <div class="attendance-summary-left">
+
+                        <div class="attendance-summary-icon attendance-stat-icon purple">
+                            <i class="fa-solid fa-business-time"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="attendance-summary-name">
+                                Working Hours
+                            </div>
+
+                            <div class="attendance-summary-desc">
+                                Total hours worked
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="attendance-summary-value">
+                        {{ total_working_hours|default:0|floatformat:2 }}
+                        hrs
+                    </div>
+
+                </div>
+
+
+
+                <!-- OVERTIME -->
+
+                <div class="attendance-summary-row">
+
+                    <div class="attendance-summary-left">
+
+                        <div class="attendance-summary-icon attendance-stat-icon amber">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="attendance-summary-name">
+                                Overtime
+                            </div>
+
+                            <div class="attendance-summary-desc">
+                                Total overtime worked
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="attendance-summary-value">
+                        {{ overtime_total|default:0|floatformat:2 }}
+                        hrs
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         ATTENDANCE HISTORY
+    ====================================================== -->
+
+    <section class="attendance-card attendance-history-card">
+
+        <div class="attendance-card-header">
+
+            <div>
+
+                <h2 class="attendance-card-title">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    Attendance History
+                </h2>
+
+                <p class="attendance-card-subtitle">
+                    Your attendance records for the selected month.
+                </p>
+
+            </div>
+
+
+            <form method="get">
+
+                <input
+                    type="month"
+                    name="month"
+                    class="attendance-month-input"
+                    value="{{ selected_month }}"
+                    onchange="this.form.submit()"
+                >
+
+            </form>
+
+        </div>
+
+
+
+        {% if attendance_rows %}
+
+            <div class="attendance-table-wrap">
+
+                <table class="attendance-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Working Hours</th>
+                            <th>Overtime</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for row in attendance_rows %}
+
+                            <tr>
+
+                                <!-- DATE -->
+
+                                <td>
+
+                                    <strong>
+                                        {{ row.record.date|date:"d M Y" }}
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    {% if row.record.status == "Present" %}
+
+                                        <span class="attendance-status present">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            {{ row.record.status }}
+                                        </span>
+
+
+                                    {% elif row.record.status == "Late" %}
+
+                                        <span class="attendance-status late">
+                                            <i class="fa-solid fa-clock"></i>
+                                            {{ row.record.status }}
+                                        </span>
+
+
+                                    {% elif row.record.status == "Half Day" %}
+
+                                        <span class="attendance-status half-day">
+                                            <i class="fa-solid fa-circle-half-stroke"></i>
+                                            {{ row.record.status }}
+                                        </span>
+
+
+                                    {% elif row.record.status == "Absent" %}
+
+                                        <span class="attendance-status absent">
+                                            <i class="fa-solid fa-circle-xmark"></i>
+                                            {{ row.record.status }}
+                                        </span>
+
+
+                                    {% else %}
+
+                                        <span class="attendance-status default">
+                                            {{ row.record.status|default:"—" }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- CHECK IN -->
+
+                                <td>
+
+                                    {% if row.record.check_in %}
+
+                                        {{ row.record.check_in|date:"h:i A" }}
+
+                                    {% else %}
+
+                                        —
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- CHECK OUT -->
+
+                                <td>
+
+                                    {% if row.record.check_out %}
+
+                                        {{ row.record.check_out|date:"h:i A" }}
+
+                                    {% else %}
+
+                                        —
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- HOURS -->
+
+                                <td>
+
+                                    <strong>
+                                        {{ row.working_hours|default:0|floatformat:2 }}
+                                    </strong>
+                                    hrs
+
+                                </td>
+
+
+                                <!-- OVERTIME -->
+
+                                <td>
+
+                                    {{ row.record.overtime_hours|default:0|floatformat:2 }}
+                                    hrs
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+        {% else %}
+
+            <div class="attendance-empty">
+
+                <i class="fa-regular fa-calendar-xmark"></i>
+
+                No attendance records found for this month.
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+
+
+
+
+
+<!-- ============================================================
+     FACE VERIFICATION MODAL
+============================================================ -->
+
+<div id="faceCheckModal" class="face-check-modal" aria-hidden="true">
+
+    <div class="face-check-dialog">
+
+        <div class="face-check-header">
+
+            <div class="face-check-heading">
+                <div class="face-check-icon">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+
+                <div>
+                    <h3>Verify Your Identity</h3>
+                    <p>Look straight at the camera. Scanning starts automatically.</p>
+                </div>
+            </div>
+
+            <button type="button" class="face-check-close"
+                    onclick="closeFaceCheckModal()" aria-label="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+        </div>
+
+        <div class="face-camera-container" id="faceCamBox">
+
+            <video id="attendanceFaceVideo" autoplay muted playsinline></video>
+
+            <div class="face-camera-overlay">
+                <div class="face-camera-oval"></div>
+            </div>
+
+            <div class="face-camera-label">
+                <i class="fa-solid fa-camera"></i>
+                Live camera
+            </div>
+
+        </div>
+
+        <div id="faceCheckStatus" class="face-check-status">
+            <i class="fa-solid fa-camera"></i>
+            <span>Preparing camera...</span>
+        </div>
+
+        <div class="face-check-help">
+            <div><i class="fa-solid fa-lightbulb"></i> Make sure your face is clearly visible.</div>
+            <div><i class="fa-solid fa-user"></i> Only one person should be visible.</div>
+            <div><i class="fa-solid fa-sun"></i> Face the light. Don't sit with a window behind you.</div>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     WRONG FACE POPUP
+============================================================ -->
+
+<div id="wrongFaceModal" class="face-check-modal" style="z-index:100000;">
+
+    <div class="face-check-dialog wrong-face-box" role="alertdialog">
+
+        <div class="wrong-face-icon">
+            <i class="fa-solid fa-xmark"></i>
+        </div>
+
+        <h3>Wrong face</h3>
+
+        <p>
+            This face does not match the face registered for
+            <strong>{{ staff.name }}</strong>.<br>
+            Only <strong>{{ staff.name }}</strong> can check in from this account.
+        </p>
+
+        <div class="wrong-face-actions">
+            <button type="button" class="btn-retry" id="wrongFaceRetry">Try again</button>
+            <button type="button" class="btn-wclose" id="wrongFaceClose">Close</button>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+<script>
+(function () {
+
+    /* ============================================================
+       SETTINGS  (values come from Django)
+    ============================================================ */
+
+    const URL_MARK       = "{% url 'accountant_mark_attendance' %}";
+    const FACE_ENROLLED  = {{ face_enrolled|yesno:"true,false" }};
+    const THRESHOLD      = {{ face_threshold|default:"0.45" }};
+    const MODEL_URL      = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+
+    const MISMATCH_LIMIT = 3;   // wrong-face frames in a row -> show popup
+    const MATCH_FRAMES   = 3;   // matching frames in a row   -> accept
+
+    // saved face(s) of the logged-in employee
+    let rawStored = {{ face_descriptor_json|default:"[]"|safe }};
+    if (rawStored.length && typeof rawStored[0] === "number") rawStored = [rawStored];
+
+    const STORED = rawStored
+        .filter(d => Array.isArray(d) && d.length === 128)
+        .map(d => Float32Array.from(d));
+
+
+    /* ============================================================
+       SMALL HELPERS
+    ============================================================ */
+
+    const $ = id => document.getElementById(id);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    function getCookie(name) {
+        let value = null;
+        if (document.cookie) {
+            document.cookie.split(";").forEach(function (c) {
+                c = c.trim();
+                if (c.substring(0, name.length + 1) === name + "=") {
+                    value = decodeURIComponent(c.substring(name.length + 1));
+                }
+            });
+        }
+        return value;
+    }
+
+    function showAttendanceMessage(message, type) {
+        type = type || "success";
+
+        const old = document.querySelector(".attendance-message");
+        if (old) old.remove();
+
+        const el = document.createElement("div");
+        el.className = "attendance-message " + type;
+
+        const icon = type === "success" ? "fa-circle-check" : "fa-circle-exclamation";
+        el.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>';
+        el.querySelector("span").textContent = message;
+
+        document.body.appendChild(el);
+        setTimeout(function () { el.remove(); }, 3500);
+    }
+
+    function setStatus(message, type) {
+        const el = $("faceCheckStatus");
+        el.className = "face-check-status" + (type ? " " + type : "");
+
+        let icon = "fa-camera";
+        if (type === "loading") icon = "fa-spinner fa-spin";
+        else if (type === "success") icon = "fa-circle-check";
+        else if (type === "error") icon = "fa-circle-exclamation";
+
+        el.innerHTML = '<i class="fa-solid ' + icon + '"></i><span></span>';
+        el.querySelector("span").textContent = message;
+    }
+
+    function setRing(cls) {
+        $("faceCamBox").className = "face-camera-container" + (cls ? " " + cls : "");
+    }
+
+    function bestDistance(live) {
+        let best = Infinity;
+        for (const s of STORED) {
+            const d = faceapi.euclideanDistance(live, s);
+            if (d < best) best = d;
+        }
+        return best;
+    }
+
+
+    /* ============================================================
+       LOAD MODELS (from CDN, once)
+    ============================================================ */
+
+    let modelsReady = false;
+
+    async function loadModels() {
+        if (modelsReady) return;
+
+        if (typeof faceapi === "undefined") {
+            throw new Error("Face library could not be loaded. Check your internet.");
+        }
+
+        await faceapi.tf.ready();
+
+        await Promise.all([
+            faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        ]);
+
+        modelsReady = true;
+    }
+
+
+    /* ============================================================
+       FACE DETECTION
+       Tries: raw video, then a brightened frame,
+       each with two different detectors.
+    ============================================================ */
+
+    const frameCanvas = document.createElement("canvas");
+
+    function grabFrame(video) {
+        const size = 416;
+        frameCanvas.width = size;
+        frameCanvas.height = size;
+
+        const ctx = frameCanvas.getContext("2d", { willReadFrequently: true });
+
+        const s  = Math.min(video.videoWidth, video.videoHeight);
+        const sx = (video.videoWidth - s) / 2;
+        const sy = (video.videoHeight - s) / 2;
+
+        ctx.filter = "brightness(1.6) contrast(1.15)";
+        ctx.drawImage(video, sx, sy, s, s, 0, 0, size, size);
+
+        return frameCanvas;
+    }
+
+    async function detectFace(video) {
+        const ssd  = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2 });
+        const tiny = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.2 });
+
+        for (const input of [video, grabFrame(video)]) {
+            for (const opts of [ssd, tiny]) {
+                const det = await faceapi
+                    .detectSingleFace(input, opts)
+                    .withFaceLandmarks()
+                    .withFaceDescriptor();
+
+                if (det) return det;
+            }
+        }
+        return null;
+    }
+
+
+    /* ============================================================
+       CAMERA + MODALS
+    ============================================================ */
+
+    let stream = null;
+    let scanning = false;
+
+    function stopCamera() {
+        scanning = false;
+
+        if (stream) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            stream = null;
+        }
+
+        const v = $("attendanceFaceVideo");
+        if (v) {
+            v.pause();
+            v.srcObject = null;
+        }
+    }
+
+    window.closeFaceCheckModal = function () {
+        stopCamera();
+        $("faceCheckModal").classList.remove("active");
+        $("faceCheckModal").setAttribute("aria-hidden", "true");
+    };
+
+    function showWrongFace() {
+        window.closeFaceCheckModal();
+        $("wrongFaceModal").classList.add("active");
+    }
+
+    function closeWrongFace() {
+        $("wrongFaceModal").classList.remove("active");
+    }
+
+    $("wrongFaceClose").onclick = closeWrongFace;
+
+    $("wrongFaceRetry").onclick = function () {
+        closeWrongFace();
+        startFaceCheckIn();
+    };
+
+    $("wrongFaceModal").addEventListener("click", function (e) {
+        if (e.target === $("wrongFaceModal")) closeWrongFace();
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            closeWrongFace();
+            window.closeFaceCheckModal();
+        }
+    });
+
+    $("faceCheckModal").addEventListener("click", function (e) {
+        if (e.target === $("faceCheckModal")) window.closeFaceCheckModal();
+    });
+
+    window.addEventListener("beforeunload", stopCamera);
+
+
+    /* ============================================================
+       OPEN MODAL + START SCANNING
+    ============================================================ */
+
+    async function startFaceCheckIn() {
+
+        if (!FACE_ENROLLED || !STORED.length) {
+            showAttendanceMessage(
+                "Your face is not registered. Please ask HR to register it.",
+                "error"
+            );
+            return;
+        }
+
+        setRing("");
+        setStatus("Loading face recognition...", "loading");
+
+        $("faceCheckModal").classList.add("active");
+        $("faceCheckModal").setAttribute("aria-hidden", "false");
+
+        try {
+            await loadModels();
+
+            setStatus("Starting camera...", "loading");
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Camera needs HTTPS (or localhost).");
+            }
+
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user", width: 480, height: 480 },
+                audio: false
+            });
+
+            const v = $("attendanceFaceVideo");
+            v.srcObject = stream;
+
+            await new Promise(function (res) {
+                if (v.readyState >= 1) res();
+                else v.onloadedmetadata = res;
+            });
+
+            await v.play();
+
+            while (v.readyState < 2 || !v.videoWidth) await sleep(100);
+
+        } catch (e) {
+            console.error("Camera / model error:", e);
+
+            let msg = e.message || "Unable to start the camera.";
+            if (e.name === "NotAllowedError") msg = "Camera permission denied. Allow camera access.";
+            else if (e.name === "NotFoundError") msg = "No camera found on this device.";
+            else if (e.name === "NotReadableError") msg = "Camera is being used by another app.";
+
+            setStatus(msg, "error");
+            return;
+        }
+
+        scanning = true;
+        scanLoop();
+    }
+
+
+    /* ============================================================
+       THE SCAN LOOP
+    ============================================================ */
+
+    async function scanLoop() {
+
+        let mismatches = 0;
+        let matches = 0;
+        let misses = 0;
+
+        setStatus("Scanning...", "loading");
+
+        while (scanning) {
+
+            let det = null;
+
+            try {
+                det = await detectFace($("attendanceFaceVideo"));
+            } catch (err) {
+                console.error("Detection error:", err);
+                setStatus("Detection error: " + (err.message || err), "error");
+                setRing("bad");
+                scanning = false;
+                return;
+            }
+
+            if (!scanning) return;
+
+            /* ---- no face in the frame ---- */
+
+            if (!det) {
+                mismatches = 0;
+                matches = 0;
+                misses++;
+
+                setRing("");
+                setStatus(
+                    misses > 6
+                        ? "Still no face. Move to a brighter spot and keep your face in the circle."
+                        : "No face detected. Look at the camera.",
+                    "loading"
+                );
+
+                await sleep(400);
+                continue;
+            }
+
+            misses = 0;
+
+            /* ---- compare with the saved face (in the browser) ---- */
+
+            const dist = bestDistance(det.descriptor);
+            console.log("face distance:", dist.toFixed(3), "(must be below " + THRESHOLD + ")");
+
+            if (dist > THRESHOLD) {
+                matches = 0;
+                mismatches++;
+
+                setRing("bad");
+                setStatus("Checking face...", "error");
+
+                if (mismatches >= MISMATCH_LIMIT) {
+                    showWrongFace();
+                    return;
+                }
+
+                await sleep(350);
+                continue;
+            }
+
+            /* ---- matched: need several frames in a row ---- */
+
+            mismatches = 0;
+            matches++;
+
+            setRing("ok");
+
+            if (matches < MATCH_FRAMES) {
+                setStatus("Matching... " + matches + "/" + MATCH_FRAMES, "success");
+                await sleep(300);
+                continue;
+            }
+
+            setStatus("Face matched. Recording attendance...", "success");
+
+            /* ---- send to Django (server checks the face again) ---- */
+
+            let data;
+            let ok = false;
+
+            try {
+                const formData = new FormData();
+                formData.append("action", "check_in");
+                formData.append("face_descriptor", JSON.stringify(Array.from(det.descriptor)));
+
+                const response = await fetch(URL_MARK, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json"
+                    },
+                    body: formData
+                });
+
+                ok = response.ok;
+                data = await response.json();
+
+            } catch (e) {
+                setStatus("Network error. Please try again.", "error");
+                setRing("bad");
+                scanning = false;
+                return;
+            }
+
+            if (ok && data.success) {
+                setStatus(data.message || "Checked in successfully.", "success");
+                scanning = false;
+                stopCamera();
+
+                showAttendanceMessage(data.message || "Checked in successfully.", "success");
+                setTimeout(function () { window.location.reload(); }, 900);
+                return;
+            }
+
+            // server says it is a different person
+            if (data && data.matched === false) {
+                showWrongFace();
+                return;
+            }
+
+            setRing("bad");
+            setStatus((data && data.message) || "Could not record attendance.", "error");
+            scanning = false;
+            return;
+        }
+    }
+
+
+    /* ============================================================
+       CHECK IN / CHECK OUT BUTTONS
+    ============================================================ */
+
+    window.markAttendance = async function (action) {
+
+        // Check-in -> face scan
+        if (action === "check_in") {
+            await startFaceCheckIn();
+            return;
+        }
+
+        if (action !== "check_out") {
+            showAttendanceMessage("Invalid attendance action.", "error");
+            return;
+        }
+
+        // Check-out -> no face needed
+        const button = $("checkOutButton");
+
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking Out...';
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("action", "check_out");
+
+            const response = await fetch(URL_MARK, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json"
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Unable to check out.");
+            }
+
+            showAttendanceMessage(data.message || "Checked out successfully.", "success");
+            setTimeout(function () { window.location.reload(); }, 700);
+
+        } catch (error) {
+            showAttendanceMessage(error.message || "Unable to check out.", "error");
+
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Check Out';
+            }
+        }
+    };
+
+})();
+</script>
+{% endblock %}

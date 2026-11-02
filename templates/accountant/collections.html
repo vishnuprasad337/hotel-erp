@@ -1,0 +1,2091 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}
+Collections | Hotel ERP
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   COLLECTIONS
+============================================================ */
+
+.collections-page {
+    width: 100%;
+}
+
+
+/* ============================================================
+   HERO
+============================================================ */
+
+.collections-hero {
+    position: relative;
+
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 22px 24px;
+
+    margin-bottom: 23px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            115deg,
+            #7c2cff 0%,
+            #5b21b6 52%,
+            #172554 100%
+        );
+
+    color: #fff;
+}
+
+
+.collections-hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 220px;
+    height: 220px;
+
+    right: 5%;
+    top: -95px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+
+.collections-hero-main {
+    position: relative;
+
+    z-index: 1;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+}
+
+
+.collections-hero-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background:
+        rgba(255,255,255,.14);
+
+    font-size: 21px;
+}
+
+
+.collections-hero h2 {
+    margin: 0 0 4px;
+
+    font-size: 21px;
+    font-weight: 750;
+}
+
+
+.collections-hero p {
+    margin: 0;
+
+    color:
+        rgba(255,255,255,.78);
+}
+
+
+.collections-refresh {
+    position: relative;
+
+    z-index: 1;
+
+    min-height: 42px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 15px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.25);
+
+    border-radius: 9px;
+
+    background:
+        rgba(255,255,255,.08);
+
+    color: #fff;
+
+    cursor: pointer;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.collections-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 21px;
+}
+
+
+.collections-title {
+    margin: 0 0 5px;
+
+    color:
+        var(--acc-text);
+
+    font-size: 27px;
+    font-weight: 750;
+}
+
+
+.collections-subtitle {
+    margin: 0;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 13px;
+}
+
+
+.collections-actions {
+    display: flex;
+
+    gap: 9px;
+}
+
+
+.collections-btn {
+    min-height: 42px;
+
+    padding: 0 15px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 9px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+
+    text-decoration: none;
+
+    font-size: 13px;
+    font-weight: 650;
+
+    cursor: pointer;
+}
+
+
+.collections-btn-primary {
+    border-color:
+        var(--acc-primary);
+
+    background:
+        var(--acc-primary);
+
+    color: #fff;
+}
+
+
+.collections-btn-primary:hover {
+    color: #fff;
+}
+
+
+/* ============================================================
+   STATS
+============================================================ */
+
+.collections-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0,1fr)
+        );
+
+    gap: 15px;
+
+    margin-bottom: 21px;
+}
+
+
+.collections-stat {
+    min-width: 0;
+
+    padding: 19px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 13px;
+
+    background:
+        var(--acc-card);
+
+    box-shadow:
+        var(--acc-shadow-sm);
+}
+
+
+.collections-stat-icon {
+    width: 45px;
+    height: 45px;
+
+    flex: 0 0 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+
+    font-size: 18px;
+}
+
+
+.collections-stat-info {
+    min-width: 0;
+}
+
+
+.collections-stat-label {
+    margin-bottom: 5px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.collections-stat-value {
+    overflow: hidden;
+
+    color:
+        var(--acc-text);
+
+    font-size: 20px;
+    font-weight: 750;
+
+    white-space: nowrap;
+
+    text-overflow: ellipsis;
+}
+
+
+.collections-stat-note {
+    margin-top: 3px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   PANEL
+============================================================ */
+
+.collections-panel {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 13px;
+
+    background:
+        var(--acc-card);
+
+    box-shadow:
+        var(--acc-shadow-sm);
+}
+
+
+.collections-panel-header {
+    min-height: 61px;
+
+    padding: 13px 18px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.collections-panel-title {
+    margin: 0;
+
+    color:
+        var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   FILTER
+============================================================ */
+
+.collections-filter {
+    padding: 16px 18px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(220px,2fr)
+        minmax(140px,1fr)
+        minmax(150px,1fr)
+        minmax(150px,1fr)
+        auto
+        auto;
+
+    gap: 10px;
+
+    align-items: end;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.collections-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.collections-control {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 11px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 8px;
+
+    outline: 0;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+}
+
+
+.collections-control:focus {
+    border-color:
+        var(--acc-primary);
+
+    box-shadow:
+        0 0 0 3px
+        var(--acc-primary-soft);
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.collections-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.collections-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.collections-table th {
+    padding: 13px 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+
+.collections-table td {
+    padding: 14px 15px;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+
+    color:
+        var(--acc-text);
+
+    font-size: 12px;
+
+    vertical-align: middle;
+}
+
+
+.collections-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+.collections-table tbody tr:hover {
+    background:
+        var(--acc-primary-soft);
+}
+
+
+.collection-invoice {
+    color:
+        var(--acc-primary);
+
+    font-weight: 700;
+}
+
+
+.collection-guest {
+    font-weight: 650;
+}
+
+
+.collection-muted {
+    margin-top: 3px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.collection-money {
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.collection-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+    font-weight: 750;
+
+    text-transform: capitalize;
+}
+
+
+.collection-status-paid {
+    background:
+        rgba(16,185,129,.12);
+
+    color:
+        #059669;
+}
+
+
+.collection-status-partial {
+    background:
+        rgba(245,158,11,.13);
+
+    color:
+        #d97706;
+}
+
+
+.collection-status-pending {
+    background:
+        rgba(239,68,68,.11);
+
+    color:
+        #dc2626;
+}
+
+
+/* ============================================================
+   PROGRESS
+============================================================ */
+
+.collection-progress {
+    width: 115px;
+}
+
+
+.collection-progress-info {
+    margin-bottom: 5px;
+
+    display: flex;
+    justify-content: space-between;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.collection-progress-track {
+    height: 6px;
+
+    overflow: hidden;
+
+    border-radius: 20px;
+
+    background:
+        var(--acc-bg);
+}
+
+
+.collection-progress-fill {
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        var(--acc-primary);
+}
+
+
+/* ============================================================
+   ACTIONS
+============================================================ */
+
+.collection-row-actions {
+    display: flex;
+
+    gap: 6px;
+}
+
+
+.collection-icon-btn {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 8px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-muted);
+
+    cursor: pointer;
+}
+
+
+.collection-icon-btn:hover {
+    border-color:
+        var(--acc-primary);
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.collection-backdrop {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 9998;
+
+    display: none;
+
+    background:
+        rgba(15,23,42,.58);
+
+    backdrop-filter:
+        blur(3px);
+}
+
+
+.collection-backdrop.show {
+    display: block;
+}
+
+
+.collection-modal {
+    position: fixed;
+
+    z-index: 9999;
+
+    left: 50%;
+    top: 50%;
+
+    width:
+        min(
+            650px,
+            calc(100% - 30px)
+        );
+
+    max-height:
+        calc(100vh - 40px);
+
+    overflow-y: auto;
+
+    transform:
+        translate(-50%,-50%);
+
+    display: none;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 15px;
+
+    background:
+        var(--acc-card);
+
+    color:
+        var(--acc-text);
+
+    box-shadow:
+        0 25px 80px
+        rgba(0,0,0,.28);
+}
+
+
+.collection-modal.show {
+    display: block;
+}
+
+
+.collection-modal-header {
+    min-height: 64px;
+
+    padding: 14px 19px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom:
+        1px solid
+        var(--acc-border);
+}
+
+
+.collection-modal-header h3 {
+    margin: 0;
+
+    color:
+        var(--acc-text);
+
+    font-size: 17px;
+}
+
+
+.collection-modal-close {
+    width: 34px;
+    height: 34px;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    background:
+        var(--acc-bg);
+
+    color:
+        var(--acc-text);
+
+    cursor: pointer;
+}
+
+
+.collection-modal-body {
+    padding: 19px;
+}
+
+
+.collection-detail-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2,minmax(0,1fr));
+
+    gap: 11px;
+}
+
+
+.collection-detail {
+    padding: 13px;
+
+    border:
+        1px solid
+        var(--acc-border);
+
+    border-radius: 9px;
+}
+
+
+.collection-detail-label {
+    margin-bottom: 5px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.collection-detail-value {
+    color:
+        var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+}
+
+
+.collection-balance-box {
+    margin-top: 14px;
+
+    padding: 17px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3,minmax(0,1fr));
+
+    gap: 10px;
+
+    border-radius: 10px;
+
+    background:
+        var(--acc-primary-soft);
+}
+
+
+.collection-balance-item span {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 10px;
+}
+
+
+.collection-balance-item strong {
+    color:
+        var(--acc-text);
+
+    font-size: 15px;
+}
+
+
+.collection-balance-item:last-child strong {
+    color:
+        var(--acc-primary);
+}
+
+
+/* ============================================================
+   EMPTY
+============================================================ */
+
+.collections-empty {
+    padding: 55px 20px;
+
+    text-align: center;
+}
+
+
+.collections-empty-icon {
+    width: 58px;
+    height: 58px;
+
+    margin:
+        0 auto 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background:
+        var(--acc-primary-soft);
+
+    color:
+        var(--acc-primary);
+
+    font-size: 22px;
+}
+
+
+.collections-empty h3 {
+    margin:
+        0 0 5px;
+
+    color:
+        var(--acc-text);
+}
+
+
+.collections-empty p {
+    margin: 0;
+
+    color:
+        var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 1150px) {
+
+    .collections-stats {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+
+
+    .collections-filter {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .collections-hero,
+    .collections-header {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+
+    .collections-actions {
+        width: 100%;
+    }
+
+
+    .collections-actions .collections-btn {
+        flex: 1;
+    }
+
+
+    .collections-stats,
+    .collections-filter,
+    .collection-detail-grid,
+    .collection-balance-box {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+
+
+<div class="collections-page">
+
+
+    <!-- ====================================================
+         HERO
+    ===================================================== -->
+
+    <div class="collections-hero">
+
+        <div class="collections-hero-main">
+
+            <div class="collections-hero-icon">
+
+                <i class="fas fa-chart-line"></i>
+
+            </div>
+
+
+            <div>
+
+                <h2>
+                    Collection Management
+                </h2>
+
+                <p>
+                    Monitor collections and outstanding invoice balances.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="collections-refresh"
+            onclick="window.location.reload()"
+        >
+
+            <i class="fas fa-sync-alt"></i>
+
+            Refresh Data
+
+        </button>
+
+    </div>
+
+
+    <!-- ====================================================
+         HEADER
+    ===================================================== -->
+
+    <div class="collections-header">
+
+        <div>
+
+            <h1 class="collections-title">
+                Collections
+            </h1>
+
+            <p class="collections-subtitle">
+                Track billed amounts, received payments and outstanding balances.
+            </p>
+
+        </div>
+
+
+        <div class="collections-actions">
+
+            <button
+                type="button"
+                class="collections-btn"
+                onclick="window.print()"
+            >
+
+                <i class="fas fa-print"></i>
+
+                Print
+
+            </button>
+
+
+            <button
+                type="button"
+                class="collections-btn collections-btn-primary"
+                onclick="exportCollections()"
+            >
+
+                <i class="fas fa-download"></i>
+
+                Export
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================================
+         STATS
+    ===================================================== -->
+
+    <div class="collections-stats">
+
+
+        <div class="collections-stat">
+
+            <div class="collections-stat-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+
+            <div class="collections-stat-info">
+
+                <div class="collections-stat-label">
+                    Total Billed
+                </div>
+
+                <div class="collections-stat-value">
+                    ₹{{ total_billed|floatformat:2 }}
+                </div>
+
+                <div class="collections-stat-note">
+                    Selected period
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="collections-stat">
+
+            <div class="collections-stat-icon">
+                <i class="fas fa-circle-check"></i>
+            </div>
+
+            <div class="collections-stat-info">
+
+                <div class="collections-stat-label">
+                    Collected
+                </div>
+
+                <div class="collections-stat-value">
+                    ₹{{ total_collected|floatformat:2 }}
+                </div>
+
+                <div class="collections-stat-note">
+                    {{ paid_count }} fully paid
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="collections-stat">
+
+            <div class="collections-stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <div class="collections-stat-info">
+
+                <div class="collections-stat-label">
+                    Outstanding
+                </div>
+
+                <div class="collections-stat-value">
+                    ₹{{ total_outstanding|floatformat:2 }}
+                </div>
+
+                <div class="collections-stat-note">
+
+                    {{ partial_count }} partial ·
+                    {{ pending_count }} pending
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="collections-stat">
+
+            <div class="collections-stat-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+
+            <div class="collections-stat-info">
+
+                <div class="collections-stat-label">
+                    Collection Rate
+                </div>
+
+                <div class="collections-stat-value">
+                    {{ collection_rate|floatformat:1 }}%
+                </div>
+
+                <div class="collections-stat-note">
+                    Collected / billed
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ====================================================
+         PANEL
+    ===================================================== -->
+
+    <div class="collections-panel">
+
+
+        <div class="collections-panel-header">
+
+            <h2 class="collections-panel-title">
+                Invoice Collections
+            </h2>
+
+        </div>
+
+
+        <!-- =================================================
+             FILTER
+        ================================================== -->
+
+        <form
+            method="get"
+            class="collections-filter"
+        >
+
+
+            <div class="collections-field">
+
+                <label>
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    class="collections-control"
+                    placeholder="Invoice, guest or room..."
+                >
+
+            </div>
+
+
+            <div class="collections-field">
+
+                <label>
+                    Status
+                </label>
+
+                <select
+                    name="status"
+                    class="collections-control"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option
+                        value="paid"
+                        {% if status_filter == "paid" %}
+                            selected
+                        {% endif %}
+                    >
+                        Paid
+                    </option>
+
+                    <option
+                        value="partial"
+                        {% if status_filter == "partial" %}
+                            selected
+                        {% endif %}
+                    >
+                        Partial
+                    </option>
+
+                    <option
+                        value="pending"
+                        {% if status_filter == "pending" %}
+                            selected
+                        {% endif %}
+                    >
+                        Pending
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="collections-field">
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    name="date"
+                    value="{{ date_filter }}"
+                    class="collections-control"
+                >
+
+            </div>
+
+
+            <div class="collections-field">
+
+                <label>
+                    Month
+                </label>
+
+                <input
+                    type="month"
+                    name="month"
+                    value="{{ month_filter }}"
+                    class="collections-control"
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="collections-btn collections-btn-primary"
+            >
+
+                <i class="fas fa-filter"></i>
+
+                Apply
+
+            </button>
+
+
+            <a
+                href="{% url 'accountant_collections' %}"
+                class="collections-btn"
+            >
+
+                <i class="fas fa-times"></i>
+
+                Clear
+
+            </a>
+
+        </form>
+
+
+        <!-- =================================================
+             TABLE
+        ================================================== -->
+
+        <div class="collections-table-wrap">
+
+            <table
+                class="collections-table"
+                id="collectionsTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>Invoice</th>
+
+                        <th>Guest</th>
+
+                        <th>Room</th>
+
+                        <th>Billed</th>
+
+                        <th>Collected</th>
+
+                        <th>Outstanding</th>
+
+                        <th>Progress</th>
+
+                        <th>Status</th>
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for row in collections %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="collection-invoice">
+
+                                {{ row.invoice_number }}
+
+                            </div>
+
+                            {% if row.generated_at %}
+
+                                <div class="collection-muted">
+
+                                    {{ row.generated_at|date:"d M Y" }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="collection-guest">
+
+                                {{ row.guest_name }}
+
+                            </div>
+
+                            {% if row.guest_email %}
+
+                                <div class="collection-muted">
+
+                                    {{ row.guest_email }}
+
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ row.room_number }}
+
+                            <div class="collection-muted">
+
+                                {{ row.room_type }}
+
+                            </div>
+
+                        </td>
+
+
+                        <td class="collection-money">
+
+                            ₹{{ row.invoice_total|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="collection-money">
+
+                            ₹{{ row.paid_amount|floatformat:2 }}
+
+                        </td>
+
+
+                        <td class="collection-money">
+
+                            ₹{{ row.outstanding|floatformat:2 }}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="collection-progress">
+
+                                <div class="collection-progress-info">
+
+                                    <span>
+                                        Collected
+                                    </span>
+
+                                    <strong>
+                                        {{ row.collection_percent|floatformat:0 }}%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="collection-progress-track">
+
+                                    <div
+                                        class="collection-progress-fill"
+                                        style="width: {{ row.collection_percent|floatformat:0 }}%;"
+                                    ></div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if row.status == "paid" %}
+
+                                <span
+                                    class="
+                                        collection-status
+                                        collection-status-paid
+                                    "
+                                >
+
+                                    <i class="fas fa-check-circle"></i>
+
+                                    Paid
+
+                                </span>
+
+
+                            {% elif row.status == "partial" %}
+
+                                <span
+                                    class="
+                                        collection-status
+                                        collection-status-partial
+                                    "
+                                >
+
+                                    <i class="fas fa-circle-half-stroke"></i>
+
+                                    Partial
+
+                                </span>
+
+
+                            {% else %}
+
+                                <span
+                                    class="
+                                        collection-status
+                                        collection-status-pending
+                                    "
+                                >
+
+                                    <i class="fas fa-clock"></i>
+
+                                    Pending
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="collection-row-actions">
+
+                                <button
+                                    type="button"
+                                    class="collection-icon-btn"
+                                    title="Collection details"
+                                    onclick="openCollectionModal(
+                                        '{{ row.invoice_number|escapejs }}',
+                                        '{{ row.guest_name|escapejs }}',
+                                        '{{ row.room_number|escapejs }}',
+                                        '{{ row.room_type|escapejs }}',
+                                        '{{ row.invoice_total }}',
+                                        '{{ row.paid_amount }}',
+                                        '{{ row.outstanding }}',
+                                        '{{ row.status|escapejs }}'
+                                    )"
+                                >
+
+                                    <i class="fas fa-eye"></i>
+
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td colspan="9">
+
+                            <div class="collections-empty">
+
+                                <div class="collections-empty-icon">
+
+                                    <i class="fas fa-chart-line"></i>
+
+                                </div>
+
+                                <h3>
+                                    No collection records found
+                                </h3>
+
+                                <p>
+                                    No invoices match the selected filters.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================================
+     COLLECTION DETAILS MODAL
+========================================================= -->
+
+<div
+    id="collectionBackdrop"
+    class="collection-backdrop"
+    onclick="closeCollectionModal()"
+></div>
+
+
+<div
+    id="collectionModal"
+    class="collection-modal"
+>
+
+    <div class="collection-modal-header">
+
+        <h3>
+            Collection Details
+        </h3>
+
+
+        <button
+            type="button"
+            class="collection-modal-close"
+            onclick="closeCollectionModal()"
+        >
+
+            <i class="fas fa-times"></i>
+
+        </button>
+
+    </div>
+
+
+    <div class="collection-modal-body">
+
+
+        <div class="collection-detail-grid">
+
+
+            <div class="collection-detail">
+
+                <div class="collection-detail-label">
+                    Invoice
+                </div>
+
+                <div
+                    id="collectionInvoice"
+                    class="collection-detail-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="collection-detail">
+
+                <div class="collection-detail-label">
+                    Status
+                </div>
+
+                <div
+                    id="collectionStatus"
+                    class="collection-detail-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="collection-detail">
+
+                <div class="collection-detail-label">
+                    Guest
+                </div>
+
+                <div
+                    id="collectionGuest"
+                    class="collection-detail-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="collection-detail">
+
+                <div class="collection-detail-label">
+                    Room
+                </div>
+
+                <div
+                    id="collectionRoom"
+                    class="collection-detail-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="collection-balance-box">
+
+
+            <div class="collection-balance-item">
+
+                <span>
+                    Total Billed
+                </span>
+
+                <strong id="collectionBilled">
+                    ₹0.00
+                </strong>
+
+            </div>
+
+
+            <div class="collection-balance-item">
+
+                <span>
+                    Collected
+                </span>
+
+                <strong id="collectionPaid">
+                    ₹0.00
+                </strong>
+
+            </div>
+
+
+            <div class="collection-balance-item">
+
+                <span>
+                    Outstanding
+                </span>
+
+                <strong id="collectionOutstanding">
+                    ₹0.00
+                </strong>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* ============================================================
+   MONEY
+============================================================ */
+
+function collectionMoney(value) {
+
+    const number =
+        Number(value || 0);
+
+    return (
+        "₹" +
+        number.toLocaleString(
+            "en-IN",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        )
+    );
+
+}
+
+
+/* ============================================================
+   OPEN MODAL
+============================================================ */
+
+function openCollectionModal(
+    invoice,
+    guest,
+    room,
+    roomType,
+    billed,
+    paid,
+    outstanding,
+    status
+) {
+
+    document.getElementById(
+        "collectionInvoice"
+    ).textContent =
+        invoice || "—";
+
+
+    document.getElementById(
+        "collectionGuest"
+    ).textContent =
+        guest || "—";
+
+
+    document.getElementById(
+        "collectionRoom"
+    ).textContent =
+        (room || "—")
+        +
+        " · "
+        +
+        (roomType || "—");
+
+
+    document.getElementById(
+        "collectionStatus"
+    ).textContent =
+        status
+        ?
+        (
+            status.charAt(0).toUpperCase()
+            +
+            status.slice(1)
+        )
+        :
+        "—";
+
+
+    document.getElementById(
+        "collectionBilled"
+    ).textContent =
+        collectionMoney(billed);
+
+
+    document.getElementById(
+        "collectionPaid"
+    ).textContent =
+        collectionMoney(paid);
+
+
+    document.getElementById(
+        "collectionOutstanding"
+    ).textContent =
+        collectionMoney(outstanding);
+
+
+    document.getElementById(
+        "collectionBackdrop"
+    ).classList.add("show");
+
+
+    document.getElementById(
+        "collectionModal"
+    ).classList.add("show");
+
+
+    document.body.style.overflow =
+        "hidden";
+
+}
+
+
+/* ============================================================
+   CLOSE MODAL
+============================================================ */
+
+function closeCollectionModal() {
+
+    document.getElementById(
+        "collectionBackdrop"
+    ).classList.remove("show");
+
+
+    document.getElementById(
+        "collectionModal"
+    ).classList.remove("show");
+
+
+    document.body.style.overflow =
+        "";
+
+}
+
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key === "Escape") {
+
+            closeCollectionModal();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   EXPORT CSV
+============================================================ */
+
+function exportCollections() {
+
+    const table =
+        document.getElementById(
+            "collectionsTable"
+        );
+
+
+    if (!table) {
+        return;
+    }
+
+
+    const rows = [];
+
+
+    table.querySelectorAll(
+        "tr"
+    ).forEach(
+        function(row) {
+
+            const cells =
+                row.querySelectorAll(
+                    "th, td"
+                );
+
+            const values = [];
+
+
+            cells.forEach(
+                function(cell, index) {
+
+                    /*
+                     * Skip Actions column.
+                     */
+
+                    if (
+                        index ===
+                        cells.length - 1
+                    ) {
+                        return;
+                    }
+
+
+                    let value =
+                        cell.innerText
+                            .replace(
+                                /\n+/g,
+                                " "
+                            )
+                            .trim();
+
+
+                    value =
+                        '"' +
+                        value.replace(
+                            /"/g,
+                            '""'
+                        )
+                        +
+                        '"';
+
+
+                    values.push(
+                        value
+                    );
+
+                }
+            );
+
+
+            if (values.length) {
+
+                rows.push(
+                    values.join(",")
+                );
+
+            }
+
+        }
+    );
+
+
+    const blob =
+        new Blob(
+            [
+                "\uFEFF"
+                +
+                rows.join("\n")
+            ],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+    link.download =
+        "hotel-collections.csv";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+    link.remove();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+</script>
+
+{% endblock %}

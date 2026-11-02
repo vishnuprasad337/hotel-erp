@@ -1,0 +1,1995 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+{% block title %}My Shifts | Front Office{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+    /* =========================================================
+       PAGE
+       ========================================================= */
+
+    .shifts-page {
+        width: 100%;
+    }
+
+
+    /* =========================================================
+       PAGE HEADER
+       ========================================================= */
+
+    .shifts-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+
+        margin-bottom: 24px;
+    }
+
+    .shifts-title h1 {
+        margin: 0;
+
+        font-size: 28px;
+        font-weight: 800;
+
+        color: #202224;
+    }
+
+    .shifts-title p {
+        margin: 7px 0 0;
+
+        font-size: 14px;
+        color: #7c8798;
+    }
+
+
+    /* =========================================================
+       STAFF CARD
+       ========================================================= */
+
+    .shift-staff-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+
+        padding: 17px 20px;
+
+        margin-bottom: 22px;
+
+        background: #ffffff;
+
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+
+        box-shadow:
+            0 4px 18px rgba(0, 0, 0, .035);
+    }
+
+    .shift-staff-avatar {
+        width: 52px;
+        height: 52px;
+
+        border-radius: 50%;
+
+        overflow: hidden;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        flex-shrink: 0;
+
+        background: #eef4ff;
+        color: #4880ff;
+
+        font-size: 20px;
+    }
+
+    .shift-staff-avatar img {
+        width: 100%;
+        height: 100%;
+
+        object-fit: cover;
+    }
+
+    .shift-staff-name {
+        color: #202224;
+
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .shift-staff-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+
+        margin-top: 4px;
+
+        color: #8a94a4;
+        font-size: 12px;
+    }
+
+    .shift-staff-meta i {
+        margin-right: 4px;
+    }
+
+
+    /* =========================================================
+       SUMMARY CARDS
+       ========================================================= */
+
+    .shift-summary-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(4, minmax(0, 1fr));
+
+        gap: 17px;
+
+        margin-bottom: 24px;
+    }
+
+    .shift-stat-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+
+        padding: 20px;
+
+        background: #ffffff;
+
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+
+        box-shadow:
+            0 4px 18px rgba(0, 0, 0, .035);
+    }
+
+    .shift-stat-label {
+        margin-bottom: 7px;
+
+        color: #7c8798;
+
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .shift-stat-value {
+        color: #202224;
+
+        font-size: 26px;
+        font-weight: 800;
+
+        line-height: 1;
+    }
+
+    .shift-stat-icon {
+        width: 48px;
+        height: 48px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        flex-shrink: 0;
+
+        border-radius: 12px;
+
+        font-size: 18px;
+    }
+
+    .shift-morning-icon {
+        background: #eef4ff;
+        color: #4880ff;
+    }
+
+    .shift-evening-icon {
+        background: #f4efff;
+        color: #8b5cf6;
+    }
+
+    .shift-night-icon {
+        background: #fff4e6;
+        color: #f59e0b;
+    }
+
+    .shift-custom-icon {
+        background: #eafaf7;
+        color: #14a38b;
+    }
+
+
+    /* =========================================================
+       WEEKLY SCHEDULE CARD
+       ========================================================= */
+
+    .shift-schedule-card {
+        background: #ffffff;
+
+        border: 1px solid #edf0f5;
+        border-radius: 14px;
+
+        overflow: hidden;
+
+        box-shadow:
+            0 4px 18px rgba(0, 0, 0, .035);
+    }
+
+    .shift-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+
+        padding: 20px 22px;
+
+        border-bottom: 1px solid #edf0f5;
+    }
+
+    .shift-card-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+
+        color: #202224;
+
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .shift-card-title i {
+        color: #4880ff;
+    }
+
+    .shift-card-subtitle {
+        margin-top: 4px;
+
+        color: #8a94a4;
+
+        font-size: 12px;
+    }
+
+
+    /* =========================================================
+       WEEK NAVIGATION
+       ========================================================= */
+
+    .shift-week-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        padding: 5px;
+
+        background: #f7f8fa;
+
+        border: 1px solid #edf0f5;
+        border-radius: 10px;
+    }
+
+    .shift-week-button {
+        width: 35px;
+        height: 35px;
+
+        border: 0;
+        border-radius: 8px;
+
+        background: #ffffff;
+
+        color: #667085;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+
+        transition: .2s;
+    }
+
+    .shift-week-button:hover {
+        background: #4880ff;
+        color: #ffffff;
+    }
+
+    .shift-week-label {
+        min-width: 145px;
+
+        padding: 0 8px;
+
+        text-align: center;
+
+        color: #344054;
+
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+
+    /* =========================================================
+       TABLE
+       ========================================================= */
+
+    .shift-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .shift-table {
+        width: 100%;
+        min-width: 850px;
+
+        border-collapse: collapse;
+    }
+
+    .shift-table thead th {
+        padding: 14px 18px;
+
+        background: #f8f9fb;
+
+        border-bottom: 1px solid #edf0f5;
+
+        color: #6b7280;
+
+        font-size: 11px;
+        font-weight: 800;
+
+        text-align: left;
+
+        text-transform: uppercase;
+        letter-spacing: .04em;
+
+        white-space: nowrap;
+    }
+
+    .shift-table tbody td {
+        padding: 16px 18px;
+
+        border-bottom: 1px solid #f0f2f5;
+
+        color: #4b5563;
+
+        font-size: 13px;
+
+        vertical-align: middle;
+    }
+
+    .shift-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .shift-table tbody tr:hover {
+        background: #fafbfc;
+    }
+
+    .shift-today-row {
+        background: #f5f8ff !important;
+    }
+
+
+    /* =========================================================
+       DAY
+       ========================================================= */
+
+    .shift-day {
+        color: #202224;
+        font-weight: 800;
+    }
+
+    .shift-date {
+        color: #667085;
+
+        font-size: 12px;
+
+        font-family:
+            "DM Mono",
+            monospace;
+    }
+
+
+    /* =========================================================
+       PILLS
+       ========================================================= */
+
+    .shift-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 6px 11px;
+
+        border-radius: 999px;
+
+        font-size: 11px;
+        font-weight: 800;
+
+        white-space: nowrap;
+    }
+
+    .shift-pill-morning {
+        background: #eaf1ff;
+        color: #3478f6;
+    }
+
+    .shift-pill-evening {
+        background: #f2ebff;
+        color: #805ad5;
+    }
+
+    .shift-pill-night {
+        background: #fff3e3;
+        color: #d97706;
+    }
+
+    .shift-pill-custom {
+        background: #e7faf6;
+        color: #0f8f78;
+    }
+
+    .shift-pill-off {
+        background: #f1f2f4;
+        color: #7c8798;
+    }
+
+    .shift-pill-today {
+        background: #eaf1ff;
+        color: #3478f6;
+    }
+
+    .shift-pill-done {
+        background: #e9f9ef;
+        color: #16884f;
+    }
+
+    .shift-pill-upcoming {
+        background: #f1f2f4;
+        color: #667085;
+    }
+
+
+    /* =========================================================
+       TIME
+       ========================================================= */
+
+    .shift-time {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+
+        color: #344054;
+
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .shift-time i {
+        color: #98a2b3;
+    }
+
+
+    /* =========================================================
+       LOADING / EMPTY / ERROR
+       ========================================================= */
+
+    .shift-state {
+        padding: 50px 20px !important;
+
+        text-align: center;
+
+        color: #8a94a4 !important;
+    }
+
+    .shift-state i {
+        margin-right: 7px;
+    }
+
+    .shift-error {
+        color: #dc2626 !important;
+    }
+
+
+    /* =========================================================
+       TODAY BUTTON
+       ========================================================= */
+
+    .shift-today-button {
+        height: 38px;
+
+        padding: 0 14px;
+
+        border: 1px solid #dde4ee;
+        border-radius: 8px;
+
+        background: #ffffff;
+
+        color: #475467;
+
+        font-size: 12px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition: .2s;
+    }
+
+    .shift-today-button:hover {
+        border-color: #4880ff;
+        color: #4880ff;
+    }
+
+    .shift-today-button i {
+        margin-right: 5px;
+    }
+
+
+    /* =========================================================
+       DARK MODE
+       ========================================================= */
+
+    [data-bs-theme="dark"] .shift-staff-card,
+    [data-bs-theme="dark"] .shift-stat-card,
+    [data-bs-theme="dark"] .shift-schedule-card,
+    [data-bs-theme="dark"] .shift-week-button,
+    [data-bs-theme="dark"] .shift-today-button {
+
+        background: #1d2531;
+        border-color: #303a49;
+        color: #d7dde7;
+    }
+
+    [data-bs-theme="dark"] .shift-week-nav {
+        background: #222b38;
+        border-color: #303a49;
+    }
+
+    [data-bs-theme="dark"] .shifts-title h1,
+    [data-bs-theme="dark"] .shift-staff-name,
+    [data-bs-theme="dark"] .shift-stat-value,
+    [data-bs-theme="dark"] .shift-card-title,
+    [data-bs-theme="dark"] .shift-day,
+    [data-bs-theme="dark"] .shift-week-label {
+
+        color: #f4f6f8;
+    }
+
+    [data-bs-theme="dark"] .shift-table thead th {
+        background: #222b38;
+        border-color: #303a49;
+    }
+
+    [data-bs-theme="dark"] .shift-table tbody td,
+    [data-bs-theme="dark"] .shift-card-header {
+        border-color: #303a49;
+    }
+
+    [data-bs-theme="dark"] .shift-today-row {
+        background: #222d40 !important;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 1100px) {
+
+        .shift-summary-grid {
+            grid-template-columns:
+                repeat(2, 1fr);
+        }
+
+    }
+
+
+    @media (max-width: 760px) {
+
+        .shifts-header {
+            flex-direction: column;
+        }
+
+        .shift-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .shift-week-nav {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .shift-week-label {
+            flex: 1;
+        }
+
+    }
+
+
+    @media (max-width: 520px) {
+
+        .shift-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .shift-staff-card {
+            align-items: flex-start;
+        }
+
+        .shift-staff-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+    }
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="shifts-page">
+
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <div class="shifts-header">
+
+        <div class="shifts-title">
+
+            <h1>
+                My Shifts
+            </h1>
+
+            <p>
+                View your weekly work schedule
+                and assigned shift timings.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="shift-today-button"
+            onclick="goToCurrentWeek();"
+        >
+            <i class="fas fa-calendar-day"></i>
+            Current Week
+        </button>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         STAFF INFORMATION
+         ===================================================== -->
+
+    <div class="shift-staff-card">
+
+
+        <div class="shift-staff-avatar">
+
+            {% if staff.photo %}
+
+                <img
+                    src="{{ staff.photo.url }}"
+                    alt="{{ staff.name }}"
+                >
+
+            {% else %}
+
+                <i class="fas fa-user"></i>
+
+            {% endif %}
+
+        </div>
+
+
+        <div>
+
+            <div class="shift-staff-name">
+                {{ staff.name|default:"Front Office Staff" }}
+            </div>
+
+
+            <div class="shift-staff-meta">
+
+                <span>
+                    <i class="fas fa-id-badge"></i>
+
+                    {{ staff.employee_id|default:"EMP-001" }}
+                </span>
+
+
+                <span>
+                    <i class="fas fa-building"></i>
+
+                    {% if staff.department %}
+                        {{ staff.department.name }}
+                    {% else %}
+                        Front Office
+                    {% endif %}
+                </span>
+
+
+                {% if hotel %}
+
+                    <span>
+                        <i class="fas fa-hotel"></i>
+
+                        {{ hotel.name }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         WEEK SUMMARY
+         ===================================================== -->
+
+    <div class="shift-summary-grid">
+
+
+        <!-- MORNING -->
+
+        <div class="shift-stat-card">
+
+            <div>
+
+                <div class="shift-stat-label">
+                    Morning Shifts
+                </div>
+
+                <div
+                    class="shift-stat-value"
+                    id="morningCount"
+                >
+                    0
+                </div>
+
+            </div>
+
+            <div
+                class="
+                    shift-stat-icon
+                    shift-morning-icon
+                "
+            >
+                <i class="fas fa-sun"></i>
+            </div>
+
+        </div>
+
+
+        <!-- EVENING -->
+
+        <div class="shift-stat-card">
+
+            <div>
+
+                <div class="shift-stat-label">
+                    Evening Shifts
+                </div>
+
+                <div
+                    class="shift-stat-value"
+                    id="eveningCount"
+                >
+                    0
+                </div>
+
+            </div>
+
+            <div
+                class="
+                    shift-stat-icon
+                    shift-evening-icon
+                "
+            >
+                <i class="fas fa-cloud-sun"></i>
+            </div>
+
+        </div>
+
+
+        <!-- NIGHT -->
+
+        <div class="shift-stat-card">
+
+            <div>
+
+                <div class="shift-stat-label">
+                    Night Shifts
+                </div>
+
+                <div
+                    class="shift-stat-value"
+                    id="nightCount"
+                >
+                    0
+                </div>
+
+            </div>
+
+            <div
+                class="
+                    shift-stat-icon
+                    shift-night-icon
+                "
+            >
+                <i class="fas fa-moon"></i>
+            </div>
+
+        </div>
+
+
+        <!-- CUSTOM -->
+
+        <div class="shift-stat-card">
+
+            <div>
+
+                <div class="shift-stat-label">
+                    Custom Shifts
+                </div>
+
+                <div
+                    class="shift-stat-value"
+                    id="customCount"
+                >
+                    0
+                </div>
+
+            </div>
+
+            <div
+                class="
+                    shift-stat-icon
+                    shift-custom-icon
+                "
+            >
+                <i class="fas fa-business-time"></i>
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         WEEKLY SCHEDULE
+         ===================================================== -->
+
+    <div class="shift-schedule-card">
+
+
+        <div class="shift-card-header">
+
+
+            <div>
+
+                <div class="shift-card-title">
+
+                    <i class="fas fa-calendar-week"></i>
+
+                    Weekly Schedule
+
+                </div>
+
+                <div class="shift-card-subtitle">
+                    Your assigned shifts for this week
+                </div>
+
+            </div>
+
+
+            <div class="shift-week-nav">
+
+
+                <button
+                    type="button"
+                    class="shift-week-button"
+                    onclick="changeWeek(-1);"
+                    title="Previous week"
+                >
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+
+
+                <span
+                    class="shift-week-label"
+                    id="weekLabel"
+                >
+                    Loading...
+                </span>
+
+
+                <button
+                    type="button"
+                    class="shift-week-button"
+                    onclick="changeWeek(1);"
+                    title="Next week"
+                >
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+
+
+            </div>
+
+        </div>
+
+
+
+        <div class="shift-table-wrapper">
+
+            <table class="shift-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Day</th>
+
+                        <th>Date</th>
+
+                        <th>Shift</th>
+
+                        <th>Time</th>
+
+                        <th>Department</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="shiftTableBody">
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="shift-state"
+                        >
+                            <i class="fas fa-spinner fa-spin"></i>
+
+                            Loading shifts...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+    /* =========================================================
+       MY SHIFTS
+       ========================================================= */
+
+    let currentWeekOffset = 0;
+
+
+    /* =========================================================
+       GET MONDAY OF WEEK
+       ========================================================= */
+
+    function getWeekStart(offset = 0) {
+
+        const date = new Date();
+
+        const day = date.getDay();
+
+        const difference =
+            date.getDate()
+            -
+            day
+            +
+            (
+                day === 0
+                    ? -6
+                    : 1
+            );
+
+        date.setDate(
+            difference + (offset * 7)
+        );
+
+        date.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+        return date;
+    }
+
+
+
+    /* =========================================================
+       LOCAL YYYY-MM-DD
+       =========================================================
+       Do not use toISOString() here because UTC conversion can
+       move the date backward/forward depending on timezone.
+       ========================================================= */
+
+    function formatDateForApi(date) {
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+        return `${year}-${month}-${day}`;
+    }
+
+
+
+    /* =========================================================
+       CHANGE WEEK
+       ========================================================= */
+
+    function changeWeek(direction) {
+
+        currentWeekOffset += direction;
+
+        loadWeeklyShifts();
+    }
+
+
+
+    /* =========================================================
+       CURRENT WEEK
+       ========================================================= */
+
+    function goToCurrentWeek() {
+
+        currentWeekOffset = 0;
+
+        loadWeeklyShifts();
+    }
+
+
+
+    /* =========================================================
+       WEEK LABEL
+       ========================================================= */
+
+    function updateWeekLabel(
+        start,
+        end
+    ) {
+
+        const options = {
+            day: "2-digit",
+            month: "short"
+        };
+
+        const startText =
+            start.toLocaleDateString(
+                "en-GB",
+                options
+            );
+
+        const endText =
+            end.toLocaleDateString(
+                "en-GB",
+                options
+            );
+
+        const label =
+            document.getElementById(
+                "weekLabel"
+            );
+
+        if (label) {
+
+            label.textContent =
+                `${startText} – ${endText}`;
+        }
+    }
+
+
+
+    /* =========================================================
+       LOAD WEEKLY SHIFTS
+       ========================================================= */
+
+    async function loadWeeklyShifts() {
+
+        const tableBody =
+            document.getElementById(
+                "shiftTableBody"
+            );
+
+        if (!tableBody) {
+            return;
+        }
+
+
+        const weekStart =
+            getWeekStart(
+                currentWeekOffset
+            );
+
+
+        const weekEnd =
+            new Date(
+                weekStart
+            );
+
+        weekEnd.setDate(
+            weekEnd.getDate() + 6
+        );
+
+
+        updateWeekLabel(
+            weekStart,
+            weekEnd
+        );
+
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td
+                    colspan="6"
+                    class="shift-state"
+                >
+
+                    <i class="fas fa-spinner fa-spin"></i>
+
+                    Loading shifts...
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+        const startDate =
+            formatDateForApi(
+                weekStart
+            );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `/get-weekly-schedule/?start_date=${encodeURIComponent(startDate)}`,
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
+
+            const data =
+                await response.json();
+
+
+            renderShiftTable(
+                data,
+                weekStart
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "SHIFT LOAD ERROR:",
+                error
+            );
+
+
+            tableBody.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="6"
+                        class="
+                            shift-state
+                            shift-error
+                        "
+                    >
+
+                        <i class="fas fa-circle-exclamation"></i>
+
+                        Could not load your shift schedule.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+
+            updateShiftCounters(
+                0,
+                0,
+                0,
+                0
+            );
+        }
+
+    }
+
+
+
+    /* =========================================================
+       RENDER WEEKLY TABLE
+       ========================================================= */
+
+    function renderShiftTable(
+        data,
+        weekStart
+    ) {
+
+        const tableBody =
+            document.getElementById(
+                "shiftTableBody"
+            );
+
+
+        if (!tableBody) {
+            return;
+        }
+
+
+        const schedule =
+            data.schedule || data || {};
+
+
+        const dayNames = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+        ];
+
+
+        const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec"
+        ];
+
+
+        const today =
+            formatDateForApi(
+                new Date()
+            );
+
+
+        let morningCount = 0;
+        let eveningCount = 0;
+        let nightCount = 0;
+        let customCount = 0;
+
+        let html = "";
+
+
+        for (
+            let index = 0;
+            index < 7;
+            index++
+        ) {
+
+            const date =
+                new Date(
+                    weekStart
+                );
+
+
+            date.setDate(
+                date.getDate() + index
+            );
+
+
+            const dateString =
+                formatDateForApi(
+                    date
+                );
+
+
+            const displayDate =
+                `${monthNames[date.getMonth()]} ${date.getDate()}`;
+
+
+            const dayShifts =
+                schedule[dateString] || [];
+
+
+            const isToday =
+                dateString === today;
+
+
+            /* =================================================
+               DAY OFF
+               ================================================= */
+
+            if (!dayShifts.length) {
+
+                html += `
+
+                    <tr
+                        class="${
+                            isToday
+                                ? "shift-today-row"
+                                : ""
+                        }"
+                    >
+
+                        <td>
+
+                            <span class="shift-day">
+                                ${dayNames[index]}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="shift-date">
+                                ${displayDate}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    shift-pill
+                                    shift-pill-off
+                                "
+                            >
+                                Off
+                            </span>
+
+                        </td>
+
+
+                        <td>—</td>
+
+                        <td>—</td>
+
+
+                        <td>
+
+                            ${
+                                isToday
+
+                                ?
+
+                                `
+                                <span
+                                    class="
+                                        shift-pill
+                                        shift-pill-today
+                                    "
+                                >
+                                    Today
+                                </span>
+                                `
+
+                                :
+
+                                `
+                                <span
+                                    class="
+                                        shift-pill
+                                        shift-pill-off
+                                    "
+                                >
+                                    Day off
+                                </span>
+                                `
+                            }
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+                continue;
+            }
+
+
+
+            /* =================================================
+               ASSIGNED SHIFT
+               ================================================= */
+
+            dayShifts.forEach(
+                function(shift) {
+
+                    let pillClass =
+                        "shift-pill-custom";
+
+                    let shiftLabel =
+                        shift.custom_name
+                        ||
+                        shift.shift
+                        ||
+                        "Custom";
+
+                    let timeString = "—";
+
+
+                    /* -----------------------------------------
+                       MORNING
+                       ----------------------------------------- */
+
+                    if (
+                        shift.shift === "Morning"
+                    ) {
+
+                        morningCount++;
+
+                        pillClass =
+                            "shift-pill-morning";
+
+                        shiftLabel =
+                            "Morning";
+
+
+                        timeString =
+                            (
+                                shift.custom_start
+                                &&
+                                shift.custom_end
+                            )
+
+                            ?
+
+                            `${formatShiftTime(shift.custom_start)} – ${formatShiftTime(shift.custom_end)}`
+
+                            :
+
+                            "06:00 AM – 02:00 PM";
+                    }
+
+
+                    /* -----------------------------------------
+                       EVENING
+                       ----------------------------------------- */
+
+                    else if (
+                        shift.shift === "Evening"
+                    ) {
+
+                        eveningCount++;
+
+                        pillClass =
+                            "shift-pill-evening";
+
+                        shiftLabel =
+                            "Evening";
+
+
+                        timeString =
+                            (
+                                shift.custom_start
+                                &&
+                                shift.custom_end
+                            )
+
+                            ?
+
+                            `${formatShiftTime(shift.custom_start)} – ${formatShiftTime(shift.custom_end)}`
+
+                            :
+
+                            "02:00 PM – 10:00 PM";
+                    }
+
+
+                    /* -----------------------------------------
+                       NIGHT
+                       ----------------------------------------- */
+
+                    else if (
+                        shift.shift === "Night"
+                    ) {
+
+                        nightCount++;
+
+                        pillClass =
+                            "shift-pill-night";
+
+                        shiftLabel =
+                            "Night";
+
+
+                        timeString =
+                            (
+                                shift.custom_start
+                                &&
+                                shift.custom_end
+                            )
+
+                            ?
+
+                            `${formatShiftTime(shift.custom_start)} – ${formatShiftTime(shift.custom_end)}`
+
+                            :
+
+                            "10:00 PM – 06:00 AM";
+                    }
+
+
+                    /* -----------------------------------------
+                       CUSTOM SHIFT
+                       ----------------------------------------- */
+
+                    else {
+
+                        customCount++;
+
+                        pillClass =
+                            "shift-pill-custom";
+
+
+                        if (
+                            shift.custom_start
+                            &&
+                            shift.custom_end
+                        ) {
+
+                            timeString =
+                                `${formatShiftTime(shift.custom_start)} – ${formatShiftTime(shift.custom_end)}`;
+                        }
+                    }
+
+
+                    /* -----------------------------------------
+                       STATUS
+                       ----------------------------------------- */
+
+                    let statusHtml = "";
+
+
+                    if (isToday) {
+
+                        statusHtml = `
+
+                            <span
+                                class="
+                                    shift-pill
+                                    shift-pill-today
+                                "
+                            >
+                                Today
+                            </span>
+
+                        `;
+                    }
+
+                    else {
+
+                        const comparisonDate =
+                            new Date(
+                                date.getFullYear(),
+                                date.getMonth(),
+                                date.getDate()
+                            );
+
+
+                        const currentDate =
+                            new Date();
+
+
+                        currentDate.setHours(
+                            0,
+                            0,
+                            0,
+                            0
+                        );
+
+
+                        if (
+                            comparisonDate < currentDate
+                        ) {
+
+                            statusHtml = `
+
+                                <span
+                                    class="
+                                        shift-pill
+                                        shift-pill-done
+                                    "
+                                >
+                                    Done
+                                </span>
+
+                            `;
+
+                        }
+
+                        else {
+
+                            statusHtml = `
+
+                                <span
+                                    class="
+                                        shift-pill
+                                        shift-pill-upcoming
+                                    "
+                                >
+                                    Upcoming
+                                </span>
+
+                            `;
+                        }
+                    }
+
+
+                    html += `
+
+                        <tr
+                            class="${
+                                isToday
+                                    ? "shift-today-row"
+                                    : ""
+                            }"
+                        >
+
+                            <td>
+
+                                <span class="shift-day">
+                                    ${dayNames[index]}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="shift-date">
+                                    ${displayDate}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="
+                                        shift-pill
+                                        ${pillClass}
+                                    "
+                                >
+                                    ${escapeShiftHtml(shiftLabel)}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="shift-time">
+
+                                    <i class="fas fa-clock"></i>
+
+                                    ${escapeShiftHtml(timeString)}
+
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                ${
+                                    escapeShiftHtml(
+                                        shift.department
+                                        ||
+                                        "—"
+                                    )
+                                }
+
+                            </td>
+
+
+                            <td>
+                                ${statusHtml}
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                }
+            );
+
+        }
+
+
+        tableBody.innerHTML =
+            html;
+
+
+        updateShiftCounters(
+            morningCount,
+            eveningCount,
+            nightCount,
+            customCount
+        );
+
+    }
+
+
+
+    /* =========================================================
+       COUNTERS
+       ========================================================= */
+
+    function updateShiftCounters(
+        morning,
+        evening,
+        night,
+        custom
+    ) {
+
+        const morningElement =
+            document.getElementById(
+                "morningCount"
+            );
+
+        const eveningElement =
+            document.getElementById(
+                "eveningCount"
+            );
+
+        const nightElement =
+            document.getElementById(
+                "nightCount"
+            );
+
+        const customElement =
+            document.getElementById(
+                "customCount"
+            );
+
+
+        if (morningElement) {
+            morningElement.textContent =
+                morning;
+        }
+
+        if (eveningElement) {
+            eveningElement.textContent =
+                evening;
+        }
+
+        if (nightElement) {
+            nightElement.textContent =
+                night;
+        }
+
+        if (customElement) {
+            customElement.textContent =
+                custom;
+        }
+
+    }
+
+
+
+    /* =========================================================
+       FORMAT SHIFT TIME
+       ========================================================= */
+
+    function formatShiftTime(
+        value
+    ) {
+
+        if (!value) {
+            return "—";
+        }
+
+
+        const parts =
+            String(value)
+                .split(":");
+
+
+        if (
+            parts.length < 2
+        ) {
+
+            return value;
+        }
+
+
+        let hour =
+            parseInt(
+                parts[0],
+                10
+            );
+
+        const minute =
+            parts[1];
+
+
+        if (
+            Number.isNaN(hour)
+        ) {
+
+            return value;
+        }
+
+
+        const period =
+            hour >= 12
+                ? "PM"
+                : "AM";
+
+
+        hour =
+            hour % 12;
+
+
+        if (
+            hour === 0
+        ) {
+
+            hour = 12;
+        }
+
+
+        return (
+            `${String(hour).padStart(2, "0")}:${minute} ${period}`
+        );
+
+    }
+
+
+
+    /* =========================================================
+       ESCAPE HTML
+       ========================================================= */
+
+    function escapeShiftHtml(
+        value
+    ) {
+
+        if (
+            value === null
+            ||
+            value === undefined
+        ) {
+
+            return "";
+        }
+
+
+        return String(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+
+    /* =========================================================
+       INITIAL LOAD
+       ========================================================= */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function() {
+
+            loadWeeklyShifts();
+
+        }
+    );
+
+</script>
+
+{% endblock %}

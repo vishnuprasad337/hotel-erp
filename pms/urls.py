@@ -28,6 +28,9 @@ urlpatterns =[
     path("frontoffice/", frontoffice_dashboard, name="frontoffice_dashboard"),
     path('rooms-status/', room_status, name='room_status'),
     path('room-status-all/', room_status, name='room_status_alt'),
+    path("billing/",billing_page,name="billing_page"),
+    path("api/housekeeping/task/update/",update_housekeeping_task,name="update_housekeeping_task",),
+
     # FROND END DASHBOARDS
       path("api/create-booking/", create_booking, name="create_booking"),
 
@@ -55,7 +58,7 @@ urlpatterns =[
   path("guest/request/<str:schema>/<str:token>/", guest_create_request, name="guest_create_request"),
 path("fd/requests/", fd_view_requests, name="fd_view_requests"),
 path("fd/requests/update/", fd_update_request, name="fd_update_request"),
-path("api/update-room-status/", update_room_status),
+path("api/update-room-status/", update_room_status ,name="update_room_status"),
 path('api/guest/<int:guest_id>/photos/', get_guest_photos, name='guest_photos'),
 path('guest/<str:schema>/<str:token>/tables/available/', guest_available_tables, name='guest_available_tables'),
 path('guest/<str:schema>/<str:token>/tables/book/', guest_book_table, name='guest_book_table'),
@@ -93,6 +96,63 @@ path(
     RoomWithBookingsAPIView.as_view(),
     name="api-room-bookings",
 ),
+path(
+    "guest-requests/",
+    guest_requests_page,
+    name="guest_requests_page",
+),
+path(
+    "attendance/",
+    attendance_page,
+    name="attendance_page",
+),
+
+
+path(
+    "attendance/mark/",
+    frontoffice_mark_attendance,
+    name="frontoffice_mark_attendance",
+),
+
+path(
+    "shifts/",
+    shifts_page,
+    name="shifts_page",
+),
+
+path(
+    "leave/",
+    leave_page,
+    name="leave_page",
+),
+
+path(
+    "payroll/",
+    payroll_page,
+    name="payroll_page",
+),
+
+
+path(
+    "profile/",
+    profile_page,
+    name="profile_page",
+),
+
+
+
+path(
+    "invoices/",
+    invoices_page,
+    name="invoices_page",
+),
+
+path(
+    "hk-tasks/",
+    hk_tasks_page,
+    name="hk_tasks_page"
+),
+
 ]
     
     

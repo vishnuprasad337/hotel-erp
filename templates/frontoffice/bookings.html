@@ -1,0 +1,6034 @@
+{% extends "frontoffice/base.html" %}
+{% load static %}
+
+{% block title %}
+Bookings | Hotel ERP
+{% endblock %}
+
+{% block nav_bookings %}active{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+    /* =========================================================
+       BOOKINGS PAGE
+    ========================================================== */
+
+    .fo-bookings-page {
+        width: 100%;
+    }
+
+    .fo-bookings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+    .fo-bookings-title h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--admio-heading-color, #111827);
+    }
+
+    .fo-bookings-title p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+
+    /* =========================================================
+       BUTTONS
+    ========================================================== */
+
+    .fo-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        min-height: 38px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all .15s ease;
+    }
+
+    .fo-btn:hover {
+        text-decoration: none;
+    }
+
+    .fo-btn-primary {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+    }
+
+    .fo-btn-primary:hover {
+        background: #6d28d9;
+        border-color: #6d28d9;
+        color: #fff;
+    }
+
+    .fo-btn-outline {
+        background: transparent;
+        border-color: #d1d5db;
+        color: #374151;
+    }
+
+    .fo-btn-outline:hover {
+        border-color: #7c3aed;
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .fo-btn-sm {
+        min-height: 32px;
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .fo-btn-success {
+        background: #16a34a;
+        border-color: #16a34a;
+        color: #fff;
+    }
+
+    .fo-btn-success:hover {
+        background: #15803d;
+        color: #fff;
+    }
+
+    .fo-btn-warning {
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: #fff;
+    }
+
+    .fo-btn-warning:hover {
+        background: #d97706;
+        color: #fff;
+    }
+
+
+    /* =========================================================
+       CARD
+    ========================================================== */
+
+    .fo-bookings-card {
+        background: var(--admio-card-bg, #fff);
+        border: 1px solid var(--admio-border-color, #e5e7eb);
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        overflow: hidden;
+    }
+
+    .fo-bookings-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+        flex-wrap: wrap;
+        padding: 17px 18px;
+        border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+    }
+
+    .fo-bookings-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--admio-heading-color, #111827);
+        padding-top: 7px;
+    }
+
+
+    /* =========================================================
+       FILTERS
+    ========================================================== */
+
+    .fo-booking-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+        align-items: flex-end;
+    }
+
+    .fo-status-tabs {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+
+    .fo-tab-btn {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: .15s;
+    }
+
+    .fo-tab-btn:hover {
+        border-color: #c4b5fd;
+        color: #7c3aed;
+    }
+
+    .fo-tab-btn.active {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+    }
+
+    .fo-date-filters {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .fo-date-chip.active {
+        background: #ede9fe;
+        border-color: #8b5cf6;
+        color: #6d28d9;
+    }
+
+    .fo-date-input {
+        width: 135px;
+        height: 34px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-family: inherit;
+        font-size: 12px;
+        color: #374151;
+        background: #fff;
+        outline: none;
+    }
+
+    .fo-date-input:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+    }
+
+
+    /* =========================================================
+       IN-HOUSE SUB FILTER
+    ========================================================== */
+
+    #bkInHouseFilterBar {
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .bk-sub-filter {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        border-radius: 7px;
+        padding: 6px 9px;
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+    }
+
+    .bk-sub-filter.active {
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #1d4ed8;
+        font-weight: 700;
+    }
+
+
+    /* =========================================================
+       TOOLBAR
+    ========================================================== */
+
+    .fo-table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px 18px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    #bkRowCount {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .fo-toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .fo-search-wrap {
+        position: relative;
+    }
+
+    .fo-search-wrap i {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 12px;
+    }
+
+    .fo-search-input {
+        width: 230px;
+        height: 34px;
+        padding: 6px 10px 6px 31px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        background: #fff;
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
+    }
+
+    .fo-search-input:focus {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(124,58,237,.08);
+    }
+
+    .fo-page-size {
+        height: 34px;
+        padding: 5px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        background: #fff;
+        font-size: 12px;
+    }
+
+
+    /* =========================================================
+       TABLE
+    ========================================================== */
+
+    .fo-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .fo-booking-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1250px;
+    }
+
+    .fo-booking-table th {
+        padding: 11px 12px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        color: #6b7280;
+        text-align: left;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: .025em;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .fo-booking-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #f0f1f3;
+        color: #374151;
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    .fo-booking-table tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .fo-booking-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .fo-booking-id {
+        font-family: monospace;
+        font-size: 12px;
+        font-weight: 700;
+        color: #6b7280;
+    }
+
+
+    /* =========================================================
+       GUEST
+    ========================================================== */
+
+    .fo-guest {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 160px;
+    }
+
+    .fo-guest-avatar {
+        width: 31px;
+        height: 31px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+        border-radius: 8px;
+        background: linear-gradient(135deg,#2563eb,#7c3aed);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .fo-guest-name {
+        color: #111827;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .fo-guest-phone {
+        color: #9ca3af;
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+
+    /* =========================================================
+       ROOM
+    ========================================================== */
+
+    .room-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 7px;
+        border-radius: 20px;
+        background: #f3f4f6;
+        color: #4b5563;
+        font-size: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+
+    /* =========================================================
+       STATUS BADGES
+    ========================================================== */
+
+    .fo-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        padding: 5px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .fo-status-confirmed {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .fo-status-checked_in {
+        background: #ecfdf5;
+        color: #15803d;
+    }
+
+    .fo-status-checked_out {
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .fo-status-cancelled {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .fo-pay-status {
+        display: inline-flex;
+        border-radius: 20px;
+        padding: 4px 7px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .fo-pay-paid {
+        background: #ecfdf5;
+        color: #15803d;
+    }
+
+    .fo-pay-partial {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
+    .fo-pay-pending {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .fo-pay-method {
+        margin-top: 3px;
+        font-size: 9px;
+        color: #9ca3af;
+    }
+
+
+    /* =========================================================
+       MONEY
+    ========================================================== */
+
+    .fo-money {
+        font-family: monospace;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .fo-money-paid {
+        color: #16a34a;
+    }
+
+    .fo-money-due {
+        color: #dc2626;
+    }
+
+    .fo-money-clear {
+        color: #16a34a;
+    }
+
+
+    /* =========================================================
+       ACTIONS
+    ========================================================== */
+
+    .fo-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+        min-width: 160px;
+    }
+
+
+    /* =========================================================
+       EMPTY
+    ========================================================== */
+
+    .fo-empty {
+        padding: 45px 20px;
+        text-align: center;
+        color: #9ca3af;
+    }
+
+    .fo-empty i {
+        display: block;
+        font-size: 28px;
+        margin-bottom: 9px;
+        opacity: .55;
+    }
+
+    .fo-empty p {
+        margin: 0;
+        font-size: 12px;
+    }
+
+
+    /* =========================================================
+       PAGINATION
+    ========================================================== */
+
+    .fo-pagination {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 11px 18px;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    #bkPageNums {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .bk-page-btn {
+        min-width: 31px;
+        height: 31px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        background: #fff;
+        color: #4b5563;
+        font-size: 11px;
+        cursor: pointer;
+    }
+
+    .bk-page-btn.active {
+        background: #7c3aed;
+        border-color: #7c3aed;
+        color: #fff;
+    }
+
+    #bkPgInfo {
+        margin-left: 5px;
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+
+    /* =========================================================
+       DARK MODE
+    ========================================================== */
+
+    [data-theme="dark"] .fo-bookings-card,
+    [data-theme="dark"] .fo-tab-btn,
+    [data-theme="dark"] .bk-sub-filter,
+    [data-theme="dark"] .fo-date-input,
+    [data-theme="dark"] .fo-search-input,
+    [data-theme="dark"] .fo-page-size,
+    [data-theme="dark"] .bk-page-btn {
+        background: var(--admio-card-bg,#252535);
+        border-color: #3b3b4d;
+        color: #d1d5db;
+    }
+
+    [data-theme="dark"] .fo-table-toolbar,
+    [data-theme="dark"] .fo-booking-table th,
+    [data-theme="dark"] .fo-pagination {
+        background: #20202c;
+        border-color: #343444;
+    }
+
+    [data-theme="dark"] .fo-booking-table td {
+        border-color: #343444;
+        color: #d1d5db;
+    }
+
+    [data-theme="dark"] .fo-booking-table tbody tr:hover {
+        background: #292938;
+    }
+
+    [data-theme="dark"] .fo-guest-name {
+        color: #f3f4f6;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================== */
+
+    @media(max-width: 991px) {
+
+        .fo-booking-filters {
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        .fo-date-filters,
+        #bkInHouseFilterBar {
+            justify-content: flex-start;
+        }
+
+    }
+
+    @media(max-width: 767px) {
+
+        .fo-bookings-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .fo-bookings-header .fo-btn-primary {
+            width: 100%;
+        }
+
+        .fo-bookings-card-header {
+            flex-direction: column;
+        }
+
+        .fo-table-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .fo-toolbar-right {
+            width: 100%;
+        }
+
+        .fo-search-wrap {
+            flex: 1;
+        }
+
+        .fo-search-input {
+            width: 100%;
+        }
+
+    }
+
+
+
+
+
+
+{% comment %} checkout modal css start {% endcomment %}
+
+/* =========================================================
+   BOOKINGS - CHECKOUT
+========================================================= */
+
+#bookingCheckoutModal {
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(17, 24, 39, .58);
+
+    backdrop-filter: blur(3px);
+}
+
+
+#bookingCheckoutModal > .modal {
+    display: block !important;
+
+    position: relative !important;
+
+    inset: auto !important;
+
+    width: min(680px, 96vw) !important;
+    height: auto !important;
+
+    margin: 0 !important;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+
+    box-shadow:
+        0 24px 60px rgba(0, 0,0,.20);
+
+    overflow: hidden;
+
+    z-index: 10000;
+}
+
+
+
+#bookingCheckoutModal {
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 99999;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(17, 24, 39, .58);
+
+    backdrop-filter: blur(3px);
+}
+
+
+#bookingCheckoutModal.open {
+    display: flex !important;
+}
+
+
+/* GUEST CARD */
+
+.bk-checkout-guest-card {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 14px;
+
+    margin-bottom: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #faf5ff,
+            #f5f3ff
+        );
+
+    border: 1px solid #ddd6fe;
+    border-radius: 11px;
+}
+
+
+.bk-checkout-avatar {
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #8b5cf6
+        );
+
+    color: #ffffff;
+
+    font-size: 15px;
+}
+
+
+.bk-checkout-guest-info {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.bk-checkout-guest-name {
+    color: #111827;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
+.bk-checkout-room {
+    margin-top: 3px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+}
+
+
+.bk-checkout-status span {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    background: #dcfce7;
+
+    color: #15803d;
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+/* SUMMARY */
+
+.bk-checkout-summary {
+    padding: 15px;
+
+    background: #f9fafb;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+
+.bk-checkout-summary-title {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding-bottom: 11px;
+    margin-bottom: 4px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    color: #111827;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+.bk-checkout-summary-title i {
+    color: #7c3aed;
+}
+
+
+.bk-checkout-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 9px 0;
+
+    border-bottom: 1px solid #f0f1f3;
+
+    font-size: 11px;
+}
+
+
+.bk-checkout-summary-row:last-child {
+    border-bottom: 0;
+}
+
+
+.bk-checkout-summary-row span {
+    color: #6b7280;
+}
+
+
+.bk-checkout-summary-row strong {
+    color: #111827;
+
+    font-weight: 700;
+
+    text-align: right;
+}
+
+
+/* WARNING */
+
+.bk-checkout-warning {
+    display: flex;
+
+    gap: 10px;
+
+    margin-top: 14px;
+    padding: 12px;
+
+    background: #fffbeb;
+
+    border: 1px solid #fde68a;
+    border-radius: 9px;
+}
+
+
+.bk-checkout-warning-icon {
+    color: #d97706;
+
+    font-size: 14px;
+}
+
+
+.bk-checkout-warning strong {
+    display: block;
+
+    color: #92400e;
+
+    font-size: 10px;
+}
+
+
+.bk-checkout-warning p {
+    margin: 3px 0 0;
+
+    color: #a16207;
+
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+
+/* ERROR */
+
+.bk-checkout-error {
+    margin-top: 12px;
+
+    padding: 10px 12px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+
+    color: #dc2626;
+
+    font-size: 10px;
+}
+
+
+/* PROCESSING */
+
+#bkCheckoutConfirmBtn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+#bookingCheckoutModal .bk-checkout-modal-box {
+    display: block;
+
+    position: relative;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, .20);
+
+    overflow: hidden;
+}
+
+
+
+/* ============================================================
+   BOOKINGS PAGE — CHECKOUT MODAL FIX
+   ============================================================ */
+
+#bookingCheckoutModal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 10050 !important;
+
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 100vh !important;
+
+    padding: 24px !important;
+
+    background: rgba(15, 23, 42, 0.62) !important;
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    overflow: hidden !important;
+}
+
+#bookingCheckoutModal.open {
+    display: flex !important;
+}
+
+
+/* ============================================================
+   MODAL BOX
+   ============================================================ */
+
+#bookingCheckoutModal > .bk-checkout-modal-box,
+#bookingCheckoutModal > .modal {
+    position: relative !important;
+    inset: auto !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: min(720px, 96vw) !important;
+    max-width: 720px !important;
+
+    max-height: calc(100vh - 48px) !important;
+
+    margin: auto !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+
+    box-shadow:
+        0 24px 70px rgba(15, 23, 42, 0.24),
+        0 4px 18px rgba(15, 23, 42, 0.08) !important;
+
+    color: #1f2937 !important;
+
+    overflow: hidden !important;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+#bookingCheckoutModal .modal-header {
+    flex-shrink: 0 !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+
+    gap: 16px !important;
+
+    padding: 20px 22px 16px !important;
+
+    background: #ffffff !important;
+
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+#bookingCheckoutModal .modal-header h3,
+#bookingCheckoutModal .modal-header h4,
+#bookingCheckoutModal .modal-header h5 {
+    margin: 0 !important;
+
+    color: #111827 !important;
+
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+}
+
+
+/* ============================================================
+   CLOSE BUTTON
+   ============================================================ */
+
+#bookingCheckoutModal .modal-close {
+    width: 36px !important;
+    height: 36px !important;
+
+    flex: 0 0 36px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    padding: 0 !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 9px !important;
+
+    background: #ffffff !important;
+
+    color: #6b7280 !important;
+
+    font-size: 20px !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+
+    transition: 0.15s ease !important;
+}
+
+#bookingCheckoutModal .modal-close:hover {
+    background: #f9fafb !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+
+/* ============================================================
+   BODY
+   ============================================================ */
+
+#bookingCheckoutModal .modal-body {
+    flex: 1 1 auto !important;
+
+    min-height: 0 !important;
+
+    padding: 20px 22px !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+
+    background: #ffffff !important;
+}
+
+#bookingCheckoutModal .modal-body::-webkit-scrollbar {
+    width: 7px;
+}
+
+#bookingCheckoutModal .modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#bookingCheckoutModal .modal-body::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 20px;
+}
+
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+#bookingCheckoutModal .co-card,
+#bookingCheckoutModal .payment-card,
+#bookingCheckoutModal .invoice-card {
+    margin-bottom: 16px !important;
+
+    padding: 16px !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
+
+    box-shadow: none !important;
+}
+
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+
+#bookingCheckoutModal input,
+#bookingCheckoutModal select,
+#bookingCheckoutModal textarea {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    padding: 9px 12px !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #d1d5db !important;
+    border-radius: 9px !important;
+
+    color: #111827 !important;
+
+    font-family: inherit !important;
+    font-size: 13px !important;
+
+    outline: none !important;
+}
+
+#bookingCheckoutModal input:focus,
+#bookingCheckoutModal select:focus,
+#bookingCheckoutModal textarea:focus {
+    border-color: #7c3aed !important;
+
+    box-shadow:
+        0 0 0 3px rgba(124, 58, 237, 0.10) !important;
+}
+
+#bookingCheckoutModal label {
+    display: block !important;
+
+    margin-bottom: 6px !important;
+
+    color: #374151 !important;
+
+    font-size: 12px !important;
+    font-weight: 700 !important;
+}
+
+
+/* ============================================================
+   SUMMARY ROWS
+   ============================================================ */
+
+#bookingCheckoutModal .summary-row,
+#bookingCheckoutModal .folio-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 20px !important;
+
+    padding: 10px 0 !important;
+
+    border-bottom: 1px solid #f3f4f6 !important;
+
+    color: #6b7280 !important;
+
+    font-size: 13px !important;
+}
+
+#bookingCheckoutModal .summary-row:last-child,
+#bookingCheckoutModal .folio-row:last-child {
+    border-bottom: 0 !important;
+}
+
+#bookingCheckoutModal .summary-row strong,
+#bookingCheckoutModal .folio-row strong {
+    color: #111827 !important;
+
+    font-weight: 700 !important;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+#bookingCheckoutModal .modal-footer {
+    flex-shrink: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 10px !important;
+
+    min-height: 68px !important;
+
+    padding: 13px 22px !important;
+
+    background: #ffffff !important;
+
+    border-top: 1px solid #e5e7eb !important;
+}
+
+
+/* ============================================================
+   FOOTER BUTTONS
+   ============================================================ */
+
+#bookingCheckoutModal .modal-footer button {
+    min-height: 40px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    gap: 7px !important;
+
+    padding: 0 16px !important;
+
+    border-radius: 9px !important;
+
+    font-size: 12px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer !important;
+}
+
+#bookingCheckoutModal .modal-footer button:last-child {
+    border: 1px solid #7c3aed !important;
+
+    background: #7c3aed !important;
+
+    color: #ffffff !important;
+}
+
+#bookingCheckoutModal .modal-footer button:last-child:hover {
+    background: #6d28d9 !important;
+    border-color: #6d28d9 !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+    #bookingCheckoutModal {
+        align-items: flex-end !important;
+
+        padding: 0 !important;
+    }
+
+    #bookingCheckoutModal > .bk-checkout-modal-box,
+    #bookingCheckoutModal > .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        max-height: 94vh !important;
+
+        margin: 0 !important;
+
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    #bookingCheckoutModal .modal-header {
+        padding: 16px !important;
+    }
+
+    #bookingCheckoutModal .modal-body {
+        padding: 16px !important;
+    }
+
+    #bookingCheckoutModal .modal-footer {
+        padding: 12px 16px !important;
+    }
+}
+
+{% comment %} checkout modal css end  {% endcomment %}
+
+
+
+{% comment %} view button css start {% endcomment %}
+
+/* =========================================================
+   GUEST DETAIL MODAL — BOOKINGS PAGE
+========================================================= */
+
+#guestDetailModal {
+    position: fixed !important;
+    inset: 0 !important;
+
+    z-index: 10060 !important;
+
+    display: none;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 100vh !important;
+
+    padding: 24px !important;
+
+    background: rgba(15, 23, 42, 0.60) !important;
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    overflow: hidden !important;
+}
+
+
+/* OPEN */
+
+#guestDetailModal.open {
+    display: flex !important;
+}
+
+
+/* =========================================================
+   MODAL BOX
+========================================================= */
+
+#guestDetailModal > .modal {
+    position: relative !important;
+
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: min(620px, 95vw) !important;
+    max-width: 620px !important;
+
+    height: auto !important;
+    max-height: calc(100vh - 48px) !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+
+    box-shadow:
+        0 24px 70px rgba(15, 23, 42, 0.22),
+        0 4px 18px rgba(15, 23, 42, 0.08) !important;
+
+    color: #1f2937 !important;
+
+    overflow: hidden !important;
+
+    transform: none !important;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+#guestDetailModal .modal-header {
+    flex: 0 0 auto !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+
+    gap: 16px !important;
+
+    padding: 20px 22px 17px !important;
+
+    background: #ffffff !important;
+
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+
+#guestDetailModal .modal-header-title {
+    margin: 0 !important;
+
+    color: #111827 !important;
+
+    font-size: 18px !important;
+    line-height: 1.3 !important;
+    font-weight: 800 !important;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+#guestDetailModal .modal-close {
+    width: 36px !important;
+    height: 36px !important;
+
+    min-width: 36px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    flex: 0 0 36px !important;
+
+    padding: 0 !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 9px !important;
+
+    color: #6b7280 !important;
+
+    font-size: 20px !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+
+    transition: all .15s ease !important;
+}
+
+
+#guestDetailModal .modal-close:hover {
+    background: #f9fafb !important;
+    border-color: #d1d5db !important;
+
+    color: #111827 !important;
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+#guestDetailModal .modal-body {
+    flex: 1 1 auto !important;
+
+    min-height: 0 !important;
+
+    padding: 22px !important;
+
+    background: #ffffff !important;
+
+    color: #374151 !important;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+
+/* =========================================================
+   DETAIL GRID
+========================================================= */
+
+#guestDetailModal #gdModalBody > div {
+    gap: 14px !important;
+}
+
+
+#guestDetailModal #gdModalBody > div > div {
+    min-width: 0 !important;
+
+    padding: 14px 15px !important;
+
+    background: #f9fafb !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 10px !important;
+
+    color: #111827 !important;
+
+    word-break: break-word !important;
+}
+
+
+/* Labels */
+
+#guestDetailModal #gdModalBody > div > div > div:first-child {
+    margin-bottom: 5px !important;
+
+    color: #9ca3af !important;
+
+    font-size: 10px !important;
+    font-weight: 700 !important;
+
+    text-transform: uppercase !important;
+    letter-spacing: .03em !important;
+}
+
+
+/* Values */
+
+#guestDetailModal #gdModalBody > div > div > div:last-child {
+    color: #1f2937 !important;
+
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+#guestDetailModal .modal-footer {
+    flex: 0 0 auto !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 10px !important;
+
+    padding: 13px 22px !important;
+
+    background: #ffffff !important;
+
+    border-top: 1px solid #e5e7eb !important;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+
+    #guestDetailModal {
+        align-items: flex-end !important;
+
+        padding: 0 !important;
+    }
+
+
+    #guestDetailModal > .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        max-height: 92vh !important;
+
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+
+    #guestDetailModal .modal-header {
+        padding: 16px !important;
+    }
+
+
+    #guestDetailModal .modal-body {
+        padding: 16px !important;
+    }
+
+
+    #guestDetailModal #gdModalBody > div {
+        grid-template-columns: 1fr !important;
+    }
+
+
+    #guestDetailModal .modal-footer {
+        padding: 12px 16px !important;
+    }
+}
+{% comment %} view button css end  {% endcomment %}
+
+
+
+{% comment %} check in modal css start {% endcomment %}
+/* =========================================================
+   BOOKINGS PAGE - CHECK IN MODAL
+========================================================= */
+
+#bookingCheckinModal {
+    position: fixed !important;
+    inset: 0 !important;
+
+    z-index: 10070 !important;
+
+    display: none;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 100vh !important;
+
+    padding: 24px !important;
+
+    background: rgba(15, 23, 42, .60) !important;
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    overflow: hidden !important;
+}
+
+
+#bookingCheckinModal.open {
+    display: flex !important;
+}
+
+
+/* MODAL BOX */
+
+#bookingCheckinModal > .bk-checkin-modal-box {
+    position: relative !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: min(540px, 95vw) !important;
+    max-width: 540px !important;
+
+    max-height: calc(100vh - 48px) !important;
+
+    margin: auto !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+
+    box-shadow:
+        0 24px 70px rgba(15, 23, 42, .22),
+        0 4px 18px rgba(15, 23, 42, .08) !important;
+
+    overflow: hidden !important;
+}
+
+
+/* HEADER */
+
+#bookingCheckinModal .modal-header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+
+    gap: 16px !important;
+
+    padding: 20px 22px 17px !important;
+
+    background: #ffffff !important;
+
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+
+#bookingCheckinModal .modal-header-title {
+    color: #111827 !important;
+
+    font-size: 18px !important;
+    font-weight: 800 !important;
+}
+
+
+.bk-checkin-subtitle {
+    margin-top: 3px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+}
+
+
+/* CLOSE */
+
+#bookingCheckinModal .modal-close {
+    width: 36px !important;
+    height: 36px !important;
+
+    flex: 0 0 36px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    padding: 0 !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 9px !important;
+
+    color: #6b7280 !important;
+
+    font-size: 20px !important;
+
+    cursor: pointer !important;
+}
+
+
+#bookingCheckinModal .modal-close:hover {
+    background: #f9fafb !important;
+    color: #111827 !important;
+}
+
+
+/* BODY */
+
+#bookingCheckinModal .modal-body {
+    padding: 22px !important;
+
+    background: #ffffff !important;
+
+    overflow-y: auto !important;
+}
+
+
+/* GUEST CARD */
+
+.bk-checkin-guest-card {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 15px;
+
+    background: linear-gradient(
+        135deg,
+        #f0fdf4,
+        #ecfdf5
+    );
+
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+}
+
+
+.bk-checkin-avatar {
+    width: 44px;
+    height: 44px;
+
+    flex: 0 0 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: #16a34a;
+
+    color: #ffffff;
+
+    font-size: 15px;
+}
+
+
+.bk-checkin-guest-info {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.bk-checkin-guest-name {
+    color: #111827;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
+.bk-checkin-room {
+    margin-top: 3px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+}
+
+
+.bk-checkin-status span {
+    display: inline-flex;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    background: #dcfce7;
+
+    color: #15803d;
+
+    font-size: 9px;
+    font-weight: 800;
+}
+
+
+/* INFO */
+
+.bk-checkin-info {
+    display: flex;
+
+    gap: 11px;
+
+    margin-top: 16px;
+    padding: 14px;
+
+    background: #eff6ff;
+
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+}
+
+
+.bk-checkin-info-icon {
+    color: #2563eb;
+
+    font-size: 15px;
+}
+
+
+.bk-checkin-info strong {
+    display: block;
+
+    color: #1e3a8a;
+
+    font-size: 11px;
+}
+
+
+.bk-checkin-info p {
+    margin: 4px 0 0;
+
+    color: #1d4ed8;
+
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+
+/* ERROR */
+
+.bk-checkin-error {
+    margin-top: 14px;
+    padding: 11px 12px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+    border-radius: 9px;
+
+    color: #dc2626;
+
+    font-size: 11px;
+}
+
+
+/* FOOTER */
+
+#bookingCheckinModal .modal-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+
+    gap: 10px !important;
+
+    padding: 13px 22px !important;
+
+    background: #ffffff !important;
+
+    border-top: 1px solid #e5e7eb !important;
+}
+
+
+#bookingCheckinModal .modal-footer button {
+    min-height: 40px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+
+    #bookingCheckinModal {
+        align-items: flex-end !important;
+
+        padding: 0 !important;
+    }
+
+
+    #bookingCheckinModal > .bk-checkin-modal-box {
+        width: 100% !important;
+        max-width: 100% !important;
+
+        margin: 0 !important;
+
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+}
+
+{% comment %} check in mnodal end  {% endcomment %}
+
+</style>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="fo-bookings-page">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="fo-bookings-header">
+
+        <div class="fo-bookings-title">
+
+            <h1>Bookings</h1>
+
+            <p>
+                Manage all reservations
+            </p>
+
+        </div>
+
+
+        <a
+            href="{% url 'new_booking' %}"
+            class="fo-btn fo-btn-primary"
+        >
+            <i class="fas fa-plus"></i>
+            New Booking
+        </a>
+
+    </div>
+
+
+    <!-- =====================================================
+         BOOKINGS CARD
+    ====================================================== -->
+
+    <div class="fo-bookings-card">
+
+
+        <!-- =================================================
+             FILTER HEADER
+        ================================================== -->
+
+        <div class="fo-bookings-card-header">
+
+
+            <div class="fo-bookings-card-title">
+
+                <i class="fas fa-list"></i>
+
+                All Bookings
+
+            </div>
+
+
+            <div class="fo-booking-filters">
+
+
+                <!-- STATUS FILTER -->
+
+                <div
+                    class="fo-status-tabs"
+                    id="bookingFilterBar"
+                >
+
+                    <button
+                        type="button"
+                        class="fo-tab-btn active"
+                        onclick="filterBookings('all', this)"
+                    >
+                        All Bookings
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-tab-btn"
+                        onclick="filterBookings('confirmed', this)"
+                    >
+                        Upcoming
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-tab-btn"
+                        onclick="filterBookings('checked_in', this)"
+                    >
+                        In-House
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-tab-btn"
+                        onclick="filterBookings('checked_out', this)"
+                    >
+                        Checked Out
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-tab-btn"
+                        onclick="filterBookings('cancelled', this)"
+                    >
+                        Cancelled
+                    </button>
+
+                </div>
+
+
+                <!-- IN HOUSE FILTER -->
+
+                <div id="bkInHouseFilterBar">
+
+                    <span
+                        style="
+                            font-size:11px;
+                            color:#6b7280;
+                            font-weight:600;
+                        "
+                    >
+                        Show:
+                    </span>
+
+
+                    <button
+                        type="button"
+                        class="bk-sub-filter active"
+                        data-inhouse-mode="staying"
+                    >
+                        All Currently In-House
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="bk-sub-filter"
+                        data-inhouse-mode="arrivals"
+                    >
+                        Arrivals Only
+                    </button>
+
+                </div>
+
+
+                <!-- DATE FILTER -->
+
+                <div class="fo-date-filters">
+
+
+                    <button
+                        type="button"
+                        class="fo-btn fo-btn-outline fo-btn-sm fo-date-chip"
+                        data-range="today"
+                        onclick="setBkDateRange('today',this)"
+                    >
+                        Today
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-btn fo-btn-outline fo-btn-sm fo-date-chip"
+                        data-range="week"
+                        onclick="setBkDateRange('week',this)"
+                    >
+                        This Week
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="fo-btn fo-btn-outline fo-btn-sm fo-date-chip"
+                        data-range="month"
+                        onclick="setBkDateRange('month',this)"
+                    >
+                        This Month
+                    </button>
+
+
+                    <input
+                        type="date"
+                        id="bkFromDate"
+                        class="fo-date-input"
+                        onchange="setBkCustomRange()"
+                        title="Check-in from"
+                    >
+
+
+                    <span style="color:#9ca3af;">
+                        &rarr;
+                    </span>
+
+
+                    <input
+                        type="date"
+                        id="bkToDate"
+                        class="fo-date-input"
+                        onchange="setBkCustomRange()"
+                        title="Check-in to"
+                    >
+
+
+                    <button
+                        type="button"
+                        class="fo-btn fo-btn-outline fo-btn-sm"
+                        onclick="resetBkFilters()"
+                        title="Clear filters"
+                    >
+                        <i class="fas fa-times"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             TABLE TOOLBAR
+        ================================================== -->
+
+        <div class="fo-table-toolbar">
+
+
+            <span id="bkRowCount"></span>
+
+
+            <div class="fo-toolbar-right">
+
+
+                <div class="fo-search-wrap">
+
+                    <i class="fas fa-search"></i>
+
+                    <input
+                        type="text"
+                        id="bkSearchInput"
+                        class="fo-search-input"
+                        placeholder="Search guest, room or booking..."
+                        oninput="bkGoPage(1)"
+                    >
+
+                </div>
+
+
+                <select
+                    id="bkPageSize"
+                    class="fo-page-size"
+                    onchange="bkGoPage(1)"
+                >
+
+                    <option value="10">
+                        10 / page
+                    </option>
+
+                    <option value="25">
+                        25 / page
+                    </option>
+
+                    <option value="50">
+                        50 / page
+                    </option>
+
+                </select>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             BOOKINGS TABLE
+        ================================================== -->
+
+        <div class="fo-table-wrap">
+
+            <table class="fo-booking-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Guest</th>
+
+                        <th>Room Type</th>
+
+                        <th>Room</th>
+
+                        <th>Check-In</th>
+
+                        <th>Check-Out</th>
+
+                        <th>Total</th>
+
+                        <th>Advance</th>
+
+                        <th>Balance Due</th>
+
+                        <th>Pay Status</th>
+
+                        <th>Status</th>
+
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="bookingsTableBody">
+
+
+                    {% for booking in bookings %}
+
+
+                    <tr
+                        data-status="{{ booking.status }}"
+                        data-booking="{{ booking.id }}"
+                        data-checkin="{{ booking.check_in|date:'Y-m-d' }}"
+                        data-checkout="{{ booking.check_out|date:'Y-m-d' }}"
+                        data-created="{{ booking.created_at|date:'Y-m-d' }}"
+                        data-cancelledat="{% if booking.cancelled_at %}{{ booking.cancelled_at|date:'Y-m-d' }}{% endif %}"
+                        data-guest="{{ booking.guest.full_name|lower }}"
+                        data-room="{{ booking.room.room_type|lower }}"
+                        data-roomnum="{% if booking.room_unit %}{{ booking.room_unit.room_number|lower }}{% endif %}"
+                    >
+
+
+                        <!-- ID -->
+
+                        <td>
+
+                            <span class="fo-booking-id">
+
+                                #{{ booking.id }}
+
+                            </span>
+
+                        </td>
+
+
+
+                        <!-- GUEST -->
+
+                        <td>
+
+                            <div class="fo-guest">
+
+
+                                <div class="fo-guest-avatar">
+
+                                    {{ booking.guest.full_name|first|upper }}
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="fo-guest-name">
+
+                                        {{ booking.guest.full_name }}
+
+                                    </div>
+
+
+                                    <div class="fo-guest-phone">
+
+                                        {{ booking.guest.phone }}
+
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+                        </td>
+
+
+
+                        <!-- ROOM TYPE -->
+
+                        <td>
+
+                            {{ booking.room.room_type }}
+
+                        </td>
+
+
+
+                        <!-- ROOM NUMBER -->
+
+                        <td>
+
+                            {% if booking.room_unit %}
+
+                                <span class="room-pill">
+
+                                    <i class="fas fa-door-open"></i>
+
+                                    {{ booking.room_unit.room_number }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span style="color:#9ca3af;">
+                                    &mdash;
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- CHECK IN -->
+
+                        <td>
+
+                            {{ booking.check_in }}
+
+                        </td>
+
+
+
+                        <!-- CHECK OUT -->
+
+                        <td>
+
+                            {{ booking.check_out }}
+
+                        </td>
+
+
+
+                        <!-- TOTAL -->
+
+                        <td>
+
+                            {% if booking.total_amount %}
+
+                                <span class="fo-money">
+
+                                    ₹{{ booking.total_amount|floatformat:0 }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="fo-money bk-computed-total"
+                                    data-price="{{ booking.room.base_price|default:0 }}"
+                                    data-checkin="{{ booking.check_in|date:'Y-m-d' }}"
+                                    data-checkout="{{ booking.check_out|date:'Y-m-d' }}"
+                                    style="color:#9ca3af;"
+                                >
+                                    &mdash;
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- ADVANCE -->
+
+                        <td>
+
+                            {% if booking.payment %}
+
+                                {% if booking.payment.amount_paid %}
+
+                                    <span class="fo-money fo-money-paid">
+
+                                        ₹{{ booking.payment.amount_paid|floatformat:0 }}
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span style="color:#9ca3af;">
+                                        &mdash;
+                                    </span>
+
+                                {% endif %}
+
+                            {% else %}
+
+                                <span style="color:#9ca3af;">
+                                    &mdash;
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- BALANCE -->
+
+                        <td>
+
+                            {% if booking.payment %}
+
+                                <span
+                                    class="
+                                        fo-money
+                                        {% if booking.payment.balance_due > 0 %}
+                                            fo-money-due
+                                        {% else %}
+                                            fo-money-clear
+                                        {% endif %}
+                                    "
+                                >
+
+                                    ₹{{ booking.payment.balance_due|default:0|floatformat:0 }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span style="color:#9ca3af;">
+                                    &mdash;
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- PAYMENT STATUS -->
+
+                        <td>
+
+                            {% if booking.payment %}
+
+
+                                {% if booking.payment.payment_status == "paid" %}
+
+                                    <span class="fo-pay-status fo-pay-paid">
+
+                                        Paid
+
+                                    </span>
+
+
+                                {% elif booking.payment.payment_status == "partial" %}
+
+                                    <span class="fo-pay-status fo-pay-partial">
+
+                                        Partial
+
+                                    </span>
+
+
+                                {% else %}
+
+                                    <span class="fo-pay-status fo-pay-pending">
+
+                                        {{ booking.payment.payment_status|default:"Pending"|capfirst }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if booking.payment.payment_method and booking.payment.amount_paid %}
+
+                                    <div class="fo-pay-method">
+
+                                        via {{ booking.payment.payment_method }}
+
+                                    </div>
+
+                                {% endif %}
+
+
+                            {% else %}
+
+                                <span class="fo-pay-status fo-pay-pending">
+
+                                    Pending
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+
+                        <!-- BOOKING STATUS -->
+
+                        <td>
+
+                            <span
+                                class="
+                                    fo-status
+                                    fo-status-{{ booking.status }}
+                                "
+                            >
+
+                                {{ booking.get_status_display }}
+
+                            </span>
+
+                        </td>
+
+
+
+                        <!-- ACTIONS -->
+
+                        <td>
+
+                            <div class="fo-actions">
+
+
+                                {% if booking.status == "confirmed" %}
+
+                                    <button
+                                        type="button"
+                                        class="fo-btn fo-btn-success fo-btn-sm"
+                                        onclick="openBookingCheckin(
+                                            '{{ booking.id }}',
+                                            '{{ booking.guest.full_name|escapejs }}',
+                                            '{{ booking.room.room_type|escapejs }}',
+                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number|escapejs }}{% endif %}',
+                                            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+                                        )"
+                                    >
+
+                                        <i class="fas fa-sign-in-alt"></i>
+
+                                        Check In
+
+                                    </button>
+
+                                {% endif %}
+
+
+
+                                {% if booking.status == "checked_in" %}
+
+                                    <button
+                                        type="button"
+                                        class="fo-btn fo-btn-warning fo-btn-sm"
+                                        onclick="openBookingCheckout(
+                                            '{{ booking.id }}',
+                                            '{{ booking.guest.full_name|escapejs }}',
+                                            '{{ booking.room.room_type|escapejs }}',
+                                            '{% if booking.room_unit %}{{ booking.room_unit.room_number|escapejs }}{% endif %}',
+                                            '{% if booking.room_unit %}{{ booking.room_unit.id }}{% endif %}'
+                                        )"
+                                    >
+
+                                        <i class="fas fa-sign-out-alt"></i>
+
+                                        Check Out
+
+                                    </button>
+
+                                {% endif %}
+
+
+
+<button
+    type="button"
+    class="fo-btn fo-btn-outline fo-btn-sm"
+    onclick="openGuestDetail({
+        bookingId: '{{ booking.id }}',
+        guestId: '{{ booking.guest.id }}',
+        name: '{{ booking.guest.full_name|escapejs }}',
+        phone: '{{ booking.guest.phone|default:''|escapejs }}',
+        email: '{{ booking.guest.email|default:''|escapejs }}',
+        idType: '{{ booking.guest.id_type|default:''|escapejs }}',
+        idNumber: '{{ booking.guest.id_number|default:''|escapejs }}',
+        roomType: '{{ booking.room.room_type|escapejs }}',
+        roomNumber: '{% if booking.room_unit %}{{ booking.room_unit.room_number|escapejs }}{% endif %}',
+        checkIn: '{{ booking.check_in|date:"Y-m-d" }}',
+        checkOut: '{{ booking.check_out|date:"Y-m-d" }}',
+        status: '{{ booking.status }}'
+    })">
+    <i class="fas fa-eye"></i>
+    View
+</button>
+
+
+                            </div>
+
+                        </td>
+
+
+                    </tr>
+
+
+                    {% empty %}
+
+
+                    <tr>
+
+                        <td colspan="12">
+
+                            <div class="fo-empty">
+
+                                <i class="fas fa-calendar-times"></i>
+
+                                <p>
+                                    No bookings found
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+
+        <!-- =================================================
+             PAGINATION
+        ================================================== -->
+
+        <div
+            id="bkPagination"
+            class="fo-pagination"
+        >
+
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline fo-btn-sm"
+                id="bkPrevBtn"
+                onclick="bkGoPage(BK.page - 1)"
+            >
+
+                <i class="fas fa-chevron-left"></i>
+
+            </button>
+
+
+            <div id="bkPageNums"></div>
+
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline fo-btn-sm"
+                id="bkNextBtn"
+                onclick="bkGoPage(BK.page + 1)"
+            >
+
+                <i class="fas fa-chevron-right"></i>
+
+            </button>
+
+
+            <span id="bkPgInfo"></span>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     GUEST DETAIL MODAL
+
+     We retain this ID because your existing openGuestDetail()
+     function expects it.
+========================================================== -->
+
+<div
+    class="modal-backdrop"
+    id="guestDetailModal"
+    style="display:none;"
+>
+
+    <div class="modal modal-lg">
+
+        <div class="modal-header">
+
+            <div>
+
+                <div
+                    class="modal-header-title"
+                    id="gdModalTitle"
+                >
+                    Guest Profile
+                </div>
+
+                <div
+                    id="gdModalSubtitle"
+                    style="
+                        font-size:11px;
+                        color:#6b7280;
+                        margin-top:2px;
+                    "
+                ></div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeModal('guestDetailModal')"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div
+            class="modal-body"
+            id="gdModalBody"
+        >
+
+            <div
+                style="
+                    text-align:center;
+                    padding:36px;
+                    color:#6b7280;
+                "
+            >
+
+                <i
+                    class="fas fa-spinner fa-spin"
+                    style="
+                        font-size:1.5rem;
+                        display:block;
+                        margin-bottom:10px;
+                    "
+                ></i>
+
+                Loading guest details...
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline"
+                onclick="closeModal('guestDetailModal')"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+{% comment %} check in modal start {% endcomment %}
+<!-- =========================================================
+     BOOKINGS PAGE - CHECK IN MODAL
+========================================================= -->
+
+<div
+    id="bookingCheckinModal"
+    class="modal-backdrop"
+    style="display:none;"
+>
+
+    <div class="bk-checkin-modal-box">
+
+        <!-- HEADER -->
+        <div class="modal-header">
+
+            <div>
+
+                <div class="modal-header-title">
+                    Guest Check-In
+                </div>
+
+                <div
+                    id="bkCheckinSubtitle"
+                    class="bk-checkin-subtitle"
+                >
+                    Confirm guest arrival
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeBookingCheckin()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+        <div class="modal-body">
+
+            <input
+                type="hidden"
+                id="bkCheckinBookingId"
+            >
+
+            <input
+                type="hidden"
+                id="bkCheckinRoomUnitId"
+            >
+
+
+            <!-- GUEST -->
+
+            <div class="bk-checkin-guest-card">
+
+                <div class="bk-checkin-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+
+
+                <div class="bk-checkin-guest-info">
+
+                    <div
+                        id="bkCheckinGuestName"
+                        class="bk-checkin-guest-name"
+                    >
+                        Guest
+                    </div>
+
+                    <div
+                        id="bkCheckinRoom"
+                        class="bk-checkin-room"
+                    >
+                        Room
+                    </div>
+
+                </div>
+
+
+                <div class="bk-checkin-status">
+                    <span>
+                        Confirmed
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- INFORMATION -->
+
+            <div class="bk-checkin-info">
+
+                <div class="bk-checkin-info-icon">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+
+                <div>
+
+                    <strong>
+                        Ready to check in
+                    </strong>
+
+                    <p>
+                        Confirm the guest has arrived and the
+                        assigned room is ready before completing
+                        check-in.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- ERROR -->
+
+            <div
+                id="bkCheckinError"
+                class="bk-checkin-error"
+                style="display:none;"
+            ></div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline"
+                onclick="closeBookingCheckin()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                id="bkCheckinConfirmBtn"
+                class="fo-btn fo-btn-success"
+                onclick="confirmBookingCheckin()"
+            >
+                <i class="fas fa-sign-in-alt"></i>
+                Complete Check-In
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+{% comment %} check in modal end  {% endcomment %}
+
+
+<!-- =========================================================
+     BOOKINGS PAGE CHECKOUT MODAL
+========================================================= -->
+
+<!-- =========================================================
+     BOOKINGS PAGE - CHECKOUT MODAL
+========================================================= -->
+
+<div
+    class="modal-backdrop"
+    id="bookingCheckoutModal"
+    style="display:none;"
+>
+
+    <div
+    class="bk-checkout-modal-box"
+    style="
+        width:min(680px, 96vw);
+        max-height:92vh;
+        overflow:hidden;
+    "
+>
+
+        <!-- HEADER -->
+        <div class="modal-header">
+
+            <div>
+                <div class="modal-header-title">
+                    Guest Checkout
+                </div>
+
+                <div
+                    id="bkCheckoutSubtitle"
+                    style="
+                        margin-top:3px;
+                        color:#6b7280;
+                        font-size:11px;
+                    "
+                >
+                    Complete guest checkout
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeBookingCheckout()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+        <div
+            class="modal-body"
+            style="
+                overflow-y:auto;
+                padding:20px;
+            "
+        >
+
+            <!-- IDs -->
+            <input
+                type="hidden"
+                id="bkCheckoutBookingId"
+            >
+
+            <input
+                type="hidden"
+                id="bkCheckoutRoomUnitId"
+            >
+
+
+            <!-- GUEST -->
+            <div class="bk-checkout-guest-card">
+
+                <div class="bk-checkout-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+
+                <div class="bk-checkout-guest-info">
+
+                    <div
+                        class="bk-checkout-guest-name"
+                        id="bkCheckoutGuestName"
+                    >
+                        Guest
+                    </div>
+
+                    <div
+                        class="bk-checkout-room"
+                        id="bkCheckoutRoom"
+                    >
+                        Room
+                    </div>
+
+                </div>
+
+                <div class="bk-checkout-status">
+                    <span>In House</span>
+                </div>
+
+            </div>
+
+
+            <!-- LOADING -->
+            <div
+                id="bkCheckoutLoading"
+                style="
+                    padding:25px;
+                    text-align:center;
+                    color:#6b7280;
+                "
+            >
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading folio...
+            </div>
+
+
+            <!-- CHECKOUT CONTENT -->
+            <div
+                id="bkCheckoutContent"
+                style="display:none;"
+            >
+
+                <!-- FOLIO SUMMARY -->
+                <div class="bk-checkout-summary">
+
+                    <div class="bk-checkout-summary-title">
+                        <i class="fas fa-receipt"></i>
+                        Folio Summary
+                    </div>
+
+
+                    <div class="bk-checkout-summary-row">
+                        <span>Total Charges</span>
+
+                        <strong id="bkCheckoutTotalCharges">
+                            ₹0.00
+                        </strong>
+                    </div>
+
+
+                    <div class="bk-checkout-summary-row">
+                        <span>Total Paid</span>
+
+                        <strong id="bkCheckoutTotalPaid">
+                            ₹0.00
+                        </strong>
+                    </div>
+
+
+                    <div
+                        class="bk-checkout-summary-row"
+                        style="
+                            border-top:1px solid #e5e7eb;
+                            margin-top:5px;
+                            padding-top:12px;
+                        "
+                    >
+                        <span>
+                            Balance Due
+                        </span>
+
+                        <strong
+                            id="bkCheckoutBalance"
+                            style="
+                                color:#dc2626;
+                                font-size:15px;
+                            "
+                        >
+                            ₹0.00
+                        </strong>
+                    </div>
+
+                </div>
+
+
+                <!-- FINAL PAYMENT -->
+                <div
+                    style="
+                        margin-top:18px;
+                        padding:16px;
+                        border:1px solid #e5e7eb;
+                        border-radius:10px;
+                        background:#fff;
+                    "
+                >
+
+                    <div
+                        style="
+                            font-size:12px;
+                            font-weight:800;
+                            color:#111827;
+                            margin-bottom:13px;
+                        "
+                    >
+                        <i
+                            class="fas fa-credit-card"
+                            style="
+                                margin-right:6px;
+                                color:#7c3aed;
+                            "
+                        ></i>
+
+                        Final Payment
+                    </div>
+
+
+                    <!-- AMOUNT -->
+                    <div style="margin-bottom:13px;">
+
+                        <label
+                            for="bkCheckoutFinalPayment"
+                            style="
+                                display:block;
+                                margin-bottom:5px;
+                                color:#374151;
+                                font-size:10px;
+                                font-weight:700;
+                            "
+                        >
+                            Amount
+                        </label>
+
+                        <input
+                            type="number"
+                            id="bkCheckoutFinalPayment"
+                            min="0"
+                            step="0.01"
+                            value="0"
+                            style="
+                                width:100%;
+                                height:40px;
+                                padding:7px 10px;
+                                border:1px solid #d1d5db;
+                                border-radius:8px;
+                                font-family:inherit;
+                                font-size:13px;
+                            "
+                        >
+
+                    </div>
+
+
+                    <!-- PAYMENT METHOD -->
+                    <div>
+
+                        <label
+                            for="bkCheckoutPaymentMethod"
+                            style="
+                                display:block;
+                                margin-bottom:5px;
+                                color:#374151;
+                                font-size:10px;
+                                font-weight:700;
+                            "
+                        >
+                            Payment Method
+                        </label>
+
+                        <select
+                            id="bkCheckoutPaymentMethod"
+                            style="
+                                width:100%;
+                                height:40px;
+                                padding:7px 10px;
+                                border:1px solid #d1d5db;
+                                border-radius:8px;
+                                background:#fff;
+                                font-family:inherit;
+                                font-size:12px;
+                            "
+                        >
+                            <option value="Cash">
+                                Cash
+                            </option>
+
+                            <option value="Card">
+                                Card
+                            </option>
+
+                            <option value="UPI">
+                                UPI
+                            </option>
+
+                            <option value="Bank Transfer">
+                                Bank Transfer
+                            </option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NOTE -->
+                <div class="bk-checkout-warning">
+
+                    <div class="bk-checkout-warning-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+
+                    <div>
+                        <strong>
+                            Final checkout
+                        </strong>
+
+                        <p>
+                            The final payment will be recorded before
+                            completing checkout. The room will then move
+                            to its post-checkout status.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ERROR -->
+            <div
+                id="bkCheckoutError"
+                class="bk-checkout-error"
+                style="display:none;"
+            ></div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-outline"
+                onclick="closeBookingCheckout()"
+            >
+                Cancel
+            </button>
+
+
+            <button
+                type="button"
+                class="fo-btn fo-btn-warning"
+                id="bkCheckoutConfirmBtn"
+                onclick="confirmBookingCheckout()"
+                disabled
+            >
+                <i class="fas fa-sign-out-alt"></i>
+                Complete Checkout
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+
+<script>
+
+    /* =========================================================
+       BOOKINGS
+       FILTER + SEARCH + DATE RANGE + PAGINATION
+    ========================================================== */
+
+    const BK = {
+
+        page: 1,
+
+        pageSize: 10,
+
+        status: "all",
+
+        inHouseMode: "staying",
+
+        from: "",
+
+        to: "",
+
+        search: "",
+
+        allRows: [],
+
+        filtered: []
+
+    };
+
+
+    /* =========================================================
+       INITIALIZE
+    ========================================================== */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            BK.allRows = Array.from(
+                document.querySelectorAll(
+                    "#bookingsTableBody tr[data-status]"
+                )
+            );
+
+
+            /* ---------------------------------------------
+               CALCULATE FALLBACK TOTAL
+            ---------------------------------------------- */
+
+            document.querySelectorAll(
+                ".bk-computed-total"
+            ).forEach(
+                function (element) {
+
+                    const price =
+                        parseFloat(
+                            element.dataset.price
+                        ) || 0;
+
+
+                    const checkIn =
+                        element.dataset.checkin;
+
+
+                    const checkOut =
+                        element.dataset.checkout;
+
+
+                    if (
+                        !price ||
+                        !checkIn ||
+                        !checkOut
+                    ) {
+                        return;
+                    }
+
+
+                    const start =
+                        new Date(
+                            checkIn + "T00:00:00"
+                        );
+
+
+                    const end =
+                        new Date(
+                            checkOut + "T00:00:00"
+                        );
+
+
+                    const nights =
+                        Math.max(
+                            0,
+                            Math.round(
+                                (
+                                    end - start
+                                )
+                                /
+                                86400000
+                            )
+                        );
+
+
+                    if (nights > 0) {
+
+                        element.textContent =
+                            "₹" +
+                            Math.round(
+                                price * nights
+                            ).toLocaleString(
+                                "en-IN"
+                            );
+
+                        element.style.color =
+                            "";
+
+                    }
+
+                }
+            );
+
+
+            /* ---------------------------------------------
+               IN-HOUSE SUB FILTERS
+            ---------------------------------------------- */
+
+            document.querySelectorAll(
+                ".bk-sub-filter"
+            ).forEach(
+                function (button) {
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+                            document.querySelectorAll(
+                                ".bk-sub-filter"
+                            ).forEach(
+                                function (item) {
+
+                                    item.classList.remove(
+                                        "active"
+                                    );
+
+                                }
+                            );
+
+
+                            button.classList.add(
+                                "active"
+                            );
+
+
+                            BK.inHouseMode =
+                                button.dataset.inhouseMode
+                                ||
+                                "staying";
+
+
+                            BK.page = 1;
+
+                            bkRender();
+
+                        }
+                    );
+
+                }
+            );
+
+
+            bkRender();
+
+        }
+    );
+
+
+    /* =========================================================
+       STATUS FILTER
+    ========================================================== */
+
+    function filterBookings(
+        status,
+        button
+    ) {
+
+        BK.status =
+            status || "all";
+
+
+        BK.page = 1;
+
+
+        document.querySelectorAll(
+            "#bookingFilterBar .fo-tab-btn"
+        ).forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        if (button) {
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+
+        const inHouseBar =
+            document.getElementById(
+                "bkInHouseFilterBar"
+            );
+
+
+        if (inHouseBar) {
+
+            inHouseBar.style.display =
+                BK.status === "checked_in"
+                ?
+                "flex"
+                :
+                "none";
+
+        }
+
+
+        bkRender();
+
+    }
+
+
+    /* =========================================================
+       DATE HELPERS
+    ========================================================== */
+
+    function bkFormatDate(date) {
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        return (
+            year +
+            "-" +
+            month +
+            "-" +
+            day
+        );
+
+    }
+
+
+    function setBkDateRange(
+        range,
+        button
+    ) {
+
+        const today =
+            new Date();
+
+
+        today.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+
+        let from =
+            new Date(
+                today
+            );
+
+
+        let to =
+            new Date(
+                today
+            );
+
+
+        if (range === "week") {
+
+            const day =
+                today.getDay();
+
+
+            const diff =
+                day === 0
+                ?
+                -6
+                :
+                1 - day;
+
+
+            from.setDate(
+                today.getDate() +
+                diff
+            );
+
+
+            to =
+                new Date(
+                    from
+                );
+
+
+            to.setDate(
+                from.getDate() +
+                6
+            );
+
+        }
+
+
+        if (range === "month") {
+
+            from =
+                new Date(
+                    today.getFullYear(),
+                    today.getMonth(),
+                    1
+                );
+
+
+            to =
+                new Date(
+                    today.getFullYear(),
+                    today.getMonth() + 1,
+                    0
+                );
+
+        }
+
+
+        BK.from =
+            bkFormatDate(
+                from
+            );
+
+
+        BK.to =
+            bkFormatDate(
+                to
+            );
+
+
+        const fromInput =
+            document.getElementById(
+                "bkFromDate"
+            );
+
+
+        const toInput =
+            document.getElementById(
+                "bkToDate"
+            );
+
+
+        if (fromInput) {
+
+            fromInput.value =
+                BK.from;
+
+        }
+
+
+        if (toInput) {
+
+            toInput.value =
+                BK.to;
+
+        }
+
+
+        document.querySelectorAll(
+            ".fo-date-chip"
+        ).forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        if (button) {
+
+            button.classList.add(
+                "active"
+            );
+
+        }
+
+
+        BK.page = 1;
+
+        bkRender();
+
+    }
+
+
+    /* =========================================================
+       CUSTOM RANGE
+    ========================================================== */
+
+    function setBkCustomRange() {
+
+        BK.from =
+            document.getElementById(
+                "bkFromDate"
+            ).value;
+
+
+        BK.to =
+            document.getElementById(
+                "bkToDate"
+            ).value;
+
+
+        document.querySelectorAll(
+            ".fo-date-chip"
+        ).forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        BK.page = 1;
+
+        bkRender();
+
+    }
+
+
+    /* =========================================================
+       RESET
+    ========================================================== */
+
+    function resetBkFilters() {
+
+        BK.page = 1;
+
+        BK.status = "all";
+
+        BK.inHouseMode =
+            "staying";
+
+        BK.from = "";
+
+        BK.to = "";
+
+        BK.search = "";
+
+
+        const search =
+            document.getElementById(
+                "bkSearchInput"
+            );
+
+
+        const from =
+            document.getElementById(
+                "bkFromDate"
+            );
+
+
+        const to =
+            document.getElementById(
+                "bkToDate"
+            );
+
+
+        if (search) {
+            search.value = "";
+        }
+
+
+        if (from) {
+            from.value = "";
+        }
+
+
+        if (to) {
+            to.value = "";
+        }
+
+
+        document.querySelectorAll(
+            ".fo-date-chip"
+        ).forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        const statusButtons =
+            document.querySelectorAll(
+                "#bookingFilterBar .fo-tab-btn"
+            );
+
+
+        statusButtons.forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        if (statusButtons.length) {
+
+            statusButtons[0].classList.add(
+                "active"
+            );
+
+        }
+
+
+        const inHouseBar =
+            document.getElementById(
+                "bkInHouseFilterBar"
+            );
+
+
+        if (inHouseBar) {
+
+            inHouseBar.style.display =
+                "none";
+
+        }
+
+
+        document.querySelectorAll(
+            ".bk-sub-filter"
+        ).forEach(
+            function (item) {
+
+                item.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+        const firstSub =
+            document.querySelector(
+                '.bk-sub-filter[data-inhouse-mode="staying"]'
+            );
+
+
+        if (firstSub) {
+
+            firstSub.classList.add(
+                "active"
+            );
+
+        }
+
+
+        bkRender();
+
+    }
+
+
+    /* =========================================================
+       PAGE
+    ========================================================== */
+
+    function bkGoPage(page) {
+
+        BK.page =
+            Math.max(
+                1,
+                parseInt(page || 1)
+            );
+
+
+        bkRender();
+
+    }
+
+
+    /* =========================================================
+       FILTER ROW
+    ========================================================== */
+
+    function bkRowMatches(
+        row
+    ) {
+
+        /* -----------------------------------------------------
+           STATUS
+        ------------------------------------------------------ */
+
+        const rowStatus =
+            row.dataset.status || "";
+
+
+        if (
+            BK.status !== "all"
+        ) {
+
+            if (
+                BK.status === "checked_in" &&
+                BK.inHouseMode === "arrivals"
+            ) {
+
+                if (
+                    ![
+                        "checked_in",
+                        "checked_out",
+                        "confirmed"
+                    ].includes(
+                        rowStatus
+                    )
+                ) {
+
+                    return false;
+
+                }
+
+            } else {
+
+                if (
+                    rowStatus !== BK.status
+                ) {
+
+                    return false;
+
+                }
+
+            }
+
+        }
+
+
+        /* -----------------------------------------------------
+           SEARCH
+        ------------------------------------------------------ */
+
+        const query =
+            (
+                document.getElementById(
+                    "bkSearchInput"
+                )?.value
+                ||
+                ""
+            )
+            .trim()
+            .toLowerCase();
+
+
+        BK.search =
+            query;
+
+
+        if (query) {
+
+            const guest =
+                (
+                    row.dataset.guest
+                    ||
+                    ""
+                ).toLowerCase();
+
+
+            const room =
+                (
+                    row.dataset.room
+                    ||
+                    ""
+                ).toLowerCase();
+
+
+            const roomNumber =
+                (
+                    row.dataset.roomnum
+                    ||
+                    ""
+                ).toLowerCase();
+
+
+            const booking =
+                (
+                    row.dataset.booking
+                    ||
+                    ""
+                ).toLowerCase();
+
+
+            if (
+                !guest.includes(query) &&
+                !room.includes(query) &&
+                !roomNumber.includes(query) &&
+                !booking.includes(query)
+            ) {
+
+                return false;
+
+            }
+
+        }
+
+
+        /* -----------------------------------------------------
+           NO DATE RANGE
+        ------------------------------------------------------ */
+
+        if (
+            !BK.from &&
+            !BK.to
+        ) {
+
+            return true;
+
+        }
+
+
+        const checkIn =
+            (
+                row.dataset.checkin
+                ||
+                ""
+            ).split("T")[0];
+
+
+        const checkOut =
+            (
+                row.dataset.checkout
+                ||
+                ""
+            ).split("T")[0];
+
+
+        const cancelledAt =
+            (
+                row.dataset.cancelledat
+                ||
+                ""
+            ).split("T")[0];
+
+
+        const rangeStart =
+            BK.from
+            ||
+            "0000-01-01";
+
+
+        const rangeEnd =
+            BK.to
+            ||
+            "9999-12-31";
+
+
+        const inRange =
+            function (date) {
+
+                return (
+                    date &&
+                    date >= rangeStart &&
+                    date <= rangeEnd
+                );
+
+            };
+
+
+        const stayOverlaps =
+            function () {
+
+                if (
+                    !checkIn ||
+                    !checkOut
+                ) {
+
+                    return false;
+
+                }
+
+
+                return (
+                    checkIn <= rangeEnd &&
+                    checkOut >= rangeStart
+                );
+
+            };
+
+
+        /* -----------------------------------------------------
+           STATUS SPECIFIC DATE BEHAVIOUR
+        ------------------------------------------------------ */
+
+        switch (
+            BK.status
+        ) {
+
+            case "confirmed":
+
+                return inRange(
+                    checkIn
+                );
+
+
+            case "checked_in":
+
+                if (
+                    BK.inHouseMode ===
+                    "arrivals"
+                ) {
+
+                    return inRange(
+                        checkIn
+                    );
+
+                }
+
+
+                return stayOverlaps();
+
+
+            case "checked_out":
+
+                return inRange(
+                    checkOut
+                );
+
+
+            case "cancelled":
+
+                return (
+                    inRange(
+                        cancelledAt
+                    )
+                    ||
+                    inRange(
+                        checkIn
+                    )
+                );
+
+
+            case "all":
+
+            default:
+
+                return stayOverlaps();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       RENDER
+    ========================================================== */
+
+    function bkRender() {
+
+        const pageSizeSelect =
+            document.getElementById(
+                "bkPageSize"
+            );
+
+
+        BK.pageSize =
+            parseInt(
+                pageSizeSelect?.value
+                ||
+                10
+            );
+
+
+        BK.filtered =
+            BK.allRows.filter(
+                bkRowMatches
+            );
+
+
+        const totalRows =
+            BK.filtered.length;
+
+
+        const totalPages =
+            Math.max(
+                1,
+                Math.ceil(
+                    totalRows /
+                    BK.pageSize
+                )
+            );
+
+
+        if (
+            BK.page > totalPages
+        ) {
+
+            BK.page =
+                totalPages;
+
+        }
+
+
+        if (
+            BK.page < 1
+        ) {
+
+            BK.page =
+                1;
+
+        }
+
+
+        const start =
+            (
+                BK.page - 1
+            )
+            *
+            BK.pageSize;
+
+
+        const end =
+            start +
+            BK.pageSize;
+
+
+        BK.allRows.forEach(
+            function (row) {
+
+                row.style.display =
+                    "none";
+
+            }
+        );
+
+
+        BK.filtered
+            .slice(
+                start,
+                end
+            )
+            .forEach(
+                function (row) {
+
+                    row.style.display =
+                        "";
+
+                }
+            );
+
+
+        /* -----------------------------------------------------
+           COUNT
+        ------------------------------------------------------ */
+
+        const count =
+            document.getElementById(
+                "bkRowCount"
+            );
+
+
+        if (count) {
+
+            if (!totalRows) {
+
+                count.textContent =
+                    "No bookings found";
+
+            } else {
+
+                count.textContent =
+                    (
+                        "Showing " +
+                        (
+                            start + 1
+                        ) +
+                        "–" +
+                        Math.min(
+                            end,
+                            totalRows
+                        ) +
+                        " of " +
+                        totalRows +
+                        " bookings"
+                    );
+
+            }
+
+        }
+
+
+        /* -----------------------------------------------------
+           INFO
+        ------------------------------------------------------ */
+
+        const info =
+            document.getElementById(
+                "bkPgInfo"
+            );
+
+
+        if (info) {
+
+            info.textContent =
+                "Page " +
+                BK.page +
+                " of " +
+                totalPages;
+
+        }
+
+
+        /* -----------------------------------------------------
+           PREVIOUS / NEXT
+        ------------------------------------------------------ */
+
+        const previous =
+            document.getElementById(
+                "bkPrevBtn"
+            );
+
+
+        const next =
+            document.getElementById(
+                "bkNextBtn"
+            );
+
+
+        if (previous) {
+
+            previous.disabled =
+                BK.page <= 1;
+
+        }
+
+
+        if (next) {
+
+            next.disabled =
+                BK.page >= totalPages;
+
+        }
+
+
+        /* -----------------------------------------------------
+           PAGE NUMBERS
+        ------------------------------------------------------ */
+
+        const pageNumbers =
+            document.getElementById(
+                "bkPageNums"
+            );
+
+
+        if (!pageNumbers) {
+
+            return;
+
+        }
+
+
+        pageNumbers.innerHTML =
+            "";
+
+
+        let first =
+            Math.max(
+                1,
+                BK.page - 2
+            );
+
+
+        let last =
+            Math.min(
+                totalPages,
+                first + 4
+            );
+
+
+        first =
+            Math.max(
+                1,
+                last - 4
+            );
+
+
+        for (
+            let page = first;
+            page <= last;
+            page++
+        ) {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.type =
+                "button";
+
+
+            button.className =
+                "bk-page-btn" +
+                (
+                    page === BK.page
+                    ?
+                    " active"
+                    :
+                    ""
+                );
+
+
+            button.textContent =
+                page;
+
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    bkGoPage(
+                        page
+                    );
+
+                }
+            );
+
+
+            pageNumbers.appendChild(
+                button
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       MODAL HELPERS
+
+       Keep these globally available because Check-In,
+       Checkout and Guest Detail use them.
+    ========================================================== */
+
+    function openModal(
+        id
+    ) {
+
+        const modal =
+            document.getElementById(
+                id
+            );
+
+
+        if (!modal) {
+
+            console.error(
+                "Modal not found:",
+                id
+            );
+
+            return;
+
+        }
+
+
+        modal.style.display =
+            "flex";
+
+
+        modal.classList.add(
+            "open"
+        );
+
+    }
+
+
+    function closeModal(
+        id
+    ) {
+
+        const modal =
+            document.getElementById(
+                id
+            );
+
+
+        if (!modal) {
+
+            return;
+
+        }
+
+
+        modal.classList.remove(
+            "open"
+        );
+
+
+        modal.style.display =
+            "none";
+
+    }
+
+
+    /* =========================================================
+       CSRF HELPER
+    ========================================================== */
+
+    function getCsrf() {
+
+        const input =
+            document.querySelector(
+                '[name="csrfmiddlewaretoken"]'
+            );
+
+
+        if (input) {
+
+            return input.value;
+
+        }
+
+
+        const cookie =
+            document.cookie
+            .split(";")
+            .map(
+                item =>
+                    item.trim()
+            )
+            .find(
+                item =>
+                    item.startsWith(
+                        "csrftoken="
+                    )
+            );
+
+
+        return cookie
+            ?
+            decodeURIComponent(
+                cookie.substring(
+                    "csrftoken=".length
+                )
+            )
+            :
+            "";
+
+    }
+
+
+
+
+
+    /* =========================================================
+   VIEW GUEST / BOOKING DETAILS
+========================================================= */
+
+function openGuestDetail(data) {
+
+    const title = document.getElementById("gdModalTitle");
+    const subtitle = document.getElementById("gdModalSubtitle");
+    const body = document.getElementById("gdModalBody");
+
+    if (!body) {
+        console.error("gdModalBody not found.");
+        return;
+    }
+
+    if (title) {
+        title.textContent = data.name || "Guest Profile";
+    }
+
+    if (subtitle) {
+        subtitle.textContent =
+            "Booking #" + (data.bookingId || "");
+    }
+
+    const statusText = String(data.status || "")
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, function (char) {
+            return char.toUpperCase();
+        });
+
+    body.innerHTML = `
+        <div style="
+            display:grid;
+            grid-template-columns:repeat(2,minmax(0,1fr));
+            gap:14px;
+        ">
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Guest Name
+                </div>
+
+                <div style="font-weight:700;">
+                    ${escapeBookingHtml(data.name || "—")}
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Phone
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.phone || "—")}
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Email
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.email || "—")}
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    ID
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.idType || "—")}
+                    ${data.idNumber
+                        ? " · " + escapeBookingHtml(data.idNumber)
+                        : ""
+                    }
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Room
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.roomType || "—")}
+                    ${data.roomNumber
+                        ? " · Room " + escapeBookingHtml(data.roomNumber)
+                        : ""
+                    }
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Status
+                </div>
+
+                <div style="font-weight:700;">
+                    ${escapeBookingHtml(statusText || "—")}
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Check-In
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.checkIn || "—")}
+                </div>
+            </div>
+
+            <div>
+                <div style="
+                    font-size:10px;
+                    color:#9ca3af;
+                    margin-bottom:4px;
+                ">
+                    Check-Out
+                </div>
+
+                <div>
+                    ${escapeBookingHtml(data.checkOut || "—")}
+                </div>
+            </div>
+
+        </div>
+    `;
+
+    openModal("guestDetailModal");
+}
+
+
+function escapeBookingHtml(value) {
+
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+
+
+
+
+
+
+/* =========================================================
+   BOOKINGS PAGE - CHECK IN
+========================================================= */
+
+let bookingCheckinState = {
+    bookingId: null,
+    guestName: "",
+    roomType: "",
+    roomNumber: "",
+    roomUnitId: null
+};
+
+
+/* =========================================================
+   OPEN CHECK IN
+========================================================= */
+
+function openBookingCheckin(
+    bookingId,
+    guestName,
+    roomType,
+    roomNumber,
+    roomUnitId
+) {
+
+    if (!bookingId) {
+        alert("Booking ID is missing.");
+        return;
+    }
+
+
+    bookingCheckinState = {
+        bookingId: bookingId,
+        guestName: guestName || "",
+        roomType: roomType || "",
+        roomNumber: roomNumber || "",
+        roomUnitId: roomUnitId || ""
+    };
+
+
+    const roomText =
+        roomNumber
+            ? `${roomType} · Room ${roomNumber}`
+            : roomType || "Room";
+
+
+    const bookingInput =
+        document.getElementById(
+            "bkCheckinBookingId"
+        );
+
+    const roomUnitInput =
+        document.getElementById(
+            "bkCheckinRoomUnitId"
+        );
+
+    const guestElement =
+        document.getElementById(
+            "bkCheckinGuestName"
+        );
+
+    const roomElement =
+        document.getElementById(
+            "bkCheckinRoom"
+        );
+
+    const subtitle =
+        document.getElementById(
+            "bkCheckinSubtitle"
+        );
+
+    const error =
+        document.getElementById(
+            "bkCheckinError"
+        );
+
+    const button =
+        document.getElementById(
+            "bkCheckinConfirmBtn"
+        );
+
+
+    if (bookingInput) {
+        bookingInput.value = bookingId;
+    }
+
+
+    if (roomUnitInput) {
+        roomUnitInput.value =
+            roomUnitId || "";
+    }
+
+
+    if (guestElement) {
+        guestElement.textContent =
+            guestName || "Guest";
+    }
+
+
+    if (roomElement) {
+        roomElement.textContent =
+            roomText;
+    }
+
+
+    if (subtitle) {
+        subtitle.textContent =
+            `Booking #${bookingId} · ${roomText}`;
+    }
+
+
+    if (error) {
+        error.style.display = "none";
+        error.textContent = "";
+    }
+
+
+    if (button) {
+
+        button.disabled = false;
+
+        button.innerHTML = `
+            <i class="fas fa-sign-in-alt"></i>
+            Complete Check-In
+        `;
+    }
+
+
+    openModal(
+        "bookingCheckinModal"
+    );
+}
+
+
+/* =========================================================
+   CLOSE CHECK IN
+========================================================= */
+
+function closeBookingCheckin() {
+
+    closeModal(
+        "bookingCheckinModal"
+    );
+}
+
+
+/* =========================================================
+   CHECK IN ERROR
+========================================================= */
+
+function showBookingCheckinError(
+    message
+) {
+
+    const error =
+        document.getElementById(
+            "bkCheckinError"
+        );
+
+
+    if (!error) {
+        alert(message);
+        return;
+    }
+
+
+    error.textContent =
+        message || "Unable to check in guest.";
+
+
+    error.style.display =
+        "block";
+}
+
+
+/* =========================================================
+   COMPLETE CHECK IN
+========================================================= */
+
+async function confirmBookingCheckin() {
+
+    const bookingId =
+        bookingCheckinState.bookingId;
+
+
+    if (!bookingId) {
+
+        showBookingCheckinError(
+            "Booking ID is missing."
+        );
+
+        return;
+    }
+
+
+    const button =
+        document.getElementById(
+            "bkCheckinConfirmBtn"
+        );
+
+
+    const error =
+        document.getElementById(
+            "bkCheckinError"
+        );
+
+
+    if (error) {
+        error.style.display = "none";
+    }
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.innerHTML = `
+            <i class="fas fa-spinner fa-spin"></i>
+            Checking In...
+        `;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'check_in' %}",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            getCsrf(),
+
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            booking_id:
+                                bookingId,
+
+                            room_unit_id:
+                                bookingCheckinState.roomUnitId
+                                || null
+                        })
+                }
+            );
+
+
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (parseError) {
+
+            data = {};
+        }
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Check-in failed (${response.status})`
+            );
+        }
+
+
+        closeBookingCheckin();
+
+
+        alert(
+            data.message ||
+            `${bookingCheckinState.guestName} checked in successfully.`
+        );
+
+
+        window.location.reload();
+
+    } catch (error) {
+
+        console.error(
+            "Booking check-in error:",
+            error
+        );
+
+
+        showBookingCheckinError(
+            error.message ||
+            "Unable to check in guest."
+        );
+
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.innerHTML = `
+                <i class="fas fa-sign-in-alt"></i>
+                Complete Check-In
+            `;
+        }
+
+    }
+
+}
+
+
+
+
+</script>
+
+
+
+<script>
+/* =========================================================
+   BOOKINGS PAGE CHECKOUT
+========================================================= */
+
+let bookingCheckoutState = {
+    bookingId: null,
+    guestName: "",
+    roomType: "",
+    roomNumber: "",
+    roomUnitId: null,
+    balanceDue: 0
+};
+
+
+/* =========================================================
+   MONEY
+========================================================= */
+
+function bkMoney(value) {
+
+    const number = Number(value || 0);
+
+    return "₹" + number.toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+/* =========================================================
+   OPEN CHECKOUT
+========================================================= */
+
+async function openBookingCheckout(
+    bookingId,
+    guestName,
+    roomType,
+    roomNumber,
+    roomUnitId
+) {
+
+    console.log("CHECKOUT CLICKED", {
+        bookingId,
+        guestName,
+        roomType,
+        roomNumber,
+        roomUnitId
+    });
+
+    const modal =
+        document.getElementById(
+            "bookingCheckoutModal"
+        );
+
+    console.log(
+        "CHECKOUT MODAL FOUND:",
+        modal
+    );
+
+    if (!modal) {
+
+        alert(
+            "ERROR: bookingCheckoutModal not found in page."
+        );
+
+        return;
+    }
+
+
+    /* =====================================================
+       OPEN MODAL FIRST
+    ===================================================== */
+
+    modal.style.display = "flex";
+
+    modal.classList.add("open");
+
+
+    /* =====================================================
+       VALIDATE BOOKING
+    ===================================================== */
+
+    if (!bookingId) {
+
+        alert(
+            "Booking ID is missing."
+        );
+
+        return;
+    }
+
+
+    bookingCheckoutState = {
+
+        bookingId: bookingId,
+
+        guestName:
+            guestName || "",
+
+        roomType:
+            roomType || "",
+
+        roomNumber:
+            roomNumber || "",
+
+        roomUnitId:
+            roomUnitId || "",
+
+        balanceDue: 0
+
+    };
+
+
+    /* =====================================================
+       ELEMENTS
+    ===================================================== */
+
+    const bookingInput =
+        document.getElementById(
+            "bkCheckoutBookingId"
+        );
+
+    const roomUnitInput =
+        document.getElementById(
+            "bkCheckoutRoomUnitId"
+        );
+
+    const guestElement =
+        document.getElementById(
+            "bkCheckoutGuestName"
+        );
+
+    const roomElement =
+        document.getElementById(
+            "bkCheckoutRoom"
+        );
+
+    const subtitleElement =
+        document.getElementById(
+            "bkCheckoutSubtitle"
+        );
+
+    const loadingElement =
+        document.getElementById(
+            "bkCheckoutLoading"
+        );
+
+    const contentElement =
+        document.getElementById(
+            "bkCheckoutContent"
+        );
+
+    const errorElement =
+        document.getElementById(
+            "bkCheckoutError"
+        );
+
+    const paymentElement =
+        document.getElementById(
+            "bkCheckoutFinalPayment"
+        );
+
+    const methodElement =
+        document.getElementById(
+            "bkCheckoutPaymentMethod"
+        );
+
+    const confirmButton =
+        document.getElementById(
+            "bkCheckoutConfirmBtn"
+        );
+
+
+    /* =====================================================
+       DEBUG REQUIRED ELEMENTS
+    ===================================================== */
+
+    console.log("CHECKOUT ELEMENTS", {
+
+        bookingInput,
+        roomUnitInput,
+        guestElement,
+        roomElement,
+        subtitleElement,
+        loadingElement,
+        contentElement,
+        errorElement,
+        paymentElement,
+        methodElement,
+        confirmButton
+
+    });
+
+
+    /* =====================================================
+       SET BOOKING DATA
+    ===================================================== */
+
+    if (bookingInput) {
+
+        bookingInput.value =
+            bookingId;
+
+    }
+
+
+    if (roomUnitInput) {
+
+        roomUnitInput.value =
+            roomUnitId || "";
+
+    }
+
+
+    if (guestElement) {
+
+        guestElement.textContent =
+            guestName || "Guest";
+
+    }
+
+
+    const roomText =
+        roomNumber
+            ? `${roomType} · Room ${roomNumber}`
+            : roomType || "Room";
+
+
+    if (roomElement) {
+
+        roomElement.textContent =
+            roomText;
+
+    }
+
+
+    if (subtitleElement) {
+
+        subtitleElement.textContent =
+            `${guestName || "Guest"} · ${roomText}`;
+
+    }
+
+
+    /* =====================================================
+       RESET UI
+    ===================================================== */
+
+    if (loadingElement) {
+
+        loadingElement.style.display =
+            "block";
+
+    }
+
+
+    if (contentElement) {
+
+        contentElement.style.display =
+            "none";
+
+    }
+
+
+    if (errorElement) {
+
+        errorElement.style.display =
+            "none";
+
+        errorElement.textContent =
+            "";
+
+    }
+
+
+    if (paymentElement) {
+
+        paymentElement.value =
+            "0";
+
+    }
+
+
+    if (methodElement) {
+
+        methodElement.value =
+            "Cash";
+
+    }
+
+
+    if (confirmButton) {
+
+        confirmButton.disabled =
+            true;
+
+        confirmButton.innerHTML =
+            '<i class="fas fa-sign-out-alt"></i> Complete Checkout';
+
+    }
+
+
+    /* =====================================================
+       LOAD FOLIO
+    ===================================================== */
+
+    try {
+
+        await loadBookingCheckoutFolio(
+            bookingId
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Unable to load checkout folio:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LOAD FOLIO
+========================================================= */
+
+async function loadBookingCheckoutFolio(
+    bookingId
+) {
+
+    try {
+
+        const url =
+            "{% url 'get_bill' %}" +
+            "?booking_id=" +
+            encodeURIComponent(
+                bookingId
+            );
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: "GET",
+
+                    headers: {
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    }
+                }
+            );
+
+
+        let data = {};
+
+
+        try {
+            data =
+                await response.json();
+        } catch (error) {
+            data = {};
+        }
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Unable to load folio (${response.status})`
+            );
+        }
+
+
+        /*
+         * Different bill endpoints sometimes return
+         * the amounts either directly or under folio.
+         */
+
+        const folio =
+            data.folio || data;
+
+
+        const totalCharges =
+            Number(
+                folio.total_charges ??
+                data.total_charges ??
+                0
+            );
+
+
+        const totalPaid =
+            Number(
+                folio.total_paid ??
+                data.total_paid ??
+                0
+            );
+
+
+        let balanceDue =
+            Number(
+                folio.balance_due ??
+                data.balance_due ??
+                (
+                    totalCharges -
+                    totalPaid
+                )
+            );
+
+
+        if (!Number.isFinite(balanceDue)) {
+            balanceDue = 0;
+        }
+
+
+        balanceDue =
+            Math.max(
+                0,
+                balanceDue
+            );
+
+
+        bookingCheckoutState.balanceDue =
+            balanceDue;
+
+
+        /* -----------------------------------------
+           DISPLAY
+        ----------------------------------------- */
+
+        document.getElementById(
+            "bkCheckoutTotalCharges"
+        ).textContent =
+            bkMoney(totalCharges);
+
+
+        document.getElementById(
+            "bkCheckoutTotalPaid"
+        ).textContent =
+            bkMoney(totalPaid);
+
+
+        const balanceElement =
+            document.getElementById(
+                "bkCheckoutBalance"
+            );
+
+
+        balanceElement.textContent =
+            bkMoney(balanceDue);
+
+
+        if (balanceDue <= 0.50) {
+
+            balanceElement.style.color =
+                "#16a34a";
+
+        } else {
+
+            balanceElement.style.color =
+                "#dc2626";
+        }
+
+
+        /*
+         * Automatically fill outstanding balance
+         * as final payment.
+         */
+
+        document.getElementById(
+            "bkCheckoutFinalPayment"
+        ).value =
+            balanceDue.toFixed(2);
+
+
+        document.getElementById(
+            "bkCheckoutLoading"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "bkCheckoutContent"
+        ).style.display =
+            "block";
+
+
+        document.getElementById(
+            "bkCheckoutConfirmBtn"
+        ).disabled =
+            false;
+
+    } catch (error) {
+
+        console.error(
+            "Checkout folio error:",
+            error
+        );
+
+
+        document.getElementById(
+            "bkCheckoutLoading"
+        ).style.display =
+            "none";
+
+
+        showBookingCheckoutError(
+            error.message ||
+            "Unable to load guest folio."
+        );
+    }
+}
+
+
+/* =========================================================
+   COMPLETE CHECKOUT
+========================================================= */
+
+async function confirmBookingCheckout() {
+
+    const bookingId =
+        bookingCheckoutState.bookingId;
+
+
+    if (!bookingId) {
+
+        showBookingCheckoutError(
+            "Booking ID is missing."
+        );
+
+        return;
+    }
+
+
+    const paymentInput =
+        document.getElementById(
+            "bkCheckoutFinalPayment"
+        );
+
+
+    const methodInput =
+        document.getElementById(
+            "bkCheckoutPaymentMethod"
+        );
+
+
+    const finalPayment =
+        Number(
+            paymentInput.value || 0
+        );
+
+
+    const paymentMethod =
+        methodInput.value || "Cash";
+
+
+    if (
+        !Number.isFinite(finalPayment) ||
+        finalPayment < 0
+    ) {
+
+        showBookingCheckoutError(
+            "Enter a valid payment amount."
+        );
+
+        return;
+    }
+
+
+    /*
+     * If money is still due, don't allow a
+     * payment smaller than the current balance.
+     */
+
+    if (
+        bookingCheckoutState.balanceDue > 0.50 &&
+        finalPayment + 0.50 <
+            bookingCheckoutState.balanceDue
+    ) {
+
+        showBookingCheckoutError(
+            "Final payment must cover the outstanding balance of " +
+            bkMoney(
+                bookingCheckoutState.balanceDue
+            ) +
+            "."
+        );
+
+        return;
+    }
+
+
+    const button =
+        document.getElementById(
+            "bkCheckoutConfirmBtn"
+        );
+
+
+    button.disabled = true;
+
+    button.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Processing...
+    `;
+
+
+    document.getElementById(
+        "bkCheckoutError"
+    ).style.display =
+        "none";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "{% url 'check_out' %}",
+                {
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            getCsrf(),
+
+                        "X-Requested-With":
+                            "XMLHttpRequest"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            booking_id:
+                                bookingId,
+
+                            final_payment:
+                                finalPayment,
+
+                            payment_method:
+                                paymentMethod,
+
+                            method:
+                                paymentMethod
+                        })
+                }
+            );
+
+
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (error) {
+
+            data = {};
+        }
+
+
+        if (!response.ok) {
+
+            /*
+             * Backend can return updated
+             * balance information.
+             */
+
+            if (
+                data.balance_due !== undefined
+            ) {
+
+                const balance =
+                    Number(
+                        data.balance_due || 0
+                    );
+
+
+                bookingCheckoutState.balanceDue =
+                    balance;
+
+
+                document.getElementById(
+                    "bkCheckoutBalance"
+                ).textContent =
+                    bkMoney(balance);
+
+
+                document.getElementById(
+                    "bkCheckoutFinalPayment"
+                ).value =
+                    Math.max(
+                        0,
+                        balance
+                    ).toFixed(2);
+            }
+
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Checkout failed (${response.status})`
+            );
+        }
+
+
+        closeBookingCheckout();
+
+
+        alert(
+            data.message ||
+            "Guest checked out successfully."
+        );
+
+
+        /*
+         * Reload Bookings.
+         *
+         * Booking should now move from
+         * checked_in -> checked_out.
+         */
+
+        window.location.reload();
+
+    } catch (error) {
+
+        console.error(
+            "Booking checkout error:",
+            error
+        );
+
+
+        showBookingCheckoutError(
+            error.message ||
+            "Unable to complete checkout."
+        );
+
+
+        button.disabled =
+            false;
+
+
+        button.innerHTML = `
+            <i class="fas fa-sign-out-alt"></i>
+            Complete Checkout
+        `;
+    }
+}
+
+
+/* =========================================================
+   CLOSE
+========================================================= */
+
+function closeBookingCheckout() {
+
+    closeModal(
+        "bookingCheckoutModal"
+    );
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+function showBookingCheckoutError(
+    message
+) {
+
+    const element =
+        document.getElementById(
+            "bkCheckoutError"
+        );
+
+
+    if (!element) {
+        alert(message);
+        return;
+    }
+
+
+    element.textContent =
+        message;
+
+
+    element.style.display =
+        "block";
+}
+</script>
+
+
+
+{% endblock %}

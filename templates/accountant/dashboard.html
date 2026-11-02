@@ -1,0 +1,3241 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}
+Financial Dashboard | Hotel ERP
+{% endblock %}
+
+{% block nav_dashboard %}active{% endblock %}
+{% block mobile_dashboard %}active{% endblock %}
+
+
+{% block extra_css %}
+<style>
+
+/* =========================================================
+   ACCOUNTANT DASHBOARD
+========================================================= */
+
+.accountant-dashboard {
+    width: 100%;
+    max-width: none;
+
+    margin: 0;
+    padding: 0;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   FINANCIAL INSIGHT HERO
+========================================================= */
+
+.finance-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 104px;
+
+    margin-bottom: 28px;
+    padding: 22px 28px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            115deg,
+            #712cf9 0%,
+            #4c1d95 48%,
+            #172554 100%
+        );
+
+    color: #ffffff;
+
+    box-shadow:
+        0 10px 30px rgba(91, 33, 182, .16);
+}
+
+
+.finance-hero::before {
+    content: "";
+
+    position: absolute;
+
+    width: 210px;
+    height: 210px;
+
+    right: 40px;
+    top: -110px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255,255,255,.055);
+}
+
+
+.finance-hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 135px;
+    height: 135px;
+
+    right: 95px;
+    bottom: -95px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(14,165,233,.12);
+}
+
+
+.finance-hero-left {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+}
+
+
+.finance-hero-icon {
+    width: 52px;
+    height: 52px;
+
+    flex: 0 0 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background:
+        rgba(255,255,255,.12);
+
+    font-size: 21px;
+}
+
+
+.finance-hero-copy {
+    min-width: 0;
+}
+
+
+.finance-hero-title {
+    margin-bottom: 5px;
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+
+.finance-hero-text {
+    color:
+        rgba(255,255,255,.75);
+
+    font-size: 13px;
+}
+
+
+.finance-hero-right {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+}
+
+
+.finance-hero-button {
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 18px;
+
+    border:
+        1px solid rgba(255,255,255,.28);
+
+    border-radius: 22px;
+
+    background:
+        rgba(255,255,255,.09);
+
+    color: #ffffff;
+
+    text-decoration: none;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    transition: .2s ease;
+}
+
+
+.finance-hero-button:hover {
+    background:
+        rgba(255,255,255,.16);
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   DASHBOARD HEADER
+========================================================= */
+
+.dashboard-heading-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 28px;
+}
+
+
+.dashboard-heading-left h1 {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 34px;
+    font-weight: 800;
+
+    letter-spacing: -.04em;
+
+    line-height: 1.15;
+}
+
+
+.dashboard-heading-left p {
+    margin: 7px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 15px;
+}
+
+
+.dashboard-heading-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.dashboard-period {
+    height: 43px;
+
+    min-width: 145px;
+
+    padding: 0 38px 0 14px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    outline: none;
+
+    background: var(--acc-surface);
+    color: var(--acc-text);
+
+    font-size: 13px;
+}
+
+
+.dashboard-report-btn {
+    height: 43px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 0 17px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7c3aed,
+            #9333ea
+        );
+
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 7px 18px rgba(124,58,237,.22);
+}
+
+
+/* =========================================================
+   LARGE STAT GRID
+========================================================= */
+
+.finance-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.finance-stat-card {
+    position: relative;
+
+    min-width: 0;
+    min-height: 240px;
+
+    overflow: hidden;
+
+    padding: 26px 28px 0;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 17px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 7px rgba(15,23,42,.035);
+
+    transition:
+        transform .2s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+
+.finance-stat-card:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        rgba(124,58,237,.22);
+
+    box-shadow:
+        0 12px 28px rgba(15,23,42,.08);
+}
+
+
+.finance-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 24px;
+}
+
+
+.finance-stat-icon {
+    width: 52px;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 52px;
+
+    border-radius: 14px;
+
+    font-size: 21px;
+}
+
+
+.finance-stat-icon.purple {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+
+.finance-stat-icon.cyan {
+    background: #e4f8fb;
+    color: #06a6bd;
+}
+
+
+.finance-stat-icon.green {
+    background: #dff9ed;
+    color: #10b981;
+}
+
+
+.finance-stat-icon.amber {
+    background: #fff3d4;
+    color: #f59e0b;
+}
+
+
+.finance-stat-chip {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 7px 11px;
+
+    border-radius: 20px;
+
+    background: #d9faea;
+    color: #0eaf73;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.finance-stat-value {
+    margin: 0 0 4px;
+
+    color: var(--acc-text);
+
+    font-size: 38px;
+    font-weight: 800;
+
+    line-height: 1.1;
+
+    letter-spacing: -.04em;
+
+    white-space: nowrap;
+}
+
+
+.finance-stat-label {
+    color: var(--acc-text);
+
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   MINI BAR CHART
+========================================================= */
+
+.finance-mini-bars {
+    position: absolute;
+
+    left: 28px;
+    right: 28px;
+    bottom: 0;
+
+    height: 63px;
+
+    display: flex;
+    align-items: flex-end;
+
+    gap: 3px;
+}
+
+
+.finance-mini-bars span {
+    flex: 1;
+
+    min-width: 0;
+
+    border-radius: 5px 5px 0 0;
+
+    opacity: .88;
+}
+
+
+.finance-mini-bars.purple span {
+    background: #8b5cf6;
+}
+
+
+.finance-mini-bars.purple span:nth-child(1) {
+    opacity: .34;
+}
+
+.finance-mini-bars.purple span:nth-child(2) {
+    opacity: .47;
+}
+
+.finance-mini-bars.purple span:nth-child(3) {
+    opacity: .42;
+}
+
+.finance-mini-bars.purple span:nth-child(4) {
+    opacity: .58;
+}
+
+.finance-mini-bars.purple span:nth-child(5) {
+    opacity: .64;
+}
+
+.finance-mini-bars.purple span:nth-child(6) {
+    opacity: .78;
+}
+
+
+.finance-mini-bars.cyan span {
+    background: #06b6d4;
+}
+
+.finance-mini-bars.cyan span:nth-child(1) {
+    opacity: .32;
+}
+
+.finance-mini-bars.cyan span:nth-child(2) {
+    opacity: .42;
+}
+
+.finance-mini-bars.cyan span:nth-child(3) {
+    opacity: .38;
+}
+
+.finance-mini-bars.cyan span:nth-child(4) {
+    opacity: .55;
+}
+
+.finance-mini-bars.cyan span:nth-child(5) {
+    opacity: .66;
+}
+
+.finance-mini-bars.cyan span:nth-child(6) {
+    opacity: .74;
+}
+
+
+.finance-mini-bars.green span {
+    background: #10b981;
+}
+
+.finance-mini-bars.green span:nth-child(1) {
+    opacity: .30;
+}
+
+.finance-mini-bars.green span:nth-child(2) {
+    opacity: .40;
+}
+
+.finance-mini-bars.green span:nth-child(3) {
+    opacity: .48;
+}
+
+.finance-mini-bars.green span:nth-child(4) {
+    opacity: .57;
+}
+
+.finance-mini-bars.green span:nth-child(5) {
+    opacity: .68;
+}
+
+.finance-mini-bars.green span:nth-child(6) {
+    opacity: .78;
+}
+
+
+.finance-mini-bars.amber span {
+    background: #f59e0b;
+}
+
+.finance-mini-bars.amber span:nth-child(1) {
+    opacity: .28;
+}
+
+.finance-mini-bars.amber span:nth-child(2) {
+    opacity: .38;
+}
+
+.finance-mini-bars.amber span:nth-child(3) {
+    opacity: .45;
+}
+
+.finance-mini-bars.amber span:nth-child(4) {
+    opacity: .55;
+}
+
+.finance-mini-bars.amber span:nth-child(5) {
+    opacity: .65;
+}
+
+.finance-mini-bars.amber span:nth-child(6) {
+    opacity: .78;
+}
+
+
+/* =========================================================
+   SECONDARY FINANCIAL CARDS
+========================================================= */
+
+.secondary-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0,1fr));
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.secondary-stat-card {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.secondary-stat-icon {
+    width: 47px;
+    height: 47px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 47px;
+
+    border-radius: 12px;
+
+    font-size: 18px;
+}
+
+
+.secondary-stat-content {
+    min-width: 0;
+}
+
+
+.secondary-stat-label {
+    margin-bottom: 4px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+
+.secondary-stat-value {
+    color: var(--acc-text);
+
+    font-size: 20px;
+    font-weight: 750;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MAIN CONTENT CARDS
+========================================================= */
+
+.finance-content-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.65fr)
+        minmax(300px, .8fr);
+
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+
+.finance-card {
+    min-width: 0;
+
+    overflow: hidden;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 15px;
+
+    background: var(--acc-surface);
+
+    box-shadow:
+        0 2px 6px rgba(15,23,42,.03);
+}
+
+
+.finance-card-header {
+    min-height: 74px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 21px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.finance-card-title {
+    margin: 0;
+
+    color: var(--acc-text);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+.finance-card-title i {
+    margin-right: 7px;
+
+    color: #7c3aed;
+}
+
+
+.finance-card-subtitle {
+    margin: 4px 0 0;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.finance-card-body {
+    padding: 21px;
+}
+
+
+.finance-chart-wrap {
+    position: relative;
+
+    height: 315px;
+}
+
+
+/* =========================================================
+   REVENUE SOURCES
+========================================================= */
+
+.revenue-source {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    padding: 16px 0;
+
+    border-bottom:
+        1px solid var(--acc-border);
+}
+
+
+.revenue-source:first-child {
+    padding-top: 0;
+}
+
+
+.revenue-source:last-child {
+    padding-bottom: 0;
+
+    border-bottom: 0;
+}
+
+
+.revenue-source-left {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: 0;
+}
+
+
+.revenue-source-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 42px;
+
+    border-radius: 11px;
+}
+
+
+.revenue-source-name {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 650;
+}
+
+
+.revenue-source-desc {
+    margin-top: 2px;
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+}
+
+
+.revenue-source-amount {
+    color: var(--acc-text);
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.finance-table-card {
+    margin-bottom: 24px;
+}
+
+
+.finance-table-wrap {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.finance-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.finance-table th {
+    padding: 13px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    background:
+        rgba(148,163,184,.05);
+
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-align: left;
+
+    text-transform: uppercase;
+
+    letter-spacing: .04em;
+
+    white-space: nowrap;
+}
+
+
+.finance-table td {
+    padding: 15px 20px;
+
+    border-bottom:
+        1px solid var(--acc-border);
+
+    color: var(--acc-text);
+
+    font-size: 13px;
+
+    white-space: nowrap;
+}
+
+
+.finance-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+
+.finance-status {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 650;
+}
+
+
+.finance-status.success {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+.finance-status.warning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+
+.finance-status.danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+
+.finance-status.neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.finance-empty {
+    padding: 45px 20px;
+
+    color: var(--acc-muted);
+
+    text-align: center;
+
+    font-size: 13px;
+}
+
+
+.finance-empty i {
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 27px;
+
+    color: #94a3b8;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-theme="dark"] .finance-stat-chip {
+    background:
+        rgba(16,185,129,.14);
+
+    color: #34d399;
+}
+
+
+[data-theme="dark"] .finance-stat-icon.purple {
+    background:
+        rgba(124,58,237,.15);
+}
+
+
+[data-theme="dark"] .finance-stat-icon.cyan {
+    background:
+        rgba(6,182,212,.13);
+}
+
+
+[data-theme="dark"] .finance-stat-icon.green {
+    background:
+        rgba(16,185,129,.13);
+}
+
+
+[data-theme="dark"] .finance-stat-icon.amber {
+    background:
+        rgba(245,158,11,.13);
+}
+
+
+[data-theme="dark"] #financialEmailModal .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-theme="dark"] #financialEmailModal .input-group-text,
+[data-theme="dark"] #financialEmailModal .form-control {
+    border-color: var(--acc-border);
+    background: var(--acc-surface);
+    color: var(--acc-text);
+}
+
+[data-theme="dark"] #financialEmailModal .form-control::placeholder {
+    color: var(--acc-muted);
+}
+
+[data-theme="dark"] #financialEmailModal .btn-light {
+    border-color: var(--acc-border);
+    background: var(--acc-surface);
+    color: var(--acc-text);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1250px) {
+
+    .finance-stat-grid,
+    .secondary-stat-grid {
+        grid-template-columns:
+            repeat(2, minmax(0,1fr));
+    }
+
+}
+
+
+@media (max-width: 1000px) {
+
+    .finance-content-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 767px) {
+
+    .finance-hero {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 18px;
+    }
+
+
+    .finance-hero-right {
+        width: 100%;
+    }
+
+
+    .dashboard-heading-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .dashboard-heading-left h1 {
+        font-size: 28px;
+    }
+
+
+    .dashboard-heading-actions {
+        width: 100%;
+    }
+
+
+    .dashboard-period {
+        flex: 1;
+    }
+
+
+    .finance-stat-grid,
+    .secondary-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .finance-stat-card {
+        min-height: 225px;
+    }
+
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="accountant-dashboard">
+
+
+    <!-- =====================================================
+         FINANCIAL HERO
+    ====================================================== -->
+
+    <div class="finance-hero">
+
+        <div class="finance-hero-left">
+
+            <div class="finance-hero-icon">
+               <i class="fa-solid fa-chart-line"></i>
+            </div>
+
+            <div class="finance-hero-copy">
+
+                <div class="finance-hero-title">
+                    Financial Overview
+                </div>
+
+                <div class="finance-hero-text">
+                    Track revenue, receivables, tax, expenses and
+                    financial performance from one dashboard.
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="finance-hero-right">
+
+<button
+    type="button"
+    class="finance-hero-button"
+    id="refreshDashboardBtn"
+>
+    <i class="fas fa-rotate-right"></i>
+    <span>Refresh Data</span>
+</button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="dashboard-heading-row">
+
+        <div class="dashboard-heading-left">
+
+            <h1>
+                Financial Dashboard
+            </h1>
+
+            <p>
+                Welcome back,
+                <strong>
+                    {{ staff.name|default:"Accountant" }}
+                </strong>
+                — here's your financial overview for
+                {% if today %}
+                    {{ today|date:"d F Y" }}
+                {% else %}
+                    today
+                {% endif %}.
+            </p>
+
+        </div>
+
+
+        <div class="dashboard-heading-actions">
+
+            <select
+                id="revenuePeriod"
+                class="dashboard-period"
+            >
+                <option value="7">
+                    Last 7 Days
+                </option>
+
+                <option value="30">
+                    Last 30 Days
+                </option>
+
+                <option value="90">
+                    Last 3 Months
+                </option>
+            </select>
+
+
+<a
+    href="{% url 'expense_report' %}"
+    class="dashboard-report-btn"
+>
+    <i class="fas fa-chart-line"></i>
+    Financial Report
+</a>
+
+ <button
+        type="button"
+        class="dashboard-report-btn"
+        id="openEmailModal"
+    >
+        <i class="fas fa-envelope"></i>
+        Send Email
+    </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         MAIN KPI CARDS
+    ====================================================== -->
+
+    <div class="finance-stat-grid">
+
+
+        <!-- TODAY REVENUE -->
+
+        <div class="finance-stat-card">
+
+            <div class="finance-stat-top">
+
+                <div class="finance-stat-icon purple">
+                    <i class="fas fa-indian-rupee-sign"></i>
+                </div>
+
+                <div class="finance-stat-chip">
+                    <i class="fas fa-arrow-trend-up"></i>
+                    Today
+                </div>
+
+            </div>
+
+
+            <div
+                class="finance-stat-value"
+                id="todayRevenue"
+            >
+                ₹{{ today_revenue|default:0|floatformat:2 }}
+            </div>
+
+            <div class="finance-stat-label">
+                Today's Revenue
+            </div>
+
+
+            <div class="finance-mini-bars purple">
+
+                <span style="height:30%;"></span>
+                <span style="height:48%;"></span>
+                <span style="height:38%;"></span>
+                <span style="height:65%;"></span>
+                <span style="height:54%;"></span>
+                <span style="height:78%;"></span>
+                <span style="height:92%;"></span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- MONTH REVENUE -->
+
+        <div class="finance-stat-card">
+
+            <div class="finance-stat-top">
+
+                <div class="finance-stat-icon cyan">
+                    <i class="fas fa-chart-column"></i>
+                </div>
+
+                <div class="finance-stat-chip">
+                    <i class="fas fa-arrow-trend-up"></i>
+                    Month
+                </div>
+
+            </div>
+
+
+            <div
+                class="finance-stat-value"
+                id="monthRevenue"
+            >
+                ₹{{ month_revenue|default:0|floatformat:2 }}
+            </div>
+
+            <div class="finance-stat-label">
+                This Month Revenue
+            </div>
+
+
+            <div class="finance-mini-bars cyan">
+
+                <span style="height:27%;"></span>
+                <span style="height:45%;"></span>
+                <span style="height:39%;"></span>
+                <span style="height:59%;"></span>
+                <span style="height:72%;"></span>
+                <span style="height:64%;"></span>
+                <span style="height:88%;"></span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- OUTSTANDING -->
+
+        <div class="finance-stat-card">
+
+            <div class="finance-stat-top">
+
+                <div class="finance-stat-icon green">
+                    <i class="fas fa-wallet"></i>
+                </div>
+
+                <div class="finance-stat-chip">
+                    <i class="fas fa-file-invoice"></i>
+                    Due
+                </div>
+
+            </div>
+
+
+            <div
+                class="finance-stat-value"
+                id="outstandingAmount"
+            >
+                ₹{{ outstanding|default:0|floatformat:2 }}
+            </div>
+
+            <div class="finance-stat-label">
+                Outstanding Receivables
+            </div>
+
+
+            <div class="finance-mini-bars green">
+
+                <span style="height:25%;"></span>
+                <span style="height:42%;"></span>
+                <span style="height:35%;"></span>
+                <span style="height:55%;"></span>
+                <span style="height:70%;"></span>
+                <span style="height:61%;"></span>
+                <span style="height:86%;"></span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- TAX -->
+
+        <div class="finance-stat-card">
+
+            <div class="finance-stat-top">
+
+                <div class="finance-stat-icon amber">
+                    <i class="fas fa-percent"></i>
+                </div>
+
+                <div class="finance-stat-chip">
+                    <i class="fas fa-receipt"></i>
+                    Tax
+                </div>
+
+            </div>
+
+
+            <div
+                class="finance-stat-value"
+                id="taxCollected"
+            >
+                ₹{{ tax_collected|default:0|floatformat:2 }}
+            </div>
+
+            <div class="finance-stat-label">
+                Tax Collected
+            </div>
+
+
+            <div class="finance-mini-bars amber">
+
+                <span style="height:34%;"></span>
+                <span style="height:52%;"></span>
+                <span style="height:43%;"></span>
+                <span style="height:66%;"></span>
+                <span style="height:58%;"></span>
+                <span style="height:76%;"></span>
+                <span style="height:89%;"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         SECONDARY KPIs
+    ====================================================== -->
+
+    <div class="secondary-stat-grid">
+
+
+        <div class="secondary-stat-card">
+
+            <div class="secondary-stat-icon finance-stat-icon purple">
+                <i class="fas fa-bed"></i>
+            </div>
+
+            <div class="secondary-stat-content">
+
+                <div class="secondary-stat-label">
+                    Room Revenue
+                </div>
+
+                <div
+                    class="secondary-stat-value"
+                    id="roomRevenue"
+                >
+                    ₹{{ room_revenue|default:0|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="secondary-stat-card">
+
+            <div class="secondary-stat-icon finance-stat-icon amber">
+                <i class="fas fa-utensils"></i>
+            </div>
+
+            <div class="secondary-stat-content">
+
+                <div class="secondary-stat-label">
+                    Restaurant Revenue
+                </div>
+
+                <div
+                    class="secondary-stat-value"
+                    id="restaurantRevenue"
+                >
+                    ₹{{ restaurant_revenue|default:0|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="secondary-stat-card">
+
+            <div class="secondary-stat-icon finance-stat-icon cyan">
+                <i class="fas fa-coins"></i>
+            </div>
+
+            <div class="secondary-stat-content">
+
+                <div class="secondary-stat-label">
+                    Other Revenue
+                </div>
+
+                <div
+                    class="secondary-stat-value"
+                    id="otherRevenue"
+                >
+                    ₹{{ other_revenue|default:0|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="secondary-stat-card">
+
+            <div class="secondary-stat-icon finance-stat-icon green">
+                <i class="fas fa-arrow-trend-down"></i>
+            </div>
+
+            <div class="secondary-stat-content">
+
+                <div class="secondary-stat-label">
+                    Total Expenses
+                </div>
+
+                <div
+                    class="secondary-stat-value"
+                    id="totalExpenses"
+                >
+                    ₹{{ total_expenses|default:0|floatformat:2 }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         CHART + REVENUE SUMMARY
+    ====================================================== -->
+
+    <div class="finance-content-grid">
+
+
+        <section class="finance-card">
+
+            <div class="finance-card-header">
+
+                <div>
+
+                    <h2 class="finance-card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Revenue Overview
+                    </h2>
+
+                    <p class="finance-card-subtitle">
+                        Revenue performance over time
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="finance-card-body">
+
+                <div class="finance-chart-wrap">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <section class="finance-card">
+
+            <div class="finance-card-header">
+
+                <div>
+
+                    <h2 class="finance-card-title">
+                        <i class="fas fa-wallet"></i>
+                        Revenue Summary
+                    </h2>
+
+                    <p class="finance-card-subtitle">
+                        Revenue by source
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="finance-card-body">
+
+
+                <div class="revenue-source">
+
+                    <div class="revenue-source-left">
+
+                        <div class="revenue-source-icon finance-stat-icon purple">
+                            <i class="fas fa-bed"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="revenue-source-name">
+                                Rooms
+                            </div>
+
+                            <div class="revenue-source-desc">
+                                Accommodation
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="revenue-source-amount"
+                        id="summaryRoomRevenue"
+                    >
+                        ₹{{ room_revenue|default:0|floatformat:2 }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="revenue-source">
+
+                    <div class="revenue-source-left">
+
+                        <div class="revenue-source-icon finance-stat-icon amber">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="revenue-source-name">
+                                Restaurant
+                            </div>
+
+                            <div class="revenue-source-desc">
+                                Food & beverage
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="revenue-source-amount"
+                        id="summaryRestaurantRevenue"
+                    >
+                        ₹{{ restaurant_revenue|default:0|floatformat:2 }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="revenue-source">
+
+                    <div class="revenue-source-left">
+
+                        <div class="revenue-source-icon finance-stat-icon cyan">
+                            <i class="fas fa-coins"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="revenue-source-name">
+                                Other Revenue
+                            </div>
+
+                            <div class="revenue-source-desc">
+                                Additional services
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="revenue-source-amount"
+                        id="summaryOtherRevenue"
+                    >
+                        ₹{{ other_revenue|default:0|floatformat:2 }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="revenue-source">
+
+                    <div class="revenue-source-left">
+
+                        <div class="revenue-source-icon finance-stat-icon green">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+
+                        <div>
+
+                            <div class="revenue-source-name">
+                                Net Position
+                            </div>
+
+                            <div class="revenue-source-desc">
+                                Revenue less expenses
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="revenue-source-amount"
+                        id="netPosition"
+                    >
+                        ₹{{ net_position|default:0|floatformat:2 }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         TRANSACTIONS
+    ====================================================== -->
+
+    <section class="finance-card finance-table-card">
+
+        <div class="finance-card-header">
+
+            <div>
+
+                <h2 class="finance-card-title">
+                    <i class="fas fa-credit-card"></i>
+                    Recent Transactions
+                </h2>
+
+                <p class="finance-card-subtitle">
+                    Latest financial activity
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if transactions %}
+
+        <div class="finance-table-wrap">
+
+            <table class="finance-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Reference</th>
+                        <th>Description</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for transaction in transactions %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ transaction.reference|default:"—" }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ transaction.description|default:"—" }}
+                        </td>
+
+                        <td>
+                            {{ transaction.type|default:"Payment"|title }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ₹{{ transaction.amount|default:0|floatformat:2 }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {% if transaction.date %}
+                                {{ transaction.date|date:"d M Y, h:i A" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td>
+
+                            {% if transaction.status == "paid" or transaction.status == "completed" %}
+
+                                <span class="finance-status success">
+                                    {{ transaction.status|title }}
+                                </span>
+
+                            {% elif transaction.status == "pending" %}
+
+                                <span class="finance-status warning">
+                                    Pending
+                                </span>
+
+                            {% elif transaction.status == "failed" %}
+
+                                <span class="finance-status danger">
+                                    Failed
+                                </span>
+
+                            {% else %}
+
+                                <span class="finance-status neutral">
+                                    {{ transaction.status|default:"Completed"|title }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <div class="finance-empty">
+
+                <i class="fas fa-credit-card"></i>
+
+                No recent transactions available.
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+
+
+
+<!-- =========================================================
+     SEND FINANCIAL REPORT EMAIL MODAL
+========================================================= -->
+
+<div
+    class="modal fade"
+    id="financialEmailModal"
+    tabindex="-1"
+    aria-labelledby="financialEmailModalLabel"
+    aria-hidden="true"
+>
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div
+            class="modal-content"
+            style="
+                border: 1px solid var(--acc-border);
+                border-radius: 16px;
+                background: var(--acc-card);
+                color: var(--acc-text);
+                overflow: hidden;
+            "
+        >
+
+            <!-- HEADER -->
+            <div
+                class="modal-header"
+                style="
+                    padding: 20px 22px;
+                    border-bottom: 1px solid var(--acc-border);
+                "
+            >
+
+                <div>
+
+                    <h5
+                        class="modal-title"
+                        id="financialEmailModalLabel"
+                        style="
+                            margin: 0;
+                            font-weight: 700;
+                        "
+                    >
+                        <i
+                            class="fas fa-paper-plane"
+                            style="
+                                margin-right: 8px;
+                                color: #7c3aed;
+                            "
+                        ></i>
+
+                        Send Financial Report
+                    </h5>
+
+                    <div
+                        style="
+                            margin-top: 5px;
+                            color: var(--acc-muted);
+                            font-size: 12px;
+                        "
+                    >
+                        Email the current financial dashboard summary.
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <!-- BODY -->
+            <div
+                class="modal-body"
+                style="padding: 22px;"
+            >
+
+                <!-- ALERT -->
+                <div
+                    id="emailModalAlert"
+                    style="display:none;"
+                    class="alert"
+                    role="alert"
+                ></div>
+
+
+                <!-- RECIPIENT -->
+                <div class="mb-3">
+
+                    <label
+                        for="financialEmailRecipient"
+                        class="form-label"
+                        style="font-weight: 600;"
+                    >
+                        Recipient Email
+                        <span style="color:#ef4444;">*</span>
+                    </label>
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="financialEmailRecipient"
+                            placeholder="example@company.com"
+                            autocomplete="email"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- SUBJECT -->
+                <div class="mb-3">
+
+                    <label
+                        for="financialEmailSubject"
+                        class="form-label"
+                        style="font-weight: 600;"
+                    >
+                        Subject
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="financialEmailSubject"
+                        maxlength="200"
+                        value="Financial Dashboard Report"
+                    >
+
+                </div>
+
+
+                <!-- MESSAGE -->
+                <div class="mb-3">
+
+                    <label
+                        for="financialEmailMessage"
+                        class="form-label"
+                        style="font-weight: 600;"
+                    >
+                        Message
+                    </label>
+
+                    <textarea
+                        class="form-control"
+                        id="financialEmailMessage"
+                        rows="4"
+                        placeholder="Add an optional message..."
+                    ></textarea>
+
+                </div>
+
+
+                <!-- INCLUDE SUMMARY -->
+                <div
+                    style="
+                        display:flex;
+                        align-items:flex-start;
+                        gap:11px;
+                        padding:14px;
+                        border:1px solid var(--acc-border);
+                        border-radius:10px;
+                        background:var(--acc-bg);
+                    "
+                >
+
+                    <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="includeFinancialSummary"
+                        checked
+                        style="margin-top:3px;"
+                    >
+
+                    <label
+                        for="includeFinancialSummary"
+                        style="
+                            cursor:pointer;
+                            margin:0;
+                        "
+                    >
+
+                        <strong
+                            style="
+                                display:block;
+                                color:var(--acc-text);
+                                font-size:13px;
+                            "
+                        >
+                            Include financial summary
+                        </strong>
+
+                        <span
+                            style="
+                                display:block;
+                                margin-top:3px;
+                                color:var(--acc-muted);
+                                font-size:11px;
+                                line-height:1.5;
+                            "
+                        >
+                            Revenue, outstanding balance, tax,
+                            expenses and net position will be
+                            included in the email.
+                        </span>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER -->
+            <div
+                class="modal-footer"
+                style="
+                    padding: 16px 22px;
+                    border-top: 1px solid var(--acc-border);
+                "
+            >
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    data-bs-dismiss="modal"
+                    id="cancelFinancialEmail"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="sendFinancialEmailBtn"
+                    style="
+                        background:#7c3aed;
+                        border-color:#7c3aed;
+                    "
+                >
+
+                    <i class="fas fa-paper-plane"></i>
+
+                    <span>
+                        Send Email
+                    </span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+
+{% endblock %}
+
+
+
+{% block extra_js %}
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    let revenueChartInstance = null;
+
+
+    function money(value) {
+
+        return new Intl.NumberFormat(
+            "en-IN",
+            {
+                style: "currency",
+                currency: "INR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        ).format(Number(value || 0));
+
+    }
+
+
+    function setValue(id, value) {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+            element.textContent = money(value);
+        }
+
+    }
+
+
+    function getChartTheme() {
+
+        const dark =
+            document.documentElement
+                .getAttribute("data-theme") === "dark";
+
+        return {
+
+            text:
+                dark
+                    ? "#a7a7ba"
+                    : "#667085",
+
+            grid:
+                dark
+                    ? "rgba(255,255,255,.06)"
+                    : "rgba(15,23,42,.06)"
+
+        };
+
+    }
+
+
+    function renderRevenueChart(labels, values) {
+
+        const canvas =
+            document.getElementById("revenueChart");
+
+        if (
+            !canvas ||
+            typeof Chart === "undefined"
+        ) {
+            return;
+        }
+
+
+        if (revenueChartInstance) {
+            revenueChartInstance.destroy();
+        }
+
+
+        const theme =
+            getChartTheme();
+
+
+        revenueChartInstance =
+            new Chart(
+                canvas,
+                {
+                    type: "line",
+
+                    data: {
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Revenue",
+
+                                data: values,
+
+                                borderColor: "#7c3aed",
+
+                                backgroundColor:
+                                    "rgba(124,58,237,.08)",
+
+                                borderWidth: 2.5,
+
+                                fill: true,
+
+                                tension: .38,
+
+                                pointRadius: 3,
+
+                                pointHoverRadius: 5,
+
+                                pointBackgroundColor:
+                                    "#7c3aed"
+                            }
+                        ]
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        interaction: {
+                            mode: "index",
+                            intersect: false
+                        },
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label: function (context) {
+
+                                        return (
+                                            "Revenue: " +
+                                            money(context.parsed.y)
+                                        );
+
+                                    }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                grid: {
+                                    display: false
+                                },
+
+                                ticks: {
+                                    color: theme.text
+                                }
+
+                            },
+
+                            y: {
+
+                                beginAtZero: true,
+
+                                grid: {
+                                    color: theme.grid
+                                },
+
+                                ticks: {
+
+                                    color: theme.text,
+
+                                    callback: function (value) {
+
+                                        return (
+                                            "₹" +
+                                            Number(value)
+                                                .toLocaleString("en-IN")
+                                        );
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+
+    // ============================================================
+// SEND FINANCIAL DASHBOARD EMAIL
+// ============================================================
+
+const openEmailModalBtn =
+    document.getElementById("openEmailModal");
+
+const financialEmailModalElement =
+    document.getElementById("financialEmailModal");
+
+const sendFinancialEmailBtn =
+    document.getElementById("sendFinancialEmailBtn");
+
+const emailRecipientInput =
+    document.getElementById("financialEmailRecipient");
+
+const emailSubjectInput =
+    document.getElementById("financialEmailSubject");
+
+const emailMessageInput =
+    document.getElementById("financialEmailMessage");
+
+const includeFinancialSummary =
+    document.getElementById("includeFinancialSummary");
+
+const emailModalAlert =
+    document.getElementById("emailModalAlert");
+
+
+let financialEmailModal = null;
+
+
+if (
+    financialEmailModalElement &&
+    typeof bootstrap !== "undefined"
+) {
+
+    financialEmailModal =
+        new bootstrap.Modal(
+            financialEmailModalElement,
+            {
+                backdrop: "static",
+                keyboard: true
+            }
+        );
+}
+
+
+// ============================================================
+// HELPER - GET ELEMENT TEXT
+// ============================================================
+
+function getDashboardText(id) {
+
+    const element =
+        document.getElementById(id);
+
+    if (!element) {
+        return "₹0.00";
+    }
+
+    return (
+        element.textContent || "₹0.00"
+    ).trim();
+}
+
+
+// ============================================================
+// ALERT
+// ============================================================
+
+function showEmailAlert(
+    message,
+    type = "danger"
+) {
+
+    if (!emailModalAlert) {
+        return;
+    }
+
+    emailModalAlert.className =
+        "alert alert-" + type;
+
+    emailModalAlert.textContent =
+        message;
+
+    emailModalAlert.style.display =
+        "block";
+}
+
+
+function hideEmailAlert() {
+
+    if (!emailModalAlert) {
+        return;
+    }
+
+    emailModalAlert.style.display =
+        "none";
+
+    emailModalAlert.textContent = "";
+}
+
+
+// ============================================================
+// OPEN MODAL
+// ============================================================
+
+if (
+    openEmailModalBtn &&
+    financialEmailModal
+) {
+
+    openEmailModalBtn.addEventListener(
+        "click",
+        function () {
+
+            hideEmailAlert();
+
+            if (emailSubjectInput) {
+
+                const periodSelect =
+                    document.getElementById(
+                        "revenuePeriod"
+                    );
+
+                let periodText =
+                    "Financial Dashboard Report";
+
+                if (
+                    periodSelect &&
+                    periodSelect.selectedOptions.length
+                ) {
+
+                    periodText =
+                        "Financial Dashboard Report - " +
+                        periodSelect
+                            .selectedOptions[0]
+                            .textContent
+                            .trim();
+                }
+
+                emailSubjectInput.value =
+                    periodText;
+            }
+
+            financialEmailModal.show();
+
+            setTimeout(
+                function () {
+
+                    if (emailRecipientInput) {
+                        emailRecipientInput.focus();
+                    }
+
+                },
+                300
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// SEND EMAIL
+// ============================================================
+
+if (sendFinancialEmailBtn) {
+
+    sendFinancialEmailBtn.addEventListener(
+        "click",
+        async function () {
+
+            hideEmailAlert();
+
+
+            // ------------------------------------------------
+            // VALUES
+            // ------------------------------------------------
+
+            const recipient =
+                emailRecipientInput
+                    ? emailRecipientInput.value.trim()
+                    : "";
+
+            const subject =
+                emailSubjectInput
+                    ? emailSubjectInput.value.trim()
+                    : "";
+
+            const message =
+                emailMessageInput
+                    ? emailMessageInput.value.trim()
+                    : "";
+
+
+            // ------------------------------------------------
+            // FRONTEND VALIDATION
+            // ------------------------------------------------
+
+            if (!recipient) {
+
+                showEmailAlert(
+                    "Please enter the recipient email address."
+                );
+
+                if (emailRecipientInput) {
+                    emailRecipientInput.focus();
+                }
+
+                return;
+            }
+
+
+            const emailPattern =
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+            if (!emailPattern.test(recipient)) {
+
+                showEmailAlert(
+                    "Please enter a valid email address."
+                );
+
+                if (emailRecipientInput) {
+                    emailRecipientInput.focus();
+                }
+
+                return;
+            }
+
+
+            if (!subject) {
+
+                showEmailAlert(
+                    "Please enter the email subject."
+                );
+
+                if (emailSubjectInput) {
+                    emailSubjectInput.focus();
+                }
+
+                return;
+            }
+
+
+            // ------------------------------------------------
+            // PERIOD
+            // ------------------------------------------------
+
+            const periodSelect =
+                document.getElementById(
+                    "revenuePeriod"
+                );
+
+            let periodLabel =
+                "Current Period";
+
+            if (
+                periodSelect &&
+                periodSelect.selectedOptions.length
+            ) {
+
+                periodLabel =
+                    periodSelect
+                        .selectedOptions[0]
+                        .textContent
+                        .trim();
+            }
+
+
+            // ------------------------------------------------
+            // BUILD DASHBOARD SUMMARY
+            // ------------------------------------------------
+
+            const payload = {
+
+                recipient: recipient,
+
+                subject: subject,
+
+                message: message,
+
+                include_summary:
+                    includeFinancialSummary
+                        ? includeFinancialSummary.checked
+                        : true,
+
+                summary: {
+
+                    period_label:
+                        periodLabel,
+
+                    today_revenue:
+                        getDashboardText(
+                            "todayRevenue"
+                        ),
+
+                    month_revenue:
+                        getDashboardText(
+                            "monthRevenue"
+                        ),
+
+                    outstanding:
+                        getDashboardText(
+                            "outstandingAmount"
+                        ),
+
+                    tax_collected:
+                        getDashboardText(
+                            "taxCollected"
+                        ),
+
+                    room_revenue:
+                        getDashboardText(
+                            "roomRevenue"
+                        ),
+
+                    restaurant_revenue:
+                        getDashboardText(
+                            "restaurantRevenue"
+                        ),
+
+                    other_revenue:
+                        getDashboardText(
+                            "otherRevenue"
+                        ),
+
+                    total_expenses:
+                        getDashboardText(
+                            "totalExpenses"
+                        ),
+
+                    net_position:
+                        getDashboardText(
+                            "netPosition"
+                        )
+                }
+            };
+
+
+            // ------------------------------------------------
+            // BUTTON LOADING
+            // ------------------------------------------------
+
+            const buttonIcon =
+                sendFinancialEmailBtn
+                    .querySelector("i");
+
+            const buttonText =
+                sendFinancialEmailBtn
+                    .querySelector("span");
+
+
+            sendFinancialEmailBtn.disabled =
+                true;
+
+
+            if (buttonIcon) {
+
+                buttonIcon.className =
+                    "fas fa-circle-notch fa-spin";
+            }
+
+
+            if (buttonText) {
+
+                buttonText.textContent =
+                    "Sending...";
+            }
+
+
+            // ------------------------------------------------
+            // SEND REQUEST
+            // ------------------------------------------------
+
+            try {
+
+                const response =
+                    await fetch(
+                        "{% url 'accountant_send_dashboard_email' %}",
+                        {
+                            method: "POST",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json",
+
+                                "Accept":
+                                    "application/json",
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest",
+
+                                "X-CSRFToken":
+                                    getCookie(
+                                        "csrftoken"
+                                    )
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+
+                let data = {};
+
+                try {
+
+                    data =
+                        await response.json();
+
+                } catch (jsonError) {
+
+                    throw new Error(
+                        "The server returned an invalid response."
+                    );
+                }
+
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+
+                    throw new Error(
+                        data.message ||
+                        "Unable to send email."
+                    );
+                }
+
+
+                // --------------------------------------------
+                // SUCCESS
+                // --------------------------------------------
+
+                showEmailAlert(
+                    data.message ||
+                    "Financial report sent successfully.",
+                    "success"
+                );
+
+
+                if (emailMessageInput) {
+                    emailMessageInput.value = "";
+                }
+
+
+                setTimeout(
+                    function () {
+
+                        if (financialEmailModal) {
+                            financialEmailModal.hide();
+                        }
+
+                        hideEmailAlert();
+
+                    },
+                    1400
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Financial email error:",
+                    error
+                );
+
+                showEmailAlert(
+                    error.message ||
+                    "Unable to send the email."
+                );
+
+            }
+
+            finally {
+
+                sendFinancialEmailBtn.disabled =
+                    false;
+
+
+                if (buttonIcon) {
+
+                    buttonIcon.className =
+                        "fas fa-paper-plane";
+                }
+
+
+                if (buttonText) {
+
+                    buttonText.textContent =
+                        "Send Email";
+                }
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// CSRF COOKIE
+// ============================================================
+
+function getCookie(name) {
+
+    let cookieValue = null;
+
+    if (
+        document.cookie &&
+        document.cookie !== ""
+    ) {
+
+        const cookies =
+            document.cookie.split(";");
+
+        for (
+            let i = 0;
+            i < cookies.length;
+            i++
+        ) {
+
+            const cookie =
+                cookies[i].trim();
+
+            if (
+                cookie.substring(
+                    0,
+                    name.length + 1
+                ) ===
+                name + "="
+            ) {
+
+                cookieValue =
+                    decodeURIComponent(
+                        cookie.substring(
+                            name.length + 1
+                        )
+                    );
+
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+
+    renderRevenueChart(
+        ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        [0, 0, 0, 0, 0, 0, 0]
+    );
+
+
+    async function loadDashboardData() {
+
+        try {
+
+            const periodElement =
+                document.getElementById("revenuePeriod");
+
+            const period =
+                periodElement
+                    ? periodElement.value
+                    : "7";
+
+
+            /*
+             * Revenue API
+             *
+             * Important:
+             * The backend used by this project has used both the older
+             * dashboard field names and the newer accountant API field names.
+             * This loader accepts both so the dashboard does not silently stop
+             * updating when one naming style is returned.
+             */
+            const revenueResponse =
+                await fetch(
+                    "{% url 'accountant_revenue_api' %}?period=" +
+                    encodeURIComponent(period),
+                    {
+                        method: "GET",
+                        credentials: "same-origin",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+
+            if (!revenueResponse.ok) {
+                throw new Error(
+                    "Revenue API returned HTTP " +
+                    revenueResponse.status
+                );
+            }
+
+
+            const data =
+                await revenueResponse.json();
+
+
+            if (
+                data.success === false
+            ) {
+                throw new Error(
+                    data.error ||
+                    data.message ||
+                    "Unable to load revenue data."
+                );
+            }
+
+
+            // --------------------------------------------------------
+            // SUPPORT BOTH CURRENT + LEGACY API FIELD NAMES
+            // --------------------------------------------------------
+
+            const todayRevenue =
+                data.today_revenue ?? 0;
+
+            const monthRevenue =
+                data.monthly_revenue ??
+                data.month_revenue ??
+                0;
+
+            const outstanding =
+                data.pending_balance ??
+                data.outstanding ??
+                0;
+
+            const taxCollected =
+                data.tax_today ??
+                data.tax_collected ??
+                0;
+
+            const roomRevenue =
+                data.room_charges_today ??
+                data.room_revenue ??
+                0;
+
+            const restaurantRevenue =
+                data.restaurant_today ??
+                data.restaurant_revenue ??
+                0;
+
+            const otherRevenue =
+                data.other_charges_today ??
+                data.other_revenue ??
+                0;
+
+
+            setValue(
+                "todayRevenue",
+                todayRevenue
+            );
+
+            setValue(
+                "monthRevenue",
+                monthRevenue
+            );
+
+            setValue(
+                "outstandingAmount",
+                outstanding
+            );
+
+            setValue(
+                "taxCollected",
+                taxCollected
+            );
+
+            setValue(
+                "roomRevenue",
+                roomRevenue
+            );
+
+            setValue(
+                "summaryRoomRevenue",
+                roomRevenue
+            );
+
+            setValue(
+                "restaurantRevenue",
+                restaurantRevenue
+            );
+
+            setValue(
+                "summaryRestaurantRevenue",
+                restaurantRevenue
+            );
+
+            setValue(
+                "otherRevenue",
+                otherRevenue
+            );
+
+            setValue(
+                "summaryOtherRevenue",
+                otherRevenue
+            );
+
+
+            // --------------------------------------------------------
+            // EXPENSE SUMMARY
+            // --------------------------------------------------------
+
+            let totalExpenses =
+                Number(
+                    data.total_expenses ?? 0
+                );
+
+
+            try {
+
+                const expenseResponse =
+                    await fetch(
+                        "{% url 'expense_summary_api' %}",
+                        {
+                            method: "GET",
+                            credentials: "same-origin",
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest",
+                                "Accept": "application/json"
+                            }
+                        }
+                    );
+
+
+                if (expenseResponse.ok) {
+
+                    const expenseData =
+                        await expenseResponse.json();
+
+
+                    if (
+                        expenseData.success !== false &&
+                        expenseData.grand_total !== undefined
+                    ) {
+
+                        totalExpenses =
+                            Number(
+                                expenseData.grand_total || 0
+                            );
+
+                    }
+
+                }
+
+            }
+
+            catch (expenseError) {
+
+                console.warn(
+                    "Expense summary unavailable:",
+                    expenseError
+                );
+
+            }
+
+
+            setValue(
+                "totalExpenses",
+                totalExpenses
+            );
+
+
+            // Prefer backend net_position when it is explicitly supplied.
+            // Otherwise calculate it from the monthly revenue and expenses.
+            const netPosition =
+                data.net_position !== undefined &&
+                data.net_position !== null
+                    ? Number(data.net_position)
+                    : Number(monthRevenue || 0) -
+                      Number(totalExpenses || 0);
+
+
+            setValue(
+                "netPosition",
+                netPosition
+            );
+
+
+            // --------------------------------------------------------
+            // CHART
+            // --------------------------------------------------------
+
+            if (
+                data.revenue_chart &&
+                Array.isArray(
+                    data.revenue_chart.labels
+                ) &&
+                Array.isArray(
+                    data.revenue_chart.values
+                )
+            ) {
+
+                renderRevenueChart(
+                    data.revenue_chart.labels,
+                    data.revenue_chart.values
+                );
+
+            }
+
+            else if (
+                Array.isArray(data.labels) &&
+                Array.isArray(data.values)
+            ) {
+
+                renderRevenueChart(
+                    data.labels,
+                    data.values
+                );
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Dashboard live data error:",
+                error
+            );
+
+        }
+
+    }
+
+    const refreshDashboardBtn =
+    document.getElementById("refreshDashboardBtn");
+
+if (refreshDashboardBtn) {
+
+    refreshDashboardBtn.addEventListener(
+        "click",
+        async function () {
+
+            const icon =
+                refreshDashboardBtn.querySelector("i");
+
+            const text =
+                refreshDashboardBtn.querySelector("span");
+
+            refreshDashboardBtn.disabled = true;
+
+            if (icon) {
+                icon.classList.add("fa-spin");
+            }
+
+            if (text) {
+                text.textContent = "Refreshing...";
+            }
+
+            try {
+
+                await loadDashboardData();
+
+            } finally {
+
+                refreshDashboardBtn.disabled = false;
+
+                if (icon) {
+                    icon.classList.remove("fa-spin");
+                }
+
+                if (text) {
+                    text.textContent = "Refresh Data";
+                }
+            }
+        }
+    );
+}
+
+
+    const period =
+        document.getElementById("revenuePeriod");
+
+
+    if (period) {
+
+        period.addEventListener(
+            "change",
+            loadDashboardData
+        );
+
+    }
+
+
+    loadDashboardData();
+
+});
+
+</script>
+{% endblock %}

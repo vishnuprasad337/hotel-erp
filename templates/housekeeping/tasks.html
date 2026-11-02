@@ -1,0 +1,1893 @@
+{% extends "housekeeping/base.html" %}
+
+{% block title %}
+My Tasks | Housekeeping
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+
+/* =========================================================
+   TASK PAGE
+========================================================= */
+
+.hk-task-page {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.hk-task-page .hk-page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.hk-task-page .hk-eyebrow {
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.hk-task-page .hk-page-header h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.2;
+    font-weight: 750;
+    color: var(--hk-text, #172033);
+}
+
+.hk-task-page .hk-page-header p {
+    margin: 8px 0 0;
+    color: var(--hk-muted, #68738a);
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   STAT CARDS
+========================================================= */
+
+.hk-task-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.hk-task-stat {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    min-height: 104px;
+    padding: 20px;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e6e9ef);
+    border-radius: 18px;
+
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .035);
+}
+
+.hk-task-stat-icon {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+    font-size: 19px;
+}
+
+.hk-task-stat.all .hk-task-stat-icon {
+    color: #7c3aed;
+    background: #f1eafe;
+}
+
+.hk-task-stat.pending .hk-task-stat-icon {
+    color: #d97706;
+    background: #fff2d6;
+}
+
+.hk-task-stat.progress .hk-task-stat-icon {
+    color: #0284c7;
+    background: #e0f2fe;
+}
+
+.hk-task-stat.completed .hk-task-stat-icon {
+    color: #059669;
+    background: #d9faec;
+}
+
+.hk-task-stat-content span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--hk-muted, #778197);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.hk-task-stat-content strong {
+    display: block;
+    color: var(--hk-text, #172033);
+    font-size: 27px;
+    line-height: 1;
+}
+
+
+/* =========================================================
+   FILTER CARD
+========================================================= */
+
+.hk-task-toolbar {
+    padding: 16px;
+    margin-bottom: 20px;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e6e9ef);
+    border-radius: 18px;
+}
+
+.hk-task-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.hk-task-tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.hk-task-tab {
+    border: 0;
+    outline: none;
+
+    padding: 9px 14px;
+
+    background: transparent;
+    color: var(--hk-muted, #667085);
+
+    border-radius: 10px;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.hk-task-tab:hover {
+    background: #f5f1ff;
+    color: #7c3aed;
+}
+
+.hk-task-tab.active {
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+.hk-task-search {
+    position: relative;
+    width: min(340px, 100%);
+}
+
+.hk-task-search i {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    transform: translateY(-50%);
+    color: #98a2b3;
+    font-size: 13px;
+}
+
+.hk-task-search input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 14px 0 39px;
+
+    border: 1px solid var(--hk-border, #e3e7ee);
+    border-radius: 11px;
+
+    background: var(--hk-card, #ffffff);
+    color: var(--hk-text, #172033);
+
+    outline: none;
+    font: inherit;
+    font-size: 13px;
+
+    transition: .2s ease;
+}
+
+.hk-task-search input:focus {
+    border-color: #9b65f5;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, .09);
+}
+
+
+/* =========================================================
+   MAIN TASK CARD
+========================================================= */
+
+.hk-task-container {
+    overflow: hidden;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e6e9ef);
+    border-radius: 18px;
+
+    box-shadow: 0 3px 12px rgba(15, 23, 42, .035);
+}
+
+.hk-task-container-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 20px 22px;
+
+    border-bottom: 1px solid var(--hk-border, #edf0f4);
+}
+
+.hk-task-container-header h2 {
+    margin: 0 0 4px;
+    color: var(--hk-text, #172033);
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.hk-task-container-header p {
+    margin: 0;
+    color: var(--hk-muted, #7b8497);
+    font-size: 13px;
+}
+
+.hk-task-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 7px 11px;
+
+    background: #f5f1ff;
+    color: #7c3aed;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.hk-task-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.hk-task-table {
+    width: 100%;
+    min-width: 860px;
+
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.hk-task-table th {
+    padding: 12px 20px;
+
+    background: #fafbfc;
+    border-bottom: 1px solid var(--hk-border, #e8ebf0);
+
+    color: #8992a5;
+
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .055em;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.hk-task-table td {
+    padding: 17px 20px;
+
+    border-bottom: 1px solid var(--hk-border, #edf0f4);
+
+    color: var(--hk-text, #344054);
+
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.hk-task-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.hk-task-table tbody tr {
+    transition: background .15s ease;
+}
+
+.hk-task-table tbody tr:hover {
+    background: rgba(124, 58, 237, .018);
+}
+
+
+/* =========================================================
+   TASK INFORMATION
+========================================================= */
+
+.hk-task-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.hk-task-icon {
+    width: 39px;
+    height: 39px;
+    flex: 0 0 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+}
+
+.hk-task-name {
+    display: block;
+    margin-bottom: 3px;
+
+    color: var(--hk-text, #172033);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.hk-task-description {
+    max-width: 360px;
+
+    color: var(--hk-muted, #8a93a5);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   ROOM
+========================================================= */
+
+.hk-task-room {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.hk-task-room-icon {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #f5f1ff;
+    color: #7c3aed;
+
+    font-size: 12px;
+}
+
+.hk-task-room strong {
+    display: block;
+    color: var(--hk-text, #344054);
+    font-size: 12px;
+}
+
+.hk-task-room small {
+    display: block;
+    margin-top: 2px;
+
+    color: var(--hk-muted, #98a2b3);
+    font-size: 10px;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.hk-task-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 6px 9px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.hk-task-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.hk-task-status.pending {
+    color: #b45309;
+    background: #fff3dc;
+}
+
+.hk-task-status.in-progress {
+    color: #0284c7;
+    background: #e0f2fe;
+}
+
+.hk-task-status.completed {
+    color: #047857;
+    background: #d9faec;
+}
+
+
+/* =========================================================
+   DATE
+========================================================= */
+
+.hk-task-date {
+    color: var(--hk-muted, #667085);
+    white-space: nowrap;
+}
+
+.hk-task-date i {
+    margin-right: 6px;
+    color: #98a2b3;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.hk-task-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.hk-task-btn {
+    min-height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    padding: 7px 11px;
+
+    border: 0;
+    border-radius: 9px;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.hk-task-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.hk-task-btn-start {
+    background: #7c3aed;
+    color: #fff;
+}
+
+.hk-task-btn-start:hover {
+    background: #6d28d9;
+    transform: translateY(-1px);
+}
+
+.hk-task-btn-complete {
+    background: #059669;
+    color: #fff;
+}
+
+.hk-task-btn-complete:hover {
+    background: #047857;
+    transform: translateY(-1px);
+}
+
+.hk-task-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    color: #059669;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.hk-task-empty {
+    padding: 70px 20px;
+    text-align: center;
+}
+
+.hk-task-empty-icon {
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 14px;
+
+    border-radius: 16px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+
+    font-size: 22px;
+}
+
+.hk-task-empty h3 {
+    margin: 0 0 5px;
+    color: var(--hk-text, #344054);
+    font-size: 15px;
+}
+
+.hk-task-empty p {
+    margin: 0;
+    color: var(--hk-muted, #98a2b3);
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   CUSTOM CONFIRM MODAL
+========================================================= */
+
+.hk-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(15, 23, 42, .48);
+    backdrop-filter: blur(3px);
+}
+
+.hk-confirm-overlay.show {
+    display: flex;
+}
+
+.hk-confirm-modal {
+    width: min(430px, 100%);
+
+    padding: 24px;
+
+    background: var(--hk-card, #ffffff);
+    border: 1px solid var(--hk-border, #e5e7eb);
+    border-radius: 19px;
+
+    box-shadow: 0 24px 70px rgba(15, 23, 42, .22);
+
+    animation: hkModalIn .18s ease;
+}
+
+@keyframes hkModalIn {
+
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+.hk-confirm-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 15px;
+
+    border-radius: 14px;
+
+    background: #f1eafe;
+    color: #7c3aed;
+
+    font-size: 18px;
+}
+
+.hk-confirm-modal h3 {
+    margin: 0 0 7px;
+
+    color: var(--hk-text, #172033);
+
+    font-size: 18px;
+}
+
+.hk-confirm-modal p {
+    margin: 0;
+
+    color: var(--hk-muted, #667085);
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.hk-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+
+    margin-top: 22px;
+}
+
+.hk-confirm-cancel,
+.hk-confirm-submit {
+    min-width: 88px;
+
+    padding: 9px 14px;
+
+    border-radius: 9px;
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.hk-confirm-cancel {
+    border: 1px solid var(--hk-border, #dfe3ea);
+
+    background: var(--hk-card, #fff);
+    color: var(--hk-text, #475467);
+}
+
+.hk-confirm-submit {
+    border: 0;
+
+    background: #7c3aed;
+    color: #fff;
+}
+
+.hk-confirm-submit.complete {
+    background: #059669;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark-mode .hk-task-stat,
+body.dark-mode .hk-task-toolbar,
+body.dark-mode .hk-task-container,
+body.dark-mode .hk-confirm-modal {
+    background: #171b26;
+    border-color: #292f3d;
+}
+
+body.dark-mode .hk-task-table th {
+    background: #1c212d;
+    border-color: #292f3d;
+}
+
+body.dark-mode .hk-task-table td {
+    border-color: #292f3d;
+}
+
+body.dark-mode .hk-task-search input {
+    background: #171b26;
+    border-color: #303746;
+    color: #f5f7fa;
+}
+
+body.dark-mode .hk-task-tab:hover,
+body.dark-mode .hk-task-tab.active {
+    background: rgba(124, 58, 237, .18);
+}
+
+body.dark-mode .hk-task-table tbody tr:hover {
+    background: rgba(124, 58, 237, .05);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1050px) {
+
+    .hk-task-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 720px) {
+
+    .hk-task-page .hk-page-header h1 {
+        font-size: 27px;
+    }
+
+    .hk-task-filter-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .hk-task-search {
+        width: 100%;
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .hk-task-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .hk-task-stat {
+        min-height: 90px;
+        padding: 14px;
+    }
+
+    .hk-task-stat-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+    }
+
+    .hk-task-stat-content strong {
+        font-size: 23px;
+    }
+
+    .hk-task-container-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+</style>
+
+
+<div class="hk-page hk-task-page">
+
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="hk-page-header">
+
+        <div>
+
+            <div class="hk-eyebrow">
+                HOUSEKEEPING
+            </div>
+
+            <h1>My Tasks</h1>
+
+            <p>
+                View, start and complete your assigned
+                housekeeping work.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         STATS
+    ====================================================== -->
+
+    <div class="hk-task-stats">
+
+        <div class="hk-task-stat all">
+
+            <div class="hk-task-stat-icon">
+                <i class="fas fa-list-check"></i>
+            </div>
+
+            <div class="hk-task-stat-content">
+                <span>Total Tasks</span>
+                <strong>{{ total_tasks|default:0 }}</strong>
+            </div>
+
+        </div>
+
+
+        <div class="hk-task-stat pending">
+
+            <div class="hk-task-stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <div class="hk-task-stat-content">
+                <span>Pending</span>
+                <strong>{{ pending_count|default:0 }}</strong>
+            </div>
+
+        </div>
+
+
+        <div class="hk-task-stat progress">
+
+            <div class="hk-task-stat-icon">
+                <i class="fas fa-spinner"></i>
+            </div>
+
+            <div class="hk-task-stat-content">
+                <span>In Progress</span>
+                <strong>{{ progress_count|default:0 }}</strong>
+            </div>
+
+        </div>
+
+
+        <div class="hk-task-stat completed">
+
+            <div class="hk-task-stat-icon">
+                <i class="fas fa-circle-check"></i>
+            </div>
+
+            <div class="hk-task-stat-content">
+                <span>Completed</span>
+                <strong>{{ completed_count|default:0 }}</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         FILTER / SEARCH
+    ====================================================== -->
+
+    <div class="hk-task-toolbar">
+
+        <div class="hk-task-filter-row">
+
+            <div class="hk-task-tabs">
+
+                <button
+                    type="button"
+                    class="hk-task-tab active"
+                    data-filter="all"
+                >
+                    All
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-task-tab"
+                    data-filter="pending"
+                >
+                    Pending
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-task-tab"
+                    data-filter="in-progress"
+                >
+                    In Progress
+                </button>
+
+                <button
+                    type="button"
+                    class="hk-task-tab"
+                    data-filter="completed"
+                >
+                    Completed
+                </button>
+
+            </div>
+
+
+            <div class="hk-task-search">
+
+                <i class="fas fa-search"></i>
+
+                <input
+                    id="taskSearch"
+                    type="search"
+                    placeholder="Search task or room..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         TASK LIST
+    ====================================================== -->
+
+    <div class="hk-task-container">
+
+        <div class="hk-task-container-header">
+
+            <div>
+
+                <h2>Assigned Tasks</h2>
+
+                <p>
+                    Tasks currently assigned to
+                    {{ staff.name }}.
+                </p>
+
+            </div>
+
+            <span class="hk-task-count-badge">
+
+                <i class="fas fa-list-check"></i>
+
+                <span id="visibleTaskCount">
+                    {{ total_tasks|default:0 }}
+                </span>
+
+                Tasks
+
+            </span>
+
+        </div>
+
+
+        <div class="hk-task-table-wrap">
+
+            <table class="hk-task-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Task</th>
+                        <th>Room</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="taskTableBody">
+
+                    {% for task in tasks %}
+
+                    <tr
+                        class="hk-task-row"
+                        data-status="{{ task.status|lower|slugify }}"
+                        data-search="{{ task.title|lower }} {{ task.description|default:''|lower }} {% if task.room_unit %}{{ task.room_unit.room_number|lower }}{% endif %}"
+                    >
+
+                        <!-- TASK -->
+
+                        <td>
+
+                            <div class="hk-task-info">
+
+                                <div class="hk-task-icon">
+
+                                    {% if task.room_unit %}
+                                        <i class="fas fa-broom"></i>
+                                    {% else %}
+                                        <i class="fas fa-list-check"></i>
+                                    {% endif %}
+
+                                </div>
+
+
+                                <div>
+
+                                    <strong class="hk-task-name">
+                                        {{ task.title }}
+                                    </strong>
+
+                                    {% if task.description %}
+
+                                    <div class="hk-task-description">
+                                        {{ task.description }}
+                                    </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- ROOM -->
+
+                        <td>
+
+                            {% if task.room_unit %}
+
+                            <div class="hk-task-room">
+
+                                <div class="hk-task-room-icon">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Room {{ task.room_unit.room_number }}
+                                    </strong>
+
+                                    <small>
+
+                                        {% if task.room %}
+                                            {{ task.room.room_type }}
+                                        {% elif task.room_unit.room %}
+                                            {{ task.room_unit.room.room_type }}
+                                        {% else %}
+                                            Guest Room
+                                        {% endif %}
+
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                            {% else %}
+
+                            <span style="color:#98a2b3;">
+                                —
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% if task.status == "Completed" %}
+
+                            <span class="hk-task-status completed">
+                                Completed
+                            </span>
+
+                            {% elif task.status == "In Progress" %}
+
+                            <span class="hk-task-status in-progress">
+                                In Progress
+                            </span>
+
+                            {% else %}
+
+                            <span class="hk-task-status pending">
+                                Pending
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- CREATED -->
+
+                        <td>
+
+                            <span class="hk-task-date">
+
+                                <i class="far fa-calendar"></i>
+
+                                {{ task.created_at|date:"d M Y" }}
+
+                                <br>
+
+                                <small style="margin-left:19px;">
+                                    {{ task.created_at|date:"h:i A" }}
+                                </small>
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- ACTION -->
+
+                        <td>
+
+                            <div class="hk-task-actions">
+
+
+                                {% if task.status == "Pending" %}
+
+                                <button
+                                    type="button"
+                                    class="hk-task-btn hk-task-btn-start"
+                                    onclick="requestTaskUpdate(
+                                        {{ task.id }},
+                                        'In Progress',
+                                        this,
+                                        {% if task.room_unit %}{{ task.room_unit.id }}{% else %}null{% endif %}
+                                    )"
+                                >
+                                    <i class="fas fa-play"></i>
+                                    Start
+                                </button>
+
+
+                                {% elif task.status == "In Progress" %}
+
+                                <button
+                                    type="button"
+                                    class="hk-task-btn hk-task-btn-complete"
+                                    onclick="requestTaskUpdate(
+                                        {{ task.id }},
+                                        'Completed',
+                                        this,
+                                        {% if task.room_unit %}{{ task.room_unit.id }}{% else %}null{% endif %}
+                                    )"
+                                >
+                                    <i class="fas fa-check"></i>
+                                    Complete
+                                </button>
+
+
+                                {% elif task.status == "Completed" %}
+
+                                <span class="hk-task-done">
+
+                                    <i class="fas fa-circle-check"></i>
+
+                                    Completed
+
+                                </span>
+
+
+                                {% else %}
+
+                                <button
+                                    type="button"
+                                    class="hk-task-btn hk-task-btn-start"
+                                    onclick="requestTaskUpdate(
+                                        {{ task.id }},
+                                        'In Progress',
+                                        this,
+                                        {% if task.room_unit %}{{ task.room_unit.id }}{% else %}null{% endif %}
+                                    )"
+                                >
+                                    <i class="fas fa-play"></i>
+                                    Start
+                                </button>
+
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                    {% empty %}
+
+                    <tr>
+
+                        <td colspan="5">
+
+                            <div class="hk-task-empty">
+
+                                <div class="hk-task-empty-icon">
+                                    <i class="fas fa-list-check"></i>
+                                </div>
+
+                                <h3>No assigned tasks</h3>
+
+                                <p>
+                                    New housekeeping tasks will
+                                    appear here.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+
+                    <!-- FILTER EMPTY STATE -->
+
+                    <tr
+                        id="filteredEmptyRow"
+                        style="display:none;"
+                    >
+
+                        <td colspan="5">
+
+                            <div class="hk-task-empty">
+
+                                <div class="hk-task-empty-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+
+                                <h3>No matching tasks</h3>
+
+                                <p>
+                                    Try another status or
+                                    search term.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CUSTOM CONFIRMATION MODAL
+========================================================= -->
+
+<div
+    class="hk-confirm-overlay"
+    id="taskConfirmOverlay"
+>
+
+    <div
+        class="hk-confirm-modal"
+        role="dialog"
+        aria-modal="true"
+    >
+
+        <div
+            class="hk-confirm-icon"
+            id="taskConfirmIcon"
+        >
+            <i class="fas fa-play"></i>
+        </div>
+
+        <h3 id="taskConfirmTitle">
+            Start task?
+        </h3>
+
+        <p id="taskConfirmMessage">
+            Are you sure you want to start this task?
+        </p>
+
+
+        <div class="hk-confirm-actions">
+
+            <button
+                type="button"
+                class="hk-confirm-cancel"
+                id="taskConfirmCancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="hk-confirm-submit"
+                id="taskConfirmSubmit"
+            >
+                Confirm
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+/* =========================================================
+   TASK FILTER
+========================================================= */
+
+let activeTaskFilter = "all";
+
+
+document
+.querySelectorAll(".hk-task-tab")
+.forEach(function(button) {
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            document
+            .querySelectorAll(".hk-task-tab")
+            .forEach(function(btn) {
+
+                btn.classList.remove("active");
+
+            });
+
+            this.classList.add("active");
+
+            activeTaskFilter =
+                this.dataset.filter;
+
+            filterTasks();
+
+        }
+    );
+
+});
+
+
+document
+.getElementById("taskSearch")
+?.addEventListener(
+    "input",
+    filterTasks
+);
+
+
+function filterTasks() {
+
+    const input =
+        document.getElementById(
+            "taskSearch"
+        );
+
+    const search =
+        (input?.value || "")
+        .trim()
+        .toLowerCase();
+
+
+    const rows =
+        document.querySelectorAll(
+            ".hk-task-row"
+        );
+
+
+    let visibleCount = 0;
+
+
+    rows.forEach(function(row) {
+
+        const status =
+            row.dataset.status || "";
+
+        const searchable =
+            row.dataset.search || "";
+
+
+        const matchesStatus =
+            activeTaskFilter === "all"
+            ||
+            status === activeTaskFilter;
+
+
+        const matchesSearch =
+            !search
+            ||
+            searchable.includes(search);
+
+
+        const visible =
+            matchesStatus &&
+            matchesSearch;
+
+
+        row.style.display =
+            visible
+            ? ""
+            : "none";
+
+
+        if (visible) {
+            visibleCount++;
+        }
+
+    });
+
+
+    const counter =
+        document.getElementById(
+            "visibleTaskCount"
+        );
+
+    if (counter) {
+        counter.textContent =
+            visibleCount;
+    }
+
+
+    const emptyRow =
+        document.getElementById(
+            "filteredEmptyRow"
+        );
+
+    if (emptyRow) {
+
+        emptyRow.style.display =
+            rows.length > 0 &&
+            visibleCount === 0
+            ? ""
+            : "none";
+
+    }
+
+}
+
+
+/* =========================================================
+   CONFIRMATION MODAL
+========================================================= */
+
+let pendingTaskAction = null;
+
+
+function requestTaskUpdate(
+    taskId,
+    status,
+    button,
+    roomUnitId
+) {
+
+    const overlay =
+        document.getElementById(
+            "taskConfirmOverlay"
+        );
+
+    const title =
+        document.getElementById(
+            "taskConfirmTitle"
+        );
+
+    const message =
+        document.getElementById(
+            "taskConfirmMessage"
+        );
+
+    const icon =
+        document.getElementById(
+            "taskConfirmIcon"
+        );
+
+    const submit =
+        document.getElementById(
+            "taskConfirmSubmit"
+        );
+
+
+    pendingTaskAction = {
+        taskId: taskId,
+        status: status,
+        button: button,
+        roomUnitId: roomUnitId
+    };
+
+
+    if (status === "Completed") {
+
+        title.textContent =
+            "Complete task?";
+
+        message.textContent =
+            roomUnitId
+            ? "This will complete the cleaning task and mark the room as ready."
+            : "This task will be marked as completed.";
+
+        icon.innerHTML =
+            '<i class="fas fa-check"></i>';
+
+        submit.textContent =
+            "Complete";
+
+        submit.classList.add(
+            "complete"
+        );
+
+    } else {
+
+        title.textContent =
+            "Start task?";
+
+        message.textContent =
+            "This task will be moved to In Progress.";
+
+        icon.innerHTML =
+            '<i class="fas fa-play"></i>';
+
+        submit.textContent =
+            "Start";
+
+        submit.classList.remove(
+            "complete"
+        );
+
+    }
+
+
+    overlay.classList.add("show");
+
+}
+
+
+function closeTaskConfirm() {
+
+    document
+    .getElementById(
+        "taskConfirmOverlay"
+    )
+    ?.classList.remove("show");
+
+    pendingTaskAction = null;
+
+}
+
+
+document
+.getElementById("taskConfirmCancel")
+?.addEventListener(
+    "click",
+    closeTaskConfirm
+);
+
+
+document
+.getElementById("taskConfirmOverlay")
+?.addEventListener(
+    "click",
+    function(event) {
+
+        if (event.target === this) {
+            closeTaskConfirm();
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key === "Escape") {
+            closeTaskConfirm();
+        }
+
+    }
+);
+
+
+document
+.getElementById("taskConfirmSubmit")
+?.addEventListener(
+    "click",
+    async function() {
+
+        if (!pendingTaskAction) {
+            return;
+        }
+
+        const action =
+            pendingTaskAction;
+
+        closeTaskConfirm();
+
+        await updateTaskStatus(
+            action.taskId,
+            action.status,
+            action.button,
+            action.roomUnitId
+        );
+
+    }
+);
+
+
+/* =========================================================
+   UPDATE TASK
+========================================================= */
+
+async function updateTaskStatus(
+    taskId,
+    status,
+    button,
+    roomUnitId
+) {
+
+    const originalContent =
+        button
+        ? button.innerHTML
+        : "";
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+    }
+
+
+    try {
+
+        /*
+         * IMPORTANT:
+         *
+         * Cleaning tasks connected to a room should use
+         * complete_cleaning when being completed.
+         *
+         * That endpoint updates BOTH:
+         *     Task -> Completed
+         *     RoomUnit -> Available
+         */
+
+        if (
+            status === "Completed"
+            &&
+            roomUnitId
+        ) {
+
+            const response =
+                await fetch(
+                    "{% url 'complete_cleaning' %}",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+
+                            "X-CSRFToken":
+                                csrftoken,
+                        },
+
+                        body: JSON.stringify({
+
+                            room_unit_id:
+                                roomUnitId,
+
+                            task_id:
+                                taskId,
+
+                        }),
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (
+                !response.ok
+                ||
+                !data.success
+            ) {
+
+                throw new Error(
+                    data.error
+                    ||
+                    "Unable to complete cleaning."
+                );
+
+            }
+
+
+            showToast(
+                data.message
+                ||
+                "Cleaning completed successfully.",
+                "success"
+            );
+
+
+            setTimeout(
+                function() {
+                    window.location.reload();
+                },
+                450
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Normal tasks:
+         * Pending -> In Progress
+         * In Progress -> Completed
+         */
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "task_id",
+            taskId
+        );
+
+        formData.append(
+            "status",
+            status
+        );
+
+        formData.append(
+            "note",
+            ""
+        );
+
+
+        const response =
+            await fetch(
+                "{% url 'update_task_status' %}",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "X-CSRFToken":
+                            csrftoken,
+                    },
+
+                    body: formData,
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !response.ok
+            ||
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error
+                ||
+                "Unable to update task."
+            );
+
+        }
+
+
+        showToast(
+            status === "Completed"
+            ? "Task completed successfully."
+            : "Task started successfully.",
+            "success"
+        );
+
+
+        setTimeout(
+            function() {
+                window.location.reload();
+            },
+            450
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Task update error:",
+            error
+        );
+
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.innerHTML =
+                originalContent;
+
+        }
+
+
+        showToast(
+            error.message
+            ||
+            "Unable to update task.",
+            "error"
+        );
+
+    }
+
+}
+
+</script>
+
+{% endblock %}

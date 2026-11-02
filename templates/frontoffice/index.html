@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admio - Admin Dashboard</title>
+  <link rel="shortcut icon" type="image/x-icon" href="assets/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="assets/css/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="assets/css/admio.css">
+  <link rel="stylesheet" href="assets/css/admio-icons.css">
+  <style>
+    /* ─── RESET SIDEBAR ─── */
+    .admio-sidebar { display: none !important; }
+    .admio-main { margin-left: 0 !important; padding-top: 0 !important; width: 100% !important; }
+
+    /* ─── GLOBAL SIZE BOOST ─── */
+    body { font-size: 18px; }
+    .admio-content { padding: 40px 48px; }
+    .page-title { font-size: 2.4rem !important; font-weight: 800 !important; }
+    .page-subtitle { font-size: 1.15rem !important; }
+    .stat-value { font-size: 2.9rem !important; font-weight: 800 !important; line-height: 1.1 !important; }
+    .stat-label { font-size: 1.05rem !important; }
+    .card-title { font-size: 1.35rem !important; font-weight: 700 !important; }
+    .text-sm { font-size: 1.05rem !important; }
+    .text-xs { font-size: 0.96rem !important; }
+    .fw-600 { font-weight: 600 !important; }
+    .fw-700 { font-weight: 700 !important; }
+    .admio-table th { font-size: 1rem !important; padding: 18px 20px !important; font-weight: 700; }
+    .admio-table td { font-size: 1rem !important; padding: 18px 20px !important; }
+    .stat-card { padding: 32px 32px 0 !important; border-radius: 20px !important; }
+    .admio-card { border-radius: 20px !important; }
+    .admio-card-header { padding: 26px 30px !important; }
+    .admio-card-body { padding: 26px 30px !important; }
+    .admio-card-body-sm { padding: 20px 30px !important; }
+    .admio-card-footer { padding: 16px 30px !important; }
+    .progress-admio { height: 12px !important; border-radius: 10px !important; }
+    .country-row { padding: 14px 0 !important; font-size: 1.05rem !important; }
+    .chart-h-lg { min-height: 420px !important; }
+    .chart-h-md { min-height: 300px !important; }
+    .chart-h-sm { min-height: 280px !important; }
+    .mini-chart-bar { height: 64px !important; }
+    .stat-icon { width: 60px !important; height: 60px !important; border-radius: 16px !important; }
+    .stat-icon i { font-size: 26px !important; }
+    .stat-trend { font-size: 0.92rem !important; padding: 6px 12px !important; border-radius: 20px !important; }
+    .badge-admio { font-size: 0.88rem !important; padding: 6px 13px !important; }
+    .btn-admio { font-size: 1rem !important; padding: 11px 22px !important; }
+    .btn-sm.btn-admio, .btn-admio.btn-sm { font-size: 0.92rem !important; padding: 8px 16px !important; }
+    .page-header { margin-bottom: 32px !important; }
+    .ai-insight-banner { padding: 22px 28px !important; border-radius: 16px !important; font-size: 1.05rem !important; }
+    .ai-banner-title { font-size: 1.1rem !important; }
+    .ai-banner-text { font-size: 1rem !important; }
+    .notif-title { font-size: 1.02rem !important; }
+    .notif-desc { font-size: 0.92rem !important; }
+    .form-control-admio, .form-select-admio { font-size: 1rem !important; padding: 10px 16px !important; }
+
+    /* ─── NAVBAR SHELL ─── */
+    .h-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    background: var(--admio-sidebar-bg, #fff);
+    border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    overflow: visible;
+}
+    /* ─── TOP STRIP ─── */
+    .h-navbar-top {
+      display: flex; align-items: center; gap: 18px;
+      padding: 0 32px; height: 74px;
+      border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+    }
+    .h-navbar-brand { display: flex; align-items: center; gap: 9px; text-decoration: none; flex-shrink: 0; }
+    .h-navbar-brand img { width: 38px; }
+    .h-navbar-brand-text { font-size: 1.55rem; font-weight: 800; color: var(--admio-heading-color, #111); }
+    .h-navbar-brand-text span { color: #7C3AED; }
+
+    .h-ai-pill {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 16px; border-radius: 20px;
+      background: rgba(124,58,237,.09); font-size: 14px;
+      font-weight: 600; color: #7C3AED; flex-shrink: 0;
+    }
+    .h-ai-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse-g 1.5s infinite; }
+    @keyframes pulse-g { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    .h-topbar-search { flex: 1; max-width: 440px; position: relative; }
+    .h-topbar-search .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 15px; }
+    .h-topbar-search .search-input {
+      width: 100%; padding: 8px 16px 8px 36px;
+      border: 1px solid var(--admio-border-color, #e5e7eb);
+      border-radius: 9px; font-size: 14px;
+      background: var(--admio-input-bg, #f9fafb);
+      color: var(--admio-text-color, #374151); outline: none;
+    }
+    .h-topbar-search .search-input:focus { border-color: #7C3AED; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+
+    .h-topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+    .h-topbar-divider { width: 1px; height: 26px; background: var(--admio-border-color, #e5e7eb); flex-shrink: 0; }
+    .topbar-btn { background: transparent; border: none; cursor: pointer; color: var(--admio-text-color, #374151); }
+
+    /* ─── DESKTOP NAV STRIP ─── */
+   .h-navbar-menu {
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 4px;
+    overflow: visible !important;
+    height: 56px;
+    background: var(--admio-sidebar-bg, #fff);
+}
+    .h-navbar-menu::-webkit-scrollbar { display: none; }
+
+    /* Nav links */
+    .h-nav-item { position: relative; }
+    .h-nav-link {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 17px; border-radius: 10px;
+      font-size: 15.5px; font-weight: 600;
+      color: var(--admio-nav-color, #6b7280);
+      text-decoration: none; white-space: nowrap;
+      cursor: pointer; border: none; background: transparent;
+      transition: background .15s, color .15s;
+      user-select: none;
+    }
+    .h-nav-link:hover, .h-nav-link.active {
+      background: rgba(124,58,237,.09); color: #7C3AED;
+    }
+    .h-nav-link i { font-size: 18px; }
+    .h-nav-arrow { font-size: 11px; margin-left: 1px; transition: transform .2s; }
+    .h-nav-item.open > .h-nav-link .h-nav-arrow { transform: rotate(180deg); }
+
+    /* ── DROPDOWN — click-based (JS toggles .open) ── */
+    .h-nav-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 230px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 32px rgba(0,0,0,.13);
+    padding: 7px;
+    z-index: 99999;
+}
+    .h-nav-item.open .h-nav-dropdown-menu { display: block; }
+    .h-nav-dropdown-menu a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-radius: 9px;
+      font-size: 15px; color: var(--admio-text-color, #374151);
+      text-decoration: none; transition: background .12s, color .12s;
+    }
+    .h-nav-dropdown-menu a:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-nav-dropdown-menu a i { font-size: 16px; width: 18px; }
+
+    /* ─── HAMBURGER (mobile) ─── */
+    .h-menu-toggle {
+      display: none; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border: none;
+      background: transparent; border-radius: 9px; cursor: pointer;
+      color: var(--admio-text-color, #374151); font-size: 20px; flex-shrink: 0;
+      transition: background .15s;
+    }
+    .h-menu-toggle:hover { background: rgba(124,58,237,.09); color: #7C3AED; }
+
+    /* ─── MOBILE DRAWER ─── */
+    .h-navbar-menu-mobile {
+      display: none; flex-direction: column;
+      background: var(--admio-sidebar-bg, #fff);
+      border-top: 1px solid var(--admio-border-color, #e5e7eb);
+      padding: 10px 16px 20px; max-height: 75vh; overflow-y: auto;
+    }
+    .h-navbar-menu-mobile.open { display: flex; }
+
+    .h-mobile-direct {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 9px;
+      font-size: 15.5px; font-weight: 600;
+      color: var(--admio-text-color, #374151);
+      text-decoration: none; transition: background .15s; margin-bottom: 3px;
+    }
+    .h-mobile-direct:hover, .h-mobile-direct.active { background: rgba(124,58,237,.09); color: #7C3AED; }
+    .h-mobile-direct i { font-size: 16px; }
+
+    .h-mobile-section { margin-bottom: 3px; }
+    .h-mobile-section-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; padding: 11px 12px; border: none;
+      background: transparent; border-radius: 9px;
+      font-size: 15.5px; font-weight: 600;
+      color: var(--admio-text-color, #374151);
+      cursor: pointer; text-align: left; transition: background .15s;
+    }
+    .h-mobile-section-toggle:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-mobile-section-toggle .left-ico { margin-right: 10px; font-size: 18px; }
+    .h-mobile-arrow { font-size: 12px; transition: transform .22s; }
+    .h-mobile-section.open .h-mobile-arrow { transform: rotate(180deg); }
+
+    .h-mobile-sub {
+      display: none; flex-direction: column;
+      padding: 3px 0 4px 36px; gap: 2px;
+    }
+    .h-mobile-section.open .h-mobile-sub { display: flex; }
+    .h-mobile-sub a {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 12px; border-radius: 8px;
+      font-size: 15px; color: var(--admio-nav-color, #6b7280);
+      text-decoration: none; transition: background .12s, color .12s;
+    }
+    .h-mobile-sub a:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-mobile-sub a i { font-size: 16px; width: 18px; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1199px) {
+      .admio-content { padding: 28px 24px; }
+    }
+    @media (max-width: 991px) {
+      .admio-content { padding: 24px 20px; }
+      .chart-h-lg { min-height: 320px !important; }
+    }
+    @media (max-width: 767px) {
+      .h-menu-toggle { display: flex; }
+      .h-navbar-menu { display: none !important; }
+      .h-topbar-search { max-width: 170px; }
+      .h-navbar-top { padding: 0 14px; height: 58px; }
+      .admio-content { padding: 18px 16px; }
+      .page-title { font-size: 1.6rem !important; }
+      .stat-value { font-size: 1.9rem !important; }
+      .chart-h-lg { min-height: 280px !important; }
+      .chart-h-sm { min-height: 200px !important; }
+    }
+    @media (max-width: 479px) {
+      .h-ai-pill { display: none !important; }
+      .h-topbar-search { max-width: 130px; }
+      .admio-content { padding: 14px 12px; }
+      .stat-value { font-size: 1.65rem !important; }
+    }
+
+    /* ─── DARK THEME ─── */
+    [data-theme="dark"] .h-navbar { background: var(--admio-sidebar-bg,#1e1e2d); border-color: var(--admio-border-color,#2d2d3d); }
+    [data-theme="dark"] .h-nav-link { color: #a1a1b5; }
+    [data-theme="dark"] .h-nav-dropdown-menu { background: #252535; border-color: #2d2d3d; }
+    [data-theme="dark"] .h-nav-dropdown-menu a { color: #c4c4d4; }
+    [data-theme="dark"] .h-navbar-menu-mobile { background: #1e1e2d; border-color: #2d2d3d; }
+    [data-theme="dark"] .h-mobile-section-toggle,
+    [data-theme="dark"] .h-mobile-direct { color: #c4c4d4; }
+    [data-theme="dark"] .h-mobile-sub a { color: #9b9bb5; }
+
+    /* User + notif panel */
+    .topbar-user { position: relative; cursor: pointer; }
+    .topbar-user .user-dropdown-menu { right: 0; left: auto; }
+    .topbar-btn-notification { position: relative; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ HORIZONTAL NAVBAR ══════════ -->
+<nav class="h-navbar" id="hNavbar">
+  
+
+  <!-- TOP STRIP -->
+  <div class="h-navbar-top">
+       <!-- Hamburger (mobile) -->
+    <button class="h-menu-toggle" id="hMenuToggle" aria-label="Toggle menu">
+      <i class="icon-menu" id="hMenuIcon"></i>
+    </button>
+    <a href="index.html" class="h-navbar-brand">
+      <img src="assets/img/logo.svg" alt="Admio">
+      <span class="h-navbar-brand-text">Admi<span>o</span></span>
+    </a>
+
+ 
+
+    <!-- AI pill -->
+    <div class="h-ai-pill d-none d-sm-flex">
+      <span class="h-ai-dot"></span>AI Engine Active
+    </div>
+
+    <!-- Search -->
+    <div class="h-topbar-search d-none d-md-block ms-2">
+      <i class="icon-search search-icon"></i>
+      <input type="text" class="search-input" placeholder="Search anything… (⌘K)" id="globalSearch">
+    </div>
+
+    <!-- Right controls -->
+    <div class="h-topbar-actions">
+      <div class="lang-switcher d-none d-lg-block">
+        <button class="lang-btn topbar-btn" title="Change language">
+          <img src="assets/img/flags/us.svg" alt="US" class="lang-flag-btn" data-code="us">
+          <span class="lang-label">EN</span>
+          <i class="icon-chevron-down lang-arrow"></i>
+        </button>
+        <div class="lang-dropdown">
+          <div class="lang-dropdown-header"><i class="icon-globe"></i><span>Select Language</span></div>
+          <div class="lang-search-wrap"><i class="icon-search"></i><input type="text" class="lang-search" placeholder="Search language…" autocomplete="off"></div>
+          <div class="lang-list">
+            <div class="lang-item active" data-lang="EN" data-name="English" data-abbr="EN">
+              <img src="assets/img/flags/us.svg" alt="US" class="lang-flag" data-code="us">
+              <div class="lang-info"><span class="lang-name">English</span><span class="lang-region">United States</span></div>
+              <i class="icon-circle-check lang-check"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="h-topbar-divider d-none d-lg-block"></div>
+      <button class="topbar-btn header-icon" id="themeToggle" title="Toggle theme">
+        <i class="icon-moon" id="themeIcon"></i>
+      </button>
+      <div class="h-topbar-divider"></div>
+      <div class="topbar-btn-notification">
+        <button class="topbar-btn header-icon" id="notifBtn">
+          <i class="icon-bell"></i><span class="notif-badge"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-header"><h2>Notifications</h2><button class="btn-text">Mark all read</button></div>
+          <div class="notif-list">
+            <div class="notif-item unread">
+              <div class="notif-icon bg-primary"><i class="icon-bot"></i></div>
+              <div class="notif-content"><p class="notif-title">AI Report Ready</p><p class="notif-desc">Weekly summary generated</p><span class="notif-time">2 min ago</span></div>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-icon bg-success"><i class="icon-user-plus"></i></div>
+              <div class="notif-content"><p class="notif-title">New API Key Created</p><p class="notif-desc">Production key for TechStart</p><span class="notif-time">15 min ago</span></div>
+            </div>
+            <div class="notif-item"> 
+              <div class="notif-icon bg-warning"><i class="icon-triangle-alert"></i></div>
+              <div class="notif-content"><p class="notif-title">Rate Limit Warning</p><p class="notif-desc">GPT-4 at 85% of quota</p><span class="notif-time">1 hour ago</span></div>
+            </div>
+          </div>
+          <div class="notif-footer"><a href="notifications-page.html">View all notifications</a></div>
+        </div>
+      </div>
+      <div class="h-topbar-divider"></div>
+      <div class="topbar-user position-relative">
+        <span class="avatar-gen topbar-user-avatar" data-name="Admin User" data-bg="#7C3AED" data-size="36">AU</span>
+        <div class="user-dropdown-menu">
+          <div class="user-dropdown-header">
+            <span class="avatar-gen udm-avatar" data-name="Admin User" data-bg="#7C3AED" data-size="42">AU</span>
+            <div class="udm-info"><p class="user-dropdown-name">Admin User</p><p class="user-dropdown-email">admin@admio.ai</p></div>
+          </div>
+          <div class="udm-body">
+            <a href="profile.html" class="user-dropdown-item"><i class="icon-circle-user"></i><span>My Profile</span></a>
+            <a href="settings.html" class="user-dropdown-item"><i class="icon-settings"></i><span>Account Settings</span></a>
+            <a href="notifications-page.html" class="user-dropdown-item"><i class="icon-bell"></i><span>Notifications</span><span class="udm-badge">5</span></a>
+            <hr class="user-dropdown-divider">
+            <a href="login.html" class="user-dropdown-item danger"><i class="icon-log-out"></i><span>Sign Out</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<style>
+/* Mobile Toggle Button */
+/* Mobile Toggle Button */
+.h-menu-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+/* Mobile Menu */
+.h-navbar-menu-mobile {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    padding: 10px 0;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.h-navbar-menu-mobile.open {
+    display: flex;
+}
+
+.h-mobile-section {
+    width: 100%;
+}
+
+.h-mobile-section-toggle {
+    width: 100%;
+    padding: 15px 20px;
+    border: none;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.h-mobile-sub {
+    display: none;
+    flex-direction: column;
+    padding-left: 20px;
+}
+
+.h-mobile-section.open .h-mobile-sub {
+    display: flex;
+}
+
+.h-mobile-sub a,
+.h-mobile-direct {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: #374151;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+
+    .h-menu-toggle {
+        display: flex !important;
+    }
+
+    .h-navbar-menu {
+        display: none !important;
+    }
+
+}
+</style>
+<script>
+/* MOBILE HAMBURGER */
+const hMenuToggle = document.getElementById('hMenuToggle');
+const hMobileMenu = document.getElementById('hMobileMenu');
+const hMenuIcon = document.getElementById('hMenuIcon');
+
+if (hMenuToggle && hMobileMenu) {
+
+    hMenuToggle.addEventListener('click', function (e) {
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const isOpen = hMobileMenu.classList.toggle('open');
+
+        hMenuIcon.className = isOpen ? 'icon-x' : 'icon-menu';
+
+    });
+
+}
+
+/* Close mobile menu */
+document.addEventListener('click', function (e) {
+
+    if (
+        hMobileMenu.classList.contains('open') &&
+        !hMobileMenu.contains(e.target) &&
+        !hMenuToggle.contains(e.target)
+    ) {
+
+        hMobileMenu.classList.remove('open');
+
+        hMenuIcon.className = 'icon-menu';
+
+    }
+
+});
+
+/* Mobile Accordion */
+document.querySelectorAll('.h-mobile-section-toggle').forEach(function (btn) {
+
+    btn.addEventListener('click', function (e) {
+
+        e.stopPropagation();
+
+        const section = btn.closest('.h-mobile-section');
+
+        section.classList.toggle('open');
+
+    });
+
+});
+</script>
+</script>
+  <!-- DESKTOP NAV STRIP -->
+  <div class="h-navbar-menu" id="hDesktopMenu">
+
+    <div class="h-nav-item">
+      <a href="index.html" class="h-nav-link active"><i class="icon-gauge"></i> Dashboard</a>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-ai">
+      <button type="button" class="h-nav-link">
+    <i class="icon-bot"></i>
+    AI Tools
+    <i class="icon-chevron-down h-nav-arrow"></i>
+</button>
+      <div class="h-nav-dropdown-menu">
+        <a href="ai-analytics.html"><i class="icon-trending-up"></i> AI Analytics</a>
+        <a href="ai-models.html"><i class="icon-bot"></i> AI Models</a>
+        <a href="ai-usage.html"><i class="icon-network"></i> AI Usage</a>
+        <a href="ai-chat.html"><i class="icon-bot"></i> AI Chat</a>
+        <a href="ai-playground.html"><i class="icon-flask-conical"></i> AI Playground</a>
+        <a href="ai-agents.html"><i class="icon-network"></i> AI Agents</a>
+        <a href="ai-workflows.html"><i class="icon-workflow"></i> AI Workflows</a>
+        <a href="ai-prompts.html"><i class="icon-wand-sparkles"></i> Prompt Library</a>
+        <a href="ai-training.html"><i class="icon-brain"></i> Model Training</a>
+        <a href="ai-documents.html"><i class="icon-activity"></i> AI Documents</a>
+        <a href="ai-api-keys.html"><i class="icon-key"></i> API Keys</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-apps">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-layout-dashboard"></i> Apps <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="calendar.html"><i class="icon-calendar-days"></i> Calendar</a>
+        <a href="kanban.html"><i class="icon-layout-dashboard"></i> Kanban</a>
+        <a href="chat.html"><i class="icon-message-square"></i> Team Chat</a>
+        <a href="inbox.html"><i class="icon-mail"></i> Inbox</a>
+        <a href="file-manager.html"><i class="icon-folder-open"></i> File Manager</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-users">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-users"></i> Users <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="users.html"><i class="icon-users"></i> Users</a>
+        <a href="user-detail.html"><i class="icon-circle-user"></i> User Detail</a>
+        <a href="edit-user.html"><i class="icon-user-pen"></i> Edit User</a>
+        <a href="team.html"><i class="icon-users-round"></i> Team</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-finance">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-receipt"></i> Finance <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="invoices.html"><i class="icon-file-text"></i> Invoices</a>
+        <a href="invoice.html"><i class="icon-receipt"></i> Invoice Detail</a>
+        <a href="transactions.html"><i class="icon-arrow-right-left"></i> Transactions</a>
+        <a href="pricing.html"><i class="icon-tags"></i> Pricing</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-ui">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-puzzle"></i> UI <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="ui-typography.html">Typography</a>
+        <a href="ui-buttons.html">Buttons</a>
+        <a href="ui-alerts.html">Alerts</a>
+        <a href="ui-badges.html">Badges</a>
+        <a href="ui-cards.html">Cards</a>
+        <a href="ui-dropdowns.html">Dropdowns</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-charts">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-bar-chart-2"></i> Charts <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="charts-line.html">Line Charts</a>
+        <a href="charts-area.html">Area Charts</a>
+        <a href="charts-bar.html">Bar &amp; Column</a>
+        <a href="charts-pie.html">Pie &amp; Donut</a>
+        <a href="charts-mixed.html">Mixed Charts</a>
+      </div>
+    </div>
+
+    <div class="h-nav-item h-nav-dropdown" id="dd-pages">
+      <span class="h-nav-link" role="button" tabindex="0"><i class="icon-file"></i> Pages <i class="icon-chevron-down h-nav-arrow"></i></span>
+      <div class="h-nav-dropdown-menu">
+        <a href="profile.html">Profile</a>
+        <a href="settings.html">Settings</a>
+        <a href="reports.html">Reports</a>
+        <a href="notifications-page.html">Notifications</a>
+        <a href="timeline.html">Timeline</a>
+        <a href="faq.html">FAQ</a>
+        <a href="login.html">Sign In</a>
+        <a href="signup.html">Sign Up</a>
+        <a href="404.html">404 Error</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MOBILE DRAWER -->
+  <div class="h-navbar-menu-mobile" id="hMobileMenu">
+
+    <a href="index.html" class="h-mobile-direct active"><i class="icon-gauge"></i> Dashboard</a>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-bot left-ico"></i>AI Tools</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="ai-analytics.html"><i class="icon-trending-up"></i> AI Analytics</a>
+        <a href="ai-models.html"><i class="icon-bot"></i> AI Models</a>
+        <a href="ai-usage.html"><i class="icon-network"></i> AI Usage</a>
+        <a href="ai-chat.html"><i class="icon-bot"></i> AI Chat</a>
+        <a href="ai-playground.html"><i class="icon-flask-conical"></i> AI Playground</a>
+        <a href="ai-agents.html"><i class="icon-network"></i> AI Agents</a>
+        <a href="ai-workflows.html"><i class="icon-workflow"></i> AI Workflows</a>
+        <a href="ai-prompts.html"><i class="icon-wand-sparkles"></i> Prompt Library</a>
+        <a href="ai-training.html"><i class="icon-brain"></i> Model Training</a>
+        <a href="ai-documents.html"><i class="icon-activity"></i> AI Documents</a>
+        <a href="ai-api-keys.html"><i class="icon-key"></i> API Keys</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-layout-dashboard left-ico"></i>Apps</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="calendar.html"><i class="icon-calendar-days"></i> Calendar</a>
+        <a href="kanban.html"><i class="icon-layout-dashboard"></i> Kanban</a>
+        <a href="chat.html"><i class="icon-message-square"></i> Team Chat</a>
+        <a href="inbox.html"><i class="icon-mail"></i> Inbox</a>
+        <a href="file-manager.html"><i class="icon-folder-open"></i> File Manager</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-users left-ico"></i>Users</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="users.html"><i class="icon-users"></i> Users</a>
+        <a href="user-detail.html"><i class="icon-circle-user"></i> User Detail</a>
+        <a href="edit-user.html"><i class="icon-user-pen"></i> Edit User</a>
+        <a href="team.html"><i class="icon-users-round"></i> Team</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-receipt left-ico"></i>Finance</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="invoices.html"><i class="icon-file-text"></i> Invoices</a>
+        <a href="invoice.html"><i class="icon-receipt"></i> Invoice Detail</a>
+        <a href="transactions.html"><i class="icon-arrow-right-left"></i> Transactions</a>
+        <a href="pricing.html"><i class="icon-tags"></i> Pricing</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-puzzle left-ico"></i>UI Components</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="ui-typography.html">Typography</a>
+        <a href="ui-buttons.html">Buttons</a>
+        <a href="ui-alerts.html">Alerts</a>
+        <a href="ui-badges.html">Badges</a>
+        <a href="ui-cards.html">Cards</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-bar-chart-2 left-ico"></i>Charts</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="charts-line.html">Line Charts</a>
+        <a href="charts-area.html">Area Charts</a>
+        <a href="charts-bar.html">Bar &amp; Column</a>
+        <a href="charts-pie.html">Pie &amp; Donut</a>
+        <a href="charts-mixed.html">Mixed Charts</a>
+      </div>
+    </div>
+
+    <div class="h-mobile-section">
+      <button class="h-mobile-section-toggle" type="button">
+        <span><i class="icon-file left-ico"></i>Pages</span>
+        <i class="icon-chevron-down h-mobile-arrow"></i>
+      </button>
+      <div class="h-mobile-sub">
+        <a href="profile.html">Profile</a>
+        <a href="settings.html">Settings</a>
+        <a href="reports.html">Reports</a>
+        <a href="notifications-page.html">Notifications</a>
+        <a href="login.html">Sign In</a>
+        <a href="signup.html">Sign Up</a>
+      </div>
+    </div>
+
+  </div>
+
+</nav>
+<!-- ══════════ END NAVBAR ══════════ -->
+
+<div class="admio-main" id="admioMain">
+  <main class="admio-content">
+
+    <!-- AI Banner -->
+    <div class="ai-insight-banner mb-4">
+      <div class="ai-banner-icon"><i class="icon-bot"></i></div>
+      <div class="ai-banner-content">
+        <p class="ai-banner-title">AI Insight: Revenue up 24.5% this month</p>
+        <p class="ai-banner-text">3 churn risks detected · GPT-4 accuracy 97.2% · 48,300 AI requests this month</p>
+      </div>
+      <a href="ai-analytics.html" class="ai-banner-action"><i class="icon-arrow-right"></i> View Analysis</a>
+      <button class="ai-banner-close"><i class="icon-x"></i></button>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Main Dashboard</h1>
+        <p class="page-subtitle">Welcome back, Admin — here's your AI platform overview for today</p>
+      </div>
+      <div class="page-header-actions">
+        <select class="form-control-admio form-select-admio w-select-sm">
+          <option>Last 30 Days</option><option>Last 7 Days</option>
+          <option>This Month</option><option>This Year</option>
+        </select>
+        <button class="btn-admio btn-ai btn-sm"><i class="icon-wand-sparkles"></i> AI Report</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-4 mb-4">
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card pb-0">
+          <div class="stat-card-header">
+            <div class="stat-icon purple admio-bg-purple"><i class="icon-network"></i></div>
+            <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> 24.5%</span>
+          </div>
+          <div class="stat-value" data-target="128640" data-prefix="$">$0</div>
+          <div class="stat-label">Total Revenue</div>
+          <div class="mini-chart-bar">
+            <div class="mini-bar bar-primary mh-40 op-30"></div><div class="mini-bar bar-primary mh-60 op-40"></div>
+            <div class="mini-bar bar-primary mh-45 op-50"></div><div class="mini-bar bar-primary mh-75 op-60"></div>
+            <div class="mini-bar bar-primary mh-55 op-70"></div><div class="mini-bar bar-primary mh-90 op-85"></div>
+            <div class="mini-bar bar-primary mh-100 op-100"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card pb-0">
+          <div class="stat-card-header">
+            <div class="stat-icon cyan admio-bg-cyan"><i class="icon-bot"></i></div>
+            <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> 340%</span>
+          </div>
+          <div class="stat-value" data-target="48300">0</div>
+          <div class="stat-label">AI Requests / Month</div>
+          <div class="mini-chart-bar">
+            <div class="mini-bar bar-secondary mh-30 op-30"></div><div class="mini-bar bar-secondary mh-50 op-40"></div>
+            <div class="mini-bar bar-secondary mh-40 op-50"></div><div class="mini-bar bar-secondary mh-70 op-60"></div>
+            <div class="mini-bar bar-secondary mh-85 op-75"></div><div class="mini-bar bar-secondary mh-75 op-85"></div>
+            <div class="mini-bar bar-secondary mh-100 op-100"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card pb-0">
+          <div class="stat-card-header">
+            <div class="stat-icon green admio-bg-green"><i class="icon-users"></i></div>
+            <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> 12%</span>
+          </div>
+          <div class="stat-value" data-target="24840">0</div>
+          <div class="stat-label">Active Users</div>
+          <div class="mini-chart-bar">
+            <div class="mini-bar bar-success mh-35 op-30"></div><div class="mini-bar bar-success mh-55 op-40"></div>
+            <div class="mini-bar bar-success mh-45 op-50"></div><div class="mini-bar bar-success mh-65 op-60"></div>
+            <div class="mini-bar bar-success mh-80 op-75"></div><div class="mini-bar bar-success mh-70 op-85"></div>
+            <div class="mini-bar bar-success mh-100 op-100"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="stat-card pb-0">
+          <div class="stat-card-header">
+            <div class="stat-icon orange admio-bg-orange"><i class="icon-target"></i></div>
+            <span class="stat-trend up admio-bg-green"><i class="icon-trending-up"></i> 2.1%</span>
+          </div>
+          <div class="stat-value" data-target="97.2" data-suffix="%">0%</div>
+          <div class="stat-label">AI Accuracy</div>
+          <div class="mini-chart-bar">
+            <div class="mini-bar bar-warning mh-60 op-30"></div><div class="mini-bar bar-warning mh-75 op-40"></div>
+            <div class="mini-bar bar-warning mh-65 op-50"></div><div class="mini-bar bar-warning mh-85 op-60"></div>
+            <div class="mini-bar bar-warning mh-70 op-75"></div><div class="mini-bar bar-warning mh-90 op-85"></div>
+            <div class="mini-bar bar-warning mh-100 op-100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-8">
+        <div class="admio-card h-100">
+          <div class="admio-card-header">
+            <h2 class="card-title mb-0">Revenue vs AI Revenue</h2>
+            <div class="d-flex gap-3 align-items-center flex-wrap">
+              <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-primary"></span>Revenue</span>
+              <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-secondary"></span>AI Revenue</span>
+              <a href="ai-analytics.html" class="btn-admio btn-ghost btn-sm">Full Report</a>
+            </div>
+          </div>
+          <div class="admio-card-body chart-h-lg"><canvas id="revenueChart"></canvas></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="admio-card h-100">
+          <div class="admio-card-header"><h2 class="card-title mb-0">AI Request Types</h2></div>
+          <div class="admio-card-body chart-h-md"><canvas id="aiRequestsChart"></canvas></div>
+          <div class="admio-card-body admio-card-body-sm pt-0-i">
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex justify-content-between"><span class="d-flex align-items-center gap-2 text-xs"><span class="legend-dot legend-primary"></span>Chat (GPT-4)</span><span class="fw-700 text-xs">38%</span></div>
+              <div class="d-flex justify-content-between"><span class="d-flex align-items-center gap-2 text-xs"><span class="legend-dot legend-secondary"></span>Code Gen</span><span class="fw-700 text-xs">24%</span></div>
+              <div class="d-flex justify-content-between"><span class="d-flex align-items-center gap-2 text-xs"><span class="legend-dot legend-success"></span>Analysis</span><span class="fw-700 text-xs">18%</span></div>
+              <div class="d-flex justify-content-between"><span class="d-flex align-items-center gap-2 text-xs"><span class="legend-dot legend-warning"></span>Image Gen</span><span class="fw-700 text-xs">12%</span></div>
+              <div class="d-flex justify-content-between"><span class="d-flex align-items-center gap-2 text-xs"><span class="legend-dot legend-info"></span>Other</span><span class="fw-700 text-xs">8%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-4">
+        <div class="admio-card h-100">
+          <div class="admio-card-header"><h2 class="card-title mb-0">Weekly AI Activity</h2></div>
+          <div class="admio-card-body chart-h-sm"><canvas id="weeklyChart"></canvas></div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="admio-card h-100">
+          <div class="admio-card-header">
+            <h2 class="card-title mb-0">Top AI Models</h2>
+            <a href="ai-models.html" class="btn-admio btn-ghost btn-sm">View All</a>
+          </div>
+          <div class="admio-card-body admio-card-body-sm">
+            <div class="d-flex flex-column gap-3">
+              <div><div class="d-flex justify-content-between mb-1"><span class="text-sm fw-600">GPT-4 Turbo</span><span class="text-sm fw-700">18,940</span></div><div class="progress-admio"><div class="progress-fill progress-purple w-78"></div></div></div>
+              <div><div class="d-flex justify-content-between mb-1"><span class="text-sm fw-600">Claude 3 Opus</span><span class="text-sm fw-700">13,820</span></div><div class="progress-admio"><div class="progress-fill progress-cyan w-57"></div></div></div>
+              <div><div class="d-flex justify-content-between mb-1"><span class="text-sm fw-600">Gemini Ultra</span><span class="text-sm fw-700">9,240</span></div><div class="progress-admio"><div class="progress-fill progress-blue w-38"></div></div></div>
+              <div><div class="d-flex justify-content-between mb-1"><span class="text-sm fw-600">Llama 3 70B</span><span class="text-sm fw-700">6,300</span></div><div class="progress-admio"><div class="progress-fill progress-orange w-26"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="admio-card h-100">
+          <div class="admio-card-header">
+            <h2 class="card-title mb-0">System Status</h2>
+            <span class="badge-admio badge-green badge-dot">All Operational</span>
+          </div>
+          <div class="admio-card-body admio-card-body-sm">
+            <div class="d-flex flex-column gap-3">
+              <div class="d-flex justify-content-between"><span class="text-sm">Chat API</span><span class="badge-admio badge-green badge-dot text-xs">Online</span></div>
+              <div class="d-flex justify-content-between"><span class="text-sm">GPT-4 Endpoint</span><span class="badge-admio badge-green badge-dot text-xs">Online</span></div>
+              <div class="d-flex justify-content-between"><span class="text-sm">Claude API</span><span class="badge-admio badge-green badge-dot text-xs">Online</span></div>
+              <div class="d-flex justify-content-between"><span class="text-sm">Vector Database</span><span class="badge-admio badge-orange badge-dot text-xs">Degraded</span></div>
+              <div class="d-flex justify-content-between"><span class="text-sm">Image Gen (DALL-E)</span><span class="badge-admio badge-green badge-dot text-xs">Online</span></div>
+              <div class="d-flex justify-content-between"><span class="text-sm">Webhooks</span><span class="badge-admio badge-green badge-dot text-xs">Online</span></div>
+            </div>
+          </div>
+          <div class="admio-card-footer"><a href="ai-usage.html" class="text-xs text-primary-c"><i class="icon-arrow-right"></i> View full status</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="admio-card h-100">
+          <div class="admio-card-header">
+            <h2 class="card-title mb-0">Top Countries by AI Usage</h2>
+            <span class="badge-admio badge-purple text-xs">This Month</span>
+          </div>
+          <div class="admio-card-body admio-card-body-sm">
+            <div class="country-row"><span class="country-flag">🇺🇸</span><span class="country-name">United States</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-purple w-84"></div></div></div><span class="country-pct">84%</span><span class="country-val">20,412</span></div>
+            <div class="country-row"><span class="country-flag">🇬🇧</span><span class="country-name">United Kingdom</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-cyan w-62"></div></div></div><span class="country-pct text-cyan-c">62%</span><span class="country-val">7,840</span></div>
+            <div class="country-row"><span class="country-flag">🇮🇳</span><span class="country-name">India</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-green w-54"></div></div></div><span class="country-pct text-success-c">54%</span><span class="country-val">6,480</span></div>
+            <div class="country-row"><span class="country-flag">🇩🇪</span><span class="country-name">Germany</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-orange w-38"></div></div></div><span class="country-pct text-orange-dark-c">38%</span><span class="country-val">4,200</span></div>
+            <div class="country-row"><span class="country-flag">🇨🇦</span><span class="country-name">Canada</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-blue w-29"></div></div></div><span class="country-pct text-blue-dark-c">29%</span><span class="country-val">3,120</span></div>
+            <div class="country-row"><span class="country-flag">🇦🇺</span><span class="country-name">Australia</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-pink w-22"></div></div></div><span class="country-pct text-pink-c">22%</span><span class="country-val">2,480</span></div>
+            <div class="country-row"><span class="country-flag">🇯🇵</span><span class="country-name">Japan</span><div class="country-bar"><div class="progress-admio"><div class="progress-fill progress-purple-dark w-18"></div></div></div><span class="country-pct text-purple-dark-c">18%</span><span class="country-val">1,948</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="admio-card h-100">
+          <div class="admio-card-header">
+            <h2 class="card-title mb-0">Recent AI Requests</h2>
+            <div class="d-flex gap-2">
+              <div class="topbar-search max-w-search"><i class="icon-search search-icon"></i><input type="text" class="search-input" placeholder="Search..." data-table-search="recentTable"></div>
+              <a href="data-tables.html" class="btn-admio btn-outline btn-sm">View All</a>
+            </div>
+          </div>
+          <div class="admio-table-wrapper">
+            <table class="admio-table admio-table-checkable" id="recentTable">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="form-check-input select-all-cb"></th>
+                  <th>Request ID</th><th>Model</th><th>User</th><th>Tokens</th><th>Cost</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><input type="checkbox" class="form-check-input"></td><td class="mono fw-600">#req_8xJ2</td><td><span class="badge-admio badge-purple text-xs">GPT-4</span></td><td class="text-sm">James M.</td><td class="mono">2,840</td><td class="fw-700">$0.085</td><td><span class="badge-admio badge-green badge-dot text-xs">OK</span></td></tr>
+                <tr><td><input type="checkbox" class="form-check-input"></td><td class="mono fw-600">#req_9mN4</td><td><span class="badge-admio badge-cyan text-xs">Claude 3</span></td><td class="text-sm">Sarah C.</td><td class="mono">5,120</td><td class="fw-700">$0.154</td><td><span class="badge-admio badge-green badge-dot text-xs">OK</span></td></tr>
+                <tr><td><input type="checkbox" class="form-check-input"></td><td class="mono fw-600">#req_3kR8</td><td><span class="badge-admio badge-purple text-xs">GPT-4</span></td><td class="text-sm">Emma W.</td><td class="mono">3,480</td><td class="fw-700">$0.104</td><td><span class="badge-admio badge-green badge-dot text-xs">OK</span></td></tr>
+                <tr><td><input type="checkbox" class="form-check-input"></td><td class="mono fw-600">#req_7pL2</td><td><span class="badge-admio badge-blue text-xs">Gemini</span></td><td class="text-sm">Alex K.</td><td class="mono">1,200</td><td class="fw-700">$0.036</td><td><span class="badge-admio badge-orange badge-dot text-xs">Wait</span></td></tr>
+                <tr><td><input type="checkbox" class="form-check-input"></td><td class="mono fw-600">#req_5nH6</td><td><span class="badge-admio badge-purple text-xs">GPT-4</span></td><td class="text-sm">Lin Z.</td><td class="mono">800</td><td class="fw-700">$0.008</td><td><span class="badge-admio badge-red badge-dot text-xs">Fail</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-toolbar mx-3 mb-2">
+            <span class="table-toolbar-count">0 rows selected</span>
+            <div class="d-flex gap-2">
+              <button class="btn-admio btn-outline btn-sm"><i class="icon-download"></i> Export</button>
+              <button class="btn-admio btn-danger btn-sm" data-action="toast" data-type="error" data-msg="Selected rows deleted" data-icon="trash-2"><i class="icon-trash-2"></i> Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="admio-footer">
+    <span>&copy; 2026 <strong>Admio</strong>. All rights reserved.</span>
+    <ul class="d-flex align-items-center mb-0 list-unstyled gap-4">
+      <li><a href="#">About</a></li><li><a href="#">Support</a></li>
+    </ul>
+  </footer>
+
+  <button class="back-to-top visible" id="backToTop" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+</div>
+
+<script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
+<script src="assets/js/vendor/chart.umd.min.js"></script>
+<script src="assets/js/admio.js"></script>
+<script src="assets/js/charts.js"></script>
+
+<script>
+(function () {
+  // ── DESKTOP DROPDOWNS (click-based) ──
+  const ddItems = document.querySelectorAll('.h-nav-dropdown');
+  ddItems.forEach(function (item) {
+    const trigger = item.querySelector('.h-nav-link');
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isOpen = item.classList.contains('open');
+      // Close all others
+      ddItems.forEach(function (d) { d.classList.remove('open'); });
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  // Close desktop dropdowns on outside click
+  document.addEventListener('click', function () {
+    ddItems.forEach(function (d) { d.classList.remove('open'); });
+  });
+
+  // ── MOBILE HAMBURGER ──
+  const hMenuToggle = document.getElementById('hMenuToggle');
+  const hMobileMenu = document.getElementById('hMobileMenu');
+  const hMenuIcon   = document.getElementById('hMenuIcon');
+
+  hMenuToggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const isOpen = hMobileMenu.classList.toggle('open');
+    hMenuIcon.className = isOpen ? 'icon-x' : 'icon-menu';
+  });
+
+  // Close mobile menu on outside click
+  document.addEventListener('click', function (e) {
+    if (hMobileMenu.classList.contains('open') &&
+        !hMobileMenu.contains(e.target) &&
+        !hMenuToggle.contains(e.target)) {
+      hMobileMenu.classList.remove('open');
+      hMenuIcon.className = 'icon-menu';
+    }
+  });
+
+  // ── MOBILE ACCORDION ──
+  const mobileToggles = document.querySelectorAll('.h-mobile-section-toggle');
+  mobileToggles.forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const section = btn.closest('.h-mobile-section');
+      section.classList.toggle('open');
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

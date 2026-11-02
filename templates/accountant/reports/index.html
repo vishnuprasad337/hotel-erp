@@ -1,0 +1,540 @@
+{% extends "accountant/base.html" %}
+{% load static %}
+
+{% block title %}
+Financial Reports | Hotel ERP
+{% endblock %}
+
+
+{% block extra_css %}
+
+<style>
+
+.report-page {
+    padding: 24px;
+}
+
+.report-hero {
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 24px;
+
+    margin-bottom: 24px;
+
+    border-radius: 16px;
+
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7628ef,
+            #2d326b
+        );
+}
+
+.report-hero h1 {
+    margin: 0 0 6px;
+
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.report-hero p {
+    margin: 0;
+
+    opacity: .82;
+}
+
+.report-filter {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    padding: 18px;
+
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.report-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.report-field input,
+.report-field select {
+
+    min-width: 160px;
+
+    height: 40px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 9px;
+
+    background: var(--acc-card);
+    color: var(--acc-text);
+}
+
+.report-button {
+
+    height: 40px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 0 16px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: var(--acc-primary);
+    color: #ffffff;
+
+    font-weight: 600;
+}
+
+.report-stats {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 22px;
+}
+
+.report-stat {
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.report-stat-icon {
+
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 18px;
+
+    border-radius: 11px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+}
+
+.report-stat strong {
+
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: var(--acc-text);
+
+    font-size: 24px;
+}
+
+.report-stat span {
+
+    color: var(--acc-muted);
+
+    font-size: 13px;
+}
+
+.report-modules {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+}
+
+.report-module {
+
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+
+    padding: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+
+    color: var(--acc-text);
+
+    transition: .2s;
+}
+
+.report-module:hover {
+
+    border-color: var(--acc-primary);
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 24px rgba(16, 24, 40, .08);
+}
+
+.report-module-icon {
+
+    width: 48px;
+    height: 48px;
+
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+
+    font-size: 19px;
+}
+
+.report-module h3 {
+
+    margin: 0 0 4px;
+
+    font-size: 15px;
+}
+
+.report-module p {
+
+    margin: 0;
+
+    color: var(--acc-muted);
+
+    font-size: 12px;
+}
+
+@media (max-width: 900px) {
+
+    .report-stats {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .report-modules {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .report-page {
+        padding: 15px;
+    }
+
+    .report-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .report-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="report-page">
+
+    <section class="report-hero">
+
+        <div>
+
+            <h1>
+                <i class="fa-solid fa-chart-column"></i>
+                Financial Reports
+            </h1>
+
+            <p>
+                Review revenue, expenses, payroll and
+                financial performance.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <form
+        method="get"
+        class="report-filter"
+    >
+
+        <div class="report-field">
+
+            <label>Period</label>
+
+            <select name="period">
+
+                <option
+                    value="today"
+                    {% if period == "today" %}selected{% endif %}
+                >
+                    Today
+                </option>
+
+                <option
+                    value="week"
+                    {% if period == "week" %}selected{% endif %}
+                >
+                    This Week
+                </option>
+
+                <option
+                    value="month"
+                    {% if period == "month" %}selected{% endif %}
+                >
+                    This Month
+                </option>
+
+                <option
+                    value="year"
+                    {% if period == "year" %}selected{% endif %}
+                >
+                    This Year
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="report-field">
+
+            <label>Start Date</label>
+
+            <input
+                type="date"
+                name="start_date"
+                value="{{ start_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <div class="report-field">
+
+            <label>End Date</label>
+
+            <input
+                type="date"
+                name="end_date"
+                value="{{ end_date|date:'Y-m-d' }}"
+            >
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="report-button"
+        >
+            <i class="fa-solid fa-filter"></i>
+            Apply
+        </button>
+
+    </form>
+
+
+    <div class="report-stats">
+
+        <article class="report-stat">
+
+            <div class="report-stat-icon">
+                <i class="fa-solid fa-indian-rupee-sign"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_revenue|floatformat:2 }}
+            </strong>
+
+            <span>
+                Total Revenue
+            </span>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <div class="report-stat-icon">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_expenses|floatformat:2 }}
+            </strong>
+
+            <span>
+                Expenses
+            </span>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <div class="report-stat-icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+
+            <strong>
+                ₹{{ total_payroll|floatformat:2 }}
+            </strong>
+
+            <span>
+                Payroll
+            </span>
+
+        </article>
+
+
+        <article class="report-stat">
+
+            <div class="report-stat-icon">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+
+            <strong>
+                ₹{{ net_result|floatformat:2 }}
+            </strong>
+
+            <span>
+                Net Result
+            </span>
+
+        </article>
+
+    </div>
+
+
+    <div class="report-modules">
+
+        <a
+            href="{% url 'accountant_revenue_report' %}"
+            class="report-module"
+        >
+
+            <div class="report-module-icon">
+                <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+
+            <div>
+                <h3>Revenue Report</h3>
+                <p>
+                    Payment and revenue analysis.
+                </p>
+            </div>
+
+        </a>
+
+
+        <a
+            href="{% url 'accountant_expense_report_page' %}"
+            class="report-module"
+        >
+
+            <div class="report-module-icon">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+
+            <div>
+                <h3>Expense Report</h3>
+                <p>
+                    Expense and cost analysis.
+                </p>
+            </div>
+
+        </a>
+
+
+        <a
+            href="{% url 'accountant_payroll_report' %}"
+            class="report-module"
+        >
+
+            <div class="report-module-icon">
+                <i class="fa-solid fa-money-check-dollar"></i>
+            </div>
+
+            <div>
+                <h3>Payroll Report</h3>
+                <p>
+                    Salary and payroll analysis.
+                </p>
+            </div>
+
+        </a>
+
+
+        <a
+            href="{% url 'accountant_tax_report' %}"
+            class="report-module"
+        >
+
+            <div class="report-module-icon">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+
+            <div>
+                <h3>Tax Report</h3>
+                <p>
+                    Recorded tax information.
+                </p>
+            </div>
+
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,4947 @@
+{% extends "hr/base.html" %}
+{% load static %}
+
+{% block title %}Payroll Management{% endblock %}
+
+{% block content %}
+
+<style>
+    /* ============================================================
+       PAYROLL PAGE
+       Uses inherited HR/base.html typography and global theme.
+       ============================================================ */
+
+    .payroll-page {
+        padding: 24px;
+        max-width: 1700px;
+        margin: 0 auto;
+    }
+
+    .payroll-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .payroll-header-left h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--hr-text, #111827);
+    }
+
+    .payroll-header-left p {
+        margin: 0;
+        color: var(--hr-muted, #6b7280);
+        font-size: 14px;
+    }
+
+    .payroll-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .payroll-btn {
+        border: 1px solid var(--hr-border, #e5e7eb);
+        background: var(--hr-card, #fff);
+        color: var(--hr-text, #111827);
+        border-radius: 9px;
+        min-height: 40px;
+        padding: 0 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: .18s ease;
+    }
+
+    .payroll-btn:hover {
+        background: var(--hr-soft, #f8fafc);
+    }
+
+    .payroll-btn-primary {
+        background: var(--hr-primary, #2563eb);
+        color: #fff;
+        border-color: var(--hr-primary, #2563eb);
+    }
+
+    .payroll-btn-primary:hover {
+        filter: brightness(.96);
+        background: var(--hr-primary, #2563eb);
+    }
+
+    .payroll-btn-danger {
+        color: #dc2626;
+    }
+
+    .payroll-btn-sm {
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
+
+    /* ============================================================
+       VIEW TABS
+       ============================================================ */
+
+    .payroll-view-tabs {
+        display: inline-flex;
+        padding: 4px;
+        border: 1px solid var(--hr-border, #e5e7eb);
+        background: var(--hr-card, #fff);
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .payroll-view-tab {
+        border: 0;
+        background: transparent;
+        color: var(--hr-muted, #6b7280);
+        padding: 8px 14px;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .payroll-view-tab.active {
+        color: var(--hr-primary, #2563eb);
+        background: rgba(37, 99, 235, .09);
+    }
+
+    /* ============================================================
+       SUMMARY
+       ============================================================ */
+
+    .payroll-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .payroll-stat {
+        background: var(--hr-card, #fff);
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 12px;
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .payroll-stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        font-size: 16px;
+    }
+
+    .payroll-stat-icon.blue {
+        color: #2563eb;
+        background: #eff6ff;
+    }
+
+    .payroll-stat-icon.green {
+        color: #059669;
+        background: #ecfdf5;
+    }
+
+    .payroll-stat-icon.orange {
+        color: #d97706;
+        background: #fffbeb;
+    }
+
+    .payroll-stat-icon.purple {
+        color: #7c3aed;
+        background: #f5f3ff;
+    }
+
+    .payroll-stat-label {
+        color: var(--hr-muted, #6b7280);
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+
+    .payroll-stat-value {
+        color: var(--hr-text, #111827);
+        font-size: 21px;
+        line-height: 1.2;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ============================================================
+       TOOLBAR
+       ============================================================ */
+
+    .payroll-card {
+        background: var(--hr-card, #fff);
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .payroll-toolbar {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--hr-border, #e5e7eb);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .payroll-toolbar-left,
+    .payroll-toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-wrap: wrap;
+    }
+
+    .payroll-select,
+    .payroll-input,
+    .payroll-textarea {
+        border: 1px solid var(--hr-border, #d1d5db);
+        background: var(--hr-card, #fff);
+        color: var(--hr-text, #111827);
+        border-radius: 8px;
+        min-height: 38px;
+        padding: 0 11px;
+        outline: none;
+        font-size: 13px;
+    }
+
+    .payroll-select:focus,
+    .payroll-input:focus,
+    .payroll-textarea:focus {
+        border-color: var(--hr-primary, #2563eb);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+    }
+
+    .payroll-search {
+        position: relative;
+        min-width: 250px;
+    }
+
+    .payroll-search i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--hr-muted, #9ca3af);
+        pointer-events: none;
+    }
+
+    .payroll-search input {
+        width: 100%;
+        padding-left: 35px;
+    }
+
+    /* ============================================================
+       TABLE
+       ============================================================ */
+
+    .payroll-table-wrap {
+        overflow-x: auto;
+    }
+
+    .payroll-table {
+        width: 100%;
+        min-width: 1250px;
+        border-collapse: collapse;
+    }
+
+    .payroll-table th {
+        text-align: left;
+        padding: 11px 14px;
+        background: var(--hr-soft, #f8fafc);
+        border-bottom: 1px solid var(--hr-border, #e5e7eb);
+        color: var(--hr-muted, #6b7280);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .payroll-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--hr-border, #eef0f3);
+        color: var(--hr-text, #111827);
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .payroll-table tbody tr:hover {
+        background: var(--hr-soft, #fafbfc);
+    }
+
+    .payroll-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .payroll-employee {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 190px;
+    }
+
+    .payroll-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(37, 99, 235, .1);
+        color: var(--hr-primary, #2563eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex: 0 0 auto;
+    }
+
+    .payroll-employee-name {
+        font-weight: 650;
+        color: var(--hr-text, #111827);
+    }
+
+    .payroll-employee-id {
+        margin-top: 2px;
+        color: var(--hr-muted, #6b7280);
+        font-size: 11px;
+    }
+
+    .payroll-money {
+        white-space: nowrap;
+        font-weight: 600;
+    }
+
+    .payroll-net {
+        color: #059669;
+        font-weight: 700;
+    }
+
+    .payroll-attendance {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        min-width: 140px;
+    }
+
+    .attendance-mini {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        padding: 4px 6px;
+        border-radius: 5px;
+        background: var(--hr-soft, #f3f4f6);
+        color: var(--hr-muted, #4b5563);
+        white-space: nowrap;
+    }
+
+    .attendance-mini.present {
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .attendance-mini.absent {
+        color: #b91c1c;
+        background: #fef2f2;
+    }
+
+    .attendance-mini.half {
+        color: #b45309;
+        background: #fffbeb;
+    }
+
+    .payroll-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .payroll-status::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .payroll-status.paid {
+        color: #047857;
+        background: #ecfdf5;
+    }
+
+    .payroll-status.unpaid {
+        color: #b45309;
+        background: #fffbeb;
+    }
+
+    .payroll-status.hold {
+        color: #b91c1c;
+        background: #fef2f2;
+    }
+
+    .payroll-actions {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .payroll-icon-btn {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 7px;
+        background: var(--hr-card, #fff);
+        color: var(--hr-muted, #4b5563);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .payroll-icon-btn:hover {
+        color: var(--hr-primary, #2563eb);
+        border-color: rgba(37, 99, 235, .35);
+    }
+
+    .payroll-icon-btn:disabled {
+        opacity: .4;
+        cursor: not-allowed;
+    }
+
+    /* ============================================================
+       EMPTY / LOADING
+       ============================================================ */
+
+    .payroll-empty {
+        text-align: center;
+        padding: 65px 20px;
+        color: var(--hr-muted, #6b7280);
+    }
+
+    .payroll-empty i {
+        font-size: 28px;
+        margin-bottom: 12px;
+        opacity: .5;
+    }
+
+    .payroll-empty h3 {
+        margin: 0 0 6px;
+        color: var(--hr-text, #111827);
+        font-size: 16px;
+    }
+
+    .payroll-empty p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    .payroll-loading {
+        padding: 55px;
+        text-align: center;
+        color: var(--hr-muted, #6b7280);
+    }
+
+    .payroll-spinner {
+        width: 26px;
+        height: 26px;
+        border: 3px solid var(--hr-border, #e5e7eb);
+        border-top-color: var(--hr-primary, #2563eb);
+        border-radius: 50%;
+        animation: payrollSpin .75s linear infinite;
+        margin: 0 auto 10px;
+    }
+
+    @keyframes payrollSpin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+       MODAL
+       ============================================================ */
+
+    .payroll-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 22px;
+    }
+
+    .payroll-modal.show {
+        display: flex;
+    }
+
+    .payroll-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, .55);
+    }
+
+    .payroll-modal-dialog {
+        position: relative;
+        z-index: 1;
+        width: min(920px, 100%);
+        max-height: calc(100vh - 44px);
+        background: var(--hr-card, #fff);
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, .2);
+    }
+
+    .payroll-modal-dialog.sm {
+        width: min(520px, 100%);
+    }
+
+    .payroll-modal-header {
+        padding: 17px 20px;
+        border-bottom: 1px solid var(--hr-border, #e5e7eb);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .payroll-modal-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--hr-text, #111827);
+    }
+
+    .payroll-modal-subtitle {
+        color: var(--hr-muted, #6b7280);
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .payroll-modal-close {
+        border: 0;
+        background: transparent;
+        color: var(--hr-muted, #6b7280);
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .payroll-modal-body {
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .payroll-modal-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--hr-border, #e5e7eb);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    /* ============================================================
+       DETAIL MODAL
+       ============================================================ */
+
+    .payroll-profile-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 15px;
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 10px;
+        margin-bottom: 16px;
+    }
+
+    .payroll-profile-left {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .payroll-profile-left .payroll-avatar {
+        width: 42px;
+        height: 42px;
+    }
+
+    .payroll-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .payroll-detail-box {
+        padding: 12px;
+        background: var(--hr-soft, #f8fafc);
+        border-radius: 8px;
+        min-width: 0;
+    }
+
+    .payroll-detail-label {
+        color: var(--hr-muted, #6b7280);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 5px;
+    }
+
+    .payroll-detail-value {
+        color: var(--hr-text, #111827);
+        font-weight: 650;
+        font-size: 13px;
+        word-break: break-word;
+    }
+
+    .payroll-section-title {
+        margin: 20px 0 10px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--hr-text, #111827);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .payroll-breakdown {
+        border: 1px solid var(--hr-border, #e5e7eb);
+        border-radius: 9px;
+        overflow: hidden;
+    }
+
+    .payroll-breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--hr-border, #eef0f3);
+        font-size: 12px;
+    }
+
+    .payroll-breakdown-row:last-child {
+        border-bottom: 0;
+    }
+
+    .payroll-breakdown-row.total {
+        background: var(--hr-soft, #f8fafc);
+        font-weight: 700;
+    }
+
+    .payroll-breakdown-meta {
+        display: block;
+        margin-top: 2px;
+        color: var(--hr-muted, #9ca3af);
+        font-size: 10px;
+    }
+
+    .payroll-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    /* ============================================================
+       FORMS
+       ============================================================ */
+
+    .payroll-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 13px;
+    }
+
+    .payroll-field {
+        min-width: 0;
+    }
+
+    .payroll-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .payroll-field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--hr-text, #374151);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .payroll-field .payroll-input,
+    .payroll-field .payroll-select,
+    .payroll-field .payroll-textarea {
+        width: 100%;
+    }
+
+    .payroll-textarea {
+        padding-top: 10px;
+        min-height: 85px;
+        resize: vertical;
+    }
+
+    .payroll-help {
+        color: var(--hr-muted, #9ca3af);
+        font-size: 10px;
+        margin-top: 5px;
+    }
+
+    .payroll-edit-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 12px;
+        border-radius: 9px;
+        background: var(--hr-soft, #f8fafc);
+        margin-bottom: 16px;
+    }
+
+    .payroll-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--hr-text, #374151);
+        margin-top: 10px;
+    }
+
+    /* ============================================================
+       HISTORY
+       ============================================================ */
+
+    .history-employee-filter {
+        min-width: 220px;
+    }
+
+    /* ============================================================
+       TOAST
+       ============================================================ */
+
+    .payroll-toast-wrap {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 20000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+    }
+
+    .payroll-toast {
+        min-width: 280px;
+        max-width: 420px;
+        padding: 12px 14px;
+        border-radius: 9px;
+        background: #111827;
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(0,0,0,.18);
+        font-size: 12px;
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        pointer-events: auto;
+    }
+
+    .payroll-toast.success {
+        background: #065f46;
+    }
+
+    .payroll-toast.error {
+        background: #991b1b;
+    }
+
+    /* ============================================================
+       DARK
+       ============================================================ */
+
+    [data-theme="dark"] .payroll-stat-icon.blue {
+        background: rgba(37,99,235,.15);
+    }
+
+    [data-theme="dark"] .payroll-stat-icon.green {
+        background: rgba(5,150,105,.15);
+    }
+
+    [data-theme="dark"] .payroll-stat-icon.orange {
+        background: rgba(217,119,6,.15);
+    }
+
+    [data-theme="dark"] .payroll-stat-icon.purple {
+        background: rgba(124,58,237,.15);
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+
+    @media (max-width: 1100px) {
+        .payroll-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .payroll-detail-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 760px) {
+        .payroll-page {
+            padding: 15px;
+        }
+
+        .payroll-header {
+            flex-direction: column;
+        }
+
+        .payroll-header-actions {
+            width: 100%;
+        }
+
+        .payroll-header-actions .payroll-btn {
+            flex: 1;
+        }
+
+        .payroll-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .payroll-toolbar {
+            align-items: stretch;
+        }
+
+        .payroll-toolbar-left,
+        .payroll-toolbar-right {
+            width: 100%;
+        }
+
+        .payroll-search {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .payroll-select {
+            flex: 1;
+        }
+
+        .payroll-detail-grid,
+        .payroll-two-col,
+        .payroll-form-grid,
+        .payroll-edit-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+
+    {% comment %} edit modal css start {% endcomment %}
+/* ============================================================
+   MODAL - FIXED SCROLLING
+   ============================================================ */
+
+.payroll-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding: 22px;
+
+    overflow: hidden;
+}
+
+.payroll-modal.show {
+    display: flex;
+}
+
+.payroll-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .55);
+}
+
+.payroll-modal-dialog {
+    position: relative;
+    z-index: 1;
+
+    width: min(920px, 100%);
+
+    /* important */
+    height: auto;
+    max-height: calc(100vh - 44px);
+
+    background: var(--hr-card, #fff);
+    border: 1px solid var(--hr-border, #e5e7eb);
+    border-radius: 14px;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .2);
+}
+
+.payroll-modal-dialog.sm {
+    width: min(520px, 100%);
+}
+
+
+/* Header must never shrink */
+.payroll-modal-header {
+    flex: 0 0 auto;
+
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--hr-border, #e5e7eb);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    background: var(--hr-card, #fff);
+}
+
+
+/* ============================================================
+   IMPORTANT FIX:
+   forms inside modal must participate in flex layout
+   ============================================================ */
+
+.payroll-modal-dialog > form {
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 auto;
+
+    /* THIS IS VERY IMPORTANT */
+    min-height: 0;
+
+    overflow: hidden;
+}
+
+
+/* ============================================================
+   ONLY BODY SCROLLS
+   ============================================================ */
+
+.payroll-modal-body {
+    padding: 20px;
+
+    flex: 1 1 auto;
+
+    /* THIS ALLOWS FLEX CHILD TO SHRINK */
+    min-height: 0;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+}
+
+
+/* Chrome / Edge scrollbar */
+.payroll-modal-body::-webkit-scrollbar {
+    width: 7px;
+}
+
+.payroll-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.payroll-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.payroll-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+
+/* Footer stays visible */
+.payroll-modal-footer {
+    flex: 0 0 auto;
+
+    padding: 14px 20px;
+
+    border-top: 1px solid var(--hr-border, #e5e7eb);
+
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    background: var(--hr-card, #fff);
+}
+{% comment %} edit modal css end  {% endcomment %}
+
+</style>
+
+
+<div class="payroll-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="payroll-header">
+
+        <div class="payroll-header-left">
+            <h1 id="payrollPageTitle">
+                Payroll Management
+            </h1>
+
+            <p id="payrollPageSubtitle">
+                Process salaries, review attendance adjustments and manage employee payroll.
+            </p>
+        </div>
+
+        <div class="payroll-header-actions">
+
+            <button
+                type="button"
+                class="payroll-btn"
+                id="refreshPayrollBtn"
+            >
+                <i class="fas fa-rotate-right"></i>
+                Refresh
+            </button>
+
+            <button
+                type="button"
+                class="payroll-btn payroll-btn-primary"
+                id="generatePayrollBtn"
+            >
+                <i class="fas fa-calculator"></i>
+                Generate Payroll
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         VIEW SWITCHER
+         ======================================================== -->
+
+    <div class="payroll-view-tabs">
+
+        <button
+            type="button"
+            class="payroll-view-tab"
+            data-view="payroll"
+        >
+            <i class="fas fa-money-check-dollar"></i>
+            Payroll
+        </button>
+
+        <button
+            type="button"
+            class="payroll-view-tab"
+            data-view="history"
+        >
+            <i class="fas fa-file-invoice-dollar"></i>
+            Salary Records
+        </button>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="payroll-stats">
+
+        <div class="payroll-stat">
+
+            <div class="payroll-stat-icon blue">
+                <i class="fas fa-indian-rupee-sign"></i>
+            </div>
+
+            <div>
+                <div class="payroll-stat-label">
+                    Total Payroll
+                </div>
+
+                <div
+                    class="payroll-stat-value"
+                    id="totalPayrollValue"
+                >
+                    ₹0
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="payroll-stat">
+
+            <div class="payroll-stat-icon green">
+                <i class="fas fa-circle-check"></i>
+            </div>
+
+            <div>
+                <div class="payroll-stat-label">
+                    Paid Amount
+                </div>
+
+                <div
+                    class="payroll-stat-value"
+                    id="paidPayrollValue"
+                >
+                    ₹0
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="payroll-stat">
+
+            <div class="payroll-stat-icon orange">
+                <i class="fas fa-clock"></i>
+            </div>
+
+            <div>
+                <div class="payroll-stat-label">
+                    Pending Amount
+                </div>
+
+                <div
+                    class="payroll-stat-value"
+                    id="pendingPayrollValue"
+                >
+                    ₹0
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="payroll-stat">
+
+            <div class="payroll-stat-icon purple">
+                <i class="fas fa-users"></i>
+            </div>
+
+            <div>
+                <div class="payroll-stat-label">
+                    Employees
+                </div>
+
+                <div
+                    class="payroll-stat-value"
+                    id="payrollEmployeeCount"
+                >
+                    0
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN CARD
+         ======================================================== -->
+
+    <div class="payroll-card">
+
+        <div class="payroll-toolbar">
+
+            <div class="payroll-toolbar-left">
+
+                <select
+                    class="payroll-select"
+                    id="payrollMonth"
+                    aria-label="Payroll month"
+                >
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+
+
+                <select
+                    class="payroll-select"
+                    id="payrollYear"
+                    aria-label="Payroll year"
+                >
+                    {% for year in payroll_years %}
+                        <option value="{{ year }}">
+                            {{ year }}
+                        </option>
+                    {% empty %}
+                        <option value="{{ current_year }}">
+                            {{ current_year }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+
+                <select
+                    class="payroll-select history-employee-filter"
+                    id="historyEmployeeFilter"
+                    style="display:none;"
+                >
+                    <option value="">
+                        All Employees
+                    </option>
+                </select>
+
+            </div>
+
+
+            <div class="payroll-toolbar-right">
+
+                <div class="payroll-search">
+
+                    <i class="fas fa-search"></i>
+
+                    <input
+                        type="search"
+                        class="payroll-input"
+                        id="payrollSearch"
+                        placeholder="Search employee, ID or department..."
+                    >
+
+                </div>
+
+                <button
+                    type="button"
+                    class="payroll-btn"
+                    id="exportPayrollBtn"
+                    title="Export CSV"
+                >
+                    <i class="fas fa-file-export"></i>
+                    Export
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="payroll-table-wrap">
+
+            <table class="payroll-table">
+
+                <thead id="payrollTableHead">
+                </thead>
+
+                <tbody id="payrollTableBody">
+
+                    <tr>
+                        <td colspan="12">
+                            <div class="payroll-loading">
+
+                                <div class="payroll-spinner"></div>
+
+                                Loading payroll...
+
+                            </div>
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     DETAIL MODAL
+     ============================================================ -->
+
+<div
+    class="payroll-modal"
+    id="payrollDetailModal"
+>
+
+    <div
+        class="payroll-modal-backdrop"
+        data-close-modal="payrollDetailModal"
+    ></div>
+
+    <div class="payroll-modal-dialog">
+
+        <div class="payroll-modal-header">
+
+            <div>
+                <div class="payroll-modal-title">
+                    Payroll Details
+                </div>
+
+                <div
+                    class="payroll-modal-subtitle"
+                    id="detailModalSubtitle"
+                ></div>
+            </div>
+
+            <button
+                type="button"
+                class="payroll-modal-close"
+                data-close-modal="payrollDetailModal"
+            >
+                <i class="fas fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div
+            class="payroll-modal-body"
+            id="payrollDetailBody"
+        >
+        </div>
+
+
+        <div class="payroll-modal-footer">
+
+            <button
+                type="button"
+                class="payroll-btn"
+                data-close-modal="payrollDetailModal"
+            >
+                Close
+            </button>
+
+            <button
+                type="button"
+                class="payroll-btn"
+                id="detailRecalculateBtn"
+            >
+                <i class="fas fa-rotate"></i>
+                Recalculate
+            </button>
+
+            <button
+                type="button"
+                class="payroll-btn"
+                id="detailEditBtn"
+            >
+                <i class="fas fa-pen"></i>
+                Edit
+            </button>
+
+            <button
+                type="button"
+                class="payroll-btn payroll-btn-primary"
+                id="detailPayBtn"
+            >
+                <i class="fas fa-circle-check"></i>
+                Mark Paid
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     EDIT MODAL
+     ============================================================ -->
+
+<div
+    class="payroll-modal"
+    id="payrollEditModal"
+>
+
+    <div
+        class="payroll-modal-backdrop"
+        data-close-modal="payrollEditModal"
+    ></div>
+
+    <div class="payroll-modal-dialog">
+
+        <div class="payroll-modal-header">
+
+            <div>
+                <div class="payroll-modal-title">
+                    Edit Payroll
+                </div>
+
+                <div
+                    class="payroll-modal-subtitle"
+                    id="editPayrollSubtitle"
+                ></div>
+            </div>
+
+            <button
+                type="button"
+                class="payroll-modal-close"
+                data-close-modal="payrollEditModal"
+            >
+                <i class="fas fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <form id="payrollEditForm">
+
+            <div class="payroll-modal-body">
+
+                <div
+                    class="payroll-edit-summary"
+                    id="editPayrollSummary"
+                ></div>
+
+
+                <div class="payroll-form-grid">
+
+                    <div class="payroll-field">
+
+                        <label for="editBonus">
+                            Bonus
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editBonus"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field">
+
+                        <label for="editIncentive">
+                            Incentive
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editIncentive"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field">
+
+                        <label for="editPF">
+                            PF Deduction
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editPF"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field">
+
+                        <label for="editESI">
+                            ESI Deduction
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editESI"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field">
+
+                        <label for="editTax">
+                            Tax / TDS
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editTax"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field">
+
+                        <label for="editLoan">
+                            Loan Deduction
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editLoan"
+                        >
+
+                    </div>
+
+
+                    <div class="payroll-field full">
+
+                        <label for="editLeaveDeduction">
+                            Leave / Attendance Deduction
+                        </label>
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="payroll-input"
+                            id="editLeaveDeduction"
+                        >
+
+                        <div class="payroll-help">
+                            Calculated from absent and half-day attendance. You can adjust it manually before payroll is paid.
+                        </div>
+
+                    </div>
+
+
+                    <div class="payroll-field full">
+
+                        <label for="editNotes">
+                            Payroll Notes
+                        </label>
+
+                        <textarea
+                            class="payroll-textarea"
+                            id="editNotes"
+                            placeholder="Optional payroll notes..."
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div class="payroll-section-title">
+
+                    <span>
+                        <i class="fas fa-plus-circle"></i>
+                        Additional Earnings
+                    </span>
+
+                    <button
+                        type="button"
+                        class="payroll-btn payroll-btn-sm"
+                        id="addEarningBtn"
+                    >
+                        <i class="fas fa-plus"></i>
+                        Add
+                    </button>
+
+                </div>
+
+                <div id="customEarningsContainer"></div>
+
+
+                <div class="payroll-section-title">
+
+                    <span>
+                        <i class="fas fa-minus-circle"></i>
+                        Additional Deductions
+                    </span>
+
+                    <button
+                        type="button"
+                        class="payroll-btn payroll-btn-sm"
+                        id="addDeductionBtn"
+                    >
+                        <i class="fas fa-plus"></i>
+                        Add
+                    </button>
+
+                </div>
+
+                <div id="customDeductionsContainer"></div>
+
+            </div>
+
+
+            <div class="payroll-modal-footer">
+
+                <button
+                    type="button"
+                    class="payroll-btn"
+                    data-close-modal="payrollEditModal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="payroll-btn payroll-btn-primary"
+                    id="savePayrollBtn"
+                >
+                    <i class="fas fa-floppy-disk"></i>
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     PAYMENT MODAL
+     ============================================================ -->
+
+<div
+    class="payroll-modal"
+    id="payrollPaymentModal"
+>
+
+    <div
+        class="payroll-modal-backdrop"
+        data-close-modal="payrollPaymentModal"
+    ></div>
+
+    <div class="payroll-modal-dialog sm">
+
+        <div class="payroll-modal-header">
+
+            <div>
+                <div class="payroll-modal-title">
+                    Mark Salary Paid
+                </div>
+
+                <div
+                    class="payroll-modal-subtitle"
+                    id="paymentPayrollSubtitle"
+                ></div>
+            </div>
+
+            <button
+                type="button"
+                class="payroll-modal-close"
+                data-close-modal="payrollPaymentModal"
+            >
+                <i class="fas fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <form id="payrollPaymentForm">
+
+            <div class="payroll-modal-body">
+
+                <div
+                    class="payroll-profile-strip"
+                    id="paymentPayrollSummary"
+                ></div>
+
+
+                <div class="payroll-form-grid">
+
+                    <div class="payroll-field full">
+
+                        <label for="paymentMode">
+                            Payment Mode
+                        </label>
+
+                        <select
+                            class="payroll-select"
+                            id="paymentMode"
+                        >
+                            <option value="Bank Transfer">
+                                Bank Transfer
+                            </option>
+
+                            <option value="Cash">
+                                Cash
+                            </option>
+
+                            <option value="UPI">
+                                UPI
+                            </option>
+
+                            <option value="Cheque">
+                                Cheque
+                            </option>
+
+                            <option value="Other">
+                                Other
+                            </option>
+                        </select>
+
+                    </div>
+
+
+                    <div class="payroll-field full">
+
+                        <label for="paymentReference">
+                            Payment Reference
+                        </label>
+
+                        <input
+                            type="text"
+                            class="payroll-input"
+                            id="paymentReference"
+                            placeholder="Transaction / cheque / reference number"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <label class="payroll-check">
+
+                    <input
+                        type="checkbox"
+                        id="sendPayslipEmail"
+                        checked
+                    >
+
+                    Email payslip to employee after payment
+
+                </label>
+
+            </div>
+
+
+            <div class="payroll-modal-footer">
+
+                <button
+                    type="button"
+                    class="payroll-btn"
+                    data-close-modal="payrollPaymentModal"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="payroll-btn payroll-btn-primary"
+                    id="confirmPaymentBtn"
+                >
+                    <i class="fas fa-circle-check"></i>
+                    Confirm Payment
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     GENERATE MODAL
+     ============================================================ -->
+
+<div
+    class="payroll-modal"
+    id="generatePayrollModal"
+>
+
+    <div
+        class="payroll-modal-backdrop"
+        data-close-modal="generatePayrollModal"
+    ></div>
+
+    <div class="payroll-modal-dialog sm">
+
+        <div class="payroll-modal-header">
+
+            <div>
+                <div class="payroll-modal-title">
+                    Generate Payroll
+                </div>
+
+                <div class="payroll-modal-subtitle">
+                    Create payroll records from salary, attendance and overtime data.
+                </div>
+            </div>
+
+            <button
+                type="button"
+                class="payroll-modal-close"
+                data-close-modal="generatePayrollModal"
+            >
+                <i class="fas fa-xmark"></i>
+            </button>
+
+        </div>
+
+
+        <div class="payroll-modal-body">
+
+            <div class="payroll-form-grid">
+
+                <div class="payroll-field">
+
+                    <label for="generateMonth">
+                        Month
+                    </label>
+
+                    <select
+                        class="payroll-select"
+                        id="generateMonth"
+                    >
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+
+                </div>
+
+
+                <div class="payroll-field">
+
+                    <label for="generateYear">
+                        Year
+                    </label>
+
+                    <select
+                        class="payroll-select"
+                        id="generateYear"
+                    >
+                        {% for year in payroll_years %}
+                            <option value="{{ year }}">
+                                {{ year }}
+                            </option>
+                        {% empty %}
+                            <option value="{{ current_year }}">
+                                {{ current_year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top:16px;
+                    padding:12px;
+                    border-radius:9px;
+                    background:var(--hr-soft,#f8fafc);
+                    color:var(--hr-muted,#6b7280);
+                    font-size:12px;
+                    line-height:1.6;
+                "
+            >
+                <i class="fas fa-circle-info"></i>
+                Payroll will use employee salary, attendance, approved leave,
+                half days and overtime for the selected period. Existing payroll
+                records are preserved.
+            </div>
+
+        </div>
+
+
+        <div class="payroll-modal-footer">
+
+            <button
+                type="button"
+                class="payroll-btn"
+                data-close-modal="generatePayrollModal"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="payroll-btn payroll-btn-primary"
+                id="confirmGenerateBtn"
+            >
+                <i class="fas fa-calculator"></i>
+                Generate Payroll
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="payroll-toast-wrap"
+    id="payrollToastWrap"
+></div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ============================================================
+       CONFIG
+       ============================================================ */
+
+    const CURRENT_MONTH = Number("{{ current_month|default:9 }}");
+    const CURRENT_YEAR  = Number("{{ current_year|default:2026 }}");
+
+    const INITIAL_VIEW = "{{ payroll_view|default:'payroll' }}";
+
+    const API = {
+        dashboard: "/payroll/dashboard/",
+        generate: "/payroll/generate/",
+        detail: id => `/payroll/${id}/`,
+        update: id => `/payroll/update/${id}/`,
+        paid: id => `/payroll/mark-paid/${id}/`,
+        recalculate: id => `/payroll/${id}/recalculate/`,
+        payslip: id => `/payroll/payslip/${id}/`,
+        pdf: id => `/payroll/payslip/${id}/pdf/`,
+        history: staffId => `/payroll/staff/${staffId}/history/`,
+        exportCsv: "/payroll/export/csv/"
+    };
+
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+
+    let currentView = INITIAL_VIEW === "history"
+        ? "history"
+        : "payroll";
+
+    let payrollRows = [];
+
+    let selectedPayroll = null;
+
+    let currentHistoryRows = [];
+
+
+    /* ============================================================
+       ELEMENTS
+       ============================================================ */
+
+    const monthSelect = document.getElementById("payrollMonth");
+    const yearSelect = document.getElementById("payrollYear");
+
+    const searchInput = document.getElementById("payrollSearch");
+
+    const tableHead = document.getElementById("payrollTableHead");
+    const tableBody = document.getElementById("payrollTableBody");
+
+    const historyEmployeeFilter =
+        document.getElementById("historyEmployeeFilter");
+
+    const generatePayrollBtn =
+        document.getElementById("generatePayrollBtn");
+
+    const refreshPayrollBtn =
+        document.getElementById("refreshPayrollBtn");
+
+    const exportPayrollBtn =
+        document.getElementById("exportPayrollBtn");
+
+
+    /* ============================================================
+       INITIAL VALUES
+       ============================================================ */
+
+    monthSelect.value = String(CURRENT_MONTH);
+    yearSelect.value = String(CURRENT_YEAR);
+
+    document.getElementById("generateMonth").value =
+        String(CURRENT_MONTH);
+
+    document.getElementById("generateYear").value =
+        String(CURRENT_YEAR);
+
+
+    /* ============================================================
+       HELPERS
+       ============================================================ */
+
+    function money(value) {
+
+        const number = Number(value || 0);
+
+        return new Intl.NumberFormat(
+            "en-IN",
+            {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 2
+            }
+        ).format(number);
+
+    }
+
+
+    function escapeHtml(value) {
+
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+
+    }
+
+
+    function initial(name) {
+
+        const value = String(name || "").trim();
+
+        if (!value) {
+            return "?";
+        }
+
+        return value.charAt(0).toUpperCase();
+
+    }
+
+
+    function getCookie(name) {
+
+        const cookieValue = document.cookie
+            .split("; ")
+            .find(row => row.startsWith(name + "="));
+
+        if (!cookieValue) {
+            return "";
+        }
+
+        return decodeURIComponent(
+            cookieValue.split("=")[1]
+        );
+
+    }
+
+
+    async function fetchJSON(url, options = {}) {
+
+        const response = await fetch(
+            url,
+            {
+                credentials: "same-origin",
+                ...options,
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                    "Content-Type": "application/json",
+                    ...(options.headers || {})
+                }
+            }
+        );
+
+        let data;
+
+        try {
+            data = await response.json();
+        } catch (error) {
+            data = {};
+        }
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Request failed (${response.status})`
+            );
+
+        }
+
+        return data;
+
+    }
+
+
+    function toast(message, type = "") {
+
+        const wrap =
+            document.getElementById("payrollToastWrap");
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            `payroll-toast ${type}`;
+
+        item.innerHTML = `
+            <i class="fas ${
+                type === "success"
+                    ? "fa-circle-check"
+                    : type === "error"
+                        ? "fa-circle-exclamation"
+                        : "fa-circle-info"
+            }"></i>
+
+            <span>
+                ${escapeHtml(message)}
+            </span>
+        `;
+
+        wrap.appendChild(item);
+
+        setTimeout(
+            () => item.remove(),
+            4200
+        );
+
+    }
+
+
+    function openModal(id) {
+
+        const modal =
+            document.getElementById(id);
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add("show");
+
+        document.body.style.overflow = "hidden";
+
+    }
+
+
+    function closeModal(id) {
+
+        const modal =
+            document.getElementById(id);
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove("show");
+
+        if (
+            !document.querySelector(
+                ".payroll-modal.show"
+            )
+        ) {
+            document.body.style.overflow = "";
+        }
+
+    }
+
+
+    document.querySelectorAll(
+        "[data-close-modal]"
+    ).forEach(button => {
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                closeModal(
+                    this.dataset.closeModal
+                );
+
+            }
+        );
+
+    });
+
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Escape") {
+
+                document.querySelectorAll(
+                    ".payroll-modal.show"
+                ).forEach(modal => {
+                    closeModal(modal.id);
+                });
+
+            }
+
+        }
+    );
+
+
+    function statusBadge(status) {
+
+        const value =
+            String(status || "Unpaid");
+
+        const cls =
+            value.toLowerCase() === "paid"
+                ? "paid"
+                : value.toLowerCase() === "hold"
+                    ? "hold"
+                    : "unpaid";
+
+        return `
+            <span class="payroll-status ${cls}">
+                ${escapeHtml(value)}
+            </span>
+        `;
+
+    }
+
+
+    function setButtonLoading(
+        button,
+        loading,
+        loadingText = "Please wait..."
+    ) {
+
+        if (!button) {
+            return;
+        }
+
+        if (loading) {
+
+            button.dataset.originalHtml =
+                button.innerHTML;
+
+            button.disabled = true;
+
+            button.innerHTML = `
+                <i class="fas fa-spinner fa-spin"></i>
+                ${escapeHtml(loadingText)}
+            `;
+
+        } else {
+
+            button.disabled = false;
+
+            if (button.dataset.originalHtml) {
+
+                button.innerHTML =
+                    button.dataset.originalHtml;
+
+            }
+
+        }
+
+    }
+
+
+    /* ============================================================
+       VIEW SWITCHING
+       ============================================================ */
+
+    function applyView() {
+
+        document.querySelectorAll(
+            ".payroll-view-tab"
+        ).forEach(tab => {
+
+            tab.classList.toggle(
+                "active",
+                tab.dataset.view === currentView
+            );
+
+        });
+
+
+        const isHistory =
+            currentView === "history";
+
+
+        document.getElementById(
+            "payrollPageTitle"
+        ).textContent =
+            isHistory
+                ? "Salary Records"
+                : "Payroll Management";
+
+
+        document.getElementById(
+            "payrollPageSubtitle"
+        ).textContent =
+            isHistory
+                ? "Review salary history, payment records and employee payslips."
+                : "Process salaries, review attendance adjustments and manage employee payroll.";
+
+
+        generatePayrollBtn.style.display =
+            isHistory
+                ? "none"
+                : "inline-flex";
+
+
+        historyEmployeeFilter.style.display =
+            isHistory
+                ? ""
+                : "none";
+
+
+        searchInput.placeholder =
+            isHistory
+                ? "Search salary records..."
+                : "Search employee, ID or department...";
+
+
+        const url =
+            new URL(window.location.href);
+
+        if (isHistory) {
+            url.searchParams.set(
+                "view",
+                "history"
+            );
+        } else {
+            url.searchParams.delete("view");
+        }
+
+        window.history.replaceState(
+            {},
+            "",
+            url
+        );
+
+
+        if (isHistory) {
+            loadHistoryView();
+        } else {
+            renderPayrollTable();
+        }
+
+    }
+
+
+    document.querySelectorAll(
+        ".payroll-view-tab"
+    ).forEach(tab => {
+
+        tab.addEventListener(
+            "click",
+            function () {
+
+                currentView =
+                    this.dataset.view;
+
+                applyView();
+
+            }
+        );
+
+    });
+
+
+    /* ============================================================
+       LOAD DASHBOARD
+       ============================================================ */
+
+    async function loadPayroll() {
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="12">
+                    <div class="payroll-loading">
+                        <div class="payroll-spinner"></div>
+                        Loading payroll...
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        try {
+
+            const month =
+                monthSelect.value;
+
+            const year =
+                yearSelect.value;
+
+
+            const data =
+                await fetchJSON(
+                    `${API.dashboard}?month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`,
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            payrollRows =
+                Array.isArray(data)
+                    ? data
+                    : [];
+
+
+            populateEmployeeFilter();
+
+            updateSummary();
+
+
+            if (currentView === "history") {
+                await loadHistoryView();
+            } else {
+                renderPayrollTable();
+            }
+
+        } catch (error) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="12">
+
+                        <div class="payroll-empty">
+
+                            <i class="fas fa-triangle-exclamation"></i>
+
+                            <h3>
+                                Unable to load payroll
+                            </h3>
+
+                            <p>
+                                ${escapeHtml(error.message)}
+                            </p>
+
+                        </div>
+
+                    </td>
+                </tr>
+            `;
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    /* ============================================================
+       SUMMARY
+       ============================================================ */
+
+    function updateSummary() {
+
+        const total =
+            payrollRows.reduce(
+                (sum, row) =>
+                    sum + Number(row.net_salary || 0),
+                0
+            );
+
+
+        const paid =
+            payrollRows
+                .filter(
+                    row =>
+                        String(
+                            row.paid_status
+                        ).toLowerCase() === "paid"
+                )
+                .reduce(
+                    (sum, row) =>
+                        sum + Number(row.net_salary || 0),
+                    0
+                );
+
+
+        const pending =
+            payrollRows
+                .filter(
+                    row =>
+                        String(
+                            row.paid_status
+                        ).toLowerCase() !== "paid"
+                )
+                .reduce(
+                    (sum, row) =>
+                        sum + Number(row.net_salary || 0),
+                    0
+                );
+
+
+        document.getElementById(
+            "totalPayrollValue"
+        ).textContent =
+            money(total);
+
+
+        document.getElementById(
+            "paidPayrollValue"
+        ).textContent =
+            money(paid);
+
+
+        document.getElementById(
+            "pendingPayrollValue"
+        ).textContent =
+            money(pending);
+
+
+        document.getElementById(
+            "payrollEmployeeCount"
+        ).textContent =
+            payrollRows.length;
+
+    }
+
+
+    /* ============================================================
+       PAYROLL TABLE
+       ============================================================ */
+
+    function renderPayrollTable() {
+
+        tableHead.innerHTML = `
+            <tr>
+                <th>Employee</th>
+                <th>Department</th>
+                <th>Attendance</th>
+                <th>Basic Salary</th>
+                <th>Overtime</th>
+                <th>Gross</th>
+                <th>Deductions</th>
+                <th>Net Salary</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        `;
+
+
+        const query =
+            searchInput.value
+                .trim()
+                .toLowerCase();
+
+
+        const rows =
+            payrollRows.filter(row => {
+
+                const haystack = [
+                    row.staff,
+                    row.employee_id,
+                    row.department,
+                    row.email
+                ]
+                .join(" ")
+                .toLowerCase();
+
+                return haystack.includes(query);
+
+            });
+
+
+        if (!rows.length) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="10">
+
+                        <div class="payroll-empty">
+
+                            <i class="fas fa-money-check-dollar"></i>
+
+                            <h3>
+                                No payroll records found
+                            </h3>
+
+                            <p>
+                                Try another month or adjust your search.
+                            </p>
+
+                        </div>
+
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        tableBody.innerHTML =
+            rows.map(row => {
+
+                const paid =
+                    String(
+                        row.paid_status
+                    ).toLowerCase() === "paid";
+
+
+                return `
+                    <tr>
+
+                        <td>
+
+                            <div class="payroll-employee">
+
+                                <div class="payroll-avatar">
+                                    ${escapeHtml(initial(row.staff))}
+                                </div>
+
+                                <div>
+
+                                    <div class="payroll-employee-name">
+                                        ${escapeHtml(row.staff)}
+                                    </div>
+
+                                    <div class="payroll-employee-id">
+                                        ${escapeHtml(row.employee_id || "")}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            ${escapeHtml(row.department || "—")}
+                        </td>
+
+
+                        <td>
+
+                            <div class="payroll-attendance">
+
+                                <span
+                                    class="attendance-mini present"
+                                    title="Present days"
+                                >
+                                    P ${Number(row.present_days || 0)}
+                                </span>
+
+                                <span
+                                    class="attendance-mini absent"
+                                    title="Absent days"
+                                >
+                                    A ${Number(row.absent_days || 0)}
+                                </span>
+
+                                <span
+                                    class="attendance-mini half"
+                                    title="Half days"
+                                >
+                                    H ${Number(row.half_days || 0)}
+                                </span>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="payroll-money">
+                                ${money(row.basic_salary)}
+                            </div>
+
+                            ${
+                                row.is_pro_rated
+                                    ? `
+                                        <div class="payroll-employee-id">
+                                            Pro-rated
+                                        </div>
+                                    `
+                                    : ""
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="payroll-money">
+                                ${money(row.overtime_amount)}
+                            </div>
+
+                            <div class="payroll-employee-id">
+                                ${Number(row.overtime_hours || 0).toFixed(1)} hrs
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            <span class="payroll-money">
+                                ${money(row.gross_salary)}
+                            </span>
+                        </td>
+
+
+                        <td>
+                            <span class="payroll-money">
+                                ${money(row.total_deductions)}
+                            </span>
+                        </td>
+
+
+                        <td>
+                            <span class="payroll-money payroll-net">
+                                ${money(row.net_salary)}
+                            </span>
+                        </td>
+
+
+                        <td>
+                            ${statusBadge(row.paid_status)}
+                        </td>
+
+
+                        <td>
+
+                            <div class="payroll-actions">
+
+                                <button
+                                    type="button"
+                                    class="payroll-icon-btn"
+                                    title="View payroll"
+                                    onclick="window.PayrollUI.view(${Number(row.id)})"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="payroll-icon-btn"
+                                    title="Edit payroll"
+                                    ${paid ? "disabled" : ""}
+                                    onclick="window.PayrollUI.edit(${Number(row.id)})"
+                                >
+                                    <i class="fas fa-pen"></i>
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="payroll-icon-btn"
+                                    title="Payslip"
+                                    onclick="window.PayrollUI.payslip(${Number(row.id)})"
+                                >
+                                    <i class="fas fa-file-invoice"></i>
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    class="payroll-icon-btn"
+                                    title="${
+                                        paid
+                                            ? "Salary paid"
+                                            : "Mark paid"
+                                    }"
+                                    ${paid ? "disabled" : ""}
+                                    onclick="window.PayrollUI.pay(${Number(row.id)})"
+                                >
+                                    <i class="fas fa-circle-check"></i>
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+                `;
+
+            }).join("");
+
+    }
+
+
+    /* ============================================================
+       EMPLOYEE FILTER
+       ============================================================ */
+
+    function populateEmployeeFilter() {
+
+        const selected =
+            historyEmployeeFilter.value;
+
+
+        historyEmployeeFilter.innerHTML = `
+            <option value="">
+                All Employees
+            </option>
+
+            ${
+                payrollRows.map(row => `
+                    <option value="${Number(row.staff_id)}">
+                        ${escapeHtml(row.staff)}
+                        (${escapeHtml(row.employee_id || "")})
+                    </option>
+                `).join("")
+            }
+        `;
+
+
+        if (
+            Array.from(
+                historyEmployeeFilter.options
+            ).some(
+                option =>
+                    option.value === selected
+            )
+        ) {
+            historyEmployeeFilter.value =
+                selected;
+        }
+
+    }
+
+
+    /* ============================================================
+       DETAIL
+       ============================================================ */
+
+    async function viewPayroll(id) {
+
+        if (!id) {
+            return;
+        }
+
+        try {
+
+            const data =
+                await fetchJSON(
+                    API.detail(id),
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            selectedPayroll = data;
+
+
+            document.getElementById(
+                "detailModalSubtitle"
+            ).textContent =
+                `${data.month_label} ${data.year}`;
+
+
+            document.getElementById(
+                "payrollDetailBody"
+            ).innerHTML =
+                buildPayrollDetail(data);
+
+
+            const paid =
+                String(
+                    data.paid_status
+                ).toLowerCase() === "paid";
+
+
+            document.getElementById(
+                "detailEditBtn"
+            ).style.display =
+                paid
+                    ? "none"
+                    : "inline-flex";
+
+
+            document.getElementById(
+                "detailPayBtn"
+            ).style.display =
+                paid
+                    ? "none"
+                    : "inline-flex";
+
+
+            document.getElementById(
+                "detailRecalculateBtn"
+            ).style.display =
+                paid
+                    ? "none"
+                    : "inline-flex";
+
+
+            openModal(
+                "payrollDetailModal"
+            );
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    function buildPayrollDetail(data) {
+
+        return `
+            <div class="payroll-profile-strip">
+
+                <div class="payroll-profile-left">
+
+                    <div class="payroll-avatar">
+                        ${escapeHtml(initial(data.staff))}
+                    </div>
+
+                    <div>
+
+                        <div class="payroll-employee-name">
+                            ${escapeHtml(data.staff)}
+                        </div>
+
+                        <div class="payroll-employee-id">
+                            ${escapeHtml(data.employee_id || "")}
+                            ·
+                            ${escapeHtml(data.department || "—")}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                ${statusBadge(data.paid_status)}
+
+            </div>
+
+
+            <div class="payroll-detail-grid">
+
+                ${detailBox(
+                    "Original Salary",
+                    money(data.original_basic)
+                )}
+
+                ${detailBox(
+                    "Payroll Basic",
+                    money(data.basic_salary)
+                )}
+
+                ${detailBox(
+                    "Gross Salary",
+                    money(data.gross_salary)
+                )}
+
+                ${detailBox(
+                    "Net Salary",
+                    money(data.net_salary)
+                )}
+
+            </div>
+
+
+            <div class="payroll-section-title">
+                Attendance & Rate Calculation
+            </div>
+
+
+            <div class="payroll-detail-grid">
+
+                ${detailBox(
+                    "Present",
+                    `${Number(data.present_days || 0)} days`
+                )}
+
+                ${detailBox(
+                    "Absent",
+                    `${Number(data.absent_days || 0)} days`
+                )}
+
+                ${detailBox(
+                    "Half Days",
+                    `${Number(data.half_days || 0)} days`
+                )}
+
+                ${detailBox(
+                    "Late",
+                    `${Number(data.late_days || 0)} days`
+                )}
+
+                ${detailBox(
+                    "Approved Leave",
+                    `${Number(data.approved_leaves || 0)} days`
+                )}
+
+                ${detailBox(
+                    "Overtime",
+                    `${Number(data.overtime_hours || 0).toFixed(2)} hrs`
+                )}
+
+                ${detailBox(
+                    "Per Day Rate",
+                    money(data.per_day_rate)
+                )}
+
+                ${detailBox(
+                    "Per Hour Rate",
+                    money(data.per_hour_rate)
+                )}
+
+            </div>
+
+
+            <div class="payroll-two-col">
+
+                <div>
+
+                    <div class="payroll-section-title">
+                        Earnings
+                    </div>
+
+                    ${buildBreakdown(
+                        data.earnings_items || [],
+                        data.gross_salary,
+                        "Total Earnings"
+                    )}
+
+                </div>
+
+
+                <div>
+
+                    <div class="payroll-section-title">
+                        Deductions
+                    </div>
+
+                    ${buildBreakdown(
+                        data.deductions_items || [],
+                        data.total_deductions,
+                        "Total Deductions"
+                    )}
+
+                </div>
+
+            </div>
+
+
+            ${
+                data.notes
+                    ? `
+                        <div class="payroll-section-title">
+                            Notes
+                        </div>
+
+                        <div
+                            style="
+                                padding:12px;
+                                border:1px solid var(--hr-border,#e5e7eb);
+                                border-radius:8px;
+                                color:var(--hr-muted,#6b7280);
+                                font-size:12px;
+                                white-space:pre-wrap;
+                            "
+                        >
+                            ${escapeHtml(data.notes)}
+                        </div>
+                    `
+                    : ""
+            }
+
+
+            ${
+                String(
+                    data.paid_status
+                ).toLowerCase() === "paid"
+                    ? `
+                        <div class="payroll-section-title">
+                            Payment
+                        </div>
+
+                        <div class="payroll-detail-grid">
+
+                            ${detailBox(
+                                "Status",
+                                data.paid_status
+                            )}
+
+                            ${detailBox(
+                                "Paid At",
+                                data.paid_at || "—"
+                            )}
+
+                            ${detailBox(
+                                "Paid By",
+                                data.paid_by || "—"
+                            )}
+
+                            ${detailBox(
+                                "Payslip",
+                                "Available"
+                            )}
+
+                        </div>
+                    `
+                    : ""
+            }
+        `;
+
+    }
+
+
+    function detailBox(label, value) {
+
+        return `
+            <div class="payroll-detail-box">
+
+                <div class="payroll-detail-label">
+                    ${escapeHtml(label)}
+                </div>
+
+                <div class="payroll-detail-value">
+                    ${escapeHtml(value)}
+                </div>
+
+            </div>
+        `;
+
+    }
+
+
+    function buildBreakdown(
+        items,
+        total,
+        totalLabel
+    ) {
+
+        const rows =
+            items.length
+                ? items.map(item => `
+                    <div class="payroll-breakdown-row">
+
+                        <div>
+
+                            <span>
+                                ${escapeHtml(item.label)}
+                            </span>
+
+                            ${
+                                item.pct
+                                    ? `
+                                        <span class="payroll-breakdown-meta">
+                                            ${Number(item.pct)}%
+                                            ${
+                                                item.pct_base
+                                                    ? ` of ${escapeHtml(item.pct_base)}`
+                                                    : ""
+                                            }
+                                        </span>
+                                    `
+                                    : ""
+                            }
+
+                        </div>
+
+                        <strong>
+                            ${money(item.amount)}
+                        </strong>
+
+                    </div>
+                `).join("")
+                : `
+                    <div class="payroll-breakdown-row">
+                        <span>No items</span>
+                        <span>—</span>
+                    </div>
+                `;
+
+
+        return `
+            <div class="payroll-breakdown">
+
+                ${rows}
+
+                <div class="payroll-breakdown-row total">
+
+                    <span>
+                        ${escapeHtml(totalLabel)}
+                    </span>
+
+                    <span>
+                        ${money(total)}
+                    </span>
+
+                </div>
+
+            </div>
+        `;
+
+    }
+
+
+    /* ============================================================
+       EDIT PAYROLL
+       ============================================================ */
+
+    async function editPayroll(id) {
+
+        try {
+
+            const data =
+                await fetchJSON(
+                    API.detail(id),
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            if (
+                String(
+                    data.paid_status
+                ).toLowerCase() === "paid"
+            ) {
+
+                toast(
+                    "Paid payroll cannot be edited.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            selectedPayroll = data;
+
+
+            document.getElementById(
+                "editPayrollSubtitle"
+            ).textContent =
+                `${data.staff} · ${data.month_label} ${data.year}`;
+
+
+            document.getElementById(
+                "editPayrollSummary"
+            ).innerHTML = `
+
+                ${detailBox(
+                    "Basic Salary",
+                    money(data.basic_salary)
+                )}
+
+                ${detailBox(
+                    "Overtime",
+                    money(data.overtime_amount)
+                )}
+
+                ${detailBox(
+                    "Current Net",
+                    money(data.net_salary)
+                )}
+
+            `;
+
+
+            document.getElementById(
+                "editBonus"
+            ).value =
+                Number(data.bonus || 0);
+
+
+            document.getElementById(
+                "editIncentive"
+            ).value =
+                Number(data.incentive || 0);
+
+
+            document.getElementById(
+                "editPF"
+            ).value =
+                Number(data.pf_amount || 0);
+
+
+            document.getElementById(
+                "editESI"
+            ).value =
+                Number(data.esi_amount || 0);
+
+
+            document.getElementById(
+                "editTax"
+            ).value =
+                Number(data.tax_deduction || 0);
+
+
+            document.getElementById(
+                "editLoan"
+            ).value =
+                Number(data.loan_deduction || 0);
+
+
+            document.getElementById(
+                "editLeaveDeduction"
+            ).value =
+                Number(
+                    data.deductions ||
+                    (
+                        Number(data.absent_deduction || 0) +
+                        Number(data.half_day_deduction || 0)
+                    )
+                );
+
+
+            document.getElementById(
+                "editNotes"
+            ).value =
+                data.notes || "";
+
+
+            renderCustomItems(
+                "customEarningsContainer",
+                data.custom_earnings || [],
+                "earning"
+            );
+
+
+            renderCustomItems(
+                "customDeductionsContainer",
+                data.custom_deductions || [],
+                "deduction"
+            );
+
+
+            openModal(
+                "payrollEditModal"
+            );
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    function renderCustomItems(
+        containerId,
+        items,
+        type
+    ) {
+
+        const container =
+            document.getElementById(containerId);
+
+        container.innerHTML = "";
+
+
+        if (
+            !Array.isArray(items) ||
+            !items.length
+        ) {
+
+            addCustomRow(
+                containerId,
+                type,
+                null,
+                false
+            );
+
+            return;
+
+        }
+
+
+        items.forEach(item => {
+
+            addCustomRow(
+                containerId,
+                type,
+                item,
+                false
+            );
+
+        });
+
+    }
+
+
+    function addCustomRow(
+        containerId,
+        type,
+        item = null,
+        focus = true
+    ) {
+
+        const container =
+            document.getElementById(containerId);
+
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "payroll-form-grid custom-payroll-row";
+
+        row.style.marginBottom =
+            "8px";
+
+
+        row.innerHTML = `
+
+            <div class="payroll-field">
+
+                <input
+                    type="text"
+                    class="payroll-input custom-label"
+                    placeholder="${
+                        type === "earning"
+                            ? "Allowance / earning name"
+                            : "Deduction name"
+                    }"
+                    value="${escapeHtml(item?.label || item?.name || "")}"
+                >
+
+            </div>
+
+
+            <div
+                class="payroll-field"
+                style="display:flex;gap:6px;"
+            >
+
+                <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="payroll-input custom-amount"
+                    placeholder="Amount"
+                    value="${Number(item?.amount || 0)}"
+                >
+
+                <button
+                    type="button"
+                    class="payroll-icon-btn payroll-btn-danger remove-custom-row"
+                    title="Remove"
+                >
+                    <i class="fas fa-trash"></i>
+                </button>
+
+            </div>
+
+        `;
+
+
+        container.appendChild(row);
+
+
+        row.querySelector(
+            ".remove-custom-row"
+        ).addEventListener(
+            "click",
+            () => row.remove()
+        );
+
+
+        if (focus) {
+
+            row.querySelector(
+                ".custom-label"
+            ).focus();
+
+        }
+
+    }
+
+
+    document.getElementById(
+        "addEarningBtn"
+    ).addEventListener(
+        "click",
+        () => {
+
+            addCustomRow(
+                "customEarningsContainer",
+                "earning"
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "addDeductionBtn"
+    ).addEventListener(
+        "click",
+        () => {
+
+            addCustomRow(
+                "customDeductionsContainer",
+                "deduction"
+            );
+
+        }
+    );
+
+
+    function collectCustomRows(
+        containerId
+    ) {
+
+        return Array.from(
+            document.querySelectorAll(
+                `#${containerId} .custom-payroll-row`
+            )
+        )
+        .map(row => {
+
+            const label =
+                row.querySelector(
+                    ".custom-label"
+                ).value.trim();
+
+            const amount =
+                Number(
+                    row.querySelector(
+                        ".custom-amount"
+                    ).value || 0
+                );
+
+            return {
+                label,
+                amount
+            };
+
+        })
+        .filter(
+            item =>
+                item.label &&
+                item.amount > 0
+        );
+
+    }
+
+
+    document.getElementById(
+        "payrollEditForm"
+    ).addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            if (!selectedPayroll?.id) {
+                return;
+            }
+
+
+            const button =
+                document.getElementById(
+                    "savePayrollBtn"
+                );
+
+
+            setButtonLoading(
+                button,
+                true,
+                "Saving..."
+            );
+
+
+            try {
+
+                const payload = {
+
+                    bonus:
+                        Number(
+                            document.getElementById(
+                                "editBonus"
+                            ).value || 0
+                        ),
+
+                    incentive:
+                        Number(
+                            document.getElementById(
+                                "editIncentive"
+                            ).value || 0
+                        ),
+
+                    pf_amount:
+                        Number(
+                            document.getElementById(
+                                "editPF"
+                            ).value || 0
+                        ),
+
+                    esi_amount:
+                        Number(
+                            document.getElementById(
+                                "editESI"
+                            ).value || 0
+                        ),
+
+                    tax_deduction:
+                        Number(
+                            document.getElementById(
+                                "editTax"
+                            ).value || 0
+                        ),
+
+                    loan_deduction:
+                        Number(
+                            document.getElementById(
+                                "editLoan"
+                            ).value || 0
+                        ),
+
+                    leave_deduction:
+                        Number(
+                            document.getElementById(
+                                "editLeaveDeduction"
+                            ).value || 0
+                        ),
+
+                    notes:
+                        document.getElementById(
+                            "editNotes"
+                        ).value.trim(),
+
+                    custom_earnings:
+                        collectCustomRows(
+                            "customEarningsContainer"
+                        ),
+
+                    custom_deductions:
+                        collectCustomRows(
+                            "customDeductionsContainer"
+                        )
+
+                };
+
+
+                await fetchJSON(
+                    API.update(
+                        selectedPayroll.id
+                    ),
+                    {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    }
+                );
+
+
+                closeModal(
+                    "payrollEditModal"
+                );
+
+
+                toast(
+                    "Payroll updated successfully.",
+                    "success"
+                );
+
+
+                await loadPayroll();
+
+            } catch (error) {
+
+                toast(
+                    error.message,
+                    "error"
+                );
+
+            } finally {
+
+                setButtonLoading(
+                    button,
+                    false
+                );
+
+            }
+
+        }
+    );
+
+
+    /* ============================================================
+       RECALCULATE
+       ============================================================ */
+
+    async function recalculatePayroll(id) {
+
+        if (!id) {
+            return;
+        }
+
+
+        const button =
+            document.getElementById(
+                "detailRecalculateBtn"
+            );
+
+
+        setButtonLoading(
+            button,
+            true,
+            "Recalculating..."
+        );
+
+
+        try {
+
+            await fetchJSON(
+                API.recalculate(id),
+                {
+                    method: "POST",
+                    body: JSON.stringify({})
+                }
+            );
+
+
+            toast(
+                "Payroll recalculated from current attendance and salary.",
+                "success"
+            );
+
+
+            await loadPayroll();
+
+            await viewPayroll(id);
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        } finally {
+
+            setButtonLoading(
+                button,
+                false
+            );
+
+        }
+
+    }
+
+
+    /* ============================================================
+       MARK PAID
+       ============================================================ */
+
+    async function openPayment(id) {
+
+        try {
+
+            const data =
+                await fetchJSON(
+                    API.detail(id),
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            if (
+                String(
+                    data.paid_status
+                ).toLowerCase() === "paid"
+            ) {
+
+                toast(
+                    "This payroll is already paid.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+
+            selectedPayroll = data;
+
+
+            document.getElementById(
+                "paymentPayrollSubtitle"
+            ).textContent =
+                `${data.month_label} ${data.year}`;
+
+
+            document.getElementById(
+                "paymentPayrollSummary"
+            ).innerHTML = `
+
+                <div class="payroll-profile-left">
+
+                    <div class="payroll-avatar">
+                        ${escapeHtml(initial(data.staff))}
+                    </div>
+
+                    <div>
+
+                        <div class="payroll-employee-name">
+                            ${escapeHtml(data.staff)}
+                        </div>
+
+                        <div class="payroll-employee-id">
+                            ${escapeHtml(data.employee_id || "")}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div style="text-align:right;">
+
+                    <div class="payroll-detail-label">
+                        Net Salary
+                    </div>
+
+                    <div class="payroll-stat-value">
+                        ${money(data.net_salary)}
+                    </div>
+
+                </div>
+            `;
+
+
+            document.getElementById(
+                "paymentReference"
+            ).value = "";
+
+
+            document.getElementById(
+                "sendPayslipEmail"
+            ).checked = true;
+
+
+            openModal(
+                "payrollPaymentModal"
+            );
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    document.getElementById(
+        "payrollPaymentForm"
+    ).addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            if (!selectedPayroll?.id) {
+                return;
+            }
+
+
+            const button =
+                document.getElementById(
+                    "confirmPaymentBtn"
+                );
+
+
+            setButtonLoading(
+                button,
+                true,
+                "Processing..."
+            );
+
+
+            try {
+
+                const data =
+                    await fetchJSON(
+                        API.paid(
+                            selectedPayroll.id
+                        ),
+                        {
+                            method: "POST",
+                            body: JSON.stringify({
+
+                                payment_mode:
+                                    document.getElementById(
+                                        "paymentMode"
+                                    ).value,
+
+                                reference:
+                                    document.getElementById(
+                                        "paymentReference"
+                                    ).value.trim(),
+
+                                send_email:
+                                    document.getElementById(
+                                        "sendPayslipEmail"
+                                    ).checked
+
+                            })
+                        }
+                    );
+
+
+                closeModal(
+                    "payrollPaymentModal"
+                );
+
+
+                closeModal(
+                    "payrollDetailModal"
+                );
+
+
+                let message =
+                    "Salary marked as paid successfully.";
+
+
+                if (data.mail_sent) {
+
+                    message +=
+                        " Payslip email sent.";
+
+                } else if (
+                    data.mail_error &&
+                    data.mail_error !== "Email disabled"
+                ) {
+
+                    message +=
+                        ` Payslip email was not sent: ${data.mail_error}`;
+
+                }
+
+
+                toast(
+                    message,
+                    "success"
+                );
+
+
+                await loadPayroll();
+
+            } catch (error) {
+
+                toast(
+                    error.message,
+                    "error"
+                );
+
+            } finally {
+
+                setButtonLoading(
+                    button,
+                    false
+                );
+
+            }
+
+        }
+    );
+
+
+    /* ============================================================
+       GENERATE
+       ============================================================ */
+
+    generatePayrollBtn.addEventListener(
+        "click",
+        function () {
+
+            document.getElementById(
+                "generateMonth"
+            ).value =
+                monthSelect.value;
+
+
+            document.getElementById(
+                "generateYear"
+            ).value =
+                yearSelect.value;
+
+
+            openModal(
+                "generatePayrollModal"
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "confirmGenerateBtn"
+    ).addEventListener(
+        "click",
+        async function () {
+
+            const button = this;
+
+
+            const month =
+                Number(
+                    document.getElementById(
+                        "generateMonth"
+                    ).value
+                );
+
+
+            const year =
+                Number(
+                    document.getElementById(
+                        "generateYear"
+                    ).value
+                );
+
+
+            setButtonLoading(
+                button,
+                true,
+                "Generating..."
+            );
+
+
+            try {
+
+                const data =
+                    await fetchJSON(
+                        API.generate,
+                        {
+                            method: "POST",
+                            body: JSON.stringify({
+                                month,
+                                year
+                            })
+                        }
+                    );
+
+
+                monthSelect.value =
+                    String(month);
+
+
+                yearSelect.value =
+                    String(year);
+
+
+                closeModal(
+                    "generatePayrollModal"
+                );
+
+
+                toast(
+                    data.message ||
+                    "Payroll generated successfully.",
+                    "success"
+                );
+
+
+                await loadPayroll();
+
+            } catch (error) {
+
+                toast(
+                    error.message,
+                    "error"
+                );
+
+            } finally {
+
+                setButtonLoading(
+                    button,
+                    false
+                );
+
+            }
+
+        }
+    );
+
+
+    /* ============================================================
+       SALARY HISTORY
+       ============================================================ */
+
+    async function loadHistoryView() {
+
+        const staffId =
+            historyEmployeeFilter.value;
+
+
+        if (staffId) {
+
+            await loadEmployeeHistory(
+                staffId
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * No employee selected:
+         * current selected month's payroll becomes the salary record list.
+         */
+
+        currentHistoryRows =
+            payrollRows.slice();
+
+
+        renderHistoryTable(
+            currentHistoryRows
+        );
+
+    }
+
+
+    async function loadEmployeeHistory(
+        staffId
+    ) {
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9">
+
+                    <div class="payroll-loading">
+
+                        <div class="payroll-spinner"></div>
+
+                        Loading salary history...
+
+                    </div>
+
+                </td>
+            </tr>
+        `;
+
+
+        try {
+
+            const year =
+                yearSelect.value;
+
+
+            const data =
+                await fetchJSON(
+                    `${API.history(staffId)}?year=${encodeURIComponent(year)}`,
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            currentHistoryRows =
+                Array.isArray(data)
+                    ? data
+                    : (
+                        Array.isArray(data.history)
+                            ? data.history
+                            : []
+                    );
+
+
+            const employee =
+                payrollRows.find(
+                    row =>
+                        String(row.staff_id) ===
+                        String(staffId)
+                );
+
+
+            currentHistoryRows =
+                currentHistoryRows.map(row => ({
+                    ...row,
+                    staff:
+                        row.staff ||
+                        employee?.staff ||
+                        "Employee",
+                    employee_id:
+                        row.employee_id ||
+                        employee?.employee_id ||
+                        "",
+                    department:
+                        row.department ||
+                        employee?.department ||
+                        ""
+                }));
+
+
+            renderHistoryTable(
+                currentHistoryRows
+            );
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+
+                        <div class="payroll-empty">
+
+                            <i class="fas fa-triangle-exclamation"></i>
+
+                            <h3>
+                                Unable to load salary history
+                            </h3>
+
+                            <p>
+                                ${escapeHtml(error.message)}
+                            </p>
+
+                        </div>
+
+                    </td>
+                </tr>
+            `;
+
+        }
+
+    }
+
+
+    function renderHistoryTable(rows) {
+
+        tableHead.innerHTML = `
+            <tr>
+                <th>Employee</th>
+                <th>Period</th>
+                <th>Basic</th>
+                <th>Gross</th>
+                <th>Deductions</th>
+                <th>Net Salary</th>
+                <th>Status</th>
+                <th>Paid Date</th>
+                <th>Actions</th>
+            </tr>
+        `;
+
+
+        const query =
+            searchInput.value
+                .trim()
+                .toLowerCase();
+
+
+        const filtered =
+            rows.filter(row => {
+
+                const haystack = [
+                    row.staff,
+                    row.employee_id,
+                    row.department,
+                    row.month_label,
+                    row.year,
+                    row.paid_status
+                ]
+                .join(" ")
+                .toLowerCase();
+
+                return haystack.includes(query);
+
+            });
+
+
+        if (!filtered.length) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+
+                        <div class="payroll-empty">
+
+                            <i class="fas fa-file-invoice-dollar"></i>
+
+                            <h3>
+                                No salary records found
+                            </h3>
+
+                            <p>
+                                Choose another employee, month or year.
+                            </p>
+
+                        </div>
+
+                    </td>
+                </tr>
+            `;
+
+            return;
+
+        }
+
+
+        tableBody.innerHTML =
+            filtered.map(row => `
+                <tr>
+
+                    <td>
+
+                        <div class="payroll-employee">
+
+                            <div class="payroll-avatar">
+                                ${escapeHtml(initial(row.staff))}
+                            </div>
+
+                            <div>
+
+                                <div class="payroll-employee-name">
+                                    ${escapeHtml(row.staff || "Employee")}
+                                </div>
+
+                                <div class="payroll-employee-id">
+                                    ${escapeHtml(row.employee_id || "")}
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <strong>
+                            ${escapeHtml(
+                                row.month_label ||
+                                monthName(row.month)
+                            )}
+                        </strong>
+
+                        <div class="payroll-employee-id">
+                            ${escapeHtml(row.year || "")}
+                        </div>
+
+                    </td>
+
+
+                    <td class="payroll-money">
+                        ${money(row.basic_salary)}
+                    </td>
+
+
+                    <td class="payroll-money">
+                        ${money(row.gross_salary)}
+                    </td>
+
+
+                    <td class="payroll-money">
+                        ${money(
+                            row.total_deductions ??
+                            row.deductions
+                        )}
+                    </td>
+
+
+                    <td class="payroll-money payroll-net">
+                        ${money(row.net_salary)}
+                    </td>
+
+
+                    <td>
+                        ${statusBadge(row.paid_status)}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(row.paid_at || "—")}
+                    </td>
+
+
+                    <td>
+
+                        <div class="payroll-actions">
+
+                            <button
+                                type="button"
+                                class="payroll-icon-btn"
+                                title="View"
+                                onclick="window.PayrollUI.view(${Number(row.id)})"
+                            >
+                                <i class="fas fa-eye"></i>
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="payroll-icon-btn"
+                                title="Payslip"
+                                onclick="window.PayrollUI.payslip(${Number(row.id)})"
+                            >
+                                <i class="fas fa-file-invoice"></i>
+                            </button>
+
+
+                            <button
+                                type="button"
+                                class="payroll-icon-btn"
+                                title="Download PDF"
+                                onclick="window.PayrollUI.pdf(${Number(row.id)})"
+                            >
+                                <i class="fas fa-download"></i>
+                            </button>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+            `).join("");
+
+    }
+
+
+    function monthName(month) {
+
+        const names = [
+            "",
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December"
+        ];
+
+        return names[
+            Number(month)
+        ] || "";
+
+    }
+
+
+    /* ============================================================
+       PAYSLIP
+       ============================================================ */
+
+    async function openPayslip(id) {
+
+        try {
+
+            const data =
+                await fetchJSON(
+                    API.payslip(id),
+                    {
+                        method: "GET",
+                        headers: {}
+                    }
+                );
+
+
+            selectedPayroll = data;
+
+
+            document.getElementById(
+                "detailModalSubtitle"
+            ).textContent =
+                `Payslip · ${data.month_label || ""} ${data.year || ""}`;
+
+
+            document.getElementById(
+                "payrollDetailBody"
+            ).innerHTML =
+                buildPayslipView(data, id);
+
+
+            document.getElementById(
+                "detailEditBtn"
+            ).style.display =
+                "none";
+
+
+            document.getElementById(
+                "detailPayBtn"
+            ).style.display =
+                "none";
+
+
+            document.getElementById(
+                "detailRecalculateBtn"
+            ).style.display =
+                "none";
+
+
+            openModal(
+                "payrollDetailModal"
+            );
+
+        } catch (error) {
+
+            toast(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    function buildPayslipView(
+        data,
+        id
+    ) {
+
+        const earnings =
+            data.earnings_items ||
+            data.earnings ||
+            [];
+
+
+        const deductions =
+            data.deductions_items ||
+            data.deductions_list ||
+            [];
+
+
+        return `
+            <div
+                style="
+                    text-align:center;
+                    margin-bottom:20px;
+                "
+            >
+
+                <div
+                    style="
+                        font-size:19px;
+                        font-weight:700;
+                        color:var(--hr-text,#111827);
+                    "
+                >
+                    ${escapeHtml(data.hotel_name || "Payslip")}
+                </div>
+
+                ${
+                    data.hotel_address
+                        ? `
+                            <div
+                                style="
+                                    color:var(--hr-muted,#6b7280);
+                                    font-size:11px;
+                                    margin-top:3px;
+                                "
+                            >
+                                ${escapeHtml(data.hotel_address)}
+                            </div>
+                        `
+                        : ""
+                }
+
+                <div
+                    style="
+                        margin-top:10px;
+                        font-weight:600;
+                    "
+                >
+                    Salary Slip —
+                    ${escapeHtml(data.month_label || "")}
+                    ${escapeHtml(data.year || "")}
+                </div>
+
+            </div>
+
+
+            <div class="payroll-profile-strip">
+
+                <div class="payroll-profile-left">
+
+                    <div class="payroll-avatar">
+                        ${escapeHtml(initial(data.staff))}
+                    </div>
+
+                    <div>
+
+                        <div class="payroll-employee-name">
+                            ${escapeHtml(data.staff || "")}
+                        </div>
+
+                        <div class="payroll-employee-id">
+                            ${escapeHtml(data.employee_id || "")}
+                            ·
+                            ${escapeHtml(data.department || "—")}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                ${statusBadge(data.paid_status)}
+
+            </div>
+
+
+            <div class="payroll-two-col">
+
+                <div>
+
+                    <div class="payroll-section-title">
+                        Earnings
+                    </div>
+
+                    ${buildBreakdown(
+                        earnings,
+                        data.gross_salary ||
+                        data.total_earnings ||
+                        0,
+                        "Gross Earnings"
+                    )}
+
+                </div>
+
+
+                <div>
+
+                    <div class="payroll-section-title">
+                        Deductions
+                    </div>
+
+                    ${buildBreakdown(
+                        deductions,
+                        data.total_deductions || 0,
+                        "Total Deductions"
+                    )}
+
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top:18px;
+                    padding:16px;
+                    border-radius:10px;
+                    background:var(--hr-soft,#f8fafc);
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    gap:15px;
+                "
+            >
+
+                <div>
+
+                    <div class="payroll-detail-label">
+                        Net Salary
+                    </div>
+
+                    <div
+                        style="
+                            font-size:23px;
+                            font-weight:750;
+                            color:#059669;
+                        "
+                    >
+                        ${money(data.net_salary)}
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="payroll-btn payroll-btn-primary"
+                    onclick="window.PayrollUI.pdf(${Number(id)})"
+                >
+                    <i class="fas fa-download"></i>
+                    Download PDF
+                </button>
+
+            </div>
+        `;
+
+    }
+
+
+    function downloadPdf(id) {
+
+        window.open(
+            API.pdf(id),
+            "_blank"
+        );
+
+    }
+
+
+    /* ============================================================
+       EXPORT
+       ============================================================ */
+
+    exportPayrollBtn.addEventListener(
+        "click",
+        function () {
+
+            const month =
+                monthSelect.value;
+
+            const year =
+                yearSelect.value;
+
+
+            window.location.href =
+                `${API.exportCsv}?month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`;
+
+        }
+    );
+
+
+    /* ============================================================
+       EVENTS
+       ============================================================ */
+
+    monthSelect.addEventListener(
+        "change",
+        loadPayroll
+    );
+
+
+    yearSelect.addEventListener(
+        "change",
+        loadPayroll
+    );
+
+
+    historyEmployeeFilter.addEventListener(
+        "change",
+        function () {
+
+            if (
+                currentView === "history"
+            ) {
+                loadHistoryView();
+            }
+
+        }
+    );
+
+
+    searchInput.addEventListener(
+        "input",
+        function () {
+
+            if (
+                currentView === "history"
+            ) {
+
+                renderHistoryTable(
+                    currentHistoryRows
+                );
+
+            } else {
+
+                renderPayrollTable();
+
+            }
+
+        }
+    );
+
+
+    refreshPayrollBtn.addEventListener(
+        "click",
+        async function () {
+
+            setButtonLoading(
+                this,
+                true,
+                "Refreshing..."
+            );
+
+            await loadPayroll();
+
+            setButtonLoading(
+                this,
+                false
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "detailEditBtn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            if (!selectedPayroll?.id) {
+                return;
+            }
+
+            closeModal(
+                "payrollDetailModal"
+            );
+
+            editPayroll(
+                selectedPayroll.id
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "detailPayBtn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            if (!selectedPayroll?.id) {
+                return;
+            }
+
+            closeModal(
+                "payrollDetailModal"
+            );
+
+            openPayment(
+                selectedPayroll.id
+            );
+
+        }
+    );
+
+
+    document.getElementById(
+        "detailRecalculateBtn"
+    ).addEventListener(
+        "click",
+        function () {
+
+            if (!selectedPayroll?.id) {
+                return;
+            }
+
+            recalculatePayroll(
+                selectedPayroll.id
+            );
+
+        }
+    );
+
+
+    /* ============================================================
+       GLOBAL ACTIONS
+       ============================================================ */
+
+    window.PayrollUI = {
+
+        view: viewPayroll,
+
+        edit: editPayroll,
+
+        pay: openPayment,
+
+        payslip: openPayslip,
+
+        pdf: downloadPdf
+
+    };
+
+
+    /* ============================================================
+       START
+       ============================================================ */
+
+    applyView();
+
+    loadPayroll();
+
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,462 @@
+{% extends "accountant/base.html" %}
+
+{% block title %}My Shift | Hotel ERP{% endblock %}
+
+{% block extra_css %}
+
+<style>
+
+.shift-page {
+    padding: 24px;
+}
+
+.shift-hero {
+    padding: 24px;
+    margin-bottom: 20px;
+
+    border-radius: 16px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7628ef,
+            #2d326b
+        );
+
+    color: #fff;
+}
+
+.shift-hero h1 {
+    margin: 0 0 5px;
+    font-size: 22px;
+}
+
+.shift-hero p {
+    margin: 0;
+    opacity: .82;
+}
+
+.work-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    padding: 8px;
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 12px;
+
+    background: var(--acc-card);
+}
+
+.work-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 10px 14px;
+
+    border-radius: 9px;
+
+    color: var(--acc-muted);
+
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.work-tab.active {
+    background: var(--acc-primary);
+    color: #fff;
+}
+
+.shift-current {
+    display: grid;
+    grid-template-columns: 1fr auto;
+
+    gap: 20px;
+
+    padding: 20px;
+    margin-bottom: 20px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 14px;
+
+    background: var(--acc-card);
+}
+
+.shift-current-label {
+    color: var(--acc-muted);
+    font-size: 12px;
+}
+
+.shift-current h2 {
+    margin: 5px 0;
+
+    color: var(--acc-text);
+}
+
+.shift-type {
+    display: inline-flex;
+
+    padding: 6px 10px;
+
+    border-radius: 999px;
+
+    background: var(--acc-primary-soft);
+    color: var(--acc-primary);
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.week-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 15px;
+}
+
+.week-nav h2 {
+    margin: 0;
+
+    color: var(--acc-text);
+    font-size: 16px;
+}
+
+.week-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 9px 12px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 8px;
+
+    background: var(--acc-card);
+    color: var(--acc-text);
+
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.week-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(7, minmax(0,1fr));
+
+    gap: 12px;
+}
+
+.day-card {
+    min-height: 190px;
+
+    padding: 15px;
+
+    border: 1px solid var(--acc-border);
+    border-radius: 13px;
+
+    background: var(--acc-card);
+}
+
+.day-card.today {
+    border-color: var(--acc-primary);
+
+    box-shadow:
+        0 0 0 2px
+        var(--acc-primary-soft);
+}
+
+.day-name {
+    color: var(--acc-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+.day-date {
+    margin: 4px 0 16px;
+
+    color: var(--acc-text);
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.shift-name {
+    margin-bottom: 10px;
+
+    color: var(--acc-text);
+
+    font-weight: 700;
+}
+
+.shift-time {
+    color: var(--acc-muted);
+
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.no-shift {
+    padding-top: 25px;
+
+    color: var(--acc-muted);
+
+    text-align: center;
+    font-size: 12px;
+}
+
+@media(max-width:1100px) {
+
+    .week-grid {
+        grid-template-columns:
+            repeat(4,1fr);
+    }
+
+}
+
+@media(max-width:700px) {
+
+    .shift-page {
+        padding: 15px;
+    }
+
+    .week-grid {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+}
+
+@media(max-width:450px) {
+
+    .week-grid {
+        grid-template-columns:1fr;
+    }
+
+}
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="shift-page">
+
+    <section class="shift-hero">
+
+        <h1>
+            <i class="fa-solid fa-clock"></i>
+            My Shift
+        </h1>
+
+        <p>
+            View your assigned shifts and weekly schedule.
+        </p>
+
+    </section>
+
+
+    <nav class="work-tabs">
+
+        <a
+            href="{% url 'accountant_my_attendance' %}"
+            class="work-tab"
+        >
+            <i class="fa-solid fa-calendar-check"></i>
+            Attendance
+        </a>
+
+        <a
+            href="{% url 'accountant_my_shift' %}"
+            class="work-tab active"
+        >
+            <i class="fa-solid fa-clock"></i>
+            My Shift
+        </a>
+
+        <a
+            href="{% url 'accountant_my_leave' %}"
+            class="work-tab"
+        >
+            <i class="fa-solid fa-calendar-minus"></i>
+            Leave
+        </a>
+
+    </nav>
+
+
+    <section class="shift-current">
+
+        <div>
+
+            <span class="shift-current-label">
+                TODAY • {{ today|date:"d M Y" }}
+            </span>
+
+            {% if today_shift %}
+
+                <h2>
+                    {% if today_shift.shift == "Custom" and today_shift.custom_name %}
+                        {{ today_shift.custom_name }}
+                    {% else %}
+                        {{ today_shift.shift }} Shift
+                    {% endif %}
+                </h2>
+
+                {% if today_shift.department %}
+
+                    <span class="shift-current-label">
+                        {{ today_shift.department.name }}
+                    </span>
+
+                {% endif %}
+
+            {% else %}
+
+                <h2>No shift assigned today</h2>
+
+            {% endif %}
+
+        </div>
+
+
+        {% if today_shift %}
+
+            <span class="shift-type">
+                {{ today_shift.shift }}
+            </span>
+
+        {% endif %}
+
+    </section>
+
+
+    <div class="week-nav">
+
+        <a
+            href="?start_date={{ previous_week|date:'Y-m-d' }}"
+            class="week-btn"
+        >
+            <i class="fa-solid fa-chevron-left"></i>
+            Previous
+        </a>
+
+
+        <h2>
+            {{ start_date|date:"d M" }}
+            —
+            {{ end_date|date:"d M Y" }}
+        </h2>
+
+
+        <a
+            href="?start_date={{ next_week|date:'Y-m-d' }}"
+            class="week-btn"
+        >
+            Next
+            <i class="fa-solid fa-chevron-right"></i>
+        </a>
+
+    </div>
+
+
+    <section class="week-grid">
+
+        {% for day in week_days %}
+
+            <article
+                class="day-card {% if day.is_today %}today{% endif %}"
+            >
+
+                <div class="day-name">
+                    {{ day.date|date:"D" }}
+                </div>
+
+                <div class="day-date">
+                    {{ day.date|date:"d" }}
+                </div>
+
+
+                {% if day.shift %}
+
+                    <div class="shift-name">
+                        {{ day.shift_name }}
+                    </div>
+
+
+                    <div class="shift-time">
+
+                        <div>
+                            <i class="fa-regular fa-clock"></i>
+
+                            {% if day.start_time %}
+                                {{ day.start_time|time:"h:i A" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            to
+                        </div>
+
+                        <div>
+                            <i class="fa-regular fa-clock"></i>
+
+                            {% if day.end_time %}
+                                {{ day.end_time|time:"h:i A" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+
+
+                        {% if day.shift.department %}
+
+                            <div style="margin-top:8px;">
+
+                                <i class="fa-solid fa-building"></i>
+
+                                {{ day.shift.department.name }}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="no-shift">
+
+                        <i class="fa-regular fa-calendar"></i>
+
+                        <div>
+                            No shift
+                        </div>
+
+                    </div>
+
+                {% endif %}
+
+            </article>
+
+        {% endfor %}
+
+    </section>
+
+</div>
+
+{% endblock %}
