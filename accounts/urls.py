@@ -97,7 +97,38 @@ path('plan/<int:plan_id>/set-expiry/', set_plan_expiry,    name='set_plan_expiry
 path('staff/<int:staff_id>/register-face/', register_staff_face, name='register_staff_face'),
 path('register/verify-otp/', verify_hotel_otp, name='verify_hotel_otp'),
 path('register/resend-otp/', resend_hotel_otp, name='resend_hotel_otp'),
+path('staff/', staff_directory_page, name='staff_directory_page'),
+path(
+    "staff/<int:staff_id>/details/",
+    staff_details_page,
+    name="staff_details_page",
+),
+path(
+    "staff/add/",
+    add_staff_page,
+    name="add_staff_page",
+),
+ path(
+        "departments/",
+        department_page,
+        name="department_page",
+    ),
 
+    path(
+        "departments/delete/<int:department_id>/",
+        delete_department,
+        name="delete_department",
+    ),
+
+    path('hotel-details/', hotel_details_page, name='hotel_details_page'),
+    path("rooms/add/", add_room_page, name="add_room_page"),
+    path("rooms/view/", view_rooms_page, name="view_rooms_page"),
+     path("rooms/<int:room_id>/edit/", edit_room_view, name="edit_room"),
+    path("rooms/<int:room_id>/delete/", delete_room_view, name="delete_room"),
+    path('room-amenities/add/', add_room_amenity, name='add_room_amenity'),
+    path('subscription/', subscription_page, name='subscription_page'),
+    path('subscription/checkout/<uuid:plan_uuid>/', subscription_checkout, name='subscription_checkout'),
+path("api/staff/<int:staff_id>/register-face/", register_staff_face, name="register_staff_face"),
     # forgot password
 
     

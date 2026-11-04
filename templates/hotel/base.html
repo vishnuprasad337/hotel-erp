@@ -4,6 +4,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ══════════ EARLY ACCENT (runs before first paint → no purple flash) ══════════ -->
+  <script>
+  (function(){
+    try{
+      var c = localStorage.getItem('admio_accent_color');
+      if(c && /^#[0-9a-f]{6}$/i.test(c)){
+        var n=parseInt(c.slice(1),16), s=document.documentElement.style;
+        s.setProperty('--admio-accent', c);
+        s.setProperty('--admio-accent-rgb', (n>>16&255)+', '+(n>>8&255)+', '+(n&255));
+        if(c.toLowerCase()!=='#7c3aed'){
+          s.visibility='hidden';                                                 // hidden until recolor finishes
+          window.__admioReveal=setTimeout(function(){s.visibility='';},1500);    // failsafe
+        }
+      }
+    }catch(e){}
+  })();
+  </script>
+
   <title>{% block title %}Admio - Admin Dashboard{% endblock %}</title>
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'admin-static/assets/img/favicon.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,49 +74,64 @@
     /* ══════════════════════════════════════
        LAYOUT SHELL: sidebar + topbar + main
        ══════════════════════════════════════ */
-    :root { --h-sidebar-w: 268px; }
+    :root {
+      --h-sidebar-w: 268px;
+      /* One height shared by the topbar AND the sidebar logo section,
+         so their bottom borders always line up. */
+      --h-topbar-h: 118px;
 
-    html, body { height: 100%; }
-    body { display: flex; }
+      /* ─── DASHBOARD ACCENT COLOR (theme-able) ───
+         Changed at runtime by the "Dashboard Color" modal. Child pages
+         are repainted automatically by the script near </body>. */
+      --admio-accent: #7C3AED;
+      --admio-accent-rgb: 124, 58, 237;
+      --admio-accent-dark: #a78bfa;
+    }
+
+    html { height: 100%; overflow-x: hidden; }
+    body { display: flex; min-height: 100vh; overflow-x: hidden; max-width: 100vw; }
+    *, *::before, *::after { box-sizing: border-box; }
 
     /* ─── SIDEBAR ─── */
     .h-sidebar {
-      position: fixed;
-      top: 0; left: 0;
-      width: var(--h-sidebar-w);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
+      position: fixed; top: 0; left: 0;
+      width: var(--h-sidebar-w); height: 100vh;
+      display: flex; flex-direction: column;
       background: var(--admio-sidebar-bg, #fff);
       border-right: 1px solid var(--admio-border-color, #e5e7eb);
       z-index: 10001;
       transition: transform .25s ease;
     }
+
     .h-sidebar-brand {
-      display: flex; align-items: center; gap: 12px;
-      padding: 18px 20px;
+      display: flex; align-items: center; gap: 16px;
+      height: var(--h-topbar-h);
+      padding: 0 22px;
+      box-sizing: border-box;
       border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
-      text-decoration: none; flex-shrink: 0;
+      text-decoration: none;
+      flex-shrink: 0;
     }
     .h-sidebar-brand img {
-      width: 54px; height: 54px; object-fit: cover; border-radius: 12px; flex-shrink: 0;
+      width: 78px; height: 78px; object-fit: cover; border-radius: 16px; flex-shrink: 0;
       border: 1px solid var(--admio-border-color, #e5e7eb);
     }
     .h-sidebar-brand-text {
-      font-size: 1.35rem; font-weight: 800; color: var(--admio-heading-color, #111);
+      flex: 1; min-width: 0;
+      font-size: 1.4rem; font-weight: 800; color: var(--admio-heading-color, #111);
       line-height: 1.2;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      word-break: break-word;
     }
-    .h-sidebar-brand-text span { color: #7C3AED; }
+    .h-sidebar-brand-text span { color: var(--admio-accent); }
 
-    .h-sidebar-nav {
-      flex: 1; overflow-y: auto;
-      padding: 14px 14px 24px;
-    }
+    .h-sidebar-nav { flex: 1; overflow-y: auto; padding: 14px 14px 24px; }
     .h-sidebar-nav::-webkit-scrollbar { width: 5px; }
-    .h-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(124,58,237,.25); border-radius: 10px; }
+    .h-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(var(--admio-accent-rgb),.25); border-radius: 10px; }
 
-    /* Direct links (no submenu) */
     .h-side-direct {
       display: flex; align-items: center; gap: 12px;
       padding: 11px 14px; border-radius: 10px;
@@ -107,9 +141,8 @@
       transition: background .15s, color .15s;
     }
     .h-side-direct i { font-size: 18px; width: 20px; text-align: center; }
-    .h-side-direct:hover, .h-side-direct.active { background: rgba(124,58,237,.09); color: #7C3AED; }
+    .h-side-direct:hover, .h-side-direct.active { background: rgba(var(--admio-accent-rgb),.09); color: var(--admio-accent); }
 
-    /* Collapsible sections */
     .h-side-section { margin-bottom: 3px; }
     .h-side-section-toggle {
       width: 100%; display: flex; align-items: center; justify-content: space-between;
@@ -117,12 +150,13 @@
       font-size: 15.5px; font-weight: 600; color: var(--admio-nav-color, #6b7280);
       cursor: pointer; text-align: left; transition: background .15s, color .15s;
     }
-    .h-side-section-toggle:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-side-section-toggle:hover { background: rgba(var(--admio-accent-rgb),.08); color: var(--admio-accent); }
     .h-side-section-toggle .left { display: flex; align-items: center; gap: 12px; }
     .h-side-section-toggle .left i.h-side-ico { font-size: 18px; width: 20px; text-align: center; }
     .h-side-arrow { font-size: 11px; transition: transform .2s; flex-shrink: 0; }
     .h-side-section.open .h-side-arrow { transform: rotate(180deg); }
-    .h-side-section.open > .h-side-section-toggle { color: #7C3AED; }
+    .h-side-section.open > .h-side-section-toggle { color: var(--admio-accent); }
+    .h-side-section.active-parent > .h-side-section-toggle { color: var(--admio-accent); }
 
     .h-side-sub {
       display: none; flex-direction: column;
@@ -136,722 +170,332 @@
       font-size: 14.5px; color: var(--admio-nav-color, #6b7280);
       text-decoration: none; transition: background .12s, color .12s;
     }
-    .h-side-sub a:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-side-sub a:hover { background: rgba(var(--admio-accent-rgb),.08); color: var(--admio-accent); }
     .h-side-sub a i { font-size: 15px; width: 18px; }
 
-    /* Sidebar overlay (mobile) */
     .h-sidebar-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(15,15,25,.45);
-      z-index: 10000;
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,15,25,.45); z-index: 10000;
     }
     .h-sidebar-overlay.open { display: block; }
-/* ═══════════════════════════════════════════════════════════════
-   TOPBAR
-═══════════════════════════════════════════════════════════════ */
 
+/* ═══════════ TOPBAR ═══════════ */
 .h-navbar-top {
-    position: sticky;
-    top: 0;
-    z-index: 9999;
-
-    width: 100%;
-    height: 118px;
-
-    display: flex;
-    align-items: center;
-
-    padding: 0 32px;
-
-    /*
-       IMPORTANT:
-       Space between AI, search and right controls
-    */
-    gap: 28px;
-
+    position: sticky; top: 0; z-index: 9999;
+    width: 100%; height: var(--h-topbar-h);
+    display: flex; align-items: center;
+    padding: 0 32px; gap: 28px;
     background: var(--admio-sidebar-bg, #fff);
-
-    /*
-       ONLY THE TOPBAR HAS THIS BORDER
-    */
-    border-bottom: 1px solid #e5e7eb;
-
+    border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
     box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
-
-    box-sizing: border-box;
-
-    overflow: visible;
+    box-sizing: border-box; overflow: visible;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   AI PILL
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ AI PILL ═══════════ */
 .h-ai-pill {
-    width: auto;
-    min-width: max-content;
-
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-
-    gap: 7px;
-
-    padding: 0 16px;
-
-    margin: 0 !important;
-
+    width: auto; min-width: max-content; height: 44px;
+    display: flex; align-items: center; gap: 7px;
+    padding: 0 16px; margin: 0 !important;
     border-radius: 22px;
-
-    background: rgba(124, 58, 237, .09);
-
-    color: #7C3AED;
-
-    font-size: 14px;
-    font-weight: 600;
-
-    flex: 0 0 auto;
+    background: rgba(var(--admio-accent-rgb), .09);
+    color: var(--admio-accent);
+    font-size: 14px; font-weight: 600; flex: 0 0 auto;
 }
+.h-ai-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse-g 1.5s infinite; }
+@keyframes pulse-g { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
-
-.h-ai-dot {
-    width: 8px;
-    height: 8px;
-
-    border-radius: 50%;
-
-    background: #22c55e;
-
-    animation: pulse-g 1.5s infinite;
-}
-
-
-@keyframes pulse-g {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: .35;
-    }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   SEARCH
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ SEARCH ═══════════ */
 .h-topbar-search {
-    position: relative;
-
-    display: flex;
-    align-items: center;
-
-    /*
-       FIXED SEARCH SIZE
-    */
-    width: 650px !important;
-    min-width: 650px !important;
-    max-width: 650px !important;
-
-    height: 52px;
-
-    margin: 0 !important;
-
-    /*
-       DO NOT LET FLEX GROW
-    */
-    flex: 0 0 650px !important;
-
-    box-sizing: border-box;
+    position: relative; display: flex; align-items: center;
+    width: 650px !important; min-width: 650px !important; max-width: 650px !important;
+    height: 52px; margin: 0 !important;
+    flex: 0 0 650px !important; box-sizing: border-box;
 }
-
-
-/* Search icon */
-
 .h-topbar-search .search-icon {
-    position: absolute;
-
-    left: 17px;
-    top: 50%;
-
-    transform: translateY(-50%);
-
-    color: #9ca3af;
-
-    font-size: 18px;
-
-    pointer-events: none;
-
-    z-index: 5;
+    position: absolute; left: 17px; top: 50%; transform: translateY(-50%);
+    color: #9ca3af; font-size: 18px; pointer-events: none; z-index: 5;
 }
-
-
-/* Search input */
-
 .h-topbar-search .search-input {
-    display: block;
-
-    width: 100% !important;
-    min-width: 0 !important;
-
-    height: 52px !important;
-    max-height: 52px !important;
-
-    margin: 0 !important;
-
-    padding: 0 20px 0 48px !important;
-
-    /*
-       SEARCH HAS ITS OWN BORDER
-    */
-    border: 1.5px solid #d8dae0 !important;
-
-    border-radius: 14px !important;
-
-    background: #f9fafb;
-
-    color: #374151;
-
-    font-size: 15px;
-
-    outline: none;
-
+    display: block; width: 100% !important; min-width: 0 !important;
+    height: 52px !important; max-height: 52px !important;
+    margin: 0 !important; padding: 0 20px 0 48px !important;
+    border: 1.5px solid #d8dae0 !important; border-radius: 14px !important;
+    background: #f9fafb; color: #374151; font-size: 15px; outline: none;
     box-sizing: border-box !important;
-
-    transition:
-        border-color .15s ease,
-        box-shadow .15s ease,
-        background .15s ease;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-
-
-.h-topbar-search .search-input::placeholder {
-    color: #9ca3af;
-}
-
-
+.h-topbar-search .search-input::placeholder { color: #9ca3af; }
 .h-topbar-search .search-input:focus {
-    border-color: #7C3AED !important;
-
+    border-color: var(--admio-accent) !important;
     background: #fff;
-
-    box-shadow:
-        0 0 0 4px rgba(124, 58, 237, .12);
+    box-shadow: 0 0 0 4px rgba(var(--admio-accent-rgb), .12);
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   RIGHT ACTIONS
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ RIGHT ACTIONS ═══════════ */
 .h-topbar-actions {
-    height: 52px;
-
-    display: flex;
-    align-items: center;
-
-    gap: 6px;
-
-    margin-left: auto !important;
-
-    flex: 0 0 auto !important;
-
-    box-sizing: border-box;
+    height: 52px; display: flex; align-items: center; gap: 6px;
+    margin-left: auto !important; flex: 0 0 auto !important; box-sizing: border-box;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   LANGUAGE
-   NOTE: HTML uses .lang-switcher, NOT .h-language-selector
-═══════════════════════════════════════════════════════════════ */
-
-.lang-switcher {
-    position: relative;
-
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-
-    flex: 0 0 auto;
+/* ═══════════ SEND EMAIL BUTTON (next to the language flag) ═══════════ */
+.h-email-btn {
+    height: 44px; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 0 13px;
+    border: 1px solid rgba(var(--admio-accent-rgb), .28);
+    border-radius: 10px;
+    background: rgba(var(--admio-accent-rgb), .09);
+    color: var(--admio-accent);
+    font: inherit; font-size: 15px; font-weight: 600;
+    cursor: pointer; box-sizing: border-box;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
+.h-email-btn:hover {
+    background: var(--admio-accent);
+    border-color: var(--admio-accent);
+    color: #fff;
+}
+.h-email-btn svg { flex-shrink: 0; }
+.h-email-label { display: none; white-space: nowrap; }
+@media (min-width: 1400px) { .h-email-label { display: inline; } }
 
-
+/* ═══════════ LANGUAGE (HTML uses .lang-switcher) ═══════════ */
+.lang-switcher { position: relative; height: 44px; display: flex; align-items: center; flex: 0 0 auto; }
 .lang-btn {
-    width: auto !important;
-    min-width: 78px;
-
-    height: 44px !important;
-
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-
-    gap: 7px;
-
-    padding: 0 10px !important;
-
-    background: transparent;
-
-    border: 1px solid transparent !important;
-
-    border-radius: 10px;
-
-    color: #374151;
-
-    cursor: pointer;
-
-    box-sizing: border-box;
+    width: auto !important; min-width: 78px; height: 44px !important;
+    display: flex !important; align-items: center; justify-content: center;
+    gap: 7px; padding: 0 10px !important;
+    background: transparent; border: 1px solid transparent !important;
+    border-radius: 10px; color: #374151; cursor: pointer; box-sizing: border-box;
 }
+.lang-btn:hover { background: rgba(var(--admio-accent-rgb), .06); border-color: #e5e7eb !important; }
+.lang-flag-btn { width: 22px; height: 16px; object-fit: cover; flex-shrink: 0; }
+.lang-label { font-size: 15px; font-weight: 600; }
+.lang-arrow { font-size: 11px; margin-left: 2px; }
 
+/* ═══════════ DIVIDERS ═══════════ */
+.h-topbar-divider { width: 1px; height: 30px; margin: 0 5px; background: #e1e3e8; flex: 0 0 1px; }
 
-.lang-btn:hover {
-    background: rgba(124, 58, 237, .06);
-
-    border-color: #e5e7eb !important;
-}
-
-
-.lang-flag-btn {
-    width: 22px;
-    height: 16px;
-
-    object-fit: cover;
-
-    flex-shrink: 0;
-}
-
-
-.lang-label {
-    font-size: 15px;
-    font-weight: 600;
-}
-
-
-.lang-arrow {
-    font-size: 11px;
-
-    margin-left: 2px;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   DIVIDERS
-═══════════════════════════════════════════════════════════════ */
-
-.h-topbar-divider {
-    width: 1px;
-    height: 30px;
-
-    margin: 0 5px;
-
-    background: #e1e3e8;
-
-    flex: 0 0 1px;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   TOPBAR BUTTONS
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ TOPBAR BUTTONS ═══════════ */
 .topbar-btn {
-    width: 44px !important;
-    height: 44px !important;
-
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-
-    padding: 0 !important;
-
-    background: transparent;
-
-    border: 1px solid transparent !important;
-
-    border-radius: 10px;
-
-    cursor: pointer;
-
-    color: #374151;
-
-    box-sizing: border-box;
-
-    transition:
-        background .15s ease,
-        border-color .15s ease,
-        color .15s ease;
+    width: 44px !important; height: 44px !important;
+    display: flex !important; align-items: center; justify-content: center;
+    padding: 0 !important; background: transparent;
+    border: 1px solid transparent !important; border-radius: 10px;
+    cursor: pointer; color: #374151; box-sizing: border-box;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-
-
 .topbar-btn:hover {
-    background: rgba(124, 58, 237, .06);
-
-    border-color: #e5e7eb !important;
-
-    color: #7C3AED;
+    background: rgba(var(--admio-accent-rgb), .06);
+    border-color: #e5e7eb !important; color: var(--admio-accent);
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   NOTIFICATION
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ NOTIFICATION ═══════════ */
 .topbar-btn-notification {
-    position: relative;
-
-    width: 44px;
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 44px;
+    position: relative; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 44px;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   USER
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ USER ═══════════ */
 .topbar-user {
-    position: relative;
-
-    width: 44px;
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 44px;
-
-    cursor: pointer;
+    position: relative; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 44px; cursor: pointer;
 }
+.topbar-user-avatar { width: 36px !important; height: 36px !important; display: flex; align-items: center; justify-content: center; }
 
-
-.topbar-user-avatar {
-    width: 36px !important;
-    height: 36px !important;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   HAMBURGER
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ HAMBURGER ═══════════ */
 .h-menu-toggle {
-    display: none;
-
-    width: 44px;
-    height: 44px;
-
-    align-items: center;
-    justify-content: center;
-
-    padding: 0;
-
-    border: none;
-
-    background: transparent;
-
-    border-radius: 9px;
-
-    cursor: pointer;
-
-    color: #374151;
-
-    flex: 0 0 44px;
+    display: none; width: 44px; height: 44px;
+    align-items: center; justify-content: center;
+    padding: 0; border: none; background: transparent;
+    border-radius: 9px; cursor: pointer; color: #374151; flex: 0 0 44px;
 }
+.h-menu-toggle:hover { background: rgba(var(--admio-accent-rgb), .09); color: var(--admio-accent); }
 
-
-.h-menu-toggle:hover {
-    background: rgba(124, 58, 237, .09);
-
-    color: #7C3AED;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   MAIN AREA
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ MAIN AREA ═══════════ */
 .admio-main {
     margin-left: var(--h-sidebar-w);
-
     width: calc(100% - var(--h-sidebar-w));
-
-    padding-top: 0 !important;
-
-    box-sizing: border-box;
+    max-width: 100%; min-width: 0; overflow-x: hidden;
+    padding-top: 0 !important; box-sizing: border-box;
 }
 
+/* ═══════════ 1399px (search gets narrower so the new Send Email button fits) ═══════════ */
+@media (max-width: 1399px) {
+    .h-topbar-search { width: 480px !important; min-width: 480px !important; max-width: 480px !important; flex: 0 0 480px !important; }
+}
 
-/* ═══════════════════════════════════════════════════════════════
-   1199px
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ 1199px ═══════════ */
 @media (max-width: 1199px) {
-
-    .admio-content {
-        padding: 28px 24px;
-    }
-
-    .h-topbar-search {
-        width: 520px !important;
-        min-width: 520px !important;
-        max-width: 520px !important;
-
-        flex: 0 0 520px !important;
-    }
+    .admio-content { padding: 28px 24px; }
+    .h-topbar-search { width: 380px !important; min-width: 380px !important; max-width: 380px !important; flex: 0 0 380px !important; }
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   991px
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ 991px ═══════════ */
 @media (max-width: 991px) {
-
-    .admio-content {
-        padding: 24px 20px;
-    }
-
-    .chart-h-lg {
-        min-height: 320px !important;
-    }
-
-    .h-menu-toggle {
-        display: flex;
-    }
-
-    .h-sidebar {
-        transform: translateX(-100%);
-
-        box-shadow: 0 0 40px rgba(0, 0, 0, .15);
-    }
-
-    .h-sidebar.open {
-        transform: translateX(0);
-    }
-
-    .admio-main {
-        margin-left: 0;
-
-        width: 100%;
-    }
-
-    .h-navbar-top {
-        height: 100px;
-
-        padding: 0 24px;
-
-        gap: 18px;
-    }
-
-    .h-topbar-search {
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-
-        flex: 1 1 auto !important;
-    }
+    :root { --h-topbar-h: 102px; }
+    .admio-content { padding: 24px 20px; }
+    .chart-h-lg { min-height: 320px !important; }
+    .h-menu-toggle { display: flex; }
+    .h-sidebar { transform: translateX(-100%); box-shadow: 0 0 40px rgba(0, 0, 0, .15); }
+    .h-sidebar.open { transform: translateX(0); }
+    .admio-main { margin-left: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
+    .h-navbar-top { padding: 0 24px; gap: 18px; }
+    .h-topbar-search { width: auto !important; min-width: 0 !important; max-width: none !important; flex: 1 1 auto !important; }
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   767px
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ 767px ═══════════ */
 @media (max-width: 767px) {
-
-    .h-navbar-top {
-        height: 82px;
-
-        padding: 0 14px;
-
-        gap: 10px;
-    }
-
-    .h-ai-pill {
-        height: 40px;
-
-        padding: 0 12px;
-
-        font-size: 13px;
-    }
-
-    .h-topbar-search {
-        height: 46px;
-
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: 220px !important;
-
-        flex: 1 1 auto !important;
-    }
-
-    .h-topbar-search .search-input {
-        height: 46px !important;
-
-        padding: 0 16px 0 40px !important;
-
-        font-size: 14px;
-
-        border-radius: 12px !important;
-    }
-
-    .h-topbar-search .search-icon {
-        left: 13px;
-
-        font-size: 15px;
-    }
-
-    .h-sidebar-brand {
-        height: 82px;
-    }
-
-    .admio-content {
-        padding: 18px 16px;
-    }
-
-    .page-title {
-        font-size: 1.6rem !important;
-    }
-
-    .stat-value {
-        font-size: 1.9rem !important;
-    }
-
-    .chart-h-lg {
-        min-height: 280px !important;
-    }
-
-    .chart-h-sm {
-        min-height: 200px !important;
-    }
+    :root { --h-topbar-h: 88px; }
+    .h-navbar-top { padding: 0 14px; gap: 10px; }
+    .h-ai-pill { height: 40px; padding: 0 12px; font-size: 13px; }
+    .h-topbar-search { height: 46px; width: auto !important; min-width: 0 !important; max-width: 220px !important; flex: 1 1 auto !important; }
+    .h-topbar-search .search-input { height: 46px !important; padding: 0 16px 0 40px !important; font-size: 14px; border-radius: 12px !important; }
+    .h-topbar-search .search-icon { left: 13px; font-size: 15px; }
+    .h-sidebar-brand { padding: 0 18px; }
+    .h-sidebar-brand img { width: 64px; height: 64px; }
+    .admio-content { padding: 18px 16px; max-width: 100vw; overflow-x: hidden; }
+    .page-title { font-size: 1.6rem !important; }
+    .stat-value { font-size: 1.9rem !important; }
+    .chart-h-lg { min-height: 280px !important; }
+    .chart-h-sm { min-height: 200px !important; }
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   479px
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════ 479px ═══════════ */
 @media (max-width: 479px) {
-
-    .h-ai-pill {
-        display: none !important;
-    }
-
-    .h-topbar-search {
-        max-width: 150px !important;
-    }
-
-    .h-topbar-actions {
-        gap: 2px;
-    }
-
-    .topbar-btn {
-        width: 40px !important;
-        height: 40px !important;
-    }
-
-    .topbar-btn-notification {
-        width: 40px;
-        height: 40px;
-        flex-basis: 40px;
-    }
-
-    .topbar-user {
-        width: 40px;
-        height: 40px;
-        flex-basis: 40px;
-    }
-
-    .admio-content {
-        padding: 14px 12px;
-    }
-
-    .stat-value {
-        font-size: 1.65rem !important;
-    }
+    .h-ai-pill { display: none !important; }
+    .h-topbar-search { max-width: 150px !important; }
+    .h-topbar-actions { gap: 2px; }
+    .topbar-btn { width: 40px !important; height: 40px !important; }
+    .h-email-btn { width: 40px; height: 40px; padding: 0; }
+    .topbar-btn-notification { width: 40px; height: 40px; flex-basis: 40px; }
+    .topbar-user { width: 40px; height: 40px; flex-basis: 40px; }
+    .admio-content { padding: 14px 12px; }
+    .stat-value { font-size: 1.65rem !important; }
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   DARK THEME
-═══════════════════════════════════════════════════════════════ */
-
-[data-theme="dark"] .h-sidebar {
-    background: var(--admio-sidebar-bg, #1e1e2d);
-
-    border-color:
-        var(--admio-border-color, #2d2d3d);
-}
-
-
-[data-theme="dark"] .h-navbar-top {
-    background: var(--admio-sidebar-bg, #1e1e2d);
-
-    border-color:
-        var(--admio-border-color, #2d2d3d);
-}
-
-
-[data-theme="dark"] .h-topbar-search .search-input {
-    background: #252536;
-
-    border-color: #3a3a4c !important;
-
-    color: #f3f4f6;
-}
-
-
-[data-theme="dark"] .h-topbar-search .search-input:focus {
-    background: #1e1e2d;
-
-    border-color: #7C3AED !important;
-}
-
-
-[data-theme="dark"] .lang-btn {
-    color: #d1d5db;
-}
-
-
-[data-theme="dark"] .topbar-btn {
-    color: #d1d5db;
-}
-
-
+/* ═══════════ DARK THEME ═══════════ */
+[data-theme="dark"] .h-sidebar { background: var(--admio-sidebar-bg, #1e1e2d); border-color: var(--admio-border-color, #2d2d3d); }
+[data-theme="dark"] .h-sidebar-brand { border-color: var(--admio-border-color, #2d2d3d); }
+[data-theme="dark"] .h-navbar-top { background: var(--admio-sidebar-bg, #1e1e2d); border-color: var(--admio-border-color, #2d2d3d); }
+[data-theme="dark"] .h-topbar-search .search-input { background: #252536; border-color: #3a3a4c !important; color: #f3f4f6; }
+[data-theme="dark"] .h-topbar-search .search-input:focus { background: #1e1e2d; border-color: var(--admio-accent) !important; }
+[data-theme="dark"] .lang-btn { color: #d1d5db; }
+[data-theme="dark"] .topbar-btn { color: #d1d5db; }
 [data-theme="dark"] .topbar-btn:hover,
 [data-theme="dark"] .lang-btn:hover {
-    background: rgba(124, 58, 237, .12);
-
+    background: rgba(var(--admio-accent-rgb), .12);
     border-color: #3a3a4c !important;
-
-    color: #a78bfa;
+    color: var(--admio-accent-dark);
 }
-
-
+[data-theme="dark"] .h-email-btn { color: var(--admio-accent-dark); border-color: rgba(var(--admio-accent-rgb), .4); }
+[data-theme="dark"] .h-email-btn:hover { color: #fff; }
 [data-theme="dark"] .h-side-direct,
-[data-theme="dark"] .h-side-section-toggle {
-    color: #a1a1b5;
-}
+[data-theme="dark"] .h-side-section-toggle { color: #a1a1b5; }
+[data-theme="dark"] .h-side-sub a { color: #9b9bb5; }
 
+    /* ═══════════ DASHBOARD COLOR MODAL ═══════════ */
+    .theme-swatch {
+      width: 36px; height: 36px; border-radius: 10px; border: 2px solid transparent;
+      cursor: pointer; padding: 0; transition: transform .12s ease, border-color .12s ease;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+    }
+    .theme-swatch:hover { transform: scale(1.08); }
+    .theme-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--admio-accent); }
+    #themeColorModal .modal-content { border-radius: 18px; border: none; }
+    #themeColorModal .modal-header,
+    #themeColorModal .modal-footer { border-color: var(--admio-border-color, #e5e7eb); }
+    #themeColorModal .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
 
-[data-theme="dark"] .h-side-sub a {
-    color: #9b9bb5;
-}
+    /* ══════════ COMPOSE EMAIL MODAL (site-wide) ══════════ */
+    .em-overlay { position:fixed; inset:0; z-index:99999; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(15,15,25,.55); backdrop-filter:blur(3px); }
+    .em-overlay.show { display:flex; }
+    .em-modal { width:100%; max-width:620px; max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px); display:flex; flex-direction:column; overflow:hidden; border-radius:18px; background:#fff; color:#1f2937; box-shadow:0 24px 60px rgba(0,0,0,.35); border:1px solid #e5e7eb; font-size:16px; }
+    .em-head { display:flex; align-items:center; gap:12px; padding:18px 22px; border-bottom:1px solid #eef0f4; }
+    .em-head-icon { width:36px; height:36px; border-radius:10px; background:rgba(var(--admio-accent-rgb),.12); color:var(--admio-accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .em-head-text { flex:1; min-width:0; }
+    .em-head-text h3 { margin:0; font-size:1.05rem; font-weight:700; }
+    .em-head-text p { margin:2px 0 0; font-size:.8rem; color:var(--admio-accent); opacity:.85; }
+    .em-x { width:32px; height:32px; border-radius:8px; border:1px solid #e5e7eb; background:transparent; color:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .em-x:hover { background:#f3f4f6; }
+
+    .em-body { padding:18px 22px; overflow-y:auto; flex:1; min-height:0; }
+    .em-label { display:block; margin:0 0 8px; font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; }
+    .em-field { margin-bottom:18px; }
+    .em-input, .em-textarea { width:100%; padding:11px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:inherit; font:inherit; font-size:.92rem; outline:none; transition:border-color .15s, box-shadow .15s; }
+    .em-input:focus, .em-textarea:focus { border-color:var(--admio-accent); box-shadow:0 0 0 3px rgba(var(--admio-accent-rgb),.15); }
+    .em-textarea { min-height:100px; resize:vertical; }
+
+    .em-tabs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .em-tab { padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:transparent; color:#6b7280; font:inherit; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .15s; }
+    .em-tab:hover { border-color:var(--admio-accent); color:var(--admio-accent); }
+    .em-tab.active { background:rgba(var(--admio-accent-rgb),.1); border-color:var(--admio-accent); color:var(--admio-accent); }
+
+    .em-search { position:relative; margin-bottom:10px; }
+    .em-search svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9ca3af; pointer-events:none; }
+    .em-search .em-input { padding-left:38px; }
+
+    .em-listbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; font-size:.78rem; color:#6b7280; }
+    .em-listbtns { display:flex; align-items:center; gap:14px; }
+    .em-linkbtn { background:none; border:0; padding:0; color:var(--admio-accent); font:inherit; font-weight:600; cursor:pointer; }
+    .em-linkbtn:hover { text-decoration:underline; }
+
+    .em-list { max-height:230px; overflow-y:auto; border:1px solid #e5e7eb; border-radius:10px; }
+    .em-row { display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f1f4; margin:0; transition:background .12s; }
+    .em-row:last-child { border-bottom:0; }
+    .em-row:hover { background:rgba(var(--admio-accent-rgb),.06); }
+    .em-row input { width:16px; height:16px; accent-color:var(--admio-accent); flex-shrink:0; cursor:pointer; }
+    .em-avatar { width:34px; height:34px; border-radius:50%; background:rgba(var(--admio-accent-rgb),.14); color:var(--admio-accent); display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:700; flex-shrink:0; }
+    .em-info { min-width:0; flex:1; line-height:1.3; }
+    .em-name { font-size:.92rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .em-dept { font-size:.75rem; color:var(--admio-accent); }
+    .em-mail { font-size:.8rem; color:#6b7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .em-empty { padding:26px 12px; text-align:center; font-size:.88rem; color:#9ca3af; }
+
+    .em-selected { display:flex; flex-wrap:wrap; gap:8px; min-height:44px; max-height:110px; overflow-y:auto; padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; align-items:center; }
+    .em-none { font-size:.88rem; color:#9ca3af; padding:2px 4px; }
+    .em-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-radius:999px; background:rgba(var(--admio-accent-rgb),.12); color:var(--admio-accent); font-size:.8rem; font-weight:600; max-width:100%; }
+    .em-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+    .em-chip button { border:0; background:rgba(var(--admio-accent-rgb),.18); color:inherit; width:18px; height:18px; border-radius:50%; line-height:1; font-size:12px; cursor:pointer; padding:0; }
+    .em-chip button:hover { background:rgba(var(--admio-accent-rgb),.35); }
+
+    .em-alert { display:none; margin-bottom:14px; padding:10px 14px; border-radius:10px; font-size:.88rem; }
+    .em-alert.error { display:block; background:#fee2e2; color:#991b1b; }
+    .em-alert.ok { display:block; background:#dcfce7; color:#166534; }
+
+    .em-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 22px; border-top:1px solid #eef0f4; }
+    .em-from { font-size:.8rem; color:#6b7280; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+    .em-from b { color:inherit; font-weight:700; }
+    .em-actions { display:flex; gap:10px; margin-left:auto; }
+    .em-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 18px; border-radius:10px; border:1px solid #e5e7eb; background:transparent; color:inherit; font:inherit; font-size:.9rem; font-weight:600; cursor:pointer; transition:all .15s; }
+    .em-btn:hover { background:#f3f4f6; }
+    .em-btn.primary { background:var(--admio-accent); border-color:var(--admio-accent); color:#fff; }
+    .em-btn.primary:hover { filter:brightness(.92); background:var(--admio-accent); }
+    .em-btn:disabled { opacity:.6; cursor:not-allowed; }
+
+    [data-theme="dark"] .em-overlay { background:rgba(0,0,0,.65); }
+    [data-theme="dark"] .em-modal { background:#252531; color:#f3f4f6; border-color:#33334a; }
+    [data-theme="dark"] .em-head, [data-theme="dark"] .em-foot { border-color:#33334a; }
+    [data-theme="dark"] .em-head-text p { color:var(--admio-accent-dark); }
+    [data-theme="dark"] .em-x, [data-theme="dark"] .em-tab, [data-theme="dark"] .em-btn,
+    [data-theme="dark"] .em-list, [data-theme="dark"] .em-selected { border-color:#3a3a4c; }
+    [data-theme="dark"] .em-x:hover, [data-theme="dark"] .em-btn:hover { background:#2e2e3f; }
+    [data-theme="dark"] .em-input, [data-theme="dark"] .em-textarea, [data-theme="dark"] .em-list, [data-theme="dark"] .em-selected { background:#1c1c27; border-color:#3a3a4c; color:#f3f4f6; }
+    [data-theme="dark"] .em-tab.active { background:rgba(var(--admio-accent-rgb),.2); color:var(--admio-accent-dark); border-color:var(--admio-accent); }
+    [data-theme="dark"] .em-row { border-color:#2e2e3f; }
+    [data-theme="dark"] .em-row:hover { background:rgba(var(--admio-accent-rgb),.12); }
+    [data-theme="dark"] .em-dept, [data-theme="dark"] .em-linkbtn { color:var(--admio-accent-dark); }
+    [data-theme="dark"] .em-mail, [data-theme="dark"] .em-label, [data-theme="dark"] .em-from, [data-theme="dark"] .em-listbar { color:#9ca3af; }
+    [data-theme="dark"] .em-chip { background:rgba(var(--admio-accent-rgb),.2); color:var(--admio-accent-dark); }
+    [data-theme="dark"] .em-alert.error { background:#3b1d1d; color:#fca5a5; }
+    [data-theme="dark"] .em-alert.ok { background:#16321f; color:#86efac; }
+
+    @media (max-width:575px) {
+      .em-foot { flex-direction:column; align-items:stretch; }
+      .em-actions { margin-left:0; }
+      .em-actions .em-btn { flex:1; justify-content:center; }
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -875,140 +519,248 @@
       <i class="icon-gauge"></i> Dashboard
     </a>
 
-    <div class="h-side-section">
-      <button class="h-side-section-toggle" type="button">
-        <span class="left"><i class="icon-bed h-side-ico"></i>Rooms</span>
-        <i class="icon-chevron-down h-side-arrow"></i>
-      </button>
-      <div class="h-side-sub">
-        <a href="{% url 'room_status' %}"><i class="icon-door-open"></i> Room Status</a>
-        <a href="#" data-panel="add-room"><i class="icon-plus-circle"></i> Add Room Type</a>
-        <a href="#" data-panel="seasonal-rates"><i class="icon-tags"></i> Seasonal Rates</a>
-      </div>
-    </div>
+    <a href="{% url 'room_status' %}" class="h-side-direct {% block nav_room_status_active %}{% endblock %}">
+      <i class="icon-bed"></i> Rooms
+    </a>
 
-    <div class="h-side-section">
+    <div class="h-side-section {% block nav_bookings_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-calendar-check h-side-ico"></i>Bookings</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="{% url 'get_bookings_page' %}"><i class="icon-list"></i> All Bookings</a>
-       <a href="{% url 'new_booking' %}"><i class="icon-calendar-plus"></i> New Booking</a>
-        
+        <a href="{% url 'get_bookings_page' %}" class="h-side-direct {% block nav_all_bookings_active %}{% endblock %}"><i class="icon-list"></i> All Bookings</a>
+        <a href="{% url 'new_booking' %}" class="h-side-direct {% block nav_new_booking_active %}{% endblock %}"><i class="icon-calendar-plus"></i> New Booking</a>
       </div>
     </div>
 
     {% if "billing" in active_module_names or "food" in active_module_names or "invoice" in active_module_names %}
-    <div class="h-side-section">
+    <div class="h-side-section {% block nav_billing_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-receipt h-side-ico"></i>Billing</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="#" data-panel="billing-overview"><i class="icon-chart-bar"></i> Billing Overview</a>
-        <a href="#" data-panel="all-invoices"><i class="icon-file-text"></i> All Invoices</a>
-        <a href="#" data-panel="folio-manager"><i class="icon-folder-open"></i> Guest Folios</a>
-        <a href="#" data-panel="seasonal-rates"><i class="icon-tags"></i> Seasonal Rates</a>
+        <a href="{% url 'billing_overview_page' %}" class="h-side-direct {% block nav_billing_overview_active %}{% endblock %}"><i class="icon-chart-bar"></i> Billing Overview</a>
+        <a href="{% url 'all_invoices_page' %}" class="h-side-direct {% block nav_all_invoices_active %}{% endblock %}"><i class="icon-file-text"></i> All Invoices</a>
+        <a href="{% url 'seasonal_rates_page' %}" class="h-side-direct {% block nav_billing_seasonal_rates_active %}{% endblock %}"><i class="icon-tags"></i> Seasonal Rates</a>
       </div>
     </div>
     {% endif %}
 
     {% if "restaurant" in active_module_names or "food" in active_module_names or "pos" in active_module_names %}
-    <div class="h-side-section">
+    <div class="h-side-section {% block nav_restaurant_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-utensils h-side-ico"></i>Restaurant</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="#" data-panel="restaurant-overview"><i class="icon-trending-up"></i> Overview</a>
-        <a href="#" data-panel="restaurant-new-order"><i class="icon-cash-register"></i> New Order / POS</a>
-        <a href="#" data-panel="restaurant-orders"><i class="icon-receipt"></i> Order Summary</a>
-        <a href="#" data-panel="restaurant-menu"><i class="icon-book-open"></i> Menu Manager</a>
-        <a href="#" data-panel="restaurant-tables"><i class="icon-chair"></i> Table Status</a>
+        <a href="{% url 'restaurant_overview_page' %}" class="h-side-direct {% block nav_restaurant_overview_active %}{% endblock %}"><i class="icon-trending-up"></i> Overview</a>
+        <a href="{% url 'new_order_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_new_order_active %}{% endblock %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+            <rect x="2" y="7" width="20" height="14" rx="2"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            <path d="M6 3v2M18 3v2"/>
+          </svg>
+          New Order / POS
+        </a>
+        <a href="{% url 'order_summary_page' %}" class="h-side-direct {% block nav_order_summary_active %}{% endblock %}"><i class="icon-receipt"></i> Order Summary</a>
+        <a href="{% url 'menu_manager_page' %}" class="h-side-direct {% block nav_menu_manager_active %}{% endblock %}">
+          <i class="icon-book-open"></i> Menu Manager
+        </a>
+        <a href="{% url 'table_status_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_table_status_active %}{% endblock %}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true" style="flex-shrink:0;">
+            <rect x="3" y="7" width="18" height="4" rx="1.5"/>
+            <path d="M6 11 4 21M18 11l2 10"/>
+            <path d="M5 16h14"/>
+            <path d="M8 7V3h8v4"/>
+          </svg>
+          <span>Table Status</span>
+        </a>
       </div>
     </div>
     {% endif %}
 
-    {% if "inventory" in active_module_names or "stock" in active_module_names or "laundry" in active_module_names %}
-    <div class="h-side-section">
+    {% if "inventory" in active_module_names or "stock" in active_module_names %}
+    <div class="h-side-section {% block nav_inventory_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-boxes h-side-ico"></i>Inventory</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        {% if "inventory" in active_module_names or "stock" in active_module_names %}
-        <a href="#" data-panel="inventory-overview"><i class="icon-chart-bar"></i> Overview</a>
-        <a href="#" data-panel="inventory-items"><i class="icon-cubes"></i> Items</a>
-        <a href="#" data-panel="inventory-vendors"><i class="icon-truck"></i> Vendors</a>
-        <a href="#" data-panel="inventory-purchase-orders"><i class="icon-file-alt"></i> Purchase Orders</a>
-        <a href="#" data-panel="inventory-assets"><i class="icon-server"></i> Asset Tracking</a>
-        <a href="#" data-panel="inventory-maintenance"><i class="icon-tools"></i> Maintenance</a>
-        <a href="#" data-panel="inventory-expenses"><i class="icon-money-bill"></i> Expenses</a>
-        {% endif %}
-        {% if "laundry" in active_module_names %}
-        <a href="#" data-panel="laundry-orders"><i class="icon-list-alt"></i> Laundry Orders</a>
-        <a href="#" data-panel="laundry-services"><i class="icon-concierge-bell"></i> Laundry Services</a>
-        <a href="#" data-panel="laundry-report"><i class="icon-file-alt"></i> Laundry Report</a>
-        {% endif %}
+        <a href="{% url 'inventory_overview_page' %}" class="h-side-direct {% block nav_inventory_overview_active %}{% endblock %}"><i class="icon-chart-bar"></i> Overview</a>
+        <a href="{% url 'inventory_items_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_inventory_items_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;">
+            <path d="M12 3 21 8 12 13 3 8Z"/>
+            <path d="M3 8v9l9 5 9-5V8"/>
+            <path d="M12 13v9"/>
+            <path d="m7.5 5.5 9 5"/>
+          </svg>
+          <span>Items</span>
+        </a>
+        <a href="{% url 'vendors_page' %}" class="h-side-direct {% block nav_vendors_active %}{% endblock %}"><i class="icon-truck"></i> Vendors</a>
+        <a href="{% url 'purchase_orders_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_purchase_orders_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+            <path d="M14 2v6h6M8 13h8M8 17h5"/>
+          </svg>
+          <span>Purchase Orders</span>
+        </a>
+        <a href="{% url 'assets_page' %}" class="h-side-direct {% block nav_assets_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="m12 3 9 5v8l-9 5-9-5V8z"/>
+            <path d="m3 8 9 5 9-5M12 13v8"/>
+          </svg>
+          Assets
+        </a>
+        <a href="{% url 'maintenance_page' %}" class="h-side-direct {% block nav_maintenance_active %}{% endblock %}"
+           style="display:flex; align-items:center; gap:12px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>
+          </svg>
+          <span>Maintenance</span>
+        </a>
+        <a href="{% url 'expenses_page' %}" class="h-side-direct {% block nav_expenses_active %}{% endblock %}"
+           style="display:flex; align-items:center; gap:12px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;">
+            <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/>
+            <path d="M9 7h6M9 11h6M9 15h3"/>
+          </svg>
+          <span>Expenses</span>
+        </a>
       </div>
     </div>
     {% endif %}
 
-    <div class="h-side-section">
+    {% if "laundry" in active_module_names %}
+    <div class="h-side-section {% block nav_laundry_section_active %}{% endblock %}">
+      <button class="h-side-section-toggle" type="button">
+        <span class="left"><i class="icon-shirt h-side-ico"></i>Laundry</span>
+        <i class="icon-chevron-down h-side-arrow"></i>
+      </button>
+      <div class="h-side-sub">
+        <a href="{% url 'laundry_orders_page' %}" class="h-side-direct {% block nav_laundry_orders_active %}{% endblock %}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               class="h-side-ico" aria-hidden="true">
+            <rect x="5" y="3" width="14" height="18" rx="2"/>
+            <path d="M9 8h6M9 12h6M9 16h4"/>
+          </svg>
+          <span>Laundry Orders</span>
+        </a>
+        <a href="{% url 'laundry_services_page' %}" class="h-side-direct {% block nav_laundry_services_active %}{% endblock %}"><i class="icon-concierge-bell"></i> Laundry Services</a>
+        <a href="{% url 'laundry_report_page' %}" class="h-side-direct {% block nav_laundry_report_active %}{% endblock %}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="me-2" aria-hidden="true">
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <path d="M14 3v6h6"/>
+            <path d="M9 13h6M9 17h6M9 9h1"/>
+          </svg>
+          Laundry Report
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="h-side-section {% block nav_staff_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-users h-side-ico"></i>Staff</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="#" data-panel="staff-list"><i class="icon-users"></i> Staff Directory</a>
-        <a href="#" data-panel="add-staff"><i class="icon-user-plus"></i> Add Staff</a>
-        <a href="#" data-panel="departments"><i class="icon-building"></i> Departments</a>
+        <a href="{% url 'staff_directory_page' %}" class="h-side-direct {% block nav_staff_active %}{% endblock %}"><i class="icon-users"></i> Staff Directory</a>
+        <a href="{% url 'add_staff_page' %}" class="h-side-direct {% block nav_add_staff_active %}{% endblock %}">
+          <i class="icon-user-plus"></i> Add Staff
+        </a>
+        <a href="{% url 'department_page' %}" class="h-side-direct {% block nav_department_active %}{% endblock %}">
+          <i class="icon-building"></i>
+          <span>Departments</span>
+        </a>
       </div>
     </div>
 
     {% if "hr" in active_module_names or "payroll" in active_module_names or "attendance" in active_module_names or "hroperations" in active_module_names or "hr_operations" in active_module_names or "hrops" in active_module_names %}
-    <div class="h-side-section">
+    <div class="h-side-section {% block nav_hrops_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-calendar-check h-side-ico"></i>HR Ops</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="#" data-panel="attendance"><i class="icon-calendar-check"></i> Attendance</a>
-        <a href="#" data-panel="shifts"><i class="icon-rotate"></i> Shift Management</a>
-        <a href="#" data-panel="leave"><i class="icon-umbrella-beach"></i> Leave Requests</a>
-        <a href="#" data-panel="payroll"><i class="icon-rupee-sign"></i> Payroll</a>
+        <a href="{% url 'attendance_management_page' %}" class="h-side-direct {% block nav_attendance_active %}{% endblock %}">
+          <i class="icon-calendar-check"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{% url 'shift_management_page' %}" class="h-side-direct {% block nav_shift_management_active %}{% endblock %}">
+          <i class="icon-calendar"></i>
+          Shift Management
+        </a>
+        <a href="{% url 'leave_management_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_leave_management_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true" style="flex-shrink:0;">
+            <path d="M22 12a10.06 10.06 0 0 0-20 0Z"/>
+            <path d="M12 12v8a2 2 0 0 0 4 0"/>
+            <path d="M12 2v1"/>
+          </svg>
+          <span>Leave Requests</span>
+        </a>
+        <a href="{% url 'payroll_management_page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_payroll_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true" style="flex-shrink:0;">
+            <path d="M6 3h12M6 8h12M6 3v5c0 4.5 3 6.5 6 8 3-1.5 6-3.5 6-8V3"/>
+            <path d="M9 8h6M9 11.5h4.5"/>
+          </svg>
+          <span>Payroll</span>
+        </a>
       </div>
     </div>
     {% endif %}
 
-    <div class="h-side-section">
+    <div class="h-side-section {% block nav_channels_section_active %}{% endblock %}">
       <button class="h-side-section-toggle" type="button">
         <span class="left"><i class="icon-plug h-side-ico"></i>Channels</span>
         <i class="icon-chevron-down h-side-arrow"></i>
       </button>
       <div class="h-side-sub">
-        <a href="#" data-panel="channel-overview"><i class="icon-chart-network"></i> Overview</a>
-        <a href="#" data-panel="channel-website"><i class="icon-globe"></i> Website Channel</a>
-        <a href="#" data-panel="channel-ota"><i class="icon-hotel"></i> OTA Channels</a>
-        <a href="#" data-panel="channel-sync"><i class="icon-sync-alt"></i> Sync Logs</a>
-        <a href="#" data-panel="channel-webhooks"><i class="icon-webhook"></i> Webhook Events</a>
+        <a href="{% url 'channel-manager' %}" class="h-side-direct {% block nav_channel_overview_active %}{% endblock %}"><i class="icon-chart-network"></i> Overview</a>
+        <a href="{% url 'website-channels-page' %}" class="h-side-direct {% block nav_website_channels_active %}{% endblock %}"><i class="icon-globe"></i> Website Channel</a>
+        <a href="{% url 'ota-channels-page' %}" class="h-side-direct {% block nav_ota_channels_active %}{% endblock %}"><i class="icon-hotel"></i> OTA Channels</a>
+        <a href="{% url 'sync-logs-page' %}" class="h-side-direct d-flex align-items-center gap-2 {% block nav_sync_logs_active %}{% endblock %}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true" style="flex-shrink:0;">
+            <path d="M21 12a9 9 0 0 0-15-6.7L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 15 6.7L21 16"/>
+            <path d="M16 16h5v5"/>
+          </svg>
+          <span>Sync Logs</span>
+        </a>
+        <a href="{% url 'webhook-events-page' %}" data-panel="channel-webhooks" class="h-side-direct {% block nav_webhook_events_active %}{% endblock %}">
+          <i class="icon-webhook"></i>
+          Webhook Events
+        </a>
       </div>
     </div>
 
-    <div class="h-side-section">
-      <button class="h-side-section-toggle" type="button">
-        <span class="left"><i class="icon-file h-side-ico"></i>Setup</span>
-        <i class="icon-chevron-down h-side-arrow"></i>
-      </button>
-      <div class="h-side-sub">
-        <a href="{}">Profile</a>
-        <a href="{}">Settings</a>
-        <a href="#" data-panel="permissions">Permissions</a>
-        <a href="{}">Notifications</a>
-        <a href="{% url 'hotel_setup' %}?edit=true">Hotel Setup</a>
-      </div>
-    </div>
+    <a href="{% url 'hotel_details_page' %}?edit=true"
+       class="h-side-direct d-flex align-items-center gap-2 {% block nav_hotel_settings_active %}{% endblock %}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Hotel Settings</span>
+    </a>
 
   </nav>
 </aside>
@@ -1017,15 +769,11 @@
 
 <div class="admio-main" id="admioMain">
 
-  <!-- ══════════ TOPBAR (no nav links — actions only) ══════════ -->
+  <!-- ══════════ TOPBAR ══════════ -->
   <div class="h-navbar-top">
     <button class="h-menu-toggle" id="hMenuToggle" aria-label="Toggle menu">
       <i class="icon-menu" id="hMenuIcon"></i>
     </button>
-
-    <div class="h-ai-pill d-none d-sm-flex">
-      <span class="h-ai-dot"></span>AI Engine Active
-    </div>
 
     <div class="h-topbar-search d-none d-md-block">
       <i class="icon-search search-icon"></i>
@@ -1033,6 +781,14 @@
     </div>
 
     <div class="h-topbar-actions">
+
+      <!-- ▶ NEW: Send Email button (opens the Compose Email modal) -->
+      <button type="button" class="h-email-btn" id="topbarEmailBtn" title="Send Email" aria-label="Send Email">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <span class="h-email-label">Send Email</span>
+      </button>
+      <div class="h-topbar-divider"></div>
+
       <div class="lang-switcher d-none d-lg-block">
         <button class="lang-btn topbar-btn" title="Change language">
           <img src="{% static 'admin-static/assets/img/flags/us.svg' %}" alt="US" class="lang-flag-btn" data-code="us">
@@ -1080,16 +836,26 @@
         </div>
       </div>
       <div class="h-topbar-divider"></div>
-      <div class="topbar-user position-relative">
-        <span class="avatar-gen topbar-user-avatar" data-name="Admin User" data-bg="#7C3AED" data-size="36">AU</span>
-        <div class="user-dropdown-menu">
-          <div class="user-dropdown-header">
-            <span class="avatar-gen udm-avatar" data-name="Admin User" data-bg="#7C3AED" data-size="42">AU</span>
-            <div class="udm-info"><p class="user-dropdown-name">Admin User</p><p class="user-dropdown-email">admin@admio.ai</p></div>
-          </div>
+      <div class="topbar-user position-relative"> 
+    <span class="avatar-gen topbar-user-avatar" data-name="{{ request.user.get_full_name|default:request.user.username }}" data-bg="#7C3AED" data-size="36">
+        {{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}
+    </span> 
+    <div class="user-dropdown-menu"> 
+        <div class="user-dropdown-header"> 
+            <span class="avatar-gen udm-avatar" data-name="{{ request.user.get_full_name|default:request.user.username }}" data-bg="#7C3AED" data-size="42">
+                {{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}
+            </span> 
+            <div class="udm-info">
+                <p class="user-dropdown-name">{{ request.user.get_full_name|default:request.user.username }}</p>
+                <p class="user-dropdown-email">{{ request.user.email }}</p>
+            </div> 
+        </div>
           <div class="udm-body">
-            <a href="{}" class="user-dropdown-item"><i class="icon-circle-user"></i><span>My Profile</span></a>
-            <a href="{}" class="user-dropdown-item"><i class="icon-settings"></i><span>Account Settings</span></a>
+            
+           <a href="#" id="accountSettingsLink" class="user-dropdown-item">
+    <i class="icon-palette"></i>
+    <span>Theme Settings</span>
+</a>
             <a href="{}" class="user-dropdown-item"><i class="icon-bell"></i><span>Notifications</span><span class="udm-badge">5</span></a>
             <hr class="user-dropdown-divider">
             <a href="{% url 'logout' %}" class="user-dropdown-item danger"><i class="icon-log-out"></i><span>Sign Out</span></a>
@@ -1115,6 +881,124 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
   </button>
 </div>
+
+<!-- ══════════ DASHBOARD COLOR MODAL ══════════ -->
+<div class="modal fade" id="themeColorModal" tabindex="-1" aria-labelledby="themeColorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="themeColorModalLabel" style="font-weight:800;">Dashboard Color</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="padding:24px 28px;">
+        <p style="font-size:14px; color:#6b7280; margin-bottom:18px;">
+          Pick an accent color for your dashboard. It applies to the sidebar, buttons and highlights across every page, and is saved as your template.
+        </p>
+
+        <!-- data-admio-static = palette swatches must NEVER be recolored -->
+        <div id="themeSwatches" data-admio-static style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:22px;">
+          <button type="button" class="theme-swatch" data-color="#7C3AED" style="background:#7C3AED;" title="Purple (Default)"></button>
+          <button type="button" class="theme-swatch" data-color="#2563EB" style="background:#2563EB;" title="Blue"></button>
+          <button type="button" class="theme-swatch" data-color="#059669" style="background:#059669;" title="Green"></button>
+          <button type="button" class="theme-swatch" data-color="#DC2626" style="background:#DC2626;" title="Red"></button>
+          <button type="button" class="theme-swatch" data-color="#EA580C" style="background:#EA580C;" title="Orange"></button>
+          <button type="button" class="theme-swatch" data-color="#DB2777" style="background:#DB2777;" title="Pink"></button>
+          <button type="button" class="theme-swatch" data-color="#0D9488" style="background:#0D9488;" title="Teal"></button>
+          <button type="button" class="theme-swatch" data-color="#334155" style="background:#334155;" title="Slate"></button>
+        </div>
+
+        <label for="themeCustomColor" style="display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">
+          Or pick a custom color
+        </label>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <input type="color" id="themeCustomColor" value="#7C3AED"
+                 style="width:48px; height:40px; padding:0; border:1px solid #d8dae0; border-radius:8px; cursor:pointer;">
+          <span id="themeColorPreviewLabel" style="font-size:14px; font-weight:600; color:#374151;">#7C3AED</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-admio" id="themeResetBtn" style="background:transparent; border:1px solid #d8dae0; color:#374151;">Reset to Default</button>
+        <button type="button" class="btn-admio" id="themeSaveBtn" style="background:var(--admio-accent); color:#fff; border:none;">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ══════════ END DASHBOARD COLOR MODAL ══════════ -->
+
+<!-- ══════════ COMPOSE EMAIL MODAL (opened from the topbar Send Email button) ══════════ -->
+<div class="em-overlay" id="emailModal" aria-hidden="true">
+  <div class="em-modal" role="dialog" aria-modal="true" aria-labelledby="emTitle">
+
+    <div class="em-head">
+      <div class="em-head-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </div>
+      <div class="em-head-text">
+        <h3 id="emTitle">Compose Email</h3>
+        <p>Send message to staff or hotel admin</p>
+      </div>
+      <button type="button" class="em-x" id="emClose" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="em-body">
+      <div class="em-alert" id="emAlert"></div>
+
+      <div class="em-field">
+        <label class="em-label" for="emSubject">Subject</label>
+        <input type="text" class="em-input" id="emSubject" maxlength="200" placeholder="Enter email subject…" autocomplete="off">
+      </div>
+
+      <div class="em-field">
+        <label class="em-label" for="emMessage">Message</label>
+        <textarea class="em-textarea" id="emMessage" maxlength="5000" placeholder="Type your message here…"></textarea>
+      </div>
+
+      <div class="em-field">
+        <span class="em-label">Recipients</span>
+
+        <div class="em-tabs">
+          <button type="button" class="em-tab active" data-tab="staff">👤 Staff Members</button>
+          <button type="button" class="em-tab" data-tab="admin">🏨 Hotel Admin</button>
+        </div>
+
+        <div class="em-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" class="em-input" id="emSearch" placeholder="Search by name or department…" autocomplete="off">
+        </div>
+
+        <div class="em-listbar">
+          <span id="emCount"></span>
+          <span class="em-listbtns">
+            <button type="button" class="em-linkbtn" id="emSelectAll">Select all</button>
+            <button type="button" class="em-linkbtn" id="emSelectEveryone">Select everyone</button>
+          </span>
+        </div>
+
+        <div class="em-list" id="emList"></div>
+      </div>
+
+      <div class="em-field" style="margin-bottom:0;">
+        <span class="em-label" id="emSelLabel">Selected (0)</span>
+        <div class="em-selected" id="emSelected"><span class="em-none">No recipients selected</span></div>
+      </div>
+    </div>
+
+    <div class="em-foot">
+      <div class="em-from">Sending as <b>{{ request.user.email|default:request.user.username }}</b></div>
+      <div class="em-actions">
+        <button type="button" class="em-btn" id="emCancel">Cancel</button>
+        <button type="button" class="em-btn primary" id="emSend">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          <span id="emSendText">Send Email</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- ══════════ END COMPOSE EMAIL MODAL ══════════ -->
 
 <script src="{% static 'admin-static/assets/js/vendor/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'admin-static/assets/js/vendor/chart.umd.min.js' %}"></script>
@@ -1148,19 +1032,14 @@
   if (overlay) overlay.addEventListener('click', closeSidebar);
 
   // ── ACCORDION SECTIONS ──
-  const sectionToggles = document.querySelectorAll('.h-side-section-toggle');
-  sectionToggles.forEach(function (btn) {
+  document.querySelectorAll('.h-side-section-toggle').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      const section = btn.closest('.h-side-section');
-      section.classList.toggle('open');
+      btn.closest('.h-side-section').classList.toggle('open');
     });
   });
 
   // ── NAV LINKS → switchPanel() bridge (data-panel attr) ──
-  // Pages that extend this base and define switchPanel() (from the
-  // Hotel ERP dashboard content) will respond to these clicks.
-  // Links without a matching panel just no-op safely.
   document.querySelectorAll('[data-panel]').forEach(function (link) {
     link.addEventListener('click', function (e) {
       const panel = link.getAttribute('data-panel');
@@ -1171,6 +1050,507 @@
       }
     });
   });
+})();
+</script>
+
+<!-- ══════════ DASHBOARD COLOR: global repaint of ALL child pages ══════════ -->
+<script>
+(function () {
+  var STORAGE_KEY = 'admio_accent_color', DEFAULT_COLOR = '#7C3AED';
+  var BASE = [124, 58, 237];
+  var HUE_MIN = 248, HUE_MAX = 300, MIN_SAT = 0.18;   // what counts as "purple"
+  var COLOR_RE = /#[0-9a-f]{8}\b|#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*[\d.]+\s*)?\)|rgba?\(\s*\d{1,3}\s+\d{1,3}\s+\d{1,3}\s*(?:\/\s*[\d.]+\s*)?\)/gi;
+  var ATTRS = ['style', 'fill', 'stroke', 'stop-color', 'data-bg'];
+  var SEL = '[style],[fill],[stroke],[stop-color],[data-bg]';
+  var CHART_KEYS = ['backgroundColor','borderColor','hoverBackgroundColor','hoverBorderColor',
+                    'pointBackgroundColor','pointBorderColor','pointHoverBackgroundColor','pointHoverBorderColor'];
+
+  /* ── colour maths ── */
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function parseColor(str) {
+    if (str.charAt(0) === '#') {
+      var h = str.slice(1);
+      if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+      var n = parseInt(h.slice(0, 6), 16);
+      return { r: n >> 16 & 255, g: n >> 8 & 255, b: n & 255, a: h.length === 8 ? parseInt(h.slice(6), 16) / 255 : 1 };
+    }
+    var m = str.match(/[\d.]+/g);
+    return { r: +m[0], g: +m[1], b: +m[2], a: m[3] !== undefined ? +m[3] : 1 };
+  }
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, h = 0, s = 0, d = max - min;
+    if (d) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+    }
+    return [h, s, l];
+  }
+  function hslToRgb(h, s, l) {
+    var c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2, r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; } else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; } else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; } else { r = c; g = 0; b = x; }
+    return [r, g, b].map(function (v) { return Math.round((v + m) * 255); });
+  }
+  var BASE_HSL = rgbToHsl(BASE[0], BASE[1], BASE[2]);
+
+  var T = null;   // current target (null = default purple, nothing to rewrite)
+  function buildTarget(hex) {
+    var c = parseColor(hex);
+    return { r: c.r, g: c.g, b: c.b, hsl: rgbToHsl(c.r, c.g, c.b) };
+  }
+  function isPurple(str) {
+    var c = parseColor(str), hsl = rgbToHsl(c.r, c.g, c.b);
+    return hsl[1] >= MIN_SAT && hsl[0] >= HUE_MIN && hsl[0] <= HUE_MAX;
+  }
+  // Any purple shade -> same shade of the chosen colour
+  function shift(str) {
+    if (!T || !isPurple(str)) return str;
+    var c = parseColor(str), hsl = rgbToHsl(c.r, c.g, c.b), out;
+    if (c.r === BASE[0] && c.g === BASE[1] && c.b === BASE[2]) out = [T.r, T.g, T.b];
+    else {
+      var l = hsl[2] >= 0.85 ? hsl[2] : clamp(hsl[2] + (T.hsl[2] - BASE_HSL[2]), 0.05, 0.95);
+      out = hslToRgb(T.hsl[0], clamp(hsl[1] * (T.hsl[1] / BASE_HSL[1]), 0, 1), l);
+    }
+    return c.a < 1 ? 'rgba(' + out.join(',') + ',' + c.a + ')' : 'rgb(' + out.join(',') + ')';
+  }
+  function mapColors(val) { return T ? val.replace(COLOR_RE, shift) : val; }
+  function hasPurple(val) {
+    var f = false;
+    val.replace(COLOR_RE, function (m) { if (isPurple(m)) f = true; return m; });
+    return f;
+  }
+
+  /* ── 1. stylesheets (admio.css, child <style> blocks, CSS variables) ── */
+  var recs = [], seenSheets = new WeakSet();
+  function collect(rules) {
+    for (var i = 0; i < rules.length; i++) {
+      var r = rules[i];
+      if (r.style) {
+        for (var j = 0; j < r.style.length; j++) {
+          var p = r.style[j], v = r.style.getPropertyValue(p);
+          if (v && hasPurple(v)) recs.push({ st: r.style, p: p, o: v, pr: r.style.getPropertyPriority(p) });
+        }
+      }
+      if (r.cssRules) collect(r.cssRules);            // @media, @supports, @keyframes
+    }
+  }
+  function scanSheets() {
+    for (var i = 0; i < document.styleSheets.length; i++) {
+      var sh = document.styleSheets[i];
+      if (seenSheets.has(sh)) continue;
+      var rules; try { rules = sh.cssRules; } catch (e) { continue; }   // cross-origin: skip
+      seenSheets.add(sh); collect(rules);
+    }
+  }
+  function applySheets() {
+    recs.forEach(function (r) { try { r.st.setProperty(r.p, mapColors(r.o), r.pr); } catch (e) {} });
+  }
+
+  /* ── 2. inline styles + SVG attrs + data-bg ── */
+  var inlineSet = new Set();
+  function sync(el, a) {
+    var cur = el.getAttribute(a); if (cur === null) return null;
+    var st = el.__admio || (el.__admio = {}), rec = st[a];
+    if (!rec || rec.applied !== cur) rec = st[a] = { orig: cur, applied: cur };   // new authored value
+    return rec;
+  }
+  function scanInline(root) {
+    var list = [];
+    if (root.nodeType === 1) list.push(root);
+    if (root.querySelectorAll) list = list.concat([].slice.call(root.querySelectorAll(SEL)));
+    list.forEach(function (el) {
+      if (el.closest && el.closest('[data-admio-static]')) return;
+      ATTRS.forEach(function (a) { var rec = sync(el, a); if (rec && hasPurple(rec.orig)) inlineSet.add(el); });
+    });
+  }
+  function applyInline() {
+    inlineSet.forEach(function (el) {
+      if (!el.isConnected) { inlineSet.delete(el); return; }
+      ATTRS.forEach(function (a) {
+        var rec = sync(el, a); if (!rec) return;
+        var out = mapColors(rec.orig);
+        if (el.getAttribute(a) !== out) el.setAttribute(a, out);
+        rec.applied = out;
+      });
+    });
+  }
+
+  /* ── 3. Chart.js datasets (colours set in JS) ── */
+  function mapVal(v) { return typeof v === 'string' ? mapColors(v) : v; }
+  function themeChart(chart) {
+    chart.data.datasets.forEach(function (ds) {
+      var st = ds.__admio || (ds.__admio = { o: {}, a: {} });
+      CHART_KEYS.forEach(function (k) {
+        var cur = ds[k];
+        if (cur === undefined || (typeof cur !== 'string' && !Array.isArray(cur))) return;
+        var js = JSON.stringify(cur);
+        if (st.a[k] !== js) st.o[k] = cur;            // user set a new value -> new original
+        var o = st.o[k], out = Array.isArray(o) ? o.map(mapVal) : mapVal(o);
+        ds[k] = out; st.a[k] = JSON.stringify(out);
+      });
+    });
+  }
+  if (window.Chart && window.Chart.register) {
+    window.Chart.register({ id: 'admioAccent', beforeUpdate: themeChart });
+  }
+  function refreshCharts() {
+    if (!window.Chart || !window.Chart.instances) return;
+    Object.keys(window.Chart.instances).forEach(function (k) {
+      try { window.Chart.instances[k].update('none'); } catch (e) {}
+    });
+  }
+
+  /* ── apply everything ── */
+  var currentColor = DEFAULT_COLOR;
+  function applyAccent(hex) {
+    var root = document.documentElement, t = buildTarget(hex), rgb = t.r + ', ' + t.g + ', ' + t.b;
+    T = hex.toLowerCase() === DEFAULT_COLOR.toLowerCase() ? null : t;
+    root.style.setProperty('--admio-accent', hex);
+    root.style.setProperty('--admio-accent-rgb', rgb);
+    root.style.setProperty('--admio-accent-dark', 'rgb(' + hslToRgb(t.hsl[0], t.hsl[1], clamp(t.hsl[2] + 0.2, 0, 0.9)).join(',') + ')');
+    // aliases so pages that use common variable names follow too
+    root.style.setProperty('--admio-primary', hex);
+    root.style.setProperty('--admio-primary-rgb', rgb);
+    root.style.setProperty('--bs-primary', hex);
+    root.style.setProperty('--bs-primary-rgb', rgb);
+    scanSheets(); scanInline(document.body);
+    applySheets(); applyInline(); refreshCharts();
+    var sb = document.getElementById('themeSaveBtn'); if (sb) sb.style.background = hex;
+    document.documentElement.style.visibility = '';
+    clearTimeout(window.__admioReveal);
+    document.dispatchEvent(new CustomEvent('admio:accent', { detail: { color: hex } }));
+  }
+
+  function saveAccent(hex) { try { localStorage.setItem(STORAGE_KEY, hex); } catch (e) {} }
+  function loadAccent() {
+    var s = null; try { s = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+    return (s && /^#[0-9a-f]{6}$/i.test(s)) ? s : DEFAULT_COLOR;
+  }
+
+  currentColor = loadAccent();
+  applyAccent(currentColor);
+
+  // Catch anything arriving later: late stylesheets, dynamically inserted HTML, async charts
+  var pending = [], timer = null;
+  function flush() {
+    timer = null;
+    var needSheets = false;
+    pending.forEach(function (n) {
+      if (n.nodeType !== 1) return;
+      if (n.tagName === 'STYLE' || n.tagName === 'LINK') {
+        needSheets = true;
+        if (n.tagName === 'LINK') n.addEventListener('load', function () { scanSheets(); applySheets(); });
+      }
+      scanInline(n);
+    });
+    pending = [];
+    if (needSheets) { scanSheets(); applySheets(); }
+    applyInline();
+  }
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) { pending.push(n); }); });
+    if (!timer) timer = setTimeout(flush, 60);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+  window.addEventListener('load', function () { applyAccent(currentColor); });
+  window.addEventListener('storage', function (e) {          // keep other open tabs in sync
+    if (e.key === STORAGE_KEY) { currentColor = loadAccent(); applyAccent(currentColor); }
+  });
+
+  /* ── modal wiring (live preview; reverts if closed without saving) ── */
+  var accountSettingsLink = document.getElementById('accountSettingsLink');
+  var modalEl = document.getElementById('themeColorModal');
+  var customInput = document.getElementById('themeCustomColor');
+  var previewLabel = document.getElementById('themeColorPreviewLabel');
+  var swatches = document.querySelectorAll('.theme-swatch');
+  var saveBtn = document.getElementById('themeSaveBtn');
+  var resetBtn = document.getElementById('themeResetBtn');
+  var pendingColor = currentColor;
+
+  function markSelected(hex) {
+    swatches.forEach(function (sw) {
+      sw.classList.toggle('selected', sw.getAttribute('data-color').toLowerCase() === hex.toLowerCase());
+    });
+  }
+  function setPending(hex, preview) {
+    pendingColor = hex;
+    if (customInput) customInput.value = hex;
+    if (previewLabel) previewLabel.textContent = hex.toUpperCase();
+    markSelected(hex);
+    if (preview) applyAccent(hex);
+  }
+
+  if (accountSettingsLink && modalEl && window.bootstrap) {
+    accountSettingsLink.addEventListener('click', function (e) {
+      e.preventDefault(); setPending(currentColor, false);
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+    modalEl.addEventListener('hidden.bs.modal', function () { applyAccent(currentColor); });
+  }
+  swatches.forEach(function (sw) { sw.addEventListener('click', function () { setPending(sw.getAttribute('data-color'), true); }); });
+  if (customInput) customInput.addEventListener('input', function () { setPending(customInput.value, true); });
+  if (saveBtn) saveBtn.addEventListener('click', function () {
+    currentColor = pendingColor; saveAccent(currentColor); applyAccent(currentColor);
+    if (window.bootstrap && modalEl) window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+  });
+  if (resetBtn) resetBtn.addEventListener('click', function () { setPending(DEFAULT_COLOR, true); });
+
+  /* ── tiny public API for child pages that draw with raw canvas/JS ── */
+  window.AdmioTheme = {
+    get: function () { return currentColor; },
+    color: function (c) { return mapColors(c); },       // AdmioTheme.color('#7C3AED') -> current accent
+    onChange: function (fn) { document.addEventListener('admio:accent', function (e) { fn(e.detail.color); }); }
+  };
+})();
+</script>
+
+<!-- ══════════ COMPOSE EMAIL MODAL: behaviour ══════════ -->
+<script>
+(function () {
+  var EMAIL_URLS = {
+    recipients: "{% url 'email_recipients' %}",
+    send:       "{% url 'send_dashboard_email' %}"
+  };
+
+  function getCookie(name) {
+    var m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function csrf() { return getCookie('csrftoken') || "{{ csrf_token }}"; }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    var d = document.createElement('div');
+    d.textContent = (s == null ? '' : s);
+    return d.innerHTML;
+  };
+
+  var em = {
+    loaded: false,
+    sending: false,
+    tab: 'staff',
+    data: { staff: [], admin: [] },
+    selected: new Map()          // email -> display name (kept across tabs)
+  };
+
+  function emAlert(type, msg) {
+    var a = $('emAlert');
+    a.className = 'em-alert' + (type ? ' ' + type : '');
+    a.textContent = msg || '';
+  }
+
+  function emInitials(name) {
+    var p = (name || '?').trim().split(/\s+/);
+    return ((p[0] ? p[0][0] : '?') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+  }
+
+  function emOpen() {
+    $('emailModal').classList.add('show');
+    $('emailModal').setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    emAlert('');
+    if (!em.loaded) emLoad();
+    setTimeout(function () { $('emSubject').focus(); }, 50);
+  }
+
+  function emClose() {
+    if (em.sending) return;
+    $('emailModal').classList.remove('show');
+    $('emailModal').setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function emReset() {
+    $('emSubject').value = '';
+    $('emMessage').value = '';
+    $('emSearch').value = '';
+    em.selected.clear();
+    emRenderList();
+    emRenderSelected();
+  }
+
+  function setSending(on) {
+    em.sending = on;
+    $('emSend').disabled = on;
+    $('emCancel').disabled = on;
+    $('emSendText').textContent = on ? 'Sending…' : 'Send Email';
+  }
+
+  function emLoad() {
+    $('emList').innerHTML = '<div class="em-empty">Loading recipients…</div>';
+    fetch(EMAIL_URLS.recipients, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) {
+        em.data = { staff: d.staff || [], admin: d.admin || [] };
+        em.loaded = true;
+        emRenderList();
+      })
+      .catch(function (e) {
+        $('emList').innerHTML = '<div class="em-empty">Could not load recipients (' + esc(e.message) + ').</div>';
+      });
+  }
+
+  function emVisibleRows() {
+    var q = ($('emSearch').value || '').trim().toLowerCase();
+    return (em.data[em.tab] || []).filter(function (r) {
+      if (!q) return true;
+      return ((r.name || '') + ' ' + (r.department || '') + ' ' + (r.email || '')).toLowerCase().indexOf(q) > -1;
+    });
+  }
+
+  function emEveryone() {
+    return (em.data.staff || []).concat(em.data.admin || []);
+  }
+
+  function emRenderList() {
+    var rows = emVisibleRows();
+    $('emCount').textContent = rows.length + (rows.length === 1 ? ' person' : ' people');
+    $('emSelectAll').style.display = rows.length ? '' : 'none';
+
+    var everyone = emEveryone();
+    $('emSelectEveryone').style.display = everyone.length ? '' : 'none';
+    $('emSelectEveryone').textContent =
+      (everyone.length && everyone.every(function (r) { return em.selected.has(r.email); }))
+        ? 'Clear everyone' : 'Select everyone';
+
+    if (!rows.length) {
+      $('emList').innerHTML = '<div class="em-empty">' +
+        (em.data[em.tab].length ? 'No matches found' : (em.tab === 'admin' ? 'No hotel admin email found' : 'No staff with an email address')) + '</div>';
+      return;
+    }
+
+    $('emList').innerHTML = rows.map(function (r) {
+      var checked = em.selected.has(r.email) ? ' checked' : '';
+      return '<label class="em-row">' +
+        '<input type="checkbox" data-email="' + esc(r.email) + '" data-name="' + esc(r.name) + '"' + checked + '>' +
+        '<span class="em-avatar">' + esc(emInitials(r.name)) + '</span>' +
+        '<span class="em-info">' +
+          '<div class="em-name">' + esc(r.name) + '</div>' +
+          (r.department ? '<div class="em-dept">' + esc(r.department) + '</div>' : '') +
+          '<div class="em-mail">' + esc(r.email) + '</div>' +
+        '</span></label>';
+    }).join('');
+
+    // "Select all / Clear all" label for the visible rows
+    var allOn = rows.every(function (r) { return em.selected.has(r.email); });
+    $('emSelectAll').textContent = allOn ? 'Clear all' : 'Select all';
+  }
+
+  function emRenderSelected() {
+    var n = em.selected.size;
+    $('emSelLabel').textContent = 'Selected (' + n + ')';
+    if (!n) {
+      $('emSelected').innerHTML = '<span class="em-none">No recipients selected</span>';
+      return;
+    }
+    var html = '';
+    em.selected.forEach(function (name, email) {
+      html += '<span class="em-chip" title="' + esc(email) + '"><span>' + esc(name || email) + '</span>' +
+              '<button type="button" data-remove="' + esc(email) + '" aria-label="Remove">✕</button></span>';
+    });
+    $('emSelected').innerHTML = html;
+  }
+
+  function emSend() {
+    if (em.sending) return;
+    var subject = $('emSubject').value.trim();
+    var message = $('emMessage').value.trim();
+
+    if (!subject)          return emAlert('error', 'Please enter a subject.');
+    if (!message)          return emAlert('error', 'Please type a message.');
+    if (!em.selected.size) return emAlert('error', 'Select at least one recipient.');
+
+    setSending(true);
+    emAlert('');
+
+    fetch(EMAIL_URLS.send, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ subject: subject, message: message, recipients: Array.from(em.selected.keys()) })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.body.success) throw new Error(res.body.error || 'Could not send email.');
+        emAlert('ok', res.body.message || 'Email sent.');
+        $('emSendText').textContent = 'Sent';
+        setTimeout(function () {
+          setSending(false);
+          emClose();
+          emReset();
+          emAlert('');
+        }, 1300);
+      })
+      .catch(function (e) {
+        setSending(false);
+        emAlert('error', e.message);
+      });
+  }
+
+  // ── wiring ──
+  $('topbarEmailBtn').addEventListener('click', emOpen);
+  $('emClose').addEventListener('click', emClose);
+  $('emCancel').addEventListener('click', emClose);
+  $('emailModal').addEventListener('mousedown', function (e) { if (e.target === this) emClose(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && $('emailModal').classList.contains('show')) emClose();
+  });
+
+  document.querySelectorAll('.em-tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      em.tab = b.dataset.tab;
+      document.querySelectorAll('.em-tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+      $('emSearch').value = '';
+      $('emSearch').placeholder = em.tab === 'staff' ? 'Search by name or department…' : 'Search hotel admin…';
+      emRenderList();
+    });
+  });
+
+  $('emSearch').addEventListener('input', emRenderList);
+
+  $('emList').addEventListener('change', function (e) {
+    var cb = e.target;
+    if (!cb || cb.type !== 'checkbox') return;
+    if (cb.checked) em.selected.set(cb.dataset.email, cb.dataset.name);
+    else em.selected.delete(cb.dataset.email);
+    emRenderSelected();
+    emRenderList();
+  });
+
+  // Select / clear the people shown in the current tab
+  $('emSelectAll').addEventListener('click', function () {
+    var rows = emVisibleRows();
+    var allOn = rows.every(function (r) { return em.selected.has(r.email); });
+    rows.forEach(function (r) {
+      if (allOn) em.selected.delete(r.email); else em.selected.set(r.email, r.name);
+    });
+    emRenderList();
+    emRenderSelected();
+  });
+
+  // Select / clear ALL staff + hotel admin at once (send to everyone)
+  $('emSelectEveryone').addEventListener('click', function () {
+    var all = emEveryone();
+    var allOn = all.length && all.every(function (r) { return em.selected.has(r.email); });
+    all.forEach(function (r) {
+      if (allOn) em.selected.delete(r.email); else em.selected.set(r.email, r.name);
+    });
+    emRenderList();
+    emRenderSelected();
+  });
+
+  $('emSelected').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    em.selected.delete(btn.dataset.remove);
+    emRenderSelected();
+    emRenderList();
+  });
+
+  $('emSend').addEventListener('click', emSend);
 })();
 </script>
 

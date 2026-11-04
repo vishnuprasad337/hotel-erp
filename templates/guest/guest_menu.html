@@ -1,0 +1,66 @@
+{% extends "guest/base.html" %}
+{% block title %}Menu{% endblock %}
+{% block extra_head %}{% include "guest/_portal_shared.html" with part="css" %}{% endblock %}
+
+{% block content %}
+<section class="tab-panel active" id="tab-menu">
+  <div class="pg-head"><div class="ic"><i class="fas fa-utensils"></i></div>
+    <div><h1>Menu</h1><p>Order food &amp; beverages, delivered to your room</p></div></div>
+
+  <div class="layout">
+    <div>
+      <div class="search"><i class="fas fa-magnifying-glass" style="color:var(--muted)"></i>
+        <input id="q" placeholder="Search for food or beverages..."></div>
+
+      <div class="pills" id="pills">
+        <div class="pill active" data-cat="all"><i class="fas fa-table-cells-large"></i>All Items</div>
+        {% for c in menu %}<div class="pill" data-cat="{{ c.id }}"><i class="fas fa-utensils"></i>{{ c.name }}</div>{% endfor %}
+      </div>
+
+      {% for c in menu %}
+      <div class="sec" data-cat="{{ c.id }}">
+        <div class="sec-head"><div class="ic"><i class="fas fa-utensils"></i></div>
+          <div><h3>{{ c.name }}</h3>{% if c.description %}<p>{{ c.description }}</p>{% endif %}</div>
+          <span class="count">{{ c.items|length }} Items</span></div>
+        <div class="grid">
+          {% for i in c.items %}
+          <div class="item" data-name="{{ i.name|lower }} {{ i.description|lower }}">
+            {% if i.image %}<img src="{{ i.image }}" alt="{{ i.name }}">{% else %}<div class="ph"><i class="fas fa-bowl-food"></i></div>{% endif %}
+            <div><div class="nm"><span class="veg {% if not i.veg %}nv{% endif %}"></span>{{ i.name }}</div>
+              <div class="pr">₹{{ i.price|floatformat:1 }}</div><div class="ds">{{ i.description|truncatechars:60 }}</div></div>
+            <button class="add" data-id="{{ i.id }}" data-name="{{ i.name }}" data-price="{{ i.price }}" data-tax="{{ i.tax_percent }}" data-img="{{ i.image|default:'' }}">+ Add</button>
+          </div>{% endfor %}
+        </div>
+      </div>
+      {% empty %}<div class="empty"><i class="fas fa-utensils"></i>No menu items available right now.</div>{% endfor %}
+    </div>
+
+    <aside class="side card">
+      <div class="card-head"><div class="ic"><i class="fas fa-cart-shopping"></i></div><h3>Your Order</h3>
+        <span class="badge" id="oCount" style="margin-left:auto;background:var(--p-soft);color:var(--p)">0 Items</span></div>
+      <div class="card-body">
+        <div id="oList"></div>
+        <div class="sum"><span>Subtotal</span><b id="oSub"></b></div>
+        <div class="sum"><span>Tax</span><b id="oTax"></b></div>
+        <div class="sum"><span>Delivery Charges</span><b id="oDel"></b></div>
+        <div class="sum tot"><span>Total</span><b id="oTot"></b></div>
+        <button class="btn-primary" id="oGo" style="margin-top:14px"><i class="fas fa-bag-shopping"></i> Proceed to Checkout →</button>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}{% include "guest/_portal_shared.html" with part="js" %}
+<script>
+document.querySelectorAll('.add').forEach(b=>b.onclick=()=>Cart.add({id:+b.dataset.id,name:b.dataset.name,price:+b.dataset.price,tax:+b.dataset.tax,img:b.dataset.img}));
+function draw(){const t=Cart.totals();
+  oList.innerHTML=Cart.rows()||'<div class="empty"><i class="fas fa-bag-shopping"></i>Your order is empty</div>';
+  oCount.textContent=t.count+' Items';oSub.textContent=fmt(t.sub);oTax.textContent=fmt(t.tax);oDel.textContent=fmt(t.delivery);oTot.textContent=fmt(t.total);oGo.disabled=!t.count}
+document.addEventListener('cartchange',draw);draw();
+oGo.onclick=()=>switchTab('cart');
+function filt(){const q=document.getElementById('q').value.toLowerCase(),cat=document.querySelector('.pill.active').dataset.cat;
+  document.querySelectorAll('.sec').forEach(s=>{let n=0;s.querySelectorAll('.item').forEach(i=>{const ok=i.dataset.name.includes(q);i.style.display=ok?'':'none';if(ok)n++});
+    s.style.display=(cat==='all'||s.dataset.cat===cat)&&n?'':'none'})}
+q.oninput=filt;document.querySelectorAll('.pill').forEach(p=>p.onclick=()=>{document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');filt()});
+</script>{% endblock %}

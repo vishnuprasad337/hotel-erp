@@ -1,0 +1,679 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}All Invoices - Admio{% endblock %}
+
+{% block content %}
+<style>
+  .bill-hero {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--admio-accent, #7C3AED) 45%, #14151f 55%) 0%,
+      color-mix(in srgb, var(--admio-accent, #7C3AED) 65%, #14151f 35%) 100%);
+    border-radius: 20px;
+    padding: 28px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .bill-hero-title { color: #fff; font-size: 1.7rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 12px; }
+  .bill-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: .92rem;
+    text-decoration: none; border: none; cursor: pointer;
+  }
+  .bill-btn-ghost { background: #fff; color: #14151f; }
+  .bill-btn-ghost:hover { background: #f1f1f5; color: #14151f; }
+
+  .bill-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin-bottom: 28px; }
+  @media (max-width: 1199px) { .bill-stats { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 575px) { .bill-stats { grid-template-columns: repeat(2, 1fr); } }
+
+  .bill-stat-card {
+    background: var(--admio-card-bg, #fff);
+    border: 1px solid var(--admio-border-color, #e5e7eb);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .bill-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--admio-heading-color, #111); line-height: 1.1; }
+  .bill-stat-value.green  { color: #16a34a; }
+  .bill-stat-value.amber  { color: #d97706; }
+  .bill-stat-value.blue   { color: #2563eb; }
+  .bill-stat-value.purple { color: var(--admio-accent, #7C3AED); }
+  .bill-stat-label { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; color: #9a9aab; margin-top: 6px; font-weight: 700; }
+
+  .bill-card {
+    background: var(--admio-card-bg, #fff);
+    border: 1px solid var(--admio-border-color, #e5e7eb);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .bill-card-body { padding: 20px 22px; }
+
+  .bill-filter-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+  .bill-search-lg {
+    flex: 1 1 260px; border: 1px solid var(--admio-border-color, #d8dae0); border-radius: 10px;
+    padding: 11px 16px; font-size: .92rem;
+  }
+  .bill-tabs { display: flex; gap: 6px; background: #f4f4f7; padding: 4px; border-radius: 10px; }
+  .bill-tab { border: none; background: transparent; padding: 8px 16px; border-radius: 8px; font-size: .88rem; font-weight: 600; color: #6b6b7d; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .bill-tab.active { background: #14151f; color: #fff; }
+  .bill-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .bill-dot.paid { background: #22c55e; }
+  .bill-dot.pending { background: #f59e0b; }
+  .bill-dot.partial { background: #3b82f6; }
+
+  .bill-filter-grid { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 14px; align-items: end; }
+  @media (max-width: 991px) { .bill-filter-grid { grid-template-columns: repeat(2, 1fr); } }
+  .bill-field-label { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #9a9aab; margin-bottom: 6px; display: block; }
+  .bill-input, .bill-select {
+    width: 100%; border: 1px solid var(--admio-border-color, #d8dae0); border-radius: 10px;
+    padding: 10px 12px; font-size: .88rem;
+  }
+  .bill-clear-btn {
+    border: 1px solid var(--admio-border-color, #d8dae0); background: #fff; border-radius: 10px;
+    padding: 10px 16px; font-size: .88rem; font-weight: 600; color: #6b6b7d; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .bill-clear-btn:hover { color: #dc2626; border-color: #fecaca; }
+
+  .bill-table-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 18px 22px;
+    border-bottom: 1px solid var(--admio-border-color, #eee);
+  }
+  .bill-card-title { font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 10px; margin: 0; }
+  .bill-count-chip { background: rgba(var(--admio-accent-rgb, 124,58,237),.09); color: var(--admio-accent, #7C3AED); font-weight: 700; font-size: .8rem; padding: 5px 12px; border-radius: 20px; }
+
+  /* ── Invoice table: aligned columns ── */
+  .bill-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .bill-table th {
+    text-align: left; color: #9a9aab; font-weight: 700; font-size: .72rem; letter-spacing: .04em;
+    text-transform: uppercase; padding: 12px 18px; border-bottom: 1px solid var(--admio-border-color, #eee);
+    white-space: nowrap; user-select: none;
+  }
+  .bill-table td {
+    padding: 14px 18px; border-bottom: 1px solid var(--admio-border-color, #f0f0f3);
+    vertical-align: middle; white-space: nowrap; text-align: left;
+  }
+  .bill-table th.col-right,  .bill-table td.col-right  { text-align: right; }
+  .bill-table th.col-center, .bill-table td.col-center { text-align: center; }
+  .bill-table tbody tr:hover { background: rgba(var(--admio-accent-rgb, 124,58,237),.03); }
+  .bill-table tr:last-child td { border-bottom: none; }
+  .bill-inv-chip { background: rgba(var(--admio-accent-rgb, 124,58,237),.09); color: var(--admio-accent, #7C3AED); font-weight: 700; font-size: .78rem; padding: 4px 10px; border-radius: 8px; }
+
+  .bill-badge { font-size: .75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: capitalize; display: inline-block; }
+  .bill-badge.paid { background: rgba(34,197,94,.12); color: #16a34a; }
+  .bill-badge.pending { background: rgba(245,158,11,.12); color: #d97706; }
+  .bill-badge.partial { background: rgba(59,130,246,.12); color: #2563eb; }
+
+  .bill-actions { display: inline-flex; align-items: center; gap: 8px; }
+  .bill-view-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 14px; border-radius: 8px;
+    border: 1px solid var(--admio-border-color, #e5e7eb); background: #fff;
+    font-size: .82rem; font-weight: 600; color: #14151f; cursor: pointer;
+  }
+  .bill-view-btn:hover { border-color: var(--admio-accent, #7C3AED); color: var(--admio-accent, #7C3AED); }
+  .bill-icon-btn {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--admio-border-color, #e5e7eb);
+    background: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .bill-icon-btn.send { background: var(--admio-accent, #7C3AED); border-color: var(--admio-accent, #7C3AED); color: #fff; }
+  .bill-icon-btn.send:hover { background: color-mix(in srgb, var(--admio-accent, #7C3AED) 85%, #000 15%); }
+  .bill-icon-btn:hover { border-color: var(--admio-accent, #7C3AED); color: var(--admio-accent, #7C3AED); }
+  .bill-icon-btn.send:hover { color: #fff; }
+  .bill-empty { text-align: center !important; padding: 40px 10px; color: #9a9aab; }
+
+  .bill-table-footer { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-top: 1px solid var(--admio-border-color, #eee); font-size: .85rem; color: #9a9aab; }
+
+  /* ── Modals: sit above the app's sidebar / top bar ── */
+  .bill-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 2000000 !important;
+    background: rgba(15,15,25,.55);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .bill-modal-overlay.open { display: flex; }
+  .bill-modal {
+    background: #fff; border-radius: 18px; width: 100%; max-width: 380px;
+    padding: 28px 26px 24px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: bill-modal-in .18s ease;
+  }
+  @keyframes bill-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .bill-modal-icon {
+    width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+  }
+  .bill-modal-icon.success { background: rgba(34,197,94,.12); color: #16a34a; }
+  .bill-modal-icon.error   { background: rgba(239,68,68,.12); color: #dc2626; }
+  .bill-modal-title { font-size: 1.1rem; font-weight: 800; color: #14151f; margin: 0 0 8px; }
+  .bill-modal-text { font-size: .92rem; color: #6b6b7d; margin: 0 0 22px; line-height: 1.5; }
+  .bill-modal-ok {
+    background: var(--admio-accent, #7C3AED); color: #fff; border: none; border-radius: 10px;
+    padding: 11px 28px; font-weight: 700; font-size: .92rem; cursor: pointer;
+  }
+  .bill-modal-ok:hover { background: color-mix(in srgb, var(--admio-accent, #7C3AED) 85%, #000 15%); }
+
+  /* ── Invoice detail view modal ── */
+  .bill-view-modal {
+    background: #fff; border-radius: 18px; width: 100%; max-width: 620px;
+    max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    animation: bill-modal-in .18s ease;
+  }
+  .bill-view-head {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--admio-accent, #7C3AED) 45%, #14151f 55%) 0%,
+      color-mix(in srgb, var(--admio-accent, #7C3AED) 65%, #14151f 35%) 100%);
+    padding: 24px 26px; border-radius: 18px 18px 0 0;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .bill-view-inv-no { color: #fff; font-size: 1.2rem; font-weight: 800; margin: 0; }
+  .bill-view-hotel { color: #9b9bb5; font-size: .82rem; margin: 4px 0 0; }
+  .bill-view-close {
+    background: rgba(255,255,255,.12); border: none; color: #fff; width: 32px; height: 32px;
+    border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .bill-view-close:hover { background: rgba(255,255,255,.22); }
+  .bill-view-body { padding: 22px 26px 26px; }
+  .bill-view-section { margin-bottom: 22px; }
+  .bill-view-section-title { font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #9a9aab; margin: 0 0 10px; }
+  .bill-view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+  @media (max-width: 575px) { .bill-view-grid { grid-template-columns: 1fr; } }
+  .bill-view-kv-label { font-size: .78rem; color: #9a9aab; margin: 0 0 2px; }
+  .bill-view-kv-value { font-size: .92rem; font-weight: 700; color: #14151f; margin: 0; word-break: break-word; }
+  .bill-view-charges-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .bill-view-charges-table th { text-align: left; color: #9a9aab; font-weight: 700; font-size: .7rem; letter-spacing: .04em; text-transform: uppercase; padding: 8px 4px; border-bottom: 1px solid #eee; }
+  .bill-view-charges-table td { padding: 9px 4px; border-bottom: 1px solid #f2f2f5; color: #14151f; }
+  .bill-view-charges-table td:not(:first-child), .bill-view-charges-table th:not(:first-child) { text-align: right; }
+  .bill-view-totals { margin-top: 10px; padding-top: 10px; }
+  .bill-view-total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: .88rem; color: #6b6b7d; }
+  .bill-view-total-row.grand { font-size: 1.05rem; font-weight: 800; color: #14151f; border-top: 1px solid #eee; margin-top: 6px; padding-top: 10px; }
+  .bill-view-status-badge { font-size: .75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: capitalize; flex-shrink: 0; }
+  .bill-view-status-badge.paid { background: rgba(34,197,94,.18); color: #4ade80; }
+  .bill-view-status-badge.pending { background: rgba(245,158,11,.18); color: #fbbf24; }
+  .bill-view-status-badge.partial { background: rgba(59,130,246,.18); color: #60a5fa; }
+  .bill-view-payment-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f2f2f5; font-size: .85rem; color: #14151f; }
+  .bill-view-payment-row:last-child { border-bottom: none; }
+  .bill-view-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+  .bill-view-empty { text-align: center; color: #9a9aab; padding: 40px 10px; }
+</style>
+
+<div class="bill-hero">
+  <p class="bill-hero-title"><i class="icon-file-text"></i> All Invoices</p>
+  <a href="{% url 'billing_overview_page' %}" class="bill-btn bill-btn-ghost">
+    <i class="icon-chevron-down" style="transform:rotate(90deg);"></i> Overview
+  </a>
+</div>
+
+<div class="bill-stats">
+  <div class="bill-stat-card">
+    <div class="bill-stat-value" id="statTotal">0</div>
+    <div class="bill-stat-label">Total</div>
+  </div>
+  <div class="bill-stat-card">
+    <div class="bill-stat-value green" id="statPaid">0</div>
+    <div class="bill-stat-label">Paid</div>
+  </div>
+  <div class="bill-stat-card">
+    <div class="bill-stat-value amber" id="statPending">0</div>
+    <div class="bill-stat-label">Pending</div>
+  </div>
+  <div class="bill-stat-card">
+    <div class="bill-stat-value blue" id="statPartial">0</div>
+    <div class="bill-stat-label">Partial</div>
+  </div>
+  <div class="bill-stat-card">
+    <div class="bill-stat-value purple" id="statRevenue">₹0</div>
+    <div class="bill-stat-label">Total Revenue</div>
+  </div>
+</div>
+
+<div class="bill-card">
+  <div class="bill-card-body">
+    <div class="bill-filter-row">
+      <input type="text" class="bill-search-lg" id="invSearch" placeholder="Invoice #, guest name, room…">
+      <div class="bill-tabs" id="invTabs">
+        <button class="bill-tab active" data-status="all">All</button>
+        <button class="bill-tab" data-status="paid"><span class="bill-dot paid"></span> Paid</button>
+        <button class="bill-tab" data-status="pending"><span class="bill-dot pending"></span> Pending</button>
+        <button class="bill-tab" data-status="partial"><span class="bill-dot partial"></span> Partial</button>
+      </div>
+    </div>
+
+    <div class="bill-filter-grid">
+      <div>
+        <label class="bill-field-label">Date From</label>
+        <input type="date" class="bill-input" id="dateFrom">
+      </div>
+      <div>
+        <label class="bill-field-label">Date To</label>
+        <input type="date" class="bill-input" id="dateTo">
+      </div>
+      <div>
+        <label class="bill-field-label">Sort By</label>
+        <select class="bill-select" id="sortBy">
+          <option value="date_desc">Date (Newest First)</option>
+          <option value="date_asc">Date (Oldest First)</option>
+          <option value="amount_desc">Amount (High to Low)</option>
+          <option value="amount_asc">Amount (Low to High)</option>
+        </select>
+      </div>
+      <div>
+        <label class="bill-field-label">Per Page</label>
+        <select class="bill-select" id="perPage">
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="0">All</option>
+        </select>
+      </div>
+      <div>
+        <button class="bill-clear-btn" id="clearFilters"><i class="icon-x"></i> Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bill-card">
+  <div class="bill-table-header">
+    <p class="bill-card-title"><i class="icon-file-text"></i> Invoice Records</p>
+    <div class="d-flex align-items-center gap-3">
+      <span id="showingText" class="text-muted small">Showing 0–0 of 0</span>
+      <span class="bill-count-chip" id="countChip">0 invoices</span>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="bill-table">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Guest</th>
+          <th class="col-right">Grand Total</th>
+          <th class="col-center">Status</th>
+          <th>Generated</th>
+          <th class="col-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="invoicesBody">
+        <tr><td colspan="6" class="bill-empty">Loading invoices…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="bill-table-footer">
+    <span id="pageInfo"></span>
+    <div class="d-flex gap-2">
+      <button class="bill-clear-btn" id="prevPage"><i class="icon-chevron-down" style="transform:rotate(90deg);"></i> Prev</button>
+      <button class="bill-clear-btn" id="nextPage">Next <i class="icon-chevron-down" style="transform:rotate(-90deg);"></i></button>
+    </div>
+  </div>
+</div>
+
+<div class="bill-modal-overlay" id="billModalOverlay">
+  <div class="bill-modal">
+    <div class="bill-modal-icon" id="billModalIcon"><i class="icon-send"></i></div>
+    <p class="bill-modal-title" id="billModalTitle">Invoice Sent</p>
+    <p class="bill-modal-text" id="billModalText"></p>
+    <button class="bill-modal-ok" id="billModalOk">OK</button>
+  </div>
+</div>
+
+<div class="bill-modal-overlay" id="billViewOverlay">
+  <div class="bill-view-modal" id="billViewModal">
+    <div class="bill-view-empty">Loading invoice…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const fmtMoney = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const fmtDate = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  };
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, ch => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
+  ));
+
+  // Move both overlays to <body> so no parent stacking context can hide them behind the top bar
+  ["billModalOverlay", "billViewOverlay"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) document.body.appendChild(el);
+  });
+
+  let allInvoices = [];
+  let currentStatus = "all";
+  let currentPage = 1;
+
+  function loadInvoices() {
+    fetch("{% url 'billing_invoice_list' %}")
+      .then(r => r.json())
+      .then(d => {
+        allInvoices = d.invoices || [];
+        updateSummaryStats();
+        currentPage = 1;
+        renderTable();
+      })
+      .catch(() => {
+        document.getElementById("invoicesBody").innerHTML =
+          '<tr><td colspan="6" class="bill-empty">Could not load invoices.</td></tr>';
+      });
+  }
+
+  function updateSummaryStats() {
+    const total = allInvoices.length;
+    const paid = allInvoices.filter(i => i.status === "paid").length;
+    const pending = allInvoices.filter(i => i.status === "pending").length;
+    const partial = allInvoices.filter(i => i.status === "partial").length;
+    const revenue = allInvoices.reduce((sum, i) => sum + (Number(i.grand_total) || 0), 0);
+
+    document.getElementById("statTotal").textContent = total;
+    document.getElementById("statPaid").textContent = paid;
+    document.getElementById("statPending").textContent = pending;
+    document.getElementById("statPartial").textContent = partial;
+    document.getElementById("statRevenue").textContent = fmtMoney(revenue);
+  }
+
+  function getFiltered() {
+    const q = document.getElementById("invSearch").value.trim().toLowerCase();
+    const dateFrom = document.getElementById("dateFrom").value;
+    const dateTo = document.getElementById("dateTo").value;
+    const sortBy = document.getElementById("sortBy").value;
+
+    let rows = allInvoices.filter(inv => {
+      if (currentStatus !== "all" && inv.status !== currentStatus) return false;
+      if (q) {
+        const hay = `${inv.invoice_number} ${inv.guest_name} ${inv.room_number}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (dateFrom && inv.check_in && inv.check_in < dateFrom) return false;
+      if (dateTo && inv.check_in && inv.check_in > dateTo) return false;
+      return true;
+    });
+
+    rows.sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc": return (a.generated_at || "").localeCompare(b.generated_at || "");
+        case "amount_desc": return (b.grand_total || 0) - (a.grand_total || 0);
+        case "amount_asc": return (a.grand_total || 0) - (b.grand_total || 0);
+        default: return (b.generated_at || "").localeCompare(a.generated_at || ""); // date_desc
+      }
+    });
+
+    return rows;
+  }
+
+  function renderTable() {
+    const body = document.getElementById("invoicesBody");
+    const filtered = getFiltered();
+    const perPageVal = parseInt(document.getElementById("perPage").value, 10);
+    const perPage = perPageVal === 0 ? filtered.length || 1 : perPageVal;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+    currentPage = Math.min(currentPage, totalPages);
+
+    const start = (currentPage - 1) * perPage;
+    const pageRows = filtered.slice(start, start + perPage);
+
+    document.getElementById("countChip").textContent = `${filtered.length} invoice${filtered.length === 1 ? "" : "s"}`;
+    document.getElementById("showingText").textContent =
+      `Showing ${filtered.length ? start + 1 : 0}–${Math.min(start + perPage, filtered.length)} of ${filtered.length}`;
+    document.getElementById("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
+
+    if (!pageRows.length) {
+      body.innerHTML = '<tr><td colspan="6" class="bill-empty">No invoices match your filters.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = pageRows.map(inv => `
+      <tr>
+        <td><span class="bill-inv-chip">${esc(inv.invoice_number)}</span></td>
+        <td>
+          <div class="fw-semibold">${esc(inv.guest_name) || "—"}</div>
+          <div class="text-muted small">${esc(inv.guest_email)}</div>
+        </td>
+        <td class="col-right fw-bold">${fmtMoney(inv.grand_total)}</td>
+        <td class="col-center"><span class="bill-badge ${esc(inv.status)}">${esc(inv.status)}</span></td>
+        <td>${fmtDate(inv.generated_at)}</td>
+        <td class="col-center">
+          <div class="bill-actions">
+            <button class="bill-view-btn view-btn" data-id="${esc(inv.id)}" title="View invoice details">
+              <i class="icon-file-text"></i> View
+            </button>
+            <button class="bill-icon-btn send" data-id="${esc(inv.id)}" data-action="send" title="Send email">
+              <i class="icon-send"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  document.getElementById("invTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".bill-tab");
+    if (!btn) return;
+    document.querySelectorAll("#invTabs .bill-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentStatus = btn.dataset.status;
+    currentPage = 1;
+    renderTable();
+  });
+
+  ["invSearch", "dateFrom", "dateTo", "sortBy", "perPage"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => { currentPage = 1; renderTable(); });
+    document.getElementById(id).addEventListener("change", () => { currentPage = 1; renderTable(); });
+  });
+
+  document.getElementById("clearFilters").addEventListener("click", () => {
+    document.getElementById("invSearch").value = "";
+    document.getElementById("dateFrom").value = "";
+    document.getElementById("dateTo").value = "";
+    document.getElementById("sortBy").value = "date_desc";
+    document.getElementById("perPage").value = "25";
+    document.querySelectorAll("#invTabs .bill-tab").forEach(b => b.classList.remove("active"));
+    document.querySelector('#invTabs .bill-tab[data-status="all"]').classList.add("active");
+    currentStatus = "all";
+    currentPage = 1;
+    renderTable();
+  });
+
+  document.getElementById("prevPage").addEventListener("click", () => {
+    if (currentPage > 1) { currentPage--; renderTable(); }
+  });
+  document.getElementById("nextPage").addEventListener("click", () => {
+    currentPage++; renderTable();
+  });
+
+  function getCookie(name) {
+    const v = document.cookie.match("(^|;)\\s*" + name + "\\s*=\\s*([^;]+)");
+    return v ? v.pop() : "";
+  }
+
+  // ── Email result modal (replaces native alert()) ──
+  const modalOverlay = document.getElementById("billModalOverlay");
+  const modalIcon    = document.getElementById("billModalIcon");
+  const modalTitle   = document.getElementById("billModalTitle");
+  const modalText    = document.getElementById("billModalText");
+
+  function showBillModal(kind, title, text) {
+    modalIcon.className = "bill-modal-icon " + kind;
+    modalIcon.innerHTML = kind === "success"
+      ? '<i class="icon-circle-check"></i>'
+      : '<i class="icon-triangle-alert"></i>';
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    modalOverlay.classList.add("open");
+  }
+  function closeBillModal() {
+    modalOverlay.classList.remove("open");
+  }
+  document.getElementById("billModalOk").addEventListener("click", closeBillModal);
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) closeBillModal();
+  });
+
+  // ── Invoice detail view modal ──
+  const viewOverlay = document.getElementById("billViewOverlay");
+  const viewModal   = document.getElementById("billViewModal");
+
+  function closeBillView() { viewOverlay.classList.remove("open"); }
+  viewOverlay.addEventListener("click", (e) => {
+    if (e.target === viewOverlay) closeBillView();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { closeBillView(); closeBillModal(); }
+  });
+
+  function openInvoiceView(id) {
+    viewModal.innerHTML = '<div class="bill-view-empty">Loading invoice…</div>';
+    viewOverlay.classList.add("open");
+
+    fetch(`/api/billing/invoice/${id}/`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) {
+          viewModal.innerHTML = `<div class="bill-view-empty">${esc(d.error) || "Could not load invoice."}</div>`;
+          return;
+        }
+        viewModal.innerHTML = renderInvoiceView(d.invoice);
+        const closeBtn = viewModal.querySelector(".bill-view-close");
+        if (closeBtn) closeBtn.addEventListener("click", closeBillView);
+        const closeFooter = viewModal.querySelector(".bill-view-close-btn");
+        if (closeFooter) closeFooter.addEventListener("click", closeBillView);
+        const sendBtn = viewModal.querySelector(".bill-view-send-btn");
+        if (sendBtn) sendBtn.addEventListener("click", () => {
+          closeBillView();
+          const rowSend = document.querySelector(`.bill-icon-btn.send[data-id="${id}"]`);
+          if (rowSend) rowSend.click();
+        });
+      })
+      .catch(() => {
+        viewModal.innerHTML = '<div class="bill-view-empty">Could not load invoice.</div>';
+      });
+  }
+
+  function renderInvoiceView(inv) {
+    const charges = inv.charges || [];
+    const payments = inv.payments || [];
+
+    const chargeRows = charges.length
+      ? charges.map(c => `
+          <tr>
+            <td>${esc(c.description || c.charge_type)}</td>
+            <td>${fmtMoney(c.amount)}</td>
+            <td>${fmtMoney(c.tax_amount)}</td>
+            <td>${fmtMoney(c.total)}</td>
+          </tr>`).join("")
+      : '<tr><td colspan="4" class="text-muted">No charges recorded.</td></tr>';
+
+    const paymentRows = payments.length
+      ? payments.map(p => `
+          <div class="bill-view-payment-row">
+            <span>${esc(p.method_label || p.method)} ${p.reference_number ? "· " + esc(p.reference_number) : ""}</span>
+            <span class="fw-bold">${fmtMoney(p.amount)}</span>
+          </div>`).join("")
+      : '<div class="bill-view-empty" style="padding:10px 0;">No payments recorded yet.</div>';
+
+    return `
+      <div class="bill-view-head">
+        <div>
+          <p class="bill-view-inv-no">${esc(inv.invoice_number)}</p>
+          <p class="bill-view-hotel">${esc(inv.hotel_name || "Hotel")} · ${fmtDate(inv.generated_at)}</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="bill-view-status-badge ${esc(inv.status)}">${esc(inv.status)}</span>
+          <button class="bill-view-close" title="Close"><i class="icon-x"></i></button>
+        </div>
+      </div>
+      <div class="bill-view-body">
+        <div class="bill-view-section">
+          <p class="bill-view-section-title">Guest &amp; Stay</p>
+          <div class="bill-view-grid">
+            <div><p class="bill-view-kv-label">Guest</p><p class="bill-view-kv-value">${esc(inv.guest_name) || "—"}</p></div>
+            <div><p class="bill-view-kv-label">Email</p><p class="bill-view-kv-value">${esc(inv.guest_email) || "—"}</p></div>
+            <div><p class="bill-view-kv-label">Booking ID</p><p class="bill-view-kv-value">${inv.booking_id ? "#" + esc(inv.booking_id) : "—"}</p></div>
+            <div><p class="bill-view-kv-label">Room</p><p class="bill-view-kv-value">${esc(inv.room_number) || "—"}${inv.room_type ? " · " + esc(inv.room_type) : ""}</p></div>
+            <div><p class="bill-view-kv-label">Check-In</p><p class="bill-view-kv-value">${fmtDate(inv.check_in)}</p></div>
+            <div><p class="bill-view-kv-label">Check-Out</p><p class="bill-view-kv-value">${fmtDate(inv.check_out)}</p></div>
+            <div><p class="bill-view-kv-label">Generated on</p><p class="bill-view-kv-value">${fmtDate(inv.generated_at)}</p></div>
+            <div><p class="bill-view-kv-label">Generated by</p><p class="bill-view-kv-value">${esc(inv.generated_by) || "—"}</p></div>
+          </div>
+        </div>
+
+        <div class="bill-view-section">
+          <p class="bill-view-section-title">Charges</p>
+          <table class="bill-view-charges-table">
+            <thead><tr><th>Description</th><th>Amount</th><th>Tax</th><th>Total</th></tr></thead>
+            <tbody>${chargeRows}</tbody>
+          </table>
+          <div class="bill-view-totals">
+            <div class="bill-view-total-row"><span>Subtotal</span><span>${fmtMoney(inv.subtotal)}</span></div>
+            <div class="bill-view-total-row"><span>Tax / GST</span><span>${fmtMoney(inv.tax)}</span></div>
+            <div class="bill-view-total-row"><span>Discount</span><span>${inv.discount ? "- " + fmtMoney(inv.discount) : "—"}</span></div>
+            <div class="bill-view-total-row grand"><span>Grand Total</span><span>${fmtMoney(inv.grand_total)}</span></div>
+            <div class="bill-view-total-row"><span>Paid</span><span class="text-success fw-bold">${fmtMoney(inv.paid)}</span></div>
+            <div class="bill-view-total-row"><span>Balance Due</span><span class="fw-bold" style="color:${inv.balance > 0 ? '#dc2626' : '#16a34a'}">${fmtMoney(inv.balance)}</span></div>
+          </div>
+        </div>
+
+        <div class="bill-view-section" style="margin-bottom:0;">
+          <p class="bill-view-section-title">Payments</p>
+          ${paymentRows}
+        </div>
+
+        <div class="bill-view-footer">
+          <button class="bill-btn bill-view-close-btn" style="background:#f4f4f7;color:#14151f;">Close</button>
+          <button class="bill-btn bill-view-send-btn" style="background:#7C3AED;color:#fff;">
+            <i class="icon-send"></i> Email Invoice
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById("invoicesBody").addEventListener("click", (e) => {
+    const viewBtn = e.target.closest(".view-btn");
+    const sendBtn = e.target.closest('[data-action="send"]');
+
+    if (viewBtn) {
+      openInvoiceView(viewBtn.dataset.id);
+    }
+
+    if (sendBtn) {
+      const id = sendBtn.dataset.id;
+      sendBtn.disabled = true;
+      fetch(`/api/billing/invoice/${id}/send-email/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+      })
+        .then(r => r.json())
+        .then(d => {
+          sendBtn.disabled = false;
+          if (d.success) {
+            showBillModal("success", "Invoice Sent", `Invoice emailed to ${d.email_sent_to}`);
+          } else {
+            showBillModal("error", "Could Not Send", d.error || "Could not send invoice email.");
+          }
+        })
+        .catch(() => {
+          sendBtn.disabled = false;
+          showBillModal("error", "Could Not Send", "Could not send invoice email.");
+        });
+    }
+  });
+
+  loadInvoices();
+})();
+</script>
+{% endblock %}

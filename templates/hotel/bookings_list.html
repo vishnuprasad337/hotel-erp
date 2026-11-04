@@ -6,6 +6,114 @@
 {% block nav_bookings_active %}active{% endblock %}
 
 {% block content %}
+<style>
+  /* ---------- Bookings table: aligned columns ---------- */
+  #bkTableWrap table { table-layout: auto; width: 100%; }
+  #bkTableWrap th,
+  #bkTableWrap td {
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  #bkTableWrap thead th {
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+  }
+  #bkTableWrap tbody tr { border-bottom: 1px solid #f1f3f5; }
+  #bkTableWrap .col-code   { width: 110px; }
+  #bkTableWrap .col-amount { text-align: right; }
+  #bkTableWrap .col-center { text-align: center; }
+  #bkTableWrap .guest-name { font-weight: 600; }
+
+  /* ---------- Details modal ---------- */
+  /* sit above the app's fixed sidebar / top bar */
+  #bkDetailModal { z-index: 2000000 !important; }
+  .modal-backdrop,
+  .modal-backdrop.show { z-index: 1999990 !important; }
+
+  #bkDetailModal .modal-dialog { max-width: 560px; }
+  #bkDetailModal .modal-content {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .28);
+  }
+  #bkDetailModal .modal-header {
+    align-items: flex-start;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--bs-border-color, #e9ecef);
+  }
+  #bkDetailModal .modal-body   { padding: 20px 24px; }
+  #bkDetailModal .modal-footer { padding: 12px 24px; border-top: 1px solid var(--bs-border-color, #e9ecef); }
+
+  .bk-m-name  { font-size: 1.15rem; font-weight: 700; line-height: 1.3; margin: 0; }
+  .bk-m-sub   { font-size: .8rem; color: var(--bs-secondary-color, #6c757d); margin-top: 2px; }
+  .bk-m-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .bk-m-badges .badge {
+    font-size: .72rem; font-weight: 600; padding: 5px 10px;
+    border-radius: 999px; text-transform: capitalize;
+  }
+
+  /* payment tiles */
+  .bk-m-money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
+  .bk-m-tile {
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    border: 1px solid var(--bs-border-color, #e9ecef);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .bk-m-tile small  { display: block; font-size: .75rem; color: var(--bs-secondary-color, #6c757d); margin-bottom: 4px; }
+  .bk-m-tile strong { display: block; font-size: 1.05rem; font-weight: 700; }
+  .bk-m-tile.is-due   { background: rgba(239, 68, 68, .08);  border-color: rgba(239, 68, 68, .35); }
+  .bk-m-tile.is-due strong   { color: #ef4444; }
+  .bk-m-tile.is-clear { background: rgba(16, 185, 129, .08); border-color: rgba(16, 185, 129, .35); }
+  .bk-m-tile.is-clear strong { color: #10b981; }
+  .bk-m-tile.is-paid strong  { color: #2563eb; }
+
+  /* sections */
+  .bk-m-section { margin-bottom: 22px; }
+  .bk-m-section:last-child { margin-bottom: 0; }
+  .bk-m-h {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .85rem; font-weight: 700; margin-bottom: 10px;
+  }
+  .bk-m-h i { width: 16px; text-align: center; color: var(--bs-primary, #0d6efd); }
+
+  /* stay timeline */
+  .bk-m-stay {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--bs-border-color, #e9ecef);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+  .bk-m-stay .date small { display: block; font-size: .75rem; color: var(--bs-secondary-color, #6c757d); margin-bottom: 2px; }
+  .bk-m-stay .date div   { font-size: .9rem; font-weight: 600; white-space: nowrap; }
+  .bk-m-stay .date.out   { text-align: right; }
+  .bk-m-mid  { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 60px; }
+  .bk-m-mid .line { flex: 1; height: 1px; background: var(--bs-border-color, #dee2e6); }
+  .bk-m-nights {
+    font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+    background: rgba(var(--bs-primary-rgb, 13, 110, 253), .1);
+    color: var(--bs-primary, #0d6efd);
+  }
+
+  /* label / value grid */
+  .bk-m-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .bk-m-item small { display: block; font-size: .75rem; color: var(--bs-secondary-color, #6c757d); margin-bottom: 2px; }
+  .bk-m-item div   { font-size: .9rem; font-weight: 500; word-break: break-word; }
+  .bk-m-item.full  { grid-column: 1 / -1; }
+
+  @media (max-width: 575.98px) {
+    .bk-m-grid  { grid-template-columns: 1fr; }
+    .bk-m-money { grid-template-columns: 1fr; }
+    .bk-m-stay .date div { white-space: normal; }
+  }
+</style>
+
 <div class="container-fluid">
 
   <!-- Page Header -->
@@ -80,7 +188,7 @@
         <div class="flex-grow-1" style="min-width:250px;max-width:350px;">
           <div class="input-group">
             <span class="input-group-text"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control form-control-sm" id="bkSearch" 
+            <input type="text" class="form-control form-control-sm" id="bkSearch"
                    placeholder="Guest name, phone, booking code…" oninput="debounce(_bkApplyFilters,280)()">
           </div>
         </div>
@@ -165,30 +273,24 @@
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="table-responsive" style="border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
-    <table class="table table-hover table-sm mb-0">
-      <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+  <!-- Table (only the important columns; everything else is in the View modal) -->
+  <div class="table-responsive" id="bkTableWrap" style="border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+    <table class="table table-hover mb-0">
+      <thead>
         <tr>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Code</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Guest</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Phone</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Room</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Check-in</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Check-out</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Nights</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Guests</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Amount</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Advance</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Balance Due</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Payment</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Source</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Status</th>
-          <th style="padding: 10px 12px; font-size: 0.875rem;">Booked By</th>
+          <th class="col-code">Code</th>
+          <th>Guest</th>
+          <th>Room</th>
+          <th>Check-in</th>
+          <th>Check-out</th>
+          <th class="col-amount">Amount</th>
+          <th class="col-center">Payment</th>
+          <th class="col-center">Status</th>
+          <th class="col-center">Details</th>
         </tr>
       </thead>
       <tbody id="bkTable" style="background-color: #ffffff;">
-        <tr><td colspan="15" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>
       </tbody>
     </table>
   </div>
@@ -201,6 +303,26 @@
     <div id="bkPagination" class="d-flex gap-1 align-items-center flex-wrap"></div>
   </div>
 
+</div>
+
+<!-- Booking Details Modal -->
+<div class="modal fade" id="bkDetailModal" tabindex="-1" aria-labelledby="bkModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="bk-m-name" id="bkModalTitle">Booking details</h5>
+          <div class="bk-m-sub" id="bkModalSub"></div>
+          <div class="bk-m-badges" id="bkModalBadges"></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="bkModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="toastStack" class="position-fixed top-0 end-0 p-3" style="z-index:999;"></div>
@@ -216,8 +338,12 @@ let _bkCurrentPage = 1;
 let _bkPerPage     = 25;
 let _bkStatusF     = '';
 
+const STATUS_CLS = { confirmed: 'bg-info', checked_in: 'bg-success', checked_out: 'bg-secondary', cancelled: 'bg-danger', no_show: 'bg-danger' };
+const PAY_CLS    = { paid: 'bg-success', pending: 'bg-warning text-dark', no_payment: 'bg-secondary', partial: 'bg-info' };
+const SRC_ICON   = { 'walk-in': 'fa-walking', 'online': 'fa-globe', 'phone': 'fa-phone', 'booking.com': 'fa-bed' };
+
 function debounce(fn, d) { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
-function esc(s) { const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
 function fmtInr(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
 
 function toast(msg, type = 'success') {
@@ -263,7 +389,10 @@ function updateBookingKPIs() {
 
 function _bkSetStatus(status, btn) {
   _bkStatusF = status;
-  document.querySelectorAll('#bkStatusTabs button').forEach(b => b.classList.remove('active', 'btn-dark'));
+  document.querySelectorAll('#bkStatusTabs button').forEach(b => {
+    b.classList.remove('active', 'btn-dark');
+    b.classList.add('btn-outline-secondary');
+  });
   if (btn) {
     btn.classList.add('active', 'btn-dark');
     btn.classList.remove('btn-outline-secondary');
@@ -295,6 +424,26 @@ function _parseDate(val) {
   if (!val) return '';
   if (/^\d{2}-\d{2}-\d{4}$/.test(val)) { const [d, m, y] = val.split('-'); return `${y}-${m}-${d}`; }
   return String(val).split('T')[0];
+}
+
+/* Derived values shared by the table row and the modal */
+function _bkCalc(b) {
+  const ci = _parseDate(b.check_in);
+  const co = _parseDate(b.check_out);
+  const nights = (ci && co) ? Math.max(0, Math.ceil((new Date(co) - new Date(ci)) / 86400000)) : '—';
+  const total   = Number(b.total || 0);
+  const paid    = Number(b.amount_paid || 0);
+  const balance = (b.balance_due !== undefined && b.balance_due !== null) ? Number(b.balance_due) : (total - paid);
+  const payStatus = b.payment_status || 'no_payment';
+  const guests  = Number(b.adults || 1) + Number(b.children || 0);
+  return { nights, total, paid, balance, payStatus, guests };
+}
+
+function _bkStatusBadge(s) {
+  return `<span class="badge ${STATUS_CLS[s] || 'bg-secondary'} text-white">${esc((s || '—').replace('_', ' '))}</span>`;
+}
+function _bkPayBadge(p) {
+  return `<span class="badge ${PAY_CLS[p] || 'bg-secondary'} text-white">${esc(p.replace('_', ' '))}</span>`;
 }
 
 function _bkApplyFilters() {
@@ -372,15 +521,11 @@ function _bkRenderPage() {
   setEl('bkCurrentPage', _bkCurrentPage);
   setEl('bkTotalPages', pages);
 
-  const scls = { confirmed: 'bg-info', checked_in: 'bg-success', checked_out: 'bg-secondary', cancelled: 'bg-danger', no_show: 'bg-danger' };
-  const pcls = { paid: 'bg-success', pending: 'bg-warning', no_payment: 'bg-secondary', partial: 'bg-info' };
-  const srcIcon = { 'walk-in': 'fa-walking', 'online': 'fa-globe', 'phone': 'fa-phone', 'booking.com': 'fa-bed' };
-
   const tbody = document.getElementById('bkTable');
   if (!tbody) return;
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr style="border: none;"><td colspan="15" style="padding: 40px 12px; text-align: center; color: #6c757d;">
+    tbody.innerHTML = `<tr style="border: none;"><td colspan="9" style="padding: 40px 12px; text-align: center; color: #6c757d;">
       <i class="fas fa-search" style="font-size: 24px; margin-bottom: 10px; display: block; opacity: 0.5;"></i>
       <div>No bookings match your filters.</div>
       <button class="btn btn-outline-secondary btn-sm mt-3" onclick="_bkClearFilters()">
@@ -391,35 +536,112 @@ function _bkRenderPage() {
     return;
   }
 
-  tbody.innerHTML = slice.map(b => {
-    const nights = b.check_in && b.check_out
-      ? Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / 86400000)
-      : '—';
-    const payStatus = b.payment_status || 'no_payment';
-    const totalAmount = b.total || 0;
-    const advancePaid = b.amount_paid || 0;
-    const balanceDue  = (b.balance_due !== undefined && b.balance_due !== null) ? b.balance_due : (totalAmount - advancePaid);
-
-    return `<tr style="border-bottom: 1px solid #f1f3f5;">
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><code style="background: transparent; color: #6c757d;">${esc(b.booking_code || '#' + b.id)}</code></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><strong>${esc(b.guest || '—')}</strong></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem; color: #6c757d;">${esc(b.phone || '—')}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;">${esc(b.room_type || '—')} ${b.room_no ? `<small style="color: #6c757d;">(${esc(b.room_no)})</small>` : ''}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.check_in || '—'}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.check_out || '—'}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem; text-align: center; font-weight: 600;">${nights}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem; text-align: center;">${Number(b.adults || 1) + Number(b.children || 0)}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><strong>${fmtInr(totalAmount)}</strong></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem; color: #2563eb;"><code style="background: transparent;">${advancePaid > 0 ? fmtInr(advancePaid) : '—'}</code></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem; font-weight: 600; color: ${balanceDue > 0 ? '#ef4444' : '#10b981'};"><code style="background: transparent;">${(balanceDue > 0 || (balanceDue === 0 && totalAmount > 0)) ? fmtInr(balanceDue) : '—'}</code></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><span class="badge ${pcls[payStatus] || 'bg-secondary'} text-white">${payStatus.replace('_', ' ')}</span></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><i class="fas ${srcIcon[b.source || ''] || 'fa-question'}" style="margin-right: 4px;"></i>${esc(b.source || '—')}</td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;"><span class="badge ${scls[b.status] || 'bg-secondary'} text-white">${(b.status || '').replace('_', ' ')}</span></td>
-      <td style="padding: 8px 12px; font-size: 0.875rem;">${b.booked_by ? esc(b.booked_by) : '—'}</td>
+  tbody.innerHTML = slice.map((b, i) => {
+    const c = _bkCalc(b);
+    return `<tr>
+      <td class="col-code"><code style="background: transparent; color: #6c757d;">${esc(b.booking_code || '#' + b.id)}</code></td>
+      <td class="guest-name">${esc(b.guest || '—')}</td>
+      <td>${esc(b.room_type || '—')} ${b.room_no ? `<small style="color: #6c757d;">(${esc(b.room_no)})</small>` : ''}</td>
+      <td>${esc(b.check_in || '—')}</td>
+      <td>${esc(b.check_out || '—')}</td>
+      <td class="col-amount"><strong>${fmtInr(c.total)}</strong></td>
+      <td class="col-center">${_bkPayBadge(c.payStatus)}</td>
+      <td class="col-center">${_bkStatusBadge(b.status)}</td>
+      <td class="col-center">
+        <button class="btn btn-sm btn-outline-primary" onclick="_bkViewBooking(${start + i})">
+          <i class="fas fa-eye"></i> View
+        </button>
+      </td>
     </tr>`;
   }).join('');
 
   _bkRenderPagination(pages);
+}
+
+/* ---------- Details modal ---------- */
+const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const _DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function _bkFmtDate(val) {
+  const s = _parseDate(val);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '—';
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return `${_DAYS[dt.getDay()]}, ${String(d).padStart(2, '0')} ${_MONTHS[m - 1]} ${y}`;
+}
+
+function _bkItem(label, value, full = false) {
+  return `<div class="bk-m-item${full ? ' full' : ''}"><small>${esc(label)}</small><div>${value}</div></div>`;
+}
+
+function _bkViewBooking(idx) {
+  const b = _bkFiltered[idx];
+  if (!b) return;
+  const c = _bkCalc(b);
+  const dash = '—';
+
+  // header
+  document.getElementById('bkModalTitle').textContent = b.guest || 'Guest';
+  document.getElementById('bkModalSub').innerHTML =
+    `Booking ${esc(b.booking_code || '#' + b.id)}`;
+  document.getElementById('bkModalBadges').innerHTML =
+    _bkStatusBadge(b.status) + _bkPayBadge(c.payStatus);
+
+  // payment tiles
+  const balCls = c.total > 0 ? (c.balance > 0 ? 'is-due' : 'is-clear') : '';
+  const nightsTxt = c.nights === '—' ? dash : `${c.nights} ${c.nights === 1 ? 'night' : 'nights'}`;
+
+  // guests text
+  const adults   = Number(b.adults || 1);
+  const children = Number(b.children || 0);
+  const guestsTxt = `${adults} ${adults === 1 ? 'adult' : 'adults'}` +
+    (children ? `, ${children} ${children === 1 ? 'child' : 'children'}` : '');
+
+  const guestItems = [
+    _bkItem('Phone', esc(b.phone || dash)),
+    _bkItem('Guests', esc(guestsTxt)),
+  ];
+  if (b.email) guestItems.push(_bkItem('Email', esc(b.email), true));
+
+  const bookingItems = [
+    _bkItem('Source', `<i class="fas ${SRC_ICON[b.source || ''] || 'fa-question'} me-1"></i>${esc(b.source || dash)}`),
+    _bkItem('Booked by', esc(b.booked_by || dash)),
+  ];
+  if (b.created_at) bookingItems.push(_bkItem('Booked on', esc(b.created_at)));
+  const notes = b.notes || b.special_requests || b.remarks;
+  if (notes) bookingItems.push(_bkItem('Notes', esc(notes), true));
+
+  document.getElementById('bkModalBody').innerHTML = `
+    <div class="bk-m-money">
+      <div class="bk-m-tile"><small>Total amount</small><strong>${fmtInr(c.total)}</strong></div>
+      <div class="bk-m-tile ${c.paid > 0 ? 'is-paid' : ''}"><small>Advance paid</small><strong>${c.paid > 0 ? fmtInr(c.paid) : dash}</strong></div>
+      <div class="bk-m-tile ${balCls}"><small>Balance due</small><strong>${c.total > 0 ? fmtInr(Math.max(c.balance, 0)) : dash}</strong></div>
+    </div>
+
+    <div class="bk-m-section">
+      <div class="bk-m-h"><i class="fas fa-bed"></i> Stay</div>
+      <div class="bk-m-stay">
+        <div class="date"><small>Check-in</small><div>${_bkFmtDate(b.check_in)}</div></div>
+        <div class="bk-m-mid"><span class="line"></span><span class="bk-m-nights">${nightsTxt}</span><span class="line"></span></div>
+        <div class="date out"><small>Check-out</small><div>${_bkFmtDate(b.check_out)}</div></div>
+      </div>
+      <div class="bk-m-grid">
+        ${_bkItem('Room type', esc(b.room_type || dash))}
+        ${_bkItem('Room no.', esc(b.room_no || dash))}
+      </div>
+    </div>
+
+    <div class="bk-m-section">
+      <div class="bk-m-h"><i class="fas fa-user"></i> Guest</div>
+      <div class="bk-m-grid">${guestItems.join('')}</div>
+    </div>
+
+    <div class="bk-m-section">
+      <div class="bk-m-h"><i class="fas fa-file-alt"></i> Booking</div>
+      <div class="bk-m-grid">${bookingItems.join('')}</div>
+    </div>`;
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('bkDetailModal')).show();
 }
 
 function _bkRenderPagination(pages) {
@@ -454,6 +676,11 @@ function _bkGoPage(page) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-document.addEventListener('DOMContentLoaded', loadBookings);
+document.addEventListener('DOMContentLoaded', () => {
+  // Move the modal to <body> so no parent stacking context can hide it
+  const m = document.getElementById('bkDetailModal');
+  if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  loadBookings();
+});
 </script>
 {% endblock %}

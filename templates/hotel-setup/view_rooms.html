@@ -1,0 +1,729 @@
+{% extends "hotel-setup/base.html" %}
+{# TODO: replace "hotel-setup/base.html" with your actual base template path if different. #}
+{% load static %}
+
+{% block title %}View Rooms - {{ hotel.hotel_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .vr-header-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: rgba(124,58,237,.10); color: #7C3AED;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+
+  /* ── Table thumbnail — sized to match the reference screenshot ── */
+   /* ── Table thumbnail — enlarged ── */
+  .vr-room-thumb {
+    width: 100px; height: 88px; border-radius: 12px; object-fit: cover;
+    border: 1px solid var(--admio-border-color, #e5e7eb);
+    flex-shrink: 0;
+  }
+  .vr-room-thumb-placeholder {
+    width: 100px; height: 88px; border-radius: 12px;
+    background: rgba(124,58,237,.08); color: #7C3AED;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .vr-type-badge, .vr-tier-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 700; border-radius: 999px;
+    padding: 3px 10px; margin-right: 6px; margin-top: 4px;
+  }
+  .vr-type-double   { background: rgba(59,130,246,.12); color: #2563eb; }
+  .vr-type-suite    { background: rgba(124,58,237,.12); color: #7C3AED; }
+  .vr-type-deluxe   { background: rgba(107,114,128,.14); color: #4b5563; }
+  .vr-type-single   { background: rgba(16,185,129,.12); color: #059669; }
+  .vr-type-custom   { background: rgba(236,72,153,.12); color: #db2777; }
+  .vr-tier-standard { background: rgba(59,130,246,.12); color: #2563eb; }
+  .vr-tier-premium  { background: rgba(245,158,11,.14); color: #b45309; }
+  .vr-tier-luxury   { background: rgba(124,58,237,.14); color: #7C3AED; }
+
+  .vr-row-desc { font-size: .88rem; color: var(--admio-nav-muted, #6b7280); margin: 2px 0 0; }
+  .vr-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .vr-status-active   { background: #16a34a; }
+  .vr-status-inactive { background: #9ca3af; }
+
+  .vr-filters { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  .vr-search-wrap { position: relative; flex: 1 1 320px; min-width: 240px; }
+  .vr-search-wrap input { width: 100%; padding-left: 42px !important; }
+  .vr-search-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+  .vr-filters select { min-width: 150px; }
+  .vr-footer-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+
+  /* ── Action buttons — outline pills matching the reference screenshot ── */
+  .vr-actions { display: flex; gap: 8px; white-space: nowrap; }
+  .vr-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+    border: 1.5px solid transparent; cursor: pointer; background: transparent;
+    transition: background .15s ease;
+  }
+  .vr-btn-edit   { border-color: #bfdbfe; color: #2563eb; background: #eff6ff; }
+  .vr-btn-edit:hover   { background: #dbeafe; }
+  .vr-btn-delete { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+  .vr-btn-delete:hover { background: #fee2e2; }
+  [data-theme="dark"] .vr-btn-edit   { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.35); }
+  [data-theme="dark"] .vr-btn-delete { background: rgba(220,38,38,.14);  border-color: rgba(220,38,38,.4); }
+  [data-theme="dark"] .vr-header-icon,
+  [data-theme="dark"] .vr-room-thumb-placeholder { background: rgba(124,58,237,.18); }
+
+  /* ══════════════════ MODALS (shared shell) ══════════════════ */
+  .vr-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 20000;
+    background: rgba(15,15,25,.5); align-items: center; justify-content: center; padding: 20px;
+  }
+  .vr-modal-overlay.open { display: flex; }
+  .vr-modal {
+    background: var(--admio-sidebar-bg, #fff); border-radius: 18px;
+    width: 100%; max-width: 780px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  .vr-modal-header {
+    display: flex; align-items: flex-start; gap: 14px; padding: 24px 28px 16px;
+    border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+  }
+  .vr-modal-header .vr-modal-icon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(124,58,237,.10); color: #7C3AED;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .vr-modal-header h2 { font-size: 1.2rem; font-weight: 800; margin: 0; }
+  .vr-modal-header p { font-size: .88rem; color: var(--admio-nav-muted, #6b7280); margin: 2px 0 0; }
+  .vr-modal-close {
+    margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer;
+    color: var(--admio-nav-muted, #6b7280); line-height: 1;
+  }
+  .vr-modal-body { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; padding: 22px 28px; }
+  @media (max-width: 640px) { .vr-modal-body { grid-template-columns: 1fr; } }
+
+  .vr-field { margin-bottom: 16px; }
+  .vr-field label {
+    display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;
+    color: var(--admio-heading-color, #111);
+  }
+  .vr-field-row { display: flex; gap: 14px; }
+  .vr-field-row .vr-field { flex: 1; }
+
+  .vr-dropzone {
+    border: 2px dashed #d8dae0; border-radius: 14px; padding: 28px 16px; text-align: center;
+    cursor: pointer; color: var(--admio-nav-muted, #6b7280); font-size: .9rem;
+  }
+  .vr-dropzone:hover { border-color: #7C3AED; }
+  .vr-dropzone i { font-size: 26px; color: #7C3AED; display: block; margin-bottom: 8px; }
+  .vr-dropzone img.vr-preview { max-width: 100%; max-height: 130px; border-radius: 10px; margin-top: 10px; }
+
+  .vr-amenities-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+  .vr-amenity-box {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    border: 1.5px solid var(--admio-border-color, #e5e7eb); border-radius: 12px;
+    padding: 12px 6px; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center;
+    position: relative;
+  }
+  .vr-amenity-box i { font-size: 18px; color: #7C3AED; }
+  .vr-amenity-box input { position: absolute; top: 6px; right: 6px; }
+  .vr-amenity-box.checked { border-color: #7C3AED; background: rgba(124,58,237,.06); }
+    .vr-tabs { display:flex; gap:20px; border-bottom:1px solid var(--admio-border-color, #e5e7eb); margin-bottom:14px; }
+  .vr-tab { padding:6px 2px 10px; font-size:13px; font-weight:700; color:var(--admio-nav-muted, #6b7280); cursor:pointer; border-bottom:2px solid transparent; }
+  .vr-tab.active { color:#7C3AED; border-color:#7C3AED; }
+  .vr-asset-box { display:flex; align-items:center; gap:8px; border:1.5px solid var(--admio-border-color, #e5e7eb);
+    border-radius:12px; padding:10px 12px; cursor:pointer; font-size:12.5px; font-weight:600; }
+  .vr-asset-box i { font-size:16px; color:#7C3AED; }
+  .vr-asset-box .a-sub { font-size:11px; font-weight:400; color:var(--admio-nav-muted, #6b7280); margin-left:2px; }
+  .vr-asset-box input { margin-left:auto; }
+  .vr-asset-box.checked { border-color:#7C3AED; background:rgba(124,58,237,.06); }
+  .vr-empty-state { grid-column:1 / -1; text-align:center; padding:20px; font-size:12.5px;
+    color:var(--admio-nav-muted, #6b7280); border:1px dashed var(--admio-border-color, #e5e7eb); border-radius:10px; }
+  .vr-specialty-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .vr-specialty-chip { display:flex; align-items:center; gap:6px; border:1.5px solid var(--admio-border-color, #e5e7eb);
+    border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:#fff; user-select:none; }
+  .vr-specialty-chip.sel { border-color:#7C3AED; background:rgba(124,58,237,.08); color:#7C3AED; }
+  .vr-modal-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 16px 28px 24px; border-top: 1px solid var(--admio-border-color, #e5e7eb);
+  }
+
+  /* ── Delete confirm modal — smaller, no border under header, danger icon ── */
+  .vr-modal-sm { max-width: 420px; }
+  .vr-modal-sm .vr-modal-header { border-bottom: none; padding-bottom: 0; }
+  .vr-modal-sm .vr-modal-icon-danger { background: rgba(220,38,38,.10); color: #dc2626; }
+  .vr-modal-sm-body {
+    padding: 12px 28px 4px; color: var(--admio-nav-muted, #6b7280); font-size: .92rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <div class="vr-header-icon"><i class="icon-bed"></i></div>
+    <div>
+      <h1 class="page-title mb-0">View Rooms</h1>
+      <p class="page-subtitle mb-0">Review the room types you've already configured.</p>
+    </div>
+  </div>
+  <a href="{% url 'add_room_page' %}" class="btn-admio btn-admio-primary d-flex align-items-center gap-2">
+    <i class="icon-plus"></i> Add New Room
+  </a>
+</div>
+
+<div class="admio-card">
+  <div class="admio-card-body">
+
+    <div class="vr-filters">
+      <div class="vr-search-wrap">
+        <i class="icon-search"></i>
+        <input type="text" id="vrSearch" class="form-control-admio" placeholder="Search room types…">
+      </div>
+
+      <select id="vrTypeFilter" class="form-select-admio">
+        <option value="">All Types</option>
+        {% regroup rooms by room_type as room_type_groups %}
+        {% for group in room_type_groups %}
+          <option value="{{ group.grouper }}">{{ group.grouper }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="vrStatusFilter" class="form-select-admio">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+
+      <select id="vrSort" class="form-select-admio">
+        <option value="latest">Sort by: Latest</option>
+        <option value="price_low">Price: Low to High</option>
+        <option value="price_high">Price: High to Low</option>
+        <option value="units">Units</option>
+      </select>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="admio-table w-100" id="vrTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Image</th>
+            <th>Room Type</th>
+            <th>Units</th>
+            <th>Price / Night</th>
+            <th>Occupancy</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for room in rooms %}
+          <tr class="vr-row"
+              data-type="{{ room.room_type }}"
+              data-status="{% if room.is_active %}active{% else %}inactive{% endif %}"
+              data-price="{{ room.price }}"
+              data-units="{{ room.units }}"
+              data-name="{{ room.display_type|lower }} {{ room.description|lower }}">
+            <td>{{ forloop.counter|stringformat:"02d" }}</td>
+            <td>
+              {% if room.image_url %}
+                <img src="{{ room.image_url }}" alt="{{ room.display_type }}" class="vr-room-thumb">
+              {% else %}
+                <div class="vr-room-thumb-placeholder"><i class="icon-image"></i></div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-700">{{ room.display_type }}</div>
+              {% if room.description %}<p class="vr-row-desc">{{ room.description }}</p>{% endif %}
+              <div>
+                <span class="vr-type-badge vr-type-{{ room.room_type|lower }}">{{ room.display_type }}</span>
+                <span class="vr-tier-badge vr-tier-{{ room.tier|lower }}">{{ room.tier }}</span>
+              </div>
+            </td>
+            <td><i class="icon-bed"></i> {{ room.units }} unit{{ room.units|pluralize }}</td>
+            <td>
+              <div class="fw-700"><i class="icon-indian-rupee"></i>{{ room.price }}</div>
+              <span class="text-xs">per night</span>
+            </td>
+            <td>
+              <i class="icon-users"></i> {{ room.max_adults }} adult{{ room.max_adults|pluralize }}
+              <div class="text-xs">Max occupancy</div>
+            </td>
+            <td>
+              {% if room.is_active %}
+                <span class="vr-status-dot vr-status-active"></span>Active
+              {% else %}
+                <span class="vr-status-dot vr-status-inactive"></span>Inactive
+              {% endif %}
+            </td>
+            <td>
+              <div class="vr-actions">
+                <button type="button" class="vr-btn vr-btn-edit vr-edit-btn" data-room-id="{{ room.id }}">
+                  <i class="icon-pencil"></i> Edit
+                </button>
+                <button type="button" class="vr-btn vr-btn-delete vr-delete-btn" data-room-id="{{ room.id }}">
+                  <i class="icon-trash-2"></i> Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5">No rooms configured yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div class="vr-footer-actions">
+  <a href="{% url 'hotel_details_page' %}" class="btn-admio">
+    <i class="icon-arrow-left"></i> Back
+  </a>
+  <a href="{% url 'hotel_setup' %}" class="btn-admio btn-admio-primary">
+    Continue to Plans <i class="icon-arrow-right"></i>
+  </a>
+  {# TODO: confirm 'hotel_setup' is really where the plans step lives #}
+</div>
+
+<!-- ══════════ EDIT ROOM MODAL ══════════ -->
+<div class="vr-modal-overlay" id="vrEditOverlay">
+  <div class="vr-modal">
+    <div class="vr-modal-header">
+      <div class="vr-modal-icon"><i class="icon-pencil"></i></div>
+      <div>
+        <h2>Edit Room</h2>
+        <p>Update the room details and amenities for this room.</p>
+      </div>
+      <button type="button" class="vr-modal-close" id="vrModalClose">&times;</button>
+    </div>
+
+    <form id="vrEditForm">
+      <div class="vr-modal-body">
+        <!-- LEFT: fields -->
+        <div>
+          <div class="vr-field">
+            <label>Room Type Name *</label>
+            <input type="text" class="form-control-admio" id="vrf_room_type_name" required>
+          </div>
+          <div class="vr-field-row">
+            <div class="vr-field">
+              <label>Total Units *</label>
+              <input type="number" min="0" class="form-control-admio" id="vrf_total_units" required>
+            </div>
+            <div class="vr-field">
+              <label>Base Price (₹/night) *</label>
+              <input type="number" min="0" step="0.01" class="form-control-admio" id="vrf_base_price" required>
+            </div>
+          </div>
+          <div class="vr-field-row">
+            <div class="vr-field">
+              <label>Max Adults *</label>
+              <input type="number" min="1" class="form-control-admio" id="vrf_max_adults" required>
+            </div>
+            <div class="vr-field">
+              <label>Max Children</label>
+              <input type="number" min="0" class="form-control-admio" id="vrf_max_children">
+            </div>
+          </div>
+          <div class="vr-field">
+            <label>Overstay Charge (₹/day)</label>
+            <input type="number" min="0" step="0.01" class="form-control-admio" id="vrf_overstay_price">
+          </div>
+          <div class="vr-field">
+            <label>Description</label>
+            <textarea class="form-control-admio" id="vrf_description" rows="3" maxlength="500"></textarea>
+          </div>
+        </div>
+
+        <!-- RIGHT: image + amenities -->
+        <div>
+          <div class="vr-field">
+            <label><i class="icon-image"></i> Room Image</label>
+            <div class="vr-dropzone" id="vrDropzone">
+              <i class="icon-image"></i>
+              <span id="vrDropzoneText">Click to upload or drag and drop<br><small>Supports: JPG, PNG, JPEG (Max 5MB)</small></span>
+              <img class="vr-preview" id="vrPreviewImg" style="display:none;">
+            </div>
+            <input type="file" id="vrf_image" accept="image/png,image/jpeg,image/jpg" style="display:none;">
+          </div>
+               <div class="vr-field">
+            <label><i class="icon-sparkles"></i> Common Specialties</label>
+            <div class="vr-specialty-row" id="vrSpecialtyRow"></div>
+          </div>
+
+                    <div class="vr-field">
+            <div class="vr-tabs">
+              <div class="vr-tab active" data-vr-tab="amenities"><i class="icon-list"></i> Amenities</div>
+              <div class="vr-tab" data-vr-tab="assets"><i class="icon-box"></i> Assets</div>
+            </div>
+
+            <div id="vrTabAmenities">
+              <div class="vr-amenities-grid" id="vrAmenitiesGrid">
+                {% for amenity in amenities %}
+                <label class="vr-amenity-box" data-amenity-id="{{ amenity.id }}">
+                  <input type="checkbox" value="{{ amenity.id }}" class="vr-amenity-checkbox">
+                  <i class="icon-check-circle"></i>
+                  <span>{{ amenity.name }}</span>
+                </label>
+                {% empty %}
+                <div class="vr-empty-state">No amenities added yet. Add some from the Add Room page.</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div id="vrTabAssets" style="display:none;">
+              <div class="vr-amenities-grid" id="vrAssetsGrid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vr-modal-footer">
+        <button type="button" class="btn-admio" id="vrCancelBtn">Cancel</button>
+        <button type="submit" class="btn-admio btn-admio-primary" id="vrSaveBtn">
+          <i class="icon-circle-check"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ══════════ END EDIT MODAL ══════════ -->
+
+<!-- ══════════ DELETE CONFIRM MODAL ══════════ -->
+<div class="vr-modal-overlay" id="vrDeleteOverlay">
+  <div class="vr-modal vr-modal-sm">
+    <div class="vr-modal-header">
+      <div class="vr-modal-icon vr-modal-icon-danger"><i class="icon-triangle-alert"></i></div>
+      <div>
+        <h2>Delete Room Type</h2>
+        <p>This cannot be undone.</p>
+      </div>
+      <button type="button" class="vr-modal-close" id="vrDeleteModalClose">&times;</button>
+    </div>
+    <div class="vr-modal-sm-body">
+      Are you sure you want to delete this room type? All associated units will be removed as well.
+    </div>
+    <div class="vr-modal-footer">
+      <button type="button" class="btn-admio" id="vrDeleteCancelBtn">Cancel</button>
+      <button type="button" class="btn-admio btn-admio-danger" id="vrDeleteConfirmBtn">
+        <i class="icon-trash-2"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ══════════ END DELETE CONFIRM MODAL ══════════ -->
+
+{% endblock %}
+{% block extra_js %}
+<script>
+const VR_ROOMS = {{ rooms_json|safe }};
+const VR_ALL_ASSETS = {{ all_assets_json|safe }};   // every HotelAsset for this hotel
+const VR_CSRF = "{{ csrf_token }}";
+
+(function () {
+  // ── Search / filter / sort ──
+  const searchInput  = document.getElementById('vrSearch');
+  const typeFilter    = document.getElementById('vrTypeFilter');
+  const statusFilter  = document.getElementById('vrStatusFilter');
+  const sortSelect    = document.getElementById('vrSort');
+  const tbody         = document.querySelector('#vrTable tbody');
+
+  function applyFilters() {
+    const q       = (searchInput.value || '').toLowerCase();
+    const type    = typeFilter.value;
+    const status  = statusFilter.value;
+    const rows    = Array.from(tbody.querySelectorAll('.vr-row'));
+
+    rows.forEach(function (row) {
+      const matchesSearch = !q || row.dataset.name.includes(q);
+      const matchesType   = !type || row.dataset.type === type;
+      const matchesStatus = !status || row.dataset.status === status;
+      row.style.display = (matchesSearch && matchesType && matchesStatus) ? '' : 'none';
+    });
+
+    const sortVal = sortSelect.value;
+    const visible = rows.filter(function (r) { return r.style.display !== 'none'; });
+    visible.sort(function (a, b) {
+      if (sortVal === 'price_low')  return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+      if (sortVal === 'price_high') return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+      if (sortVal === 'units')      return parseFloat(b.dataset.units) - parseFloat(a.dataset.units);
+      return 0;
+    });
+    visible.forEach(function (row) { tbody.appendChild(row); });
+  }
+
+  [searchInput, typeFilter, statusFilter, sortSelect].forEach(function (el) {
+    el.addEventListener('input', applyFilters);
+    el.addEventListener('change', applyFilters);
+  });
+
+  // ══════════ DELETE — custom modal instead of confirm() ══════════
+  const deleteOverlay     = document.getElementById('vrDeleteOverlay');
+  const deleteConfirmBtn  = document.getElementById('vrDeleteConfirmBtn');
+  let pendingDeleteRoomId = null;
+  let pendingDeleteRow    = null;
+
+  function openDeleteModal(roomId, row) {
+    pendingDeleteRoomId = roomId;
+    pendingDeleteRow    = row;
+    deleteOverlay.classList.add('open');
+  }
+  function closeDeleteModal() {
+    deleteOverlay.classList.remove('open');
+    pendingDeleteRoomId = null;
+    pendingDeleteRow    = null;
+  }
+
+  document.querySelectorAll('.vr-delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openDeleteModal(btn.dataset.roomId, btn.closest('tr'));
+    });
+  });
+
+  document.getElementById('vrDeleteModalClose').addEventListener('click', closeDeleteModal);
+  document.getElementById('vrDeleteCancelBtn').addEventListener('click', closeDeleteModal);
+  deleteOverlay.addEventListener('click', function (e) { if (e.target === deleteOverlay) closeDeleteModal(); });
+
+  deleteConfirmBtn.addEventListener('click', function () {
+    if (!pendingDeleteRoomId) return;
+
+    deleteConfirmBtn.disabled = true;
+    deleteConfirmBtn.innerHTML = 'Deleting…';
+
+    fetch(`/rooms/${pendingDeleteRoomId}/delete/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': VR_CSRF },
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          if (pendingDeleteRow) pendingDeleteRow.remove();
+          closeDeleteModal();
+        } else {
+          alert(data.error || 'Could not delete this room.');
+        }
+      })
+      .catch(function () {
+        alert('Something went wrong deleting this room.');
+      })
+      .finally(function () {
+        deleteConfirmBtn.disabled = false;
+        deleteConfirmBtn.innerHTML = '<i class="icon-trash-2"></i> Delete';
+      });
+  });
+
+  // ══════════ EDIT MODAL ══════════
+  const overlay       = document.getElementById('vrEditOverlay');
+  const form          = document.getElementById('vrEditForm');
+  const dropzone      = document.getElementById('vrDropzone');
+  const fileInput     = document.getElementById('vrf_image');
+  const previewImg    = document.getElementById('vrPreviewImg');
+  const dropzoneText  = document.getElementById('vrDropzoneText');
+  const assetsGrid    = document.getElementById('vrAssetsGrid');
+  const specialtyRow  = document.getElementById('vrSpecialtyRow');
+  let currentRoomId    = null;
+  let selectedFile     = null;
+  let selectedFeatures = [];   // room.features — plain-text specialty tags
+
+  // Keep this list in sync with add_room.html's COMMON_FEATURES names.
+  const COMMON_FEATURE_NAMES = [
+    "Hairdryer", "Balcony", "Bathtub", "Mini Bar", "In-room Safe",
+    "Iron & Board", "Sea View", "Room Service", "Work Desk",
+    "Wardrobe", "Coffee Maker", "Air Conditioning",
+  ];
+
+  // ── Render the Specialties chip row for the room currently open ──
+  function renderSpecialtyRow() {
+    specialtyRow.innerHTML = '';
+    // Render every preset, plus any saved feature that isn't in the preset list
+    // (so a custom/legacy value on the room still shows up and can be removed).
+    const allNames = COMMON_FEATURE_NAMES.slice();
+    selectedFeatures.forEach(function (f) { if (allNames.indexOf(f) === -1) allNames.push(f); });
+
+    allNames.forEach(function (name) {
+      const sel = selectedFeatures.indexOf(name) > -1;
+      const chip = document.createElement('div');
+      chip.className = 'vr-specialty-chip' + (sel ? ' sel' : '');
+      chip.textContent = name;
+      chip.addEventListener('click', function () {
+        const idx = selectedFeatures.indexOf(name);
+        if (idx > -1) selectedFeatures.splice(idx, 1); else selectedFeatures.push(name);
+        renderSpecialtyRow();
+      });
+      specialtyRow.appendChild(chip);
+    });
+  }
+
+  // ── Tab switching (Amenities / Assets) ──
+  document.querySelectorAll('.vr-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.vr-tab').forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      const isAmenities = tab.dataset.vrTab === 'amenities';
+      document.getElementById('vrTabAmenities').style.display = isAmenities ? '' : 'none';
+      document.getElementById('vrTabAssets').style.display    = isAmenities ? 'none' : '';
+    });
+  });
+
+  // ── Render the Assets grid for the room currently open in the modal ──
+  function renderAssetsGrid(selectedIds) {
+    assetsGrid.innerHTML = '';
+    if (!VR_ALL_ASSETS.length) {
+      assetsGrid.innerHTML = '<div class="vr-empty-state">No assets found for this property yet.</div>';
+      return;
+    }
+    VR_ALL_ASSETS.forEach(function (asset) {
+      const isChecked = (selectedIds || []).some(function (a) { return String(a) === String(asset.id); });
+      const box = document.createElement('label');
+      box.className = 'vr-asset-box' + (isChecked ? ' checked' : '');
+      box.dataset.assetId = asset.id;
+      box.innerHTML =
+        '<i class="icon-box"></i><span>' + asset.name + '</span>' +
+        (asset.category ? '<span class="a-sub">' + asset.category + '</span>' : '') +
+        '<input type="checkbox" value="' + asset.id + '" class="vr-asset-checkbox"' + (isChecked ? ' checked' : '') + '>';
+      box.addEventListener('click', function (e) {
+        if (e.target.tagName !== 'INPUT') {
+          const cb = box.querySelector('.vr-asset-checkbox');
+          cb.checked = !cb.checked;
+        }
+        box.classList.toggle('checked', box.querySelector('.vr-asset-checkbox').checked);
+      });
+      assetsGrid.appendChild(box);
+    });
+  }
+
+  function openModal(roomId) {
+    const room = VR_ROOMS.find(function (r) { return String(r.id) === String(roomId); });
+    if (!room) return;
+    currentRoomId = roomId;
+    selectedFile = null;
+
+    document.getElementById('vrf_room_type_name').value = room.display_type || '';
+    document.getElementById('vrf_total_units').value    = room.units || 0;
+    document.getElementById('vrf_base_price').value     = room.price || 0;
+    document.getElementById('vrf_max_adults').value     = room.max_adults || 1;
+    document.getElementById('vrf_max_children').value   = room.max_children || 0;
+    document.getElementById('vrf_overstay_price').value = room.overstay_price || 0;
+    document.getElementById('vrf_description').value    = room.description || '';
+
+    if (room.image_url) {
+      previewImg.src = room.image_url;
+      previewImg.style.display = 'block';
+      dropzoneText.style.display = 'none';
+    } else {
+      previewImg.style.display = 'none';
+      dropzoneText.style.display = '';
+    }
+
+    document.querySelectorAll('.vr-amenity-box').forEach(function (box) {
+      const id = box.dataset.amenityId;
+      const checkbox = box.querySelector('.vr-amenity-checkbox');
+      const isChecked = (room.amenity_ids || []).some(function (a) { return String(a) === String(id); });
+      checkbox.checked = isChecked;
+      box.classList.toggle('checked', isChecked);
+    });
+
+    // Populate the Assets tab and Specialties chips, reset to Amenities tab
+    renderAssetsGrid(room.asset_ids || []);
+    selectedFeatures = (room.features || []).slice();
+    renderSpecialtyRow();
+    document.querySelector('.vr-tab[data-vr-tab="amenities"]').click();
+
+    overlay.classList.add('open');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+    currentRoomId = null;
+  }
+
+  document.querySelectorAll('.vr-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { openModal(btn.dataset.roomId); });
+  });
+  document.getElementById('vrModalClose').addEventListener('click', closeModal);
+  document.getElementById('vrCancelBtn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) {
+      selectedFile = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewImg.src = e.target.result;
+        previewImg.style.display = 'block';
+        dropzoneText.style.display = 'none';
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  });
+
+  document.querySelectorAll('.vr-amenity-box').forEach(function (box) {
+    box.addEventListener('click', function (e) {
+      if (e.target.tagName !== 'INPUT') {
+        const checkbox = box.querySelector('.vr-amenity-checkbox');
+        checkbox.checked = !checkbox.checked;
+      }
+      box.classList.toggle('checked', box.querySelector('.vr-amenity-checkbox').checked);
+    });
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!currentRoomId) return;
+
+    const fd = new FormData();
+    fd.append('room_type_name', document.getElementById('vrf_room_type_name').value);
+    fd.append('total_units', document.getElementById('vrf_total_units').value);
+    fd.append('base_price', document.getElementById('vrf_base_price').value);
+    fd.append('max_adults', document.getElementById('vrf_max_adults').value);
+    fd.append('max_children', document.getElementById('vrf_max_children').value);
+    fd.append('overstay_price', document.getElementById('vrf_overstay_price').value);
+    fd.append('description', document.getElementById('vrf_description').value);
+
+    document.querySelectorAll('.vr-amenity-checkbox:checked').forEach(function (cb) {
+      fd.append('amenities', cb.value);
+    });
+
+    // Send selected asset ids alongside amenities
+    document.querySelectorAll('.vr-asset-checkbox:checked').forEach(function (cb) {
+      fd.append('asset_ids', cb.value);
+    });
+
+    // Send specialty tags (plain strings, no ids)
+    selectedFeatures.forEach(function (name) { fd.append('features', name); });
+
+    if (selectedFile) fd.append('image', selectedFile);
+
+    const saveBtn = document.getElementById('vrSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = 'Saving…';
+
+    fetch(`/rooms/${currentRoomId}/edit/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': VR_CSRF },
+      body: fd,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert(data.error || 'Could not save changes.');
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = '<i class="icon-circle-check"></i> Save Changes';
+        }
+      })
+      .catch(function () {
+        alert('Something went wrong saving this room.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="icon-circle-check"></i> Save Changes';
+      });
+  });
+})();
+</script>
+
+{% endblock %}

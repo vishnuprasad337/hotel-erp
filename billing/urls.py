@@ -34,7 +34,8 @@ urlpatterns = [
    
     path("api/billing/summary/",                             views.billing_summary,        name="billing_summary"),
 
-
+path("billing/",              views.billing_overview_page, name="billing_overview_page"),
+    path("billing/invoices/",     views.all_invoices_page,     name="all_invoices_page"),
     path("billing/folios/",                          GuestFolioListAPIView.as_view(),        name="billing-folio-list"),
     path("billing/folios/<int:pk>/",                 GuestFolioDetailAPIView.as_view(),      name="billing-folio-detail"),
     path("billing/folios/booking/<int:booking_id>/", FolioByBookingAPIView.as_view(),        name="billing-folio-by-booking"),
@@ -48,3 +49,4 @@ urlpatterns = [
     path("billing/payments/",                        BillingPaymentListAPIView.as_view(),    name="billing-payment-list"),
     path("billing/payments/<int:pk>/",               BillingPaymentDetailAPIView.as_view(),  name="billing-payment-detail"),
 ]
+

@@ -1,0 +1,911 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Admio - Inventory{% endblock %}
+
+{% block content %}
+
+<style>
+  /* ── Overview stat cards (matches the reference "channel" card style) ── */
+  .ov-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 1200px) {
+    .ov-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 576px) {
+    .ov-stats-grid { grid-template-columns: 1fr; }
+  }
+
+  .ov-card,
+  .ov-card * {
+    font-family: inherit; /* always use the font already set by base.html */
+  }
+
+  .ov-card {
+    position: relative;
+    border-radius: 18px;
+    padding: 1.25rem 1.35rem;
+    min-height: 148px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .ov-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ov-card.blue   { background: #EAF2FE; }
+  .ov-card.purple { background: #F1ECFB; }
+  .ov-card.green  { background: #E7F7EE; }
+  .ov-card.red    { background: #FCEAEA; }
+  .ov-card.amber  { background: #FDF3E3; }
+  .ov-card.teal   { background: #E4F6F5; }
+
+  .ov-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .ov-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .ov-card.blue   .ov-icon-circle { color: #2563eb; }
+  .ov-card.purple .ov-icon-circle { color: #7c3aed; }
+  .ov-card.green  .ov-icon-circle { color: #16a34a; }
+  .ov-card.red    .ov-icon-circle { color: #dc2626; }
+  .ov-card.amber  .ov-icon-circle { color: #d97706; }
+  .ov-card.teal   .ov-icon-circle { color: #0d9488; }
+
+  .ov-chevron {
+    color: rgba(0,0,0,0.35);
+    font-size: 1rem;
+  }
+
+  .ov-card-label {
+    font-size: 0.85rem;
+    color: #4b5563;
+    font-weight: 500;
+    margin-top: 0.75rem;
+  }
+
+  .ov-card-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #111827;
+    margin-top: 0.15rem;
+  }
+
+  .ov-card-sub {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 0.35rem;
+  }
+
+  /* ── Page heading with colored icon badge ── */
+  .ov-heading-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 14px;
+    background: #2563eb;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  }
+
+  /*
+    ── Buttons & selects: reuses the site's own .btn-admio /
+    .form-select-admio classes from base.html so styling stays
+    consistent everywhere. These rules only fill in the box/border/
+    chevron look (as in the reference screenshot) for the cases
+    where base.html doesn't already cover it — they don't replace
+    the base classes.
+  */
+  .ov-page select.form-select-admio,
+  .ov-page select#invExpenseRange,
+  .ov-page select#invTrendDept,
+  .ov-page select#invTrendRange,
+  .ov-page select#invTypeFilter {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.5rem 2.1rem 0.5rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #111827;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .ov-page select.form-select-admio:hover,
+  .ov-page select#invExpenseRange:hover,
+  .ov-page select#invTrendDept:hover,
+  .ov-page select#invTrendRange:hover,
+  .ov-page select#invTypeFilter:hover {
+    border-color: #cbd5e1;
+  }
+  .ov-page select.form-select-admio:focus,
+  .ov-page select#invExpenseRange:focus,
+  .ov-page select#invTrendDept:focus,
+  .ov-page select#invTrendRange:focus,
+  .ov-page select#invTypeFilter:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  .ov-page .btn-admio {
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .ov-page .btn-admio.btn-ghost {
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #374151;
+  }
+  .ov-page .btn-admio.btn-ghost:hover {
+    background: #f9fafb;
+    border-color: #cbd5e1;
+  }
+
+  /* ── Card visibility fix: the chart card was being clipped by the
+     card body's overflow — make sure it always renders at full size. */
+  .ov-page .admio-card-body {
+    overflow: visible;
+  }
+  .ov-page #invTrendChart {
+    width: 100% !important;
+  }
+
+  /* ── Quick Actions (redesigned to match reference) ── */
+  .ov-qa-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .ov-qa-header-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 12px;
+    background: #EEF2FF;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
+  .ov-qa-subtitle {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin-top: 0.15rem;
+  }
+
+  .ov-qa-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 576px) {
+    .ov-qa-grid { grid-template-columns: 1fr; }
+  }
+
+  .ov-qa-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1.1rem 1.15rem;
+    border-radius: 16px;
+    border: none;
+    width: 100%;
+    text-align: left;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .ov-qa-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.07);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ov-qa-item.purple { background: #EFEEFC; }
+  .ov-qa-item.green  { background: #E8F7EF; }
+  .ov-qa-item.blue   { background: #EAF2FE; }
+  .ov-qa-item.amber  { background: #FDF3E3; }
+
+  .ov-qa-item-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
+  .ov-qa-item.purple .ov-qa-item-icon { color: #7c3aed; }
+  .ov-qa-item.green  .ov-qa-item-icon { color: #16a34a; }
+  .ov-qa-item.blue   .ov-qa-item-icon { color: #2563eb; }
+  .ov-qa-item.amber  .ov-qa-item-icon { color: #d97706; }
+
+  .ov-qa-item-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+  .ov-qa-item-title {
+    font-weight: 700;
+    font-size: 0.94rem;
+    color: #111827;
+  }
+  .ov-qa-item-desc {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .ov-qa-item-chevron {
+    font-size: 1.05rem;
+    opacity: 0.7;
+  }
+  .ov-qa-item.purple .ov-qa-item-chevron { color: #7c3aed; }
+  .ov-qa-item.green  .ov-qa-item-chevron { color: #16a34a; }
+  .ov-qa-item.blue   .ov-qa-item-chevron { color: #2563eb; }
+  .ov-qa-item.amber  .ov-qa-item-chevron { color: #d97706; }
+</style>
+
+<div class="ov-page">
+
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    <span class="ov-heading-icon"><i class="icon-boxes"></i></span>
+    <div>
+      <h1 class="page-title mb-0">Inventory Overview</h1>
+      <p class="page-subtitle mb-0">Track your stock, monitor low inventory and keep your business running smoothly.</p>
+    </div>
+  </div>
+  <div class="page-header-actions d-flex align-items-center gap-2 flex-wrap">
+   
+  </div>
+</div>
+
+<!-- Stat cards (styled to match the reference design) -->
+<div class="ov-stats-grid">
+
+  <a href="{% url 'inventory_items_page' %}" class="ov-card blue">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-boxes"></i></div>
+      <i class="icon-chevron-right ov-chevron"></i>
+    </div>
+    <div>
+      <div class="ov-card-label">Total Items</div>
+      <div class="ov-card-value" id="invTotalItems">0</div>
+      <div class="ov-card-sub" id="invTotalItemsSub">No items yet</div>
+    </div>
+  </a>
+
+  <a href="{% url 'inventory_items_page' %}?filter=low_stock" class="ov-card red">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-triangle-alert"></i></div>
+      <i class="icon-chevron-right ov-chevron"></i>
+    </div>
+    <div>
+      <div class="ov-card-label">Low Stock</div>
+      <div class="ov-card-value" id="invLowStock">0</div>
+      <div class="ov-card-sub" id="invLowStockSub">All stock levels OK</div>
+    </div>
+  </a>
+
+  <div class="ov-card green">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-indian-rupee"></i></div>
+    </div>
+    <div>
+      <div class="ov-card-label">Stock Value</div>
+      <div class="ov-card-value" id="invStockValue">₹0</div>
+      <div class="ov-card-sub">Across all departments</div>
+    </div>
+  </div>
+
+  <a href="{% url 'purchase_orders_page' %}" class="ov-card purple">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-file-text"></i></div>
+      <i class="icon-chevron-right ov-chevron"></i>
+    </div>
+    <div>
+      <div class="ov-card-label">Open POs</div>
+      <div class="ov-card-value" id="invOpenPOs">0</div>
+      <div class="ov-card-sub" id="invOpenPOsSub">No open orders</div>
+    </div>
+  </a>
+
+  <a href="{% url 'maintenance_page' %}" class="ov-card amber">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-wrench"></i></div>
+      <i class="icon-chevron-right ov-chevron"></i>
+    </div>
+    <div>
+      <div class="ov-card-label">Maintenance Open</div>
+      <div class="ov-card-value" id="invMaintOpen">0</div>
+      <div class="ov-card-sub" id="invMaintOpenSub">No pending maintenance</div>
+    </div>
+  </a>
+
+  <a href="{% url 'expenses_page' %}" class="ov-card teal">
+    <div class="ov-card-top">
+      <div class="ov-icon-circle"><i class="icon-chart-bar"></i></div>
+      <i class="icon-chevron-right ov-chevron"></i>
+    </div>
+    <div>
+      <div class="ov-card-label">Expenses (This Month)</div>
+      <div class="ov-card-value" id="invMonthExpense">₹0</div>
+      <div class="ov-card-sub" id="invMonthExpenseSub">No expenses recorded</div>
+    </div>
+  </a>
+
+</div>
+
+<!-- Low Stock Alerts + Expenses by Department -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-triangle-alert"></i> Low Stock Alerts</h2>
+        <a href="{% url 'inventory_items_page' %}?filter=low_stock" class="btn-admio btn-ghost btn-sm">View All</a>
+      </div>
+      <div class="admio-card-body">
+        <div id="invLowStockList"></div>
+        <div class="text-center py-4" id="invLowStockEmpty">
+          <i class="icon-circle-check" style="font-size:1.6rem;color:#22c55e;"></i>
+          <p class="text-sm text-muted mt-2 mb-0">All stock levels OK</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-chart-bar"></i> Expenses by Department</h2>
+        <select class="form-select-admio" id="invExpenseRange" style="width:auto;">
+          <option value="all">All Time</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+      <div class="admio-card-body">
+        <div id="invExpenseList"></div>
+        <div class="text-center py-4" id="invExpenseEmpty">
+          <i class="icon-file-text" style="font-size:1.6rem;color:#9ca3af;"></i>
+          <p class="text-sm text-muted mt-2 mb-0">No expense data yet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Trends: per-department daily comparison -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-chart-bar"></i> Expense Trends</h2>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <select class="form-select-admio" id="invTrendDept" style="width:auto;">
+            <option value="">All Departments</option>
+          </select>
+          <select class="form-select-admio" id="invTrendRange" style="width:auto;">
+            <option value="7">Last 7 Days</option>
+            <option value="30" selected>Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+          </select>
+        </div>
+      </div>
+      <div class="admio-card-body">
+        <div style="position:relative; height:320px;">
+          <canvas id="invTrendChart"></canvas>
+        </div>
+        <div class="text-center py-4" id="invTrendEmpty" style="display:none;">
+          <i class="icon-chart-bar" style="font-size:1.6rem;color:#9ca3af;"></i>
+          <p class="text-sm text-muted mt-2 mb-0">No expense data for this range</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Maintenance Snapshot + Recent Stock Adjustments -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-wrench"></i> Maintenance Snapshot</h2>
+        <a href="{% url 'maintenance_page' %}" class="btn-admio btn-ghost btn-sm">View All</a>
+      </div>
+      <div class="admio-card-body">
+        <div id="invMaintList"></div>
+        <div class="text-center py-4" id="invMaintEmpty">
+          <i class="icon-circle-check" style="font-size:1.6rem;color:#22c55e;"></i>
+          <p class="text-sm text-muted mt-2 mb-0">No pending maintenance</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-list"></i> Recent Stock Adjustments</h2>
+        <span class="badge-admio badge-purple text-xs" id="invAdjCount">0 adjustments</span>
+      </div>
+      <div class="admio-card-body-sm d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn-admio btn-sm badge-purple" data-range="all">All</button>
+        <button class="btn-admio btn-sm btn-ghost" data-range="today">Today</button>
+        <button class="btn-admio btn-sm btn-ghost" data-range="week">This Week</button>
+        <button class="btn-admio btn-sm btn-ghost" data-range="month">This Month</button>
+        <select class="form-select-admio" id="invTypeFilter" style="width:auto;">
+          <option value="">All Types</option>
+          <option value="in">Stock In</option>
+          <option value="out">Stock Out</option>
+          <option value="adjust">Adjust</option>
+        </select>
+        <input type="text" class="form-control-admio" id="invSearch" placeholder="Search item, staff..." style="max-width:220px;">
+        <button class="btn-admio btn-sm btn-ghost" id="invClearFilters"><i class="icon-x"></i> Clear</button>
+      </div>
+      <div class="admio-table-wrapper">
+        <table class="admio-table" id="invAdjTable">
+          <thead>
+            <tr><th>Item</th><th>Type</th><th>Qty</th><th>Note</th><th>By</th><th>Date</th></tr>
+          </thead>
+          <tbody id="invAdjBody">
+            <tr><td colspan="6" class="text-center text-sm py-4">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="admio-card h-100">
+      <div class="admio-card-body">
+        <div class="ov-qa-header mb-3">
+          <span class="ov-qa-header-icon"><i class="icon-zap"></i></span>
+          <div>
+            <h2 class="card-title mb-0">Quick Actions</h2>
+            <p class="ov-qa-subtitle mb-0">Perform common inventory operations quickly and easily.</p>
+          </div>
+        </div>
+
+        <div class="ov-qa-grid">
+          <button class="ov-qa-item purple" id="invQaAddItem" type="button">
+            <span class="ov-qa-item-icon"><i class="icon-plus"></i></span>
+            <span class="ov-qa-item-text">
+              <span class="ov-qa-item-title">Add Item</span>
+              <span class="ov-qa-item-desc">Create a new inventory item</span>
+            </span>
+            <i class="icon-chevron-right ov-qa-item-chevron"></i>
+          </button>
+
+          <button class="ov-qa-item green" id="invQaAdjustStock" type="button">
+            <span class="ov-qa-item-icon"><i class="icon-refresh-cw"></i></span>
+            <span class="ov-qa-item-text">
+              <span class="ov-qa-item-title">Adjust Stock</span>
+              <span class="ov-qa-item-desc">Update stock quantity</span>
+            </span>
+            <i class="icon-chevron-right ov-qa-item-chevron"></i>
+          </button>
+
+          <a href="{% url 'inventory_items_page' %}?tab=reports" class="ov-qa-item blue">
+            <span class="ov-qa-item-icon"><i class="icon-list"></i></span>
+            <span class="ov-qa-item-text">
+              <span class="ov-qa-item-title">View Reports</span>
+              <span class="ov-qa-item-desc">Check inventory reports</span>
+            </span>
+            <i class="icon-chevron-right ov-qa-item-chevron"></i>
+          </a>
+
+          <button class="ov-qa-item amber" id="invQaManageCategories" type="button">
+            <span class="ov-qa-item-icon"><i class="icon-tags"></i></span>
+            <span class="ov-qa-item-text">
+              <span class="ov-qa-item-title">Manage Categories</span>
+              <span class="ov-qa-item-desc">Organize item categories</span>
+            </span>
+            <i class="icon-chevron-right ov-qa-item-chevron"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.ov-page -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // Make Chart.js use the same font as the rest of the page (from base.html)
+  // instead of its own default, so the chart doesn't look out of place.
+  if (window.Chart) {
+    const baseFont = getComputedStyle(document.body).fontFamily;
+    if (baseFont) {
+      Chart.defaults.font.family = baseFont;
+    }
+    Chart.defaults.color = '#4b5563';
+  }
+
+  // ── Today's date ──
+  const dateEl = document.getElementById('invTodayDate');
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  let allAdjustments = [];
+  let activeRange = 'all';
+
+  // ── Load stat cards + low stock list ──
+  fetch("{% url 'list_inventory' %}")
+    .then(r => r.json())
+    .then(data => {
+      const items = data.items || [];
+      const totalItems = items.length;
+      const lowStock = items.filter(i => i.low_stock);
+      const stockValue = items.reduce((sum, i) => sum + (i.stock_value || 0), 0);
+
+      document.getElementById('invTotalItems').textContent = totalItems;
+      document.getElementById('invTotalItemsSub').textContent =
+        totalItems > 0 ? totalItems + ' tracked item' + (totalItems === 1 ? '' : 's') : 'No items yet';
+
+      document.getElementById('invLowStock').textContent = lowStock.length;
+      document.getElementById('invLowStockSub').textContent =
+        lowStock.length > 0 ? lowStock.length + ' item' + (lowStock.length === 1 ? '' : 's') + ' need reordering' : 'All stock levels OK';
+
+      document.getElementById('invStockValue').textContent = '₹' + Math.round(stockValue).toLocaleString('en-IN');
+
+      const lowStockList = document.getElementById('invLowStockList');
+      const lowStockEmpty = document.getElementById('invLowStockEmpty');
+      if (lowStock.length > 0) {
+        lowStockEmpty.style.display = 'none';
+        lowStockList.innerHTML = lowStock.slice(0, 5).map(function (i) {
+          return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <div class="fw-600 text-sm">${i.name}</div>
+              <div class="text-xs text-muted">${i.category || 'Uncategorized'}</div>
+            </div>
+            <span class="badge-admio badge-orange text-xs">${i.stock} ${i.unit} left</span>
+          </div>`;
+        }).join('');
+      } else {
+        lowStockEmpty.style.display = 'block';
+        lowStockList.innerHTML = '';
+      }
+    })
+    .catch(() => {});
+
+  // ── Open POs ──
+  fetch("{% url 'list_purchase_orders' %}")
+    .then(r => r.json())
+    .then(data => {
+      const pos = data.purchase_orders || [];
+      const open = pos.filter(p => p.status !== 'received');
+      document.getElementById('invOpenPOs').textContent = open.length;
+      document.getElementById('invOpenPOsSub').textContent =
+        open.length > 0 ? open.length + ' order' + (open.length === 1 ? '' : 's') + ' pending' : 'No open orders';
+    })
+    .catch(() => {});
+
+  // ── Maintenance snapshot ──
+  fetch("{% url 'list_maintenance_logs' %}")
+    .then(r => r.json())
+    .then(data => {
+      const logs = data.logs || [];
+      const pending = logs.filter(l => l.status === 'open' || l.status === 'in_progress');
+
+      document.getElementById('invMaintOpen').textContent = pending.length;
+      document.getElementById('invMaintOpenSub').textContent =
+        pending.length > 0 ? pending.length + ' item' + (pending.length === 1 ? '' : 's') + ' pending' : 'No pending maintenance';
+
+      const list = document.getElementById('invMaintList');
+      const empty = document.getElementById('invMaintEmpty');
+
+      if (pending.length > 0) {
+        empty.style.display = 'none';
+        list.innerHTML = pending.slice(0, 5).map(function (l) {
+          const label = l.asset || l.custom_asset || 'Untitled asset';
+          const priorityBadge = l.priority === 'high' ? 'badge-red' : l.priority === 'medium' ? 'badge-orange' : 'badge-gray';
+          return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <div class="fw-600 text-sm">${label}</div>
+              <div class="text-xs text-muted">${l.department || 'Unassigned'} · ${l.status.replace('_', ' ')}</div>
+            </div>
+            <span class="badge-admio ${priorityBadge} text-xs">${l.priority}</span>
+          </div>`;
+        }).join('');
+      } else {
+        empty.style.display = 'block';
+        list.innerHTML = '';
+      }
+    })
+    .catch(() => {});
+
+  // ── Expense Trends chart: per-department, day-by-day comparison ──
+  let trendChart = null;
+  const trendPalette = ['#2563eb', '#7c3aed', '#16a34a', '#dc2626', '#d97706', '#0d9488', '#db2777', '#4b5563'];
+
+  function formatTrendDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function loadTrendChart() {
+    const deptId = document.getElementById('invTrendDept').value;
+    const days = document.getElementById('invTrendRange').value;
+
+    let url = "{% url 'expense_daily_summary' %}?days=" + encodeURIComponent(days);
+    if (deptId) url += "&department_id=" + encodeURIComponent(deptId);
+
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const dates = data.dates || [];
+        const series = data.series || [];
+        const canvasWrap = document.querySelector('#invTrendChart').parentElement;
+        const empty = document.getElementById('invTrendEmpty');
+
+        const hasData = series.some(s => s.totals.some(v => v > 0));
+        if (!hasData) {
+          canvasWrap.style.display = 'none';
+          empty.style.display = 'block';
+          if (trendChart) { trendChart.destroy(); trendChart = null; }
+          return;
+        }
+        canvasWrap.style.display = 'block';
+        empty.style.display = 'none';
+
+        const labels = dates.map(formatTrendDate);
+        const datasets = series.map(function (s, idx) {
+          const color = trendPalette[idx % trendPalette.length];
+          return {
+            label: s.department,
+            data: s.totals,
+            borderColor: color,
+            backgroundColor: color + '22',
+            tension: 0.35,
+            fill: false,
+            pointRadius: 2,
+            borderWidth: 2,
+          };
+        });
+
+        const ctx = document.getElementById('invTrendChart').getContext('2d');
+        if (trendChart) trendChart.destroy();
+        trendChart = new Chart(ctx, {
+          type: 'line',
+          data: { labels: labels, datasets: datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: datasets.length > 1, position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return ctx.dataset.label + ': ₹' + Math.round(ctx.parsed.y).toLocaleString('en-IN');
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: v => '₹' + Number(v).toLocaleString('en-IN') }
+              }
+            }
+          }
+        });
+      })
+      .catch(() => {});
+  }
+
+  // Populate the department filter, then draw the chart
+  fetch("{% url 'departments' %}")
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('invTrendDept');
+      (data.departments || []).forEach(function (d) {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+    })
+    .catch(() => {})
+    .finally(loadTrendChart);
+
+  document.getElementById('invTrendDept').addEventListener('change', loadTrendChart);
+  document.getElementById('invTrendRange').addEventListener('change', loadTrendChart);
+
+  // ── Expenses (by department + this month total) ──
+  function loadExpenses(range) {
+    let url = "{% url 'expense_summary' %}";
+    if (range === 'month') {
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      url += `?month=${now.getFullYear()}-${m}`;
+    }
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const byDept = data.by_department || [];
+        const list = document.getElementById('invExpenseList');
+        const empty = document.getElementById('invExpenseEmpty');
+        if (byDept.length > 0) {
+          empty.style.display = 'none';
+          list.innerHTML = byDept.map(function (d) {
+            return `<div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <span class="text-sm fw-600">${d.department}</span>
+              <span class="fw-700 text-sm">₹${Math.round(d.total).toLocaleString('en-IN')}</span>
+            </div>`;
+          }).join('');
+        } else {
+          empty.style.display = 'block';
+          list.innerHTML = '';
+        }
+      })
+      .catch(() => {});
+  }
+  loadExpenses('all');
+  document.getElementById('invExpenseRange').addEventListener('change', function (e) {
+    loadExpenses(e.target.value);
+  });
+
+  // This month's total, independent of the dropdown above, for the stat card
+  (function loadMonthExpenseCard() {
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    fetch("{% url 'expense_summary' %}?month=" + now.getFullYear() + "-" + m)
+      .then(r => r.json())
+      .then(data => {
+        const total = data.grand_total || 0;
+        document.getElementById('invMonthExpense').textContent = '₹' + Math.round(total).toLocaleString('en-IN');
+        document.getElementById('invMonthExpenseSub').textContent =
+          total > 0 ? 'Recorded this month' : 'No expenses recorded';
+      })
+      .catch(() => {});
+  })();
+
+  // ── Recent stock adjustments ──
+  function renderAdjustments() {
+    const typeFilter = document.getElementById('invTypeFilter').value;
+    const search = document.getElementById('invSearch').value.trim().toLowerCase();
+    const now = new Date();
+
+    let rows = allAdjustments.filter(a => {
+      const d = new Date(a.created_at);
+      if (activeRange === 'today') {
+        if (d.toDateString() !== now.toDateString()) return false;
+      } else if (activeRange === 'week') {
+        const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+        if (d < weekAgo) return false;
+      } else if (activeRange === 'month') {
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
+      }
+      if (typeFilter && a.adjustment_type !== typeFilter) return false;
+      if (search) {
+        const hay = `${a.item} ${a.adjusted_by || ''} ${a.note || ''}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('invAdjCount').textContent = rows.length + (rows.length === 1 ? ' adjustment' : ' adjustments');
+
+    const tbody = document.getElementById('invAdjBody');
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-sm py-4">No adjustments found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.slice(0, 25).map(function (a) {
+      const typeLabel = a.adjustment_type === 'in' ? '+' + a.quantity : a.adjustment_type === 'out' ? '−' + a.quantity : a.quantity;
+      const typeBadge = a.adjustment_type === 'in' ? 'badge-green' : a.adjustment_type === 'out' ? 'badge-red' : 'badge-gray';
+      const dateStr = new Date(a.created_at).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+      return `<tr>
+        <td class="fw-600">${a.item}</td>
+        <td><span class="badge-admio ${typeBadge} text-xs">${a.adjustment_type}</span></td>
+        <td class="mono">${typeLabel}</td>
+        <td class="text-sm text-muted">${a.note || '—'}</td>
+        <td class="text-sm">${a.adjusted_by || '—'}</td>
+        <td class="text-sm text-muted mono">${dateStr}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  fetch("{% url 'list_stock_adjustments' %}?limit=100")
+    .then(r => r.json())
+    .then(data => {
+      allAdjustments = data.adjustments || [];
+      renderAdjustments();
+    })
+    .catch(() => {
+      document.getElementById('invAdjBody').innerHTML =
+        '<tr><td colspan="6" class="text-center text-sm py-4">Could not load adjustments</td></tr>';
+    });
+
+  document.querySelectorAll('[data-range]').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('[data-range]').forEach(c => c.className = 'btn-admio btn-sm btn-ghost');
+      chip.className = 'btn-admio btn-sm badge-purple';
+      activeRange = chip.getAttribute('data-range');
+      renderAdjustments();
+    });
+  });
+  document.getElementById('invTypeFilter').addEventListener('change', renderAdjustments);
+  document.getElementById('invSearch').addEventListener('input', renderAdjustments);
+  document.getElementById('invClearFilters').addEventListener('click', function () {
+    document.querySelectorAll('[data-range]').forEach(c => c.className = 'btn-admio btn-sm btn-ghost');
+    document.querySelector('[data-range="all"]').className = 'btn-admio btn-sm badge-purple';
+    activeRange = 'all';
+    document.getElementById('invTypeFilter').value = '';
+    document.getElementById('invSearch').value = '';
+    renderAdjustments();
+  });
+
+  // ── Quick actions ──
+  document.getElementById('invQaAddItem').addEventListener('click', function () {
+    if (typeof window.openAddItemModal === 'function') window.openAddItemModal();
+    else window.location.href = "{% url 'inventory_items_page' %}?action=add-item";
+  });
+  document.getElementById('invQaAdjustStock').addEventListener('click', function () {
+    if (typeof window.openAdjustStockModal === 'function') window.openAdjustStockModal();
+    else window.location.href = "{% url 'inventory_items_page' %}?action=adjust-stock";
+  });
+  document.getElementById('invQaManageCategories').addEventListener('click', function () {
+    if (typeof window.openCategoriesModal === 'function') window.openCategoriesModal();
+    else window.location.href = "{% url 'inventory_items_page' %}?action=manage-categories";
+  });
+
+});
+</script>
+{% endblock %}

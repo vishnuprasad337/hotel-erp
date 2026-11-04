@@ -385,6 +385,8 @@ path(
     name="staff_attendance_dashboard"
 ),
 path("staff/attendance/history/", get_attendance_history, name="attendance_history"),
+ 
+#path("staff/leave-management/", leave_management_page, name="leave_management_page"),
  path(
         'email/recipients/',
         get_email_recipients,
@@ -449,8 +451,16 @@ path(
 ),
 path('attendance/face-lookup/', face_attendance_lookup, name='face_attendance_lookup'),
 path('attendance/mark-with-face/', verify_face_and_mark_attendance, name='verify_face_and_mark_attendance'),
+# path("staff/attendance/daily-modal/", attendance_daily_modal_api, name="attendance_daily_modal_api"),
+#  path(
+#         "staff/attendance-management/",
+#         attendance_management_page,
+#         name="attendance_management_page",
+#     ),
 
- # ── Staff list ─────────────────────────────────────────────────
+# path("attendance/staff/<int:staff_id>/history/", staff_attendance_history_api, name="staff_attendance_history_api"),
+# path("attendance/export/", attendance_export_csv, name="attendance_export_csv"),
+#  # ── Staff list ─────────────────────────────────────────────────
     path('messages/staff-list/', StaffListView.as_view()),
 
     # ── Threads ────────────────────────────────────────────────────
@@ -463,7 +473,11 @@ path('attendance/mark-with-face/', verify_face_and_mark_attendance, name='verify
         thread_messages_view,
         name='thread_messages'
     ),
-
+# path(
+#     "staff/shifts/",
+#     shift_management_page,
+#     name="shift_management_page",
+# ),
     path('messages/threads/<int:thread_id>/members/', ThreadMembersView.as_view()),
     path('messages/threads/<int:thread_id>/mark-read/', MarkThreadReadView.as_view()),
     path('messages/threads/<int:thread_id>/pinned/', PinnedMessagesView.as_view()),

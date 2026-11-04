@@ -9,6 +9,7 @@ from django.core.mail import send_mail
 from pms.models import Booking, Payment as PmsPayment
 from accounts.models import Staff
 from .models import GuestFolio, FolioCharge, Invoice, BillingPayment
+from django.shortcuts import render
 
 
 def _folio_dict(folio):
@@ -1500,3 +1501,12 @@ def _send_payment_confirmation_email(folio, payment):
     msg.send()
 
     return True, guest.email
+
+def billing_overview_page(request):
+    """Renders the Billing Summary / overview dashboard (billing_overview.html)."""
+    return render(request, "hotel/billing_overview.html")
+ 
+ 
+def all_invoices_page(request):
+    """Renders the All Invoices list page (all_invoices.html)."""
+    return render(request, "hotel/all_invoices.html")

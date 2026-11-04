@@ -5,17 +5,267 @@
 {% block nav_dashboard_active %}active{% endblock %}
 {% block nav_dashboard_active_mobile %}active{% endblock %}
 
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ══════════ HERO BANNER — photo fills the banner edge-to-edge (no crop
+     gaps) via a real <img> layer + gradient overlay on top, logo mark, hotel
+     name + tagline on the left, a WORKING date-range picker + refresh on
+     the right. ══════════ */
+  .hero-banner {
+    position: relative;
+    border-radius: 18px;
+    max-width: 100%;
+    box-sizing: border-box;
+    /* NOTE: no overflow:hidden here on purpose — that was clipping the
+       date-range dropdown, which pops out below this box. The photo's
+       rounded corners are handled by .hero-bg-clip below instead. */
+    min-height: 190px;
+    padding: 26px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    /* Now derived from the saved dashboard accent color (see base.html's
+       --admio-accent) instead of a fixed purple, so the banner repaints
+       whenever the "Dashboard Color" picker is used. */
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--admio-accent, #6d4bf0) 55%, #1a1033 45%) 0%,
+      var(--admio-accent, #6d4bf0) 55%,
+      color-mix(in srgb, var(--admio-accent, #6d4bf0) 75%, #ffffff 25%) 100%);
+    isolation: isolate;
+  }
+  /* Photo is now a fading side panel, not a full-bleed background — it
+     only occupies the right portion of the banner and dissolves into the
+     brand gradient above via the mask, so no crop of the source photo can
+     ever look "cut off": there's nothing for its edge to be cut against. */
+  .hero-bg-clip {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 52%;
+    z-index: 0;
+    border-radius: 0 18px 18px 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 38%);
+    mask-image: linear-gradient(to right, transparent 0%, black 38%);
+  }
+  .hero-bg-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% center;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(36,31,92,.55) 0%, rgba(76,49,190,.25) 55%, rgba(76,49,190,.1) 100%);
+  }
+    /* Subtle dot pattern filling the empty gradient space to the left of
+     the photo panel — fades out before it reaches the photo so the two
+     never fight for attention. */
+  .hero-pattern {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: .16;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='white' fill-opacity='0.6'/%3E%3C/svg%3E");
+    background-size: 22px 22px;
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 50%, transparent 82%);
+    mask-image: linear-gradient(to right, black 0%, black 50%, transparent 82%);
+    pointer-events: none;
+  }
+  .hero-left, .hero-right { position: relative; z-index: 2; }
+
+  .hero-left { display:flex; align-items:center; gap:16px; min-width:0; }
+  .hero-logo { display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .hero-logo img {
+    display:block; height:78px; width:auto; max-width:210px; object-fit:contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,.45));
+  }
+  .hero-logo .icon-bed { font-size:1.6rem; color:#fff; }
+  .hero-text { min-width:0; }
+  .hero-eyebrow {
+    margin:0 0 2px; font-size:.66rem; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; color:rgba(255,255,255,.78);
+  }
+    .hero-title {
+    margin:0; font-size:3.1rem; color:#fff; line-height:1.15;
+    font-family:'Baloo 2', 'Poppins', 'Segoe UI', sans-serif; font-weight:700;
+    text-shadow:0 2px 10px rgba(0,0,0,.25); text-transform:capitalize;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
+  }
+  .hero-tagline { margin:3px 0 0; font-size:.82rem; color:rgba(255,255,255,.85); }
+
+  .hero-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+
+  .hero-daterange-wrap { position:relative; }
+  .hero-daterange {
+    display:flex; align-items:center; gap:8px; height:38px; padding:0 14px;
+    background:#fff; border:none; border-radius:10px; color:#374151; font-size:.82rem; font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,.15); white-space:nowrap; cursor:pointer;
+  }
+  .hero-daterange svg { color:var(--admio-accent, #6d4bf0); flex-shrink:0; }
+  .hero-daterange .hero-chevron { color:#9ca3af; margin-left:2px; transition:transform .15s; }
+  .hero-daterange-wrap.open .hero-chevron { transform:rotate(180deg); }
+
+  .hero-daterange-panel {
+    position:absolute; top:calc(100% + 8px); right:0; z-index:20;
+    background:#fff; border-radius:12px; padding:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; gap:10px;
+    min-width:230px;
+  }
+  .hero-daterange-panel[hidden] { display:none; }
+  .hero-daterange-panel label {
+    display:flex; flex-direction:column; gap:4px; font-size:.72rem; font-weight:600; color:#6b7280;
+  }
+  .hero-daterange-panel input[type="date"] {
+    height:36px; border:1px solid #e5e7eb; border-radius:8px; padding:0 10px; font-size:.82rem; color:#374151;
+  }
+  .hero-apply-btn {
+    height:36px; border:none; border-radius:8px; background:var(--admio-accent, #6d4bf0); color:#fff; font-weight:700;
+    font-size:.82rem; cursor:pointer; margin-top:2px;
+  }
+  .hero-apply-btn:hover { background:color-mix(in srgb, var(--admio-accent, #6d4bf0) 85%, #000 15%); }
+  .hero-daterange-error { font-size:.72rem; color:#ef4444; display:none; }
+
+  .hero-refresh {
+    display:flex; align-items:center; gap:7px; height:38px; padding:0 16px;
+    background:var(--admio-accent, #6d4bf0); color:#fff; border:none; border-radius:10px;
+    font-size:.82rem; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.18); transition:background .15s;
+  }
+  .hero-refresh:hover { background:color-mix(in srgb, var(--admio-accent, #6d4bf0) 85%, #000 15%); }
+  .hero-refresh svg { flex-shrink:0; }
+  .hero-refresh.is-spinning svg { animation: hero-spin .7s linear; }
+  @keyframes hero-spin { to { transform:rotate(360deg); } }
+
+  [data-theme="dark"] .hero-daterange { background:#1e1e2d; color:#f3f4f6; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+  [data-theme="dark"] .hero-daterange-panel { background:#1e1e2d; }
+  [data-theme="dark"] .hero-daterange-panel label { color:#9ca3af; }
+  [data-theme="dark"] .hero-daterange-panel input[type="date"] { background:#111119; border-color:#2d2d3d; color:#f3f4f6; }
+
+       @media (max-width:767px) {
+    .hero-banner { padding:18px 18px; min-height:195px; max-width:100%; overflow:visible; box-sizing:border-box; }
+    .hero-title { font-size:1.35rem; line-height:1.3; -webkit-line-clamp:2; }
+    .hero-tagline { margin-top:6px; }
+    .hero-logo img { height:52px; max-width:130px; }
+    .hero-bg-clip { width:70%; }
+
+    .hero-right {
+      width:100%;
+      flex-direction:row;
+      align-items:stretch;
+      gap:8px;
+      flex-wrap:nowrap;
+    }
+    .hero-daterange-wrap { flex:0 1 60%; min-width:0; }
+    .hero-daterange {
+      width:100%;
+      justify-content:center;
+      gap:4px;
+      padding:0 6px;
+      font-size:.68rem;
+      box-sizing:border-box;
+      white-space:nowrap;
+      overflow:hidden;
+    }
+    .hero-daterange span { overflow:hidden; text-overflow:ellipsis; }
+    .hero-daterange svg { width:13px; height:13px; }
+    .hero-daterange-panel { left:0; right:auto; min-width:200px; }
+    .hero-refresh {
+      flex:1 1 auto;
+      justify-content:center;
+      gap:6px;
+      padding:0 14px;
+      font-size:.78rem;
+      box-sizing:border-box;
+      white-space:nowrap;
+    }
+  }
+
+  /* Extra tightening for small phones (under ~567px) */
+  @media (max-width:567px) {
+    .hero-banner { padding:16px 14px; min-height:180px; }
+    .hero-title { font-size:1.15rem; line-height:1.25; }
+    .hero-tagline { font-size:.75rem; }
+    .hero-logo img { height:42px; max-width:100px; }
+    .hero-bg-clip { width:60%; }
+
+    .hero-daterange-wrap { flex:0 1 55%; }
+    .hero-daterange { height:34px; padding:0 5px; font-size:.64rem; gap:3px; }
+    .hero-daterange svg { width:12px; height:12px; }
+    .hero-refresh { flex:1 1 auto; height:34px; padding:0 12px; font-size:.72rem; gap:4px; }
+  }
+
+  /* extra breathing room — g-4's gutter wasn't reading as enough between
+     the Today's Shifts / Recent Bookings cards */
+  .shift-bookings-row {
+    --bs-gutter-x: 2rem;
+    --bs-gutter-y: 2rem;
+  }
+  @media (max-width: 991px) {
+    .shift-bookings-row { --bs-gutter-y: 1.5rem; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 
-<!-- Welcome Banner -->
-<div class="ai-insight-banner mb-4">
-  <div class="ai-banner-icon"><i class="icon-hotel"></i></div>
-  <div class="ai-banner-content">
-    <p class="ai-banner-title">{{ hotel.hotel_name }} — {{ occupied_rooms }} rooms occupied today</p>
-    <p class="ai-banner-text">{{ today_checkins }} check-ins today · {{ today_checkouts }} check-outs today · {{ reserved_count }} reservations pending</p>
+<!-- ══════════ HERO BANNER ══════════ -->
+<div class="hero-banner mb-4">
+  <div class="hero-pattern"></div>
+  <div class="hero-bg-clip">
+    {% if hotel.image %}
+      <img class="hero-bg-img" src="{{ hotel.image.url }}" alt="">
+    {% endif %}
+    <div class="hero-overlay"></div>
   </div>
-  <a href="#" class="ai-banner-action"><i class="icon-arrow-right"></i> View Bookings</a>
-  <button class="ai-banner-close"><i class="icon-x"></i></button>
+
+  <div class="hero-left">
+    <span class="hero-logo">
+      {% if hotel.logo %}
+        <img src="{{ hotel.logo.url }}" alt="{{ hotel.hotel_name }}">
+      {% else %}
+        <i class="icon-bed"></i>
+      {% endif %}
+    </span>
+    <div class="hero-text">
+      
+      <h1 class="hero-title">Welcome back, {{ hotel.hotel_name }} !</h1>
+      <p class="hero-tagline">
+        {% if hotel.description %}{{ hotel.description|truncatechars:90 }}{% else %}Relax &middot; Reconnect &middot; Experience More{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-daterange-wrap" id="heroDateRangeWrap">
+      <button type="button" class="hero-daterange" id="heroDateRangeBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span id="heroDateRangeLabel">{{ date_range_display }}</span>
+        <svg class="hero-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="hero-daterange-panel" id="heroDateRangePanel" hidden>
+        <label>From
+          <input type="date" id="heroStartDate" value="{{ week_start|date:'Y-m-d' }}" max="{{ week_end|date:'Y-m-d' }}">
+        </label>
+        <label>To
+          <input type="date" id="heroEndDate" value="{{ week_end|date:'Y-m-d' }}">
+        </label>
+        <span class="hero-daterange-error" id="heroDateRangeError">End date must be on or after the start date.</span>
+        <button type="button" class="hero-apply-btn" id="heroApplyBtn">Apply</button>
+      </div>
+    </div>
+    <button class="hero-refresh" id="heroRefreshBtn" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+      Refresh
+    </button>
+  </div>
 </div>
 
 <div class="page-header">
@@ -87,11 +337,11 @@
     <div class="stat-card pb-0">
       <div class="stat-card-header">
         <div class="stat-icon orange admio-bg-orange"><i class="icon-calendar-days"></i></div>
-        <span class="stat-trend {% if bookings_growth_pct >= 0 %}up admio-bg-green{% else %}admio-bg-red{% endif %}">
-          <i class="icon-trending-{% if bookings_growth_pct >= 0 %}up{% else %}down{% endif %}"></i> {{ bookings_growth_pct }}%
+        <span class="stat-trend {% if bookings_growth_pct >= 0 %}up admio-bg-green{% else %}admio-bg-red{% endif %}" id="bookingsGrowthBadge">
+          <i class="icon-trending-{% if bookings_growth_pct >= 0 %}up{% else %}down{% endif %}" id="bookingsGrowthIcon"></i> <span id="bookingsGrowthValue">{{ bookings_growth_pct }}</span>%
         </span>
       </div>
-      <div class="stat-value" data-target="{{ total_bookings }}">0</div>
+      <div class="stat-value" id="totalBookingsValue" data-target="{{ total_bookings }}">0</div>
       <div class="stat-label">Total Bookings</div>
       <div class="mini-chart-bar">
         <div class="mini-bar bar-warning mh-60 op-30"></div><div class="mini-bar bar-warning mh-75 op-40"></div>
@@ -103,12 +353,94 @@
   </div>
 </div>
 
+<!-- Today's Shifts + Recent Bookings -->
+<!-- Today's Shifts + Recent Bookings -->
+<div class="row g-4 shift-bookings-row mb-4">
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-clock"></i> Today's Shifts</h2>
+        <span class="badge-admio badge-purple text-xs">{{ today_shifts|length }} Staff</span>
+      </div>
+      <div class="admio-table-wrapper">
+        <table class="admio-table" id="todayShiftsTable">
+          <thead>
+            <tr>
+              <th>Staff</th><th>Department</th><th>Shift</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in today_shifts %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="avatar-gen" data-name="{{ s.name }}" data-size="36"
+                        data-bg="{% cycle '#7C3AED' '#06B6D4' '#22c55e' '#f97316' %}"></span>
+                  <span class="fw-600 text-sm">{{ s.name }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge-admio badge-purple text-xs">{{ s.department__name|default:"—" }}</span>
+              </td>
+              <td class="text-sm text-muted">{{ s.shift_time|default:"Not Assigned" }}</td>
+              <td>
+                <span class="badge-admio badge-gray badge-dot text-xs">Off Duty</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-sm py-4">No staff scheduled today</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="admio-card h-100">
+      <div class="admio-card-header">
+        <h2 class="card-title mb-0"><i class="icon-calendar-days"></i> Recent Bookings</h2>
+        <a href="{% url 'get_bookings_page' %}" class="btn-admio btn-ghost btn-sm">View All</a>
+      </div>
+      <div class="admio-table-wrapper">
+        <table class="admio-table" id="recentBookingsTable">
+          <thead>
+            <tr>
+              <th>Guest</th><th>Room</th><th>Check-in</th><th>Status</th><th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in recent_bookings %}
+            <tr>
+              <td class="fw-600">{{ b.guest_name }}</td>
+              <td class="text-sm">{{ b.room_label }}</td>
+              <td class="mono">{{ b.check_in }}</td>
+              <td>
+                <span class="badge-admio
+                  {% if b.status == 'checked_out' %}badge-gray
+                  {% elif b.status == 'confirmed' %}badge-cyan
+                  {% elif b.status == 'checked_in' %}badge-green
+                  {% else %}badge-orange{% endif %} text-xs">
+                  {{ b.status }}
+                </span>
+              </td>
+              <td class="fw-700">₹{{ b.total_amount }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-sm py-4">No bookings yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- Charts Row -->
 <div class="row g-4 mb-4">
   <div class="col-lg-8">
     <div class="admio-card h-100">
       <div class="admio-card-header">
-        <h2 class="card-title mb-0">Weekly Bookings Trend</h2>
+        <h2 class="card-title mb-0">Check-in / Check-out Trend</h2>
         <div class="d-flex gap-3 align-items-center flex-wrap">
           <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-primary"></span>Check-ins</span>
           <span class="d-flex align-items-center gap-1 text-xs"><span class="legend-rect legend-secondary"></span>Check-outs</span>
@@ -153,87 +485,7 @@
   </div>
 </div>
 
-<!-- Today's Shifts + Recent Bookings -->
-<div class="row g-4">
-  <div class="col-lg-6">
-    <div class="admio-card h-100">
-      <div class="admio-card-header">
-        <h2 class="card-title mb-0"><i class="icon-clock"></i> Today's Shifts</h2>
-        <span class="badge-admio badge-purple text-xs">{{ today_shifts|length }} Staff</span>
-      </div>
-      <div class="admio-table-wrapper">
-        <table class="admio-table" id="todayShiftsTable">
-          <thead>
-            <tr>
-              <th>Staff</th><th>Department</th><th>Shift</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for s in today_shifts %}
-            <tr>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="avatar-gen" data-name="{{ s.name }}" data-size="36"
-                        data-bg="{% cycle '#7C3AED' '#06B6D4' '#22c55e' '#f97316' %}"></span>
-                  <span class="fw-600 text-sm">{{ s.name }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="badge-admio badge-purple text-xs">{{ s.department__name|default:"—" }}</span>
-              </td>
-              <td class="text-sm text-muted mono">{{ s.shift_time|default:"09:00–18:00" }}</td>
-              <td>
-                <span class="badge-admio badge-gray badge-dot text-xs">Off Duty</span>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4" class="text-center text-sm py-4">No staff scheduled today</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
-  <div class="col-lg-6">
-    <div class="admio-card h-100">
-      <div class="admio-card-header">
-        <h2 class="card-title mb-0"><i class="icon-calendar-days"></i> Recent Bookings</h2>
-        <a href="#" class="btn-admio btn-ghost btn-sm">View All</a>
-      </div>
-      <div class="admio-table-wrapper">
-        <table class="admio-table" id="recentBookingsTable">
-          <thead>
-            <tr>
-              <th>Guest</th><th>Room</th><th>Check-in</th><th>Status</th><th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for b in recent_bookings %}
-            <tr>
-              <td class="fw-600">{{ b.guest_name }}</td>
-              <td class="text-sm">{{ b.room_label }}</td>
-              <td class="mono">{{ b.check_in }}</td>
-              <td>
-                <span class="badge-admio
-                  {% if b.status == 'checked_out' %}badge-gray
-                  {% elif b.status == 'confirmed' %}badge-cyan
-                  {% elif b.status == 'checked_in' %}badge-green
-                  {% else %}badge-orange{% endif %} text-xs">
-                  {{ b.status }}
-                </span>
-              </td>
-              <td class="fw-700">₹{{ b.total_amount }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-center text-sm py-4">No bookings yet</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
 
 {% endblock %}
 
@@ -241,9 +493,140 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+  // Current dashboard accent color (set by the "Dashboard Color" picker in
+  // base.html — falls back to the default purple if the CSS var isn't set
+  // yet for any reason). Canvas/Chart.js can't read var() directly, so we
+  // resolve it once here and reuse it for every chart below.
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--admio-accent').trim() || '#7C3AED';
+  const accentRgb   = getComputedStyle(document.documentElement).getPropertyValue('--admio-accent-rgb').trim() || '124, 58, 237';
+
+  let weeklyChart, roomStatusChart, roomTypeChart;
+
+  // ── Hero date-range picker: open/close + Apply → refetch this same
+  // view via AJAX and patch the trend chart + bookings stat in place,
+  // with no full page reload. ──
+  const wrap       = document.getElementById('heroDateRangeWrap');
+  const toggleBtn  = document.getElementById('heroDateRangeBtn');
+  const panel      = document.getElementById('heroDateRangePanel');
+  const startInput = document.getElementById('heroStartDate');
+  const endInput   = document.getElementById('heroEndDate');
+  const applyBtn   = document.getElementById('heroApplyBtn');
+  const errorEl    = document.getElementById('heroDateRangeError');
+  const rangeLabel = document.getElementById('heroDateRangeLabel');
+
+  function closePanel() {
+    panel.hidden = true;
+    wrap.classList.remove('open');
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const willOpen = panel.hidden;
+      panel.hidden = !willOpen;
+      wrap.classList.toggle('open', willOpen);
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (wrap && !wrap.contains(e.target)) closePanel();
+  });
+
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function () {
+      const start = startInput.value;
+      const end = endInput.value;
+
+      if (!start || !end || end < start) {
+        errorEl.style.display = 'block';
+        return;
+      }
+      errorEl.style.display = 'none';
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'Applying…';
+
+      const url = `${window.location.pathname}?ajax=1&start=${start}&end=${end}`;
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Request failed: ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          // Hero label + input bounds
+          rangeLabel.textContent = data.date_range_display;
+          endInput.min = start;
+          startInput.max = end;
+
+          // Trend chart
+          if (weeklyChart) {
+            weeklyChart.data.labels = data.weekly_labels;
+            weeklyChart.data.datasets[0].data = data.weekly_checkins;
+            weeklyChart.data.datasets[1].data = data.weekly_checkouts;
+            weeklyChart.update();
+          }
+
+          // Bookings stat + growth badge, for the selected range
+          const totalEl = document.getElementById('totalBookingsValue');
+          if (totalEl) totalEl.textContent = data.total_bookings;
+
+          const growthVal = document.getElementById('bookingsGrowthValue');
+          const growthBadge = document.getElementById('bookingsGrowthBadge');
+          const growthIcon = document.getElementById('bookingsGrowthIcon');
+          if (growthVal) growthVal.textContent = data.bookings_growth_pct;
+          if (growthBadge && growthIcon) {
+            const isUp = data.bookings_growth_pct >= 0;
+            growthBadge.className = 'stat-trend ' + (isUp ? 'up admio-bg-green' : 'admio-bg-red');
+            growthIcon.className = 'icon-trending-' + (isUp ? 'up' : 'down');
+          }
+
+          // Recent bookings table, for the selected range
+          const tbody = document.querySelector('#recentBookingsTable tbody');
+          if (tbody && Array.isArray(data.recent_bookings)) {
+            if (data.recent_bookings.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" class="text-center text-sm py-4">No bookings in this range</td></tr>';
+            } else {
+              tbody.innerHTML = data.recent_bookings.map(function (b) {
+                const statusClass = b.status === 'checked_out' ? 'badge-gray'
+                  : b.status === 'confirmed' ? 'badge-cyan'
+                  : b.status === 'checked_in' ? 'badge-green'
+                  : 'badge-orange';
+                return `<tr>
+                  <td class="fw-600">${b.guest_name}</td>
+                  <td class="text-sm">${b.room_label}</td>
+                  <td class="mono">${b.check_in}</td>
+                  <td><span class="badge-admio ${statusClass} text-xs">${b.status}</span></td>
+                  <td class="fw-700">₹${b.total_amount}</td>
+                </tr>`;
+              }).join('');
+            }
+          }
+
+          closePanel();
+        })
+        .catch(function (err) {
+          console.error(err);
+          errorEl.textContent = 'Could not load that range — please try again.';
+          errorEl.style.display = 'block';
+        })
+        .finally(function () {
+          applyBtn.disabled = false;
+          applyBtn.textContent = 'Apply';
+        });
+    });
+  }
+
+  const refreshBtn = document.getElementById('heroRefreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      refreshBtn.classList.add('is-spinning');
+      window.location.reload();
+    });
+  }
+
+  // ── Charts (initial load) ──
   const weeklyCtx = document.getElementById('weeklyBookingsChart');
   if (weeklyCtx && window.Chart) {
-    new Chart(weeklyCtx, {
+    weeklyChart = new Chart(weeklyCtx, {
       type: 'line',
       data: {
         labels: {{ weekly_labels|safe }},
@@ -251,8 +634,8 @@ document.addEventListener('DOMContentLoaded', function () {
           {
             label: 'Check-ins',
             data: {{ weekly_checkins|safe }},
-            borderColor: '#7C3AED',
-            backgroundColor: 'rgba(124,58,237,.12)',
+            borderColor: accentColor,
+            backgroundColor: `rgba(${accentRgb},.12)`,
             fill: true,
             tension: 0.4,
           },
@@ -279,10 +662,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (roomStatusCtx && window.Chart) {
     const colorMap = {
       green: '#22c55e', red: '#ef4444', orange: '#f97316',
-      purple: '#7C3AED', cyan: '#06B6D4', gray: '#9ca3af'
+      purple: accentColor, cyan: '#06B6D4', gray: '#9ca3af'
     };
     const statuses = {{ room_status_breakdown_json|safe }};
-    new Chart(roomStatusCtx, {
+    roomStatusChart = new Chart(roomStatusCtx, {
       type: 'doughnut',
       data: {
         labels: statuses.map(s => s.label),
@@ -303,7 +686,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const roomTypeCtx = document.getElementById('roomTypeChart');
   if (roomTypeCtx && window.Chart) {
-    new Chart(roomTypeCtx, {
+    roomTypeChart = new Chart(roomTypeCtx, {
       type: 'bar',
       data: {
         labels: {{ room_type_labels_json|safe }},
@@ -311,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
           {
             label: 'Occupied',
             data: {{ room_type_occupied_json|safe }},
-            backgroundColor: '#7C3AED',
+            backgroundColor: accentColor,
             borderRadius: 6,
           },
           {

@@ -1,0 +1,837 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Order Summary{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+  .os {
+    --os-border: var(--admio-border-color, #e5e7ef);
+    --os-text: var(--admio-heading-color, #172033);
+    --os-muted: var(--admio-nav-color, #69758a);
+    --os-bg: #fff;
+    --os-soft: #f6f7fc;
+    color: var(--os-text);
+  }
+
+  .os-heading,
+  .os-actions,
+  .os-card-header,
+  .os-footer,
+  .os-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .os-heading { margin-bottom: 22px; }
+  .os-actions { justify-content: flex-start; }
+  .os-breadcrumb { margin-bottom: 8px; color: var(--os-muted); }
+  .os-breadcrumb a { color: #7c3aed; text-decoration: none; }
+  .os-muted { color: var(--os-muted); }
+
+  .os-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    min-height: 40px;
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    background: var(--os-bg);
+    color: var(--os-text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .os-button:hover { border-color: #bca5f7; color: #7c3aed; }
+  .os-button.primary { background: #7c3aed; border-color: #7c3aed; color: white; }
+  .os-button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .os-stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    background: var(--os-bg);
+    border: 1px solid var(--os-border);
+    border-radius: 14px;
+    margin-bottom: 22px;
+    padding: 18px 0;
+  }
+
+  .os-stat { padding: 4px 24px; border-right: 1px solid var(--os-border); }
+  .os-stat:last-child { border-right: 0; }
+  .os-stat .card-title { margin: 7px 0 0; overflow-wrap: anywhere; }
+
+  .os-card {
+    background: var(--os-bg);
+    border: 1px solid var(--os-border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .os-card-header { padding: 20px 24px 12px; }
+  .os-count { background: var(--os-soft); padding: 4px 9px; border-radius: 20px; }
+
+  .os-tabs {
+    display: flex;
+    gap: 25px;
+    margin: 0 24px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--os-muted);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 15px 3px;
+    cursor: pointer;
+  }
+
+  .os-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+
+  .os-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .os-filters { display: flex; gap: 14px; padding: 18px 24px; }
+
+  .os-input {
+    min-height: 44px;
+    border: 1px solid var(--os-border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    background: var(--os-bg);
+    color: var(--os-text);
+  }
+
+  .os-search { width: min(100%, 590px); }
+  .os-select { min-width: 210px; }
+  .os-scroll { overflow-x: auto; }
+
+  .os-table {
+    width: 100%;
+    min-width: 820px;
+    border-collapse: collapse;
+  }
+
+  .os-table th,
+  .os-table td {
+    padding: 15px 24px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-table th { background: var(--os-soft); color: var(--os-muted); }
+  .os-table tbody tr:hover { background: rgba(124, 58, 237, .035); }
+  .os-table .amount { text-align: right; white-space: nowrap; }
+  .os-table .action { text-align: right; white-space: nowrap; }
+  .os-sub { margin-top: 4px; color: var(--os-muted); }
+
+  .os-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    white-space: nowrap;
+  }
+
+  .os-status.pending { background: #fff6df; color: #986000; }
+  .os-status.preparing { background: #edf3ff; color: #2458b9; }
+  .os-status.served { background: #eafaf1; color: #078348; }
+  .os-status.cancelled { background: #fff0f1; color: #c72c40; }
+
+  .os-view { color: #7c3aed; border-color: #e0d5fb; }
+  .os-footer { padding: 16px 24px; }
+  .os-pagination { display: flex; gap: 6px; flex-wrap: wrap; }
+  .os-page { padding: 7px 12px; min-width: 38px; }
+  .os-message { padding: 26px 24px; text-align: center; }
+  .os-error { color: #b42318; }
+
+  .os-modal {
+    width: min(1100px, calc(100vw - 32px));
+    max-height: 90vh;
+    margin: auto;
+    padding: 0;
+    background: var(--os-bg);
+    color: var(--os-text);
+    border: 1px solid var(--os-border);
+    border-radius: 16px;
+    overflow: auto;
+  }
+
+  .os-modal::backdrop { background: rgba(14, 20, 37, .5); }
+
+  .os-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--os-bg);
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .os-modal-body { padding: 24px; }
+
+  .os-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .os-detail-section {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--os-border);
+    border-radius: 12px;
+  }
+
+  .os-wide { grid-column: 1 / -1; }
+  .os-detail-section h3 { margin: 0 0 18px; }
+
+  .os-detail-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px 18px;
+    margin: 0;
+  }
+
+  .os-detail-list dt { color: var(--os-muted); }
+  .os-detail-list dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+  .os-note {
+    background: var(--os-soft);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 16px 0 0;
+  }
+
+  .os-item-table { width: 100%; min-width: 480px; border-collapse: collapse; }
+  .os-item-table th,
+  .os-item-table td { padding: 12px 8px; border-bottom: 1px solid var(--os-border); }
+  .os-item-table th { text-align: left; color: var(--os-muted); }
+  .os-item-table th:last-child,
+  .os-item-table td:last-child { text-align: right; }
+  .os-totals { max-width: 420px; margin: 20px 0 0 auto; }
+  .os-payment + .os-payment { border-top: 1px solid var(--os-border); margin-top: 20px; padding-top: 20px; }
+
+  /* ── Update status ── */
+  .os-status-update {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .os-status-update .os-select { min-width: 200px; }
+  .os-status-msg { margin-top: 12px; }
+  .os-status-msg.ok { color: #078348; }
+  .os-status-msg.err { color: #b42318; }
+
+  .os :is(button, a, input, select):focus-visible {
+    outline: 3px solid #c4b5fd;
+    outline-offset: 3px;
+  }
+
+  [data-theme="dark"] .os {
+    --os-bg: #1e1e2d;
+    --os-soft: #28283b;
+    --os-text: #edf0f7;
+    --os-muted: #b1bbcc;
+    --os-border: #3a3a4d;
+  }
+
+  @media (max-width: 900px) {
+    .os-stat { padding: 4px 14px; }
+    .os-detail-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .os-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; }
+    .os-stat { padding: 12px; border: 0; }
+    .os-stat:last-child { grid-column: 1 / -1; }
+    .os-filters { flex-direction: column; }
+    .os-search, .os-select { width: 100%; }
+    .os-tabs { gap: 18px; }
+    .os-modal-body, .os-modal-header { padding: 16px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="os" id="orderSummary">
+
+  <div class="os-breadcrumb text-xs">
+    <a href="{% url 'restaurant_overview_page' %}">Restaurant</a>
+    <span> / Orders</span>
+  </div>
+
+  <div class="os-heading">
+    <div>
+      <h1 class="page-title mb-1">Order Summary</h1>
+      <p class="page-subtitle mb-0">Track and manage restaurant orders</p>
+    </div>
+    <div class="os-actions">
+      <a class="os-button" href="{% url 'restaurant_overview_page' %}">Overview</a>
+      <a class="os-button primary" href="{% url 'new_order_page' %}">＋ New order</a>
+    </div>
+  </div>
+
+  <div class="os-stats">
+    <div class="os-stat">
+      <div class="os-muted text-xs">Total orders</div>
+      <div class="card-title" id="statTotal">—</div>
+    </div>
+    <div class="os-stat">
+      <div class="os-muted text-xs">Pending</div>
+      <div class="card-title" id="statPending">—</div>
+    </div>
+    <div class="os-stat">
+      <div class="os-muted text-xs">Preparing</div>
+      <div class="card-title" id="statPreparing">—</div>
+    </div>
+    <div class="os-stat">
+      <div class="os-muted text-xs">Served</div>
+      <div class="card-title" id="statServed">—</div>
+    </div>
+    <div class="os-stat">
+      <div class="os-muted text-xs" title="Served orders including tax">Revenue</div>
+      <div class="card-title" id="statRevenue">—</div>
+    </div>
+  </div>
+
+  <div class="os-card">
+    <div class="os-card-header">
+      <h2 class="card-title mb-0">
+        All orders <span class="os-count text-xs" id="orderCount">0</span>
+      </h2>
+      <button type="button" class="os-button" id="refreshOrders">↻ Refresh</button>
+    </div>
+
+    <div class="os-tabs" aria-label="Filter by status">
+      <button type="button" class="os-tab active" data-status="all" aria-pressed="true">
+        All orders <span class="os-count text-xs" id="countAll">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="pending" aria-pressed="false">
+        Pending <span class="os-count text-xs" id="countPending">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="preparing" aria-pressed="false">
+        Preparing <span class="os-count text-xs" id="countPreparing">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="served" aria-pressed="false">
+        Served <span class="os-count text-xs" id="countServed">0</span>
+      </button>
+      <button type="button" class="os-tab" data-status="cancelled" aria-pressed="false">
+        Cancelled <span class="os-count text-xs" id="countCancelled">0</span>
+      </button>
+    </div>
+
+    <div class="os-filters">
+      <input class="os-input os-search" id="orderSearch"
+             aria-label="Search orders"
+             placeholder="Search by order, guest, table or room…">
+      <select class="os-input os-select" id="orderType" aria-label="Order type">
+        <option value="all">All order types</option>
+        <option value="dine_in">Dine in</option>
+        <option value="room_service">Room service</option>
+        <option value="takeaway">Takeaway</option>
+      </select>
+    </div>
+
+    <div class="os-message" id="orderMessage" role="status">Loading orders…</div>
+
+    <div class="os-scroll">
+      <table class="os-table">
+        <thead>
+          <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Guest &amp; location</th>
+            <th scope="col">Date &amp; time</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="amount">Amount</th>
+            <th scope="col" class="action">Action</th>
+          </tr>
+        </thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+
+    <div class="os-footer">
+      <span class="os-muted text-xs" id="pageInfo"></span>
+      <nav class="os-pagination" id="pagination" aria-label="Order pages"></nav>
+    </div>
+  </div>
+
+  <dialog class="os-modal" id="orderModal" aria-labelledby="modalTitle">
+    <div class="os-modal-header">
+      <div>
+        <h2 class="card-title mb-1" id="modalTitle">Order details</h2>
+        <div class="os-muted text-xs">Complete recorded order information</div>
+      </div>
+      <button type="button" class="os-button" id="closeModal">Close ×</button>
+    </div>
+    <div class="os-modal-body" id="modalBody"></div>
+  </dialog>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(() => {
+  const endpoint = "{% url 'restaurant_order_list' %}";
+  // NOTE: change 'restaurant_update_order_status' if your URL name differs.
+  const statusUrlTemplate = "{% url 'update_order_status' 0 %}";
+  const statusUrl = id => statusUrlTemplate.replace('/0/', '/' + id + '/');
+
+  const root = document.getElementById('orderSummary');
+  const $ = id => document.getElementById(id);
+  const pageSize = 6;
+
+  let orders = [];
+  let filtered = [];
+  let page = 1;
+  let statusFilter = 'all';
+  let loading = false;
+
+  const escape = value => String(value ?? '').replace(
+    /[&<>"']/g,
+    char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;',
+      '"': '&quot;', "'": '&#39;'
+    }[char])
+  );
+
+  const number = value => {
+    const result = Number(value);
+    return Number.isFinite(result) ? result : 0;
+  };
+
+  const money = value => '₹' + number(value).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  const types = {
+    dine_in: 'Dine in',
+    room_service: 'Room service',
+    takeaway: 'Takeaway'
+  };
+
+  const statuses = {
+    pending: 'Pending',
+    preparing: 'Preparing',
+    served: 'Served',
+    cancelled: 'Cancelled'
+  };
+
+  // Allowed moves. Served and cancelled are final.
+  const nextStatuses = current => ({
+    pending: ['preparing', 'served', 'cancelled'],
+    preparing: ['served', 'cancelled']
+  }[current] || []);
+
+  const csrfToken = () => {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  };
+
+  const location = order => {
+    if (order.type === 'dine_in') {
+      return order.table ? `Table ${order.table}` : (order.room || 'Not recorded');
+    }
+    return order.room || 'Not recorded';
+  };
+
+  const dateTime = value => {
+    if (!value) return 'Not recorded';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString();
+  };
+
+  function badge(status) {
+    const known = Object.prototype.hasOwnProperty.call(statuses, status);
+    return `<span class="os-status ${known ? status : ''}">
+      <span class="os-dot" aria-hidden="true"></span>
+      ${escape(known ? statuses[status] : 'Unknown')}
+    </span>`;
+  }
+
+  function message(text, error = false) {
+    $('orderMessage').textContent = text;
+    $('orderMessage').hidden = !text;
+    $('orderMessage').classList.toggle('os-error', error);
+  }
+
+  function renderStats() {
+    const counts = {pending: 0, preparing: 0, served: 0, cancelled: 0};
+    let revenue = 0;
+
+    orders.forEach(order => {
+      if (Object.prototype.hasOwnProperty.call(counts, order.status)) {
+        counts[order.status]++;
+      }
+      if (order.status === 'served') {
+        revenue += number(order.total) + number(order.tax);
+      }
+    });
+
+    $('statTotal').textContent = orders.length;
+    $('orderCount').textContent = orders.length;
+    $('countAll').textContent = orders.length;
+    $('statRevenue').textContent = money(revenue);
+
+    ['pending', 'preparing', 'served', 'cancelled'].forEach(status => {
+      const suffix = status[0].toUpperCase() + status.slice(1);
+      $('count' + suffix).textContent = counts[status];
+      if ($('stat' + suffix)) $('stat' + suffix).textContent = counts[status];
+    });
+  }
+
+  function filterOrders(resetPage = true) {
+    const search = $('orderSearch').value.trim().toLowerCase();
+    const type = $('orderType').value;
+
+    filtered = orders.filter(order => {
+      if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+      if (type !== 'all' && order.type !== type) return false;
+
+      const text = [
+        order.order_number, order.guest, location(order),
+        types[order.type] || order.type
+      ].join(' ').toLowerCase();
+
+      return !search || text.includes(search);
+    });
+
+    if (resetPage) page = 1;
+    page = Math.min(page, Math.max(1, Math.ceil(filtered.length / pageSize)));
+    renderRows();
+  }
+
+  function renderRows() {
+    const start = (page - 1) * pageSize;
+    const visible = filtered.slice(start, start + pageSize);
+
+    $('orderRows').innerHTML = visible.map(order => {
+      const date = new Date(order.created_at);
+      const validDate = !Number.isNaN(date.getTime());
+
+      return `<tr>
+        <td>
+          <strong>#${escape(order.order_number)}</strong>
+          <div class="os-sub text-xs">${escape(types[order.type] || order.type)}</div>
+        </td>
+        <td>
+          ${escape(order.guest || '—')}
+          <div class="os-sub text-xs">${escape(location(order))}</div>
+        </td>
+        <td>
+          ${validDate ? escape(date.toLocaleDateString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric'
+          })) : '—'}
+          <div class="os-sub text-xs">
+            ${validDate ? escape(date.toLocaleTimeString([], {
+              hour: 'numeric', minute: '2-digit'
+            })) : ''}
+          </div>
+        </td>
+        <td>${badge(order.status)}</td>
+        <td class="amount"><strong>${money(number(order.total) + number(order.tax))}</strong></td>
+        <td class="action">
+          <button type="button" class="os-button os-view"
+                  data-view="${escape(order.id)}">View details →</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    message(filtered.length ? '' : 'No orders match your filters.');
+
+    $('pageInfo').textContent = `Showing ${filtered.length ? start + 1 : 0}–${Math.min(
+      start + pageSize, filtered.length
+    )} of ${filtered.length} orders`;
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const container = $('pagination');
+    container.replaceChildren();
+
+    function button(label, target, disabled = false, active = false) {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'os-button os-page' + (active ? ' primary' : '');
+      element.textContent = label;
+      element.disabled = disabled;
+      if (active) element.setAttribute('aria-current', 'page');
+      element.addEventListener('click', () => {
+        page = target;
+        renderRows();
+      });
+      container.appendChild(element);
+    }
+
+    button('Previous', page - 1, page === 1);
+
+    for (let index = Math.max(1, page - 2); index <= Math.min(pages, page + 2); index++) {
+      button(index, index, false, index === page);
+    }
+
+    button('Next', page + 1, page === pages);
+  }
+
+  function openDetails(order, notice) {
+    const pair = (label, value) => `
+      <dt>${escape(label)}</dt>
+      <dd>${escape(value ?? 'Not recorded')}</dd>`;
+
+    const payments = Array.isArray(order.payments) ? order.payments : [];
+    const options = nextStatuses(order.status);
+
+    $('modalTitle').textContent = '#' + order.order_number;
+
+    $('modalBody').innerHTML = `
+      <div class="os-detail-grid">
+
+        <section class="os-detail-section">
+          <h3 class="card-title">Order information</h3>
+          <dl class="os-detail-list">
+            ${pair('Order type', types[order.type] || order.type)}
+            ${pair('Status', statuses[order.status] || order.status)}
+            ${pair('Placed at', dateTime(order.created_at))}
+            ${pair('Guest / customer', order.guest || 'Not recorded')}
+            ${pair('Table / room', location(order))}
+            ${pair('Booking ID', order.booking_id)}
+            ${pair('Reservation ID', order.reservation_id)}
+            ${pair('Charge to room', order.charge_to_room == null
+              ? 'Not recorded' : (order.charge_to_room ? 'Yes' : 'No'))}
+          </dl>
+        </section>
+
+        <section class="os-detail-section">
+          <h3 class="card-title">Staff activity</h3>
+          <dl class="os-detail-list">
+            ${pair('Order taken / entered by', order.order_taken_by || 'Not recorded')}
+            ${pair('Preparing by', order.preparing_by || 'Not recorded')}
+            ${pair('Preparation started', dateTime(order.preparing_at))}
+            ${pair('Served by', order.served_status_by || 'Not recorded')}
+            ${pair('Marked served at', dateTime(order.served_status_at))}
+          </dl>
+          <p class="os-note text-xs">
+            The guest is the recorded customer. “Order taken / entered by”
+            identifies the account that created the order.
+          </p>
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Update status</h3>
+          ${options.length ? `
+            <div class="os-status-update">
+              <select class="os-input os-select" id="newStatus" aria-label="New status">
+                ${options.map(s =>
+                  `<option value="${s}">${escape(statuses[s])}</option>`
+                ).join('')}
+              </select>
+              <button type="button" class="os-button primary" id="saveStatus"
+                      data-order="${escape(order.id)}">Update status</button>
+            </div>
+            <div class="os-status-msg text-xs ${notice ? 'ok' : ''}" id="statusMsg"
+                 role="status">${escape(notice || '')}</div>
+          ` : `
+            <p class="os-muted">
+              This order is ${escape(statuses[order.status] || order.status)}
+              and its status can no longer be changed.
+            </p>
+            ${notice ? `<div class="os-status-msg text-xs ok" role="status">${escape(notice)}</div>` : ''}
+          `}
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Ordered items</h3>
+          <div class="os-scroll">
+            <table class="os-item-table">
+              <thead>
+                <tr><th>Item</th><th>Quantity</th><th>Unit price</th><th>Subtotal</th></tr>
+              </thead>
+              <tbody>
+                ${(order.items || []).map(item => `
+                  <tr>
+                    <td>
+                      ${escape(item.name)}
+                      ${item.note ? `<div class="os-sub text-xs">${escape(item.note)}</div>` : ''}
+                    </td>
+                    <td>${escape(item.qty)}</td>
+                    <td>${money(item.unit_price)}</td>
+                    <td>${money(item.subtotal)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="4">No item records.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+          <dl class="os-detail-list os-totals">
+            ${pair('Subtotal', money(order.total))}
+            ${pair('Tax', money(order.tax))}
+            ${pair('Grand total', money(number(order.total) + number(order.tax)))}
+          </dl>
+          ${order.note ? `<p class="os-note"><strong>Order note:</strong> ${escape(order.note)}</p>` : ''}
+        </section>
+
+        <section class="os-detail-section os-wide">
+          <h3 class="card-title">Payment details</h3>
+          ${payments.length ? payments.map(payment => `
+            <div class="os-payment">
+              <dl class="os-detail-list">
+                ${pair('Payment record', payment.id)}
+                ${pair('Payment status', payment.status || 'Not recorded')}
+                ${pair('Payment method', payment.method || 'Not recorded')}
+                ${pair('Payment amount', money(payment.amount))}
+                ${pair('Payment staff (recorded)', payment.received_by || 'Not recorded')}
+                ${pair('Paid at', dateTime(payment.paid_at))}
+                ${pair('Reference number', payment.reference_number || 'Not recorded')}
+              </dl>
+            </div>
+          `).join('') : `
+            <p class="os-muted">
+              ${order.charge_to_room
+                ? 'Charged to the guest folio. Settlement details are available in billing.'
+                : 'No payment record found.'}
+            </p>
+          `}
+          <p class="os-note text-xs">
+            Older payment staff entries may identify who opened the bill.
+            Payments collected after the backend update record the collecting staff member or admin.
+          </p>
+        </section>
+
+      </div>`;
+
+    if (!$('orderModal').open) $('orderModal').showModal();
+  }
+
+  async function updateStatus(orderId, newStatus) {
+    const msg = $('statusMsg');
+    const button = $('saveStatus');
+    button.disabled = true;
+    msg.className = 'os-status-msg text-xs';
+    msg.textContent = 'Updating…';
+
+    try {
+      const response = await fetch(statusUrl(orderId), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRFToken': csrfToken()
+        },
+        body: JSON.stringify({status: newStatus})
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Could not update the status.');
+      }
+
+      await loadOrders();
+      const fresh = orders.find(item => String(item.id) === String(orderId));
+      if (fresh) openDetails(fresh, 'Status updated to ' + statuses[newStatus] + '.');
+    } catch (error) {
+      msg.className = 'os-status-msg text-xs err';
+      msg.textContent = error.message;
+      button.disabled = false;
+    }
+  }
+
+  async function loadOrders() {
+    if (loading) return;
+    loading = true;
+    $('refreshOrders').disabled = true;
+    message('Loading orders…');
+
+    try {
+      const response = await fetch(endpoint, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Accept': 'application/json'}
+      });
+
+      if (!response.ok || response.redirected ||
+          !(response.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error('Could not load orders. Check your login and press Refresh.');
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data.orders)) throw new Error('Invalid order response.');
+
+      orders = data.orders;
+      renderStats();
+      filterOrders(false);
+    } catch (error) {
+      message(error.message, true);
+    } finally {
+      loading = false;
+      $('refreshOrders').disabled = false;
+    }
+  }
+
+  root.querySelectorAll('[data-status]').forEach(button => {
+    button.addEventListener('click', () => {
+      statusFilter = button.dataset.status;
+      root.querySelectorAll('[data-status]').forEach(item => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      filterOrders();
+    });
+  });
+
+  $('orderSearch').addEventListener('input', () => filterOrders());
+  $('orderType').addEventListener('change', () => filterOrders());
+  $('refreshOrders').addEventListener('click', loadOrders);
+
+  $('orderRows').addEventListener('click', event => {
+    const button = event.target.closest('[data-view]');
+    if (!button) return;
+    const order = orders.find(item => String(item.id) === button.dataset.view);
+    if (order) openDetails(order);
+  });
+
+  $('modalBody').addEventListener('click', event => {
+    const button = event.target.closest('#saveStatus');
+    if (!button) return;
+    updateStatus(button.dataset.order, $('newStatus').value);
+  });
+
+  $('closeModal').addEventListener('click', () => $('orderModal').close());
+
+  $('orderModal').addEventListener('click', event => {
+    const modal = $('orderModal');
+    if (event.target !== modal) return;
+    const rect = modal.getBoundingClientRect();
+    if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom) {
+      modal.close();
+    }
+  });
+
+  loadOrders();
+})();
+</script>
+{% endblock %}

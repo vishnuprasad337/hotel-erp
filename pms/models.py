@@ -167,7 +167,7 @@ class Booking(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    external_ref = models.CharField(max_length=100, blank=True, db_index=True)
     def __str__(self):
         return f"{self.guest.full_name} - {self.room.room_type}"
 class Payment(models.Model):

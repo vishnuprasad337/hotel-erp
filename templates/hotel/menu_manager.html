@@ -1,0 +1,1155 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Menu Manager{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
+<style>
+  /* Typography comes from hotel/base.html. */
+
+  .mm {
+    --mm-bg: #fff;
+    --mm-soft: #f7f7fc;
+    --mm-border: var(--admio-border-color, #e5e7ef);
+    --mm-text: var(--admio-heading-color, #172033);
+    --mm-muted: var(--admio-nav-color, #6b7589);
+    --mm-purple: #7c3aed;
+    color: var(--mm-text);
+  }
+
+  .mm-header,
+  .mm-actions,
+  .mm-toolbar,
+  .mm-category-header,
+  .mm-footer,
+  .mm-dialog-header,
+  .mm-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .mm-header { margin-bottom: 22px; }
+  .mm-actions { justify-content: flex-start; }
+  .mm-breadcrumb { margin-bottom: 8px; color: var(--mm-muted); }
+  .mm-breadcrumb a { color: var(--mm-purple); text-decoration: none; }
+  .mm-muted { color: var(--mm-muted); }
+
+  .mm-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 9px 15px;
+    border: 1px solid var(--mm-border);
+    border-radius: 8px;
+    background: var(--mm-bg);
+    color: var(--mm-text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .mm-button:hover {
+    border-color: #c4b5fd;
+    color: var(--mm-purple);
+  }
+
+  .mm-button.primary {
+    background: var(--mm-purple);
+    border-color: var(--mm-purple);
+    color: #fff;
+  }
+
+  .mm-button.outline {
+    color: var(--mm-purple);
+    border-color: #ddd0fa;
+  }
+
+  .mm-button.danger {
+    color: #c52b3c;
+    background: #fff6f7;
+    border-color: #f5dce0;
+  }
+
+  .mm-button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .mm-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-bottom: 22px;
+    color: var(--mm-muted);
+  }
+
+  .mm-summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mm-workspace {
+    background: var(--mm-bg);
+    border: 1px solid var(--mm-border);
+    border-radius: 15px;
+    padding: 22px;
+  }
+
+  .mm-toolbar { margin-bottom: 14px; }
+
+  .mm-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .mm-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 13px;
+    background: var(--mm-bg);
+    color: var(--mm-text);
+    border: 1px solid var(--mm-border);
+    border-radius: 8px;
+  }
+
+  .mm-search { width: min(100%, 370px); }
+  .mm-filter { width: 225px; }
+
+  .mm-tabs {
+    display: flex;
+    gap: 26px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--mm-border);
+    margin-bottom: 22px;
+  }
+
+  .mm-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 3px;
+    white-space: nowrap;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--mm-muted);
+    cursor: pointer;
+  }
+
+  .mm-tab.active {
+    color: var(--mm-purple);
+    border-bottom-color: var(--mm-purple);
+  }
+
+  .mm-count {
+    display: inline-block;
+    border-radius: 7px;
+    padding: 3px 8px;
+    background: var(--mm-soft);
+    color: var(--mm-muted);
+  }
+
+  .mm-category {
+    border: 1px solid var(--mm-border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .mm-category:last-child { margin-bottom: 0; }
+
+  .mm-category-header {
+    padding: 14px 18px;
+    background: rgba(124, 58, 237, .045);
+    border-bottom: 1px solid var(--mm-border);
+  }
+
+  .mm-category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .mm-category-title h3 { margin: 0; }
+  .mm-scroll { overflow-x: auto; }
+
+  .mm-table {
+    width: 100%;
+    min-width: 780px;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .mm-table th,
+  .mm-table td {
+    padding: 14px 18px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--mm-border);
+  }
+
+  .mm-table th {
+    color: var(--mm-muted);
+    background: var(--mm-soft);
+  }
+
+  .mm-table tbody tr:last-child td { border-bottom: 0; }
+
+  .mm-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .mm-image,
+  .mm-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    object-fit: cover;
+    background: var(--mm-soft);
+  }
+
+  .mm-placeholder {
+    display: grid;
+    place-items: center;
+    color: var(--mm-muted);
+  }
+
+  .mm-item-name { overflow-wrap: anywhere; }
+
+  .mm-diet {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--mm-muted);
+    margin-top: 6px;
+  }
+
+  .mm-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #18ad69;
+    flex-shrink: 0;
+  }
+
+  .mm-dot.nonveg { background: #e43848; }
+
+  .mm-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--mm-text);
+    cursor: pointer;
+  }
+
+  .mm-switch-track {
+    display: inline-flex;
+    align-items: center;
+    width: 43px;
+    height: 25px;
+    padding: 3px;
+    background: #c7cdd7;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  .mm-switch-track::after {
+    content: "";
+    width: 19px;
+    height: 19px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  }
+
+  .mm-switch[aria-checked="true"] .mm-switch-track {
+    background: var(--mm-purple);
+  }
+
+  .mm-switch[aria-checked="true"] .mm-switch-track::after {
+    transform: translateX(18px);
+  }
+
+  .mm-row-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .mm-empty {
+    padding: 28px 18px;
+    text-align: center;
+    color: var(--mm-muted);
+  }
+
+  .mm-footer { padding: 20px 4px 0; color: var(--mm-muted); }
+
+  .mm-message {
+    margin-bottom: 16px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    background: #eef9f3;
+    color: #147447;
+  }
+
+  .mm-message.error { background: #fff1f2; color: #b42335; }
+
+  .mm-dialog {
+    width: min(660px, calc(100vw - 32px));
+    max-height: 90vh;
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--mm-border);
+    border-radius: 15px;
+    overflow: auto;
+    background: var(--mm-bg);
+    color: var(--mm-text);
+  }
+
+  .mm-dialog::backdrop { background: rgba(15, 21, 37, .5); }
+
+  .mm-dialog-header,
+  .mm-dialog-footer {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--mm-border);
+  }
+
+  .mm-dialog-footer {
+    justify-content: flex-end;
+    border-bottom: 0;
+    border-top: 1px solid var(--mm-border);
+  }
+
+  .mm-dialog-body { padding: 22px; }
+  .mm-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .mm-wide { grid-column: 1 / -1; }
+  .mm-field label { display: block; margin-bottom: 7px; }
+  .mm-field textarea { min-height: 90px; resize: vertical; }
+  .mm-checks { display: flex; gap: 22px; flex-wrap: wrap; }
+  .mm-checks label { display: inline-flex; align-items: center; gap: 8px; }
+  .mm-checks input { width: 18px; height: 18px; accent-color: var(--mm-purple); }
+
+  .mm-preview {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 9px;
+    margin-top: 12px;
+  }
+
+  .mm-form-error { color: #b42335; margin-top: 14px; }
+
+  .mm :is(button, a, input, select, textarea):focus-visible {
+    outline: 3px solid #c4b5fd;
+    outline-offset: 3px;
+  }
+
+  [data-theme="dark"] .mm {
+    --mm-bg: #1e1e2d;
+    --mm-soft: #28283b;
+    --mm-border: #3b3b4e;
+    --mm-text: #eef0f7;
+    --mm-muted: #b3bdd0;
+  }
+
+  @media (max-width: 650px) {
+    .mm-workspace { padding: 14px; }
+    .mm-filter, .mm-search { width: 100%; }
+    .mm-form-grid { grid-template-columns: 1fr; }
+    .mm-category-header { padding: 12px; }
+    .mm-tabs { gap: 20px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="mm" id="menuManager">
+
+  <div hidden id="mmCsrf">{% csrf_token %}</div>
+
+  <div class="mm-breadcrumb text-xs">
+    <a href="{% url 'restaurant_overview_page' %}">Restaurant</a>
+    <span> / Menu</span>
+  </div>
+
+  <div class="mm-header">
+    <div>
+      <h1 class="page-title mb-1">Menu Manager</h1>
+      <p class="page-subtitle mb-0">
+        Manage menu categories, prices and availability
+      </p>
+    </div>
+    <div class="mm-actions">
+      <a class="mm-button" href="{% url 'restaurant_overview_page' %}">
+        ← Overview
+      </a>
+      <button type="button" class="mm-button outline" id="addCategory">
+        ＋ Add category
+      </button>
+      <button type="button" class="mm-button primary" id="addItem">
+        ＋ Add item
+      </button>
+    </div>
+  </div>
+
+  <div class="mm-summary text-sm">
+    <span><strong id="totalItems">0</strong> menu items</span>
+    <span><strong id="totalCategories">0</strong> categories</span>
+    <span><i class="mm-dot"></i><strong id="availableItems">0</strong> available</span>
+  </div>
+
+  <div id="mmMessage" class="mm-message" role="status" hidden></div>
+
+  <div class="mm-workspace">
+    <div class="mm-toolbar">
+      <div class="mm-filters">
+        <input id="menuSearch" class="mm-input mm-search"
+               placeholder="Search menu items…"
+               aria-label="Search menu items">
+
+        <select id="availabilityFilter" class="mm-input mm-filter"
+                aria-label="Availability">
+          <option value="all">All availability</option>
+          <option value="available">Available</option>
+          <option value="unavailable">Unavailable</option>
+        </select>
+      </div>
+
+      <button type="button" class="mm-button" id="refreshMenu">↻ Refresh</button>
+    </div>
+
+    <div class="mm-tabs" id="categoryTabs" aria-label="Menu categories"></div>
+    <div id="categoryList">
+      <div class="mm-empty">Loading menu…</div>
+    </div>
+  </div>
+
+  <div class="mm-footer text-xs">
+    <span id="menuFooter"></span>
+    <span>Prices exclude tax</span>
+  </div>
+
+  <!-- Add category -->
+  <dialog class="mm-dialog" id="categoryDialog" aria-labelledby="categoryTitle">
+    <form id="categoryForm">
+      <div class="mm-dialog-header">
+        <h2 class="card-title mb-0" id="categoryTitle">Add category</h2>
+        <button type="button" class="mm-button" data-close="categoryDialog">×</button>
+      </div>
+
+      <div class="mm-dialog-body">
+        <div class="mm-form-grid">
+          <div class="mm-field mm-wide">
+            <label for="categoryName">Category name *</label>
+            <input class="mm-input" id="categoryName" required>
+          </div>
+          <div class="mm-field">
+            <label for="categoryOrder">Display order</label>
+            <input class="mm-input" id="categoryOrder"
+                   type="number" min="0" step="1" value="0" required>
+          </div>
+        </div>
+        <div class="mm-form-error text-sm" id="categoryError" role="alert"></div>
+      </div>
+
+      <div class="mm-dialog-footer">
+        <button type="button" class="mm-button" data-close="categoryDialog">Cancel</button>
+        <button type="submit" class="mm-button primary" id="saveCategory">Save category</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add / edit item -->
+  <dialog class="mm-dialog" id="itemDialog" aria-labelledby="itemTitle">
+    <form id="itemForm">
+      <div class="mm-dialog-header">
+        <h2 class="card-title mb-0" id="itemTitle">Add item</h2>
+        <button type="button" class="mm-button" data-close="itemDialog">×</button>
+      </div>
+
+      <div class="mm-dialog-body">
+        <div class="mm-form-grid">
+          <div class="mm-field mm-wide">
+            <label for="itemName">Item name *</label>
+            <input class="mm-input" id="itemName" required>
+          </div>
+
+          <div class="mm-field mm-wide">
+            <label for="itemCategory">Category *</label>
+            <select class="mm-input" id="itemCategory" required></select>
+          </div>
+
+          <div class="mm-field">
+            <label for="itemPrice">Price (₹) *</label>
+            <input class="mm-input" id="itemPrice"
+                   type="number" min="0" step="0.01" required>
+          </div>
+
+          <div class="mm-field">
+            <label for="itemTax">Tax (%) *</label>
+            <input class="mm-input" id="itemTax"
+                   type="number" min="0" max="100" step="0.01" value="5" required>
+          </div>
+
+          <div class="mm-field mm-wide">
+            <label for="itemDescription">Description</label>
+            <textarea class="mm-input" id="itemDescription"></textarea>
+          </div>
+
+          <div class="mm-field mm-wide">
+            <label for="itemImage">Item image</label>
+            <input class="mm-input" id="itemImage" type="file"
+                   accept="image/jpeg,image/png,image/webp">
+            <div class="mm-muted text-xs mt-1" id="imageHelp">
+              Upload a JPG, PNG or WebP image.
+            </div>
+            <img id="imagePreview" class="mm-preview" alt="Item image preview" hidden>
+          </div>
+
+          <div class="mm-checks mm-wide">
+            <label><input type="checkbox" id="itemVegetarian" checked> Vegetarian</label>
+            <label><input type="checkbox" id="itemAvailable" checked> Available</label>
+          </div>
+        </div>
+
+        <div class="mm-form-error text-sm" id="itemError" role="alert"></div>
+      </div>
+
+      <div class="mm-dialog-footer">
+        <button type="button" class="mm-button" data-close="itemDialog">Cancel</button>
+        <button type="submit" class="mm-button primary" id="saveItem">Save item</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Delete confirmation -->
+  <dialog class="mm-dialog" id="deleteDialog" aria-labelledby="deleteTitle">
+    <div class="mm-dialog-header">
+      <h2 class="card-title mb-0" id="deleteTitle">Confirm deletion</h2>
+      <button type="button" class="mm-button" data-close="deleteDialog">×</button>
+    </div>
+    <div class="mm-dialog-body">
+      <p id="deleteText"></p>
+      <div class="mm-form-error text-sm" id="deleteError" role="alert"></div>
+    </div>
+    <div class="mm-dialog-footer">
+      <button type="button" class="mm-button" data-close="deleteDialog">Cancel</button>
+      <button type="button" class="mm-button danger" id="confirmDelete">Delete</button>
+    </div>
+  </dialog>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(() => {
+  const root = document.getElementById('menuManager');
+  const $ = id => document.getElementById(id);
+
+  const urls = {
+    list: "{% url 'list_menu_categories' %}",
+    addCategory: "{% url 'add_menu_category' %}",
+    deleteCategory: "{% url 'delete_menu_category' 0 %}",
+    addItem: "{% url 'add_menu_item' %}",
+    updateItem: "{% url 'update_menu_item' 0 %}",
+    deleteItem: "{% url 'delete_menu_item' 0 %}",
+    toggleItem: "{% url 'toggle_item_availability' 0 %}"
+  };
+
+  let categories = [];
+  let activeCategory = 'all';
+  let editingItemId = null;
+  let pendingDelete = null;
+  let previewUrl = null;
+  let loading = false;
+  let mutating = false;
+
+  const esc = value => String(value ?? '').replace(
+    /[&<>"']/g,
+    char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char])
+  );
+
+  const money = value => '₹' + Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  const endpoint = (pattern, id) =>
+    pattern.replace('/0/', '/' + encodeURIComponent(id) + '/');
+
+  const allItems = () => categories.flatMap(category =>
+    category.items.map(item => ({...item, categoryId: category.id}))
+  );
+
+  function showMessage(text, error = false) {
+    $('mmMessage').hidden = !text;
+    $('mmMessage').textContent = text;
+    $('mmMessage').classList.toggle('error', error);
+  }
+
+  async function api(url, options = {}) {
+    const headers = {
+      'Accept': 'application/json',
+      'X-CSRFToken': $('mmCsrf').querySelector('input').value,
+      ...(options.headers || {})
+    };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        ...options,
+        headers,
+        signal: controller.signal
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+
+      if (response.redirected || !contentType.includes('application/json')) {
+        throw new Error('The server did not return menu data. Check your login and try again.');
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'The request could not be completed.');
+      }
+
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('The request timed out. Refresh to check the result before trying again.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setBusy(value) {
+    mutating = value;
+
+    root.querySelectorAll('button').forEach(button => {
+      button.disabled = value;
+    });
+
+    root.querySelectorAll('dialog input, dialog select, dialog textarea').forEach(field => {
+      field.disabled = value;
+    });
+
+    if (!value) {
+      $('itemCategory').disabled = editingItemId !== null;
+      $('refreshMenu').disabled = loading;
+    }
+  }
+
+  async function loadMenu() {
+    if (loading) return false;
+
+    loading = true;
+    $('refreshMenu').disabled = true;
+
+    try {
+      const data = await api(urls.list);
+
+      if (!Array.isArray(data.categories)) {
+        throw new Error('The menu response is invalid.');
+      }
+
+      categories = data.categories.map(category => ({
+        ...category,
+        items: Array.isArray(category.items) ? category.items : []
+      })).sort((a, b) =>
+        Number(a.order || 0) - Number(b.order || 0) ||
+        String(a.name).localeCompare(String(b.name))
+      );
+
+      if (activeCategory !== 'all' &&
+          !categories.some(category => String(category.id) === activeCategory)) {
+        activeCategory = 'all';
+      }
+
+      render();
+      return true;
+    } catch (error) {
+      showMessage(error.message, true);
+      if (!categories.length) {
+        $('categoryList').innerHTML =
+          '<div class="mm-empty">Could not load the menu. Press Refresh to try again.</div>';
+      }
+      return false;
+    } finally {
+      loading = false;
+      $('refreshMenu').disabled = mutating;
+    }
+  }
+
+  function render() {
+    const items = allItems();
+
+    $('totalItems').textContent = items.length;
+    $('totalCategories').textContent = categories.length;
+    $('availableItems').textContent =
+      items.filter(item => item.is_available).length;
+
+    const tabs = [
+      {id: 'all', name: 'All items', count: items.length},
+      ...categories.map(category => ({
+        id: String(category.id),
+        name: category.name,
+        count: category.items.length
+      }))
+    ];
+
+    $('categoryTabs').innerHTML = tabs.map(tab => `
+      <button type="button"
+              class="mm-tab ${activeCategory === tab.id ? 'active' : ''}"
+              data-category="${esc(tab.id)}"
+              aria-pressed="${activeCategory === tab.id}">
+        ${esc(tab.name)}
+        <span class="mm-count text-xs">${tab.count}</span>
+      </button>
+    `).join('');
+
+    const query = $('menuSearch').value.trim().toLowerCase();
+    const availability = $('availabilityFilter').value;
+    let shown = 0;
+
+    const sections = categories
+      .filter(category =>
+        activeCategory === 'all' || String(category.id) === activeCategory
+      )
+      .map(category => {
+        const visibleItems = category.items.filter(item => {
+          const matchesText = [
+            item.name, item.description, category.name
+          ].join(' ').toLowerCase().includes(query);
+
+          const matchesAvailability =
+            availability === 'all' ||
+            (availability === 'available' && item.is_available) ||
+            (availability === 'unavailable' && !item.is_available);
+
+          return matchesText && matchesAvailability;
+        });
+
+        if (!visibleItems.length && (query || availability !== 'all')) {
+          return '';
+        }
+
+        shown += visibleItems.length;
+
+        return `
+          <section class="mm-category">
+            <div class="mm-category-header">
+              <div class="mm-category-title">
+                <span aria-hidden="true">▣</span>
+                <h3 class="card-title">${esc(category.name)}</h3>
+                <span class="mm-count text-xs">
+                  ${category.items.length} item${category.items.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              <div class="mm-actions">
+                <button type="button" class="mm-button outline"
+                        data-add-to="${esc(category.id)}">＋ Add item</button>
+                <button type="button" class="mm-button danger"
+                        data-delete-category="${esc(category.id)}"
+                        aria-label="Delete category ${esc(category.name)}">
+                  Delete category
+                </button>
+              </div>
+            </div>
+
+            ${visibleItems.length ? `
+              <div class="mm-scroll">
+                <table class="mm-table">
+                  <colgroup>
+                    <col style="width:34%">
+                    <col style="width:14%">
+                    <col style="width:10%">
+                    <col style="width:23%">
+                    <col style="width:19%">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th scope="col">Item</th>
+                      <th scope="col">Price</th>
+                      <th scope="col">Tax</th>
+                      <th scope="col">Availability</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>${visibleItems.map(renderItem).join('')}</tbody>
+                </table>
+              </div>
+            ` : '<div class="mm-empty">No items in this category. Add your first item.</div>'}
+          </section>
+        `;
+      })
+      .filter(Boolean);
+
+    $('categoryList').innerHTML = sections.join('') ||
+      `<div class="mm-empty">${
+        categories.length
+          ? 'No items match your filters.'
+          : 'No categories yet. Add a category to start building your menu.'
+      }</div>`;
+
+    $('menuFooter').textContent = `Showing ${shown} of ${items.length} menu items`;
+
+    if (mutating) setBusy(true);
+  }
+
+  function renderItem(item) {
+    return `
+      <tr>
+        <td>
+          <div class="mm-item">
+            ${item.image
+              ? `<img class="mm-image" src="${esc(item.image)}" alt="" loading="lazy">`
+              : '<span class="mm-placeholder" aria-hidden="true">▧</span>'}
+            <div>
+              <strong class="mm-item-name">${esc(item.name)}</strong>
+              <div class="mm-diet text-xs">
+                <span class="mm-dot ${item.is_veg ? '' : 'nonveg'}"></span>
+                ${item.is_veg ? 'Vegetarian' : 'Non-vegetarian'}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td><strong>${money(item.price)}</strong></td>
+        <td>${esc(item.tax_percent)}%</td>
+        <td>
+          <button type="button" class="mm-switch" role="switch"
+                  aria-checked="${Boolean(item.is_available)}"
+                  aria-label="Availability of ${esc(item.name)}"
+                  data-toggle="${esc(item.id)}">
+            <span class="mm-switch-track" aria-hidden="true"></span>
+            <span>${item.is_available ? 'Available' : 'Unavailable'}</span>
+          </button>
+        </td>
+        <td>
+          <div class="mm-row-actions">
+            <button type="button" class="mm-button"
+                    data-edit="${esc(item.id)}">Edit</button>
+            <button type="button" class="mm-button danger"
+                    data-delete-item="${esc(item.id)}"
+                    aria-label="Delete ${esc(item.name)}">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  function clearPreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    $('imagePreview').hidden = true;
+    $('imagePreview').removeAttribute('src');
+  }
+
+  function openItem(categoryId = null, item = null) {
+    if (!categories.length) {
+      showMessage('Add a category before adding menu items.');
+      openCategory();
+      return;
+    }
+
+    editingItemId = item ? item.id : null;
+
+    $('itemForm').reset();
+    $('itemError').textContent = '';
+    clearPreview();
+
+    $('itemTitle').textContent = item ? 'Edit item' : 'Add item';
+
+    $('itemCategory').innerHTML = categories.map(category => `
+      <option value="${esc(category.id)}">${esc(category.name)}</option>
+    `).join('');
+
+    $('itemCategory').value = String(
+      item ? item.categoryId : (categoryId ?? categories[0].id)
+    );
+
+    // Your existing update_menu_item API does not update category_id.
+    $('itemCategory').disabled = Boolean(item);
+
+    $('itemName').value = item?.name || '';
+    $('itemDescription').value = item?.description || '';
+    $('itemPrice').value = item ? item.price : '';
+    $('itemTax').value = item ? item.tax_percent : 5;
+    $('itemVegetarian').checked = item ? Boolean(item.is_veg) : true;
+    $('itemAvailable').checked = item ? Boolean(item.is_available) : true;
+
+    $('imageHelp').textContent = item
+      ? 'Choose a new image to replace the current image, or leave this empty to keep it.'
+      : 'Upload a JPG, PNG or WebP image.';
+
+    if (item?.image) {
+      $('imagePreview').src = item.image;
+      $('imagePreview').hidden = false;
+    }
+
+    $('itemDialog').showModal();
+  }
+
+  function openCategory() {
+    $('categoryForm').reset();
+    $('categoryOrder').value = 0;
+    $('categoryError').textContent = '';
+    $('categoryDialog').showModal();
+  }
+
+  function openDelete(kind, id) {
+    const record = kind === 'category'
+      ? categories.find(category => String(category.id) === String(id))
+      : allItems().find(item => String(item.id) === String(id));
+
+    if (!record) return;
+
+    pendingDelete = {kind, id};
+    $('deleteError').textContent = '';
+
+    $('deleteText').textContent = kind === 'category'
+      ? `Delete “${record.name}”? This category contains ${record.items.length} item(s). Its items may also be deleted, depending on your model relationships. This cannot be undone.`
+      : `Delete “${record.name}”? This cannot be undone.`;
+
+    $('deleteDialog').showModal();
+  }
+
+  $('addCategory').addEventListener('click', openCategory);
+
+  $('addItem').addEventListener('click', () => {
+    openItem(activeCategory === 'all' ? null : activeCategory);
+  });
+
+  $('refreshMenu').addEventListener('click', () => {
+    if (mutating) return;
+    showMessage('');
+    loadMenu();
+  });
+
+  $('menuSearch').addEventListener('input', render);
+  $('availabilityFilter').addEventListener('change', render);
+
+  $('categoryTabs').addEventListener('click', event => {
+    const button = event.target.closest('[data-category]');
+    if (!button || mutating) return;
+    activeCategory = button.dataset.category;
+    render();
+  });
+
+  $('categoryList').addEventListener('click', async event => {
+    const button = event.target.closest('button');
+    if (!button || mutating) return;
+
+    if (button.hasAttribute('data-add-to')) {
+      openItem(button.dataset.addTo);
+    } else if (button.hasAttribute('data-edit')) {
+      const item = allItems().find(
+        item => String(item.id) === button.dataset.edit
+      );
+      if (item) openItem(item.categoryId, item);
+    } else if (button.hasAttribute('data-delete-item')) {
+      openDelete('item', button.dataset.deleteItem);
+    } else if (button.hasAttribute('data-delete-category')) {
+      openDelete('category', button.dataset.deleteCategory);
+    } else if (button.hasAttribute('data-toggle')) {
+      setBusy(true);
+      showMessage('');
+
+      try {
+        const data = await api(
+          endpoint(urls.toggleItem, button.dataset.toggle),
+          {method: 'POST'}
+        );
+
+        const item = allItems().find(
+          item => String(item.id) === button.dataset.toggle
+        );
+
+        categories.forEach(category => {
+          const original = category.items.find(
+            entry => String(entry.id) === button.dataset.toggle
+          );
+          if (original) original.is_available = data.is_available;
+        });
+
+        render();
+        showMessage(`${item?.name || 'Item'} availability updated.`);
+      } catch (error) {
+        showMessage(error.message, true);
+      } finally {
+        setBusy(false);
+      }
+    }
+  });
+
+  $('categoryForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (mutating) return;
+
+    const name = $('categoryName').value.trim();
+
+    if (!name) {
+      $('categoryError').textContent = 'Enter a category name.';
+      return;
+    }
+
+    const payload = {
+      name,
+      order: Number($('categoryOrder').value || 0)
+    };
+
+    setBusy(true);
+    $('categoryError').textContent = '';
+
+    try {
+      await api(urls.addCategory, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      $('categoryDialog').close();
+      showMessage('Category added.');
+      await loadMenu();
+    } catch (error) {
+      $('categoryError').textContent = error.message;
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $('itemImage').addEventListener('change', () => {
+    const file = $('itemImage').files[0];
+    clearPreview();
+
+    if (file) {
+      previewUrl = URL.createObjectURL(file);
+      $('imagePreview').src = previewUrl;
+      $('imagePreview').hidden = false;
+    } else if (editingItemId !== null) {
+      const item = allItems().find(
+        item => String(item.id) === String(editingItemId)
+      );
+      if (item?.image) {
+        $('imagePreview').src = item.image;
+        $('imagePreview').hidden = false;
+      }
+    }
+  });
+
+  $('itemForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (mutating) return;
+
+    const name = $('itemName').value.trim();
+
+    if (!name) {
+      $('itemError').textContent = 'Enter an item name.';
+      return;
+    }
+
+    const form = new FormData();
+    form.append('name', name);
+    form.append('category_id', $('itemCategory').value);
+    form.append('description', $('itemDescription').value.trim());
+    form.append('price', $('itemPrice').value);
+    form.append('tax_percent', $('itemTax').value);
+    form.append('is_veg', $('itemVegetarian').checked ? 'true' : 'false');
+    form.append('is_available', $('itemAvailable').checked ? 'true' : 'false');
+
+    const file = $('itemImage').files[0];
+    if (file) form.append('image', file);
+
+    const editing = editingItemId !== null;
+    const url = editing
+      ? endpoint(urls.updateItem, editingItemId)
+      : urls.addItem;
+
+    setBusy(true);
+    $('itemError').textContent = '';
+
+    try {
+      await api(url, {method: 'POST', body: form});
+      $('itemDialog').close();
+      showMessage(editing ? 'Item updated.' : 'Item added.');
+      await loadMenu();
+    } catch (error) {
+      $('itemError').textContent = error.message;
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $('confirmDelete').addEventListener('click', async () => {
+    if (!pendingDelete || mutating) return;
+
+    const {kind, id} = pendingDelete;
+    const url = endpoint(
+      kind === 'category' ? urls.deleteCategory : urls.deleteItem,
+      id
+    );
+
+    setBusy(true);
+    $('deleteError').textContent = '';
+
+    try {
+      await api(url, {method: 'DELETE'});
+      $('deleteDialog').close();
+      pendingDelete = null;
+      showMessage(kind === 'category' ? 'Category deleted.' : 'Item deleted.');
+      await loadMenu();
+    } catch (error) {
+      $('deleteError').textContent = error.message;
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  root.querySelectorAll('[data-close]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (!mutating) $(button.dataset.close).close();
+    });
+  });
+
+  root.querySelectorAll('dialog').forEach(dialog => {
+    dialog.addEventListener('cancel', event => {
+      if (mutating) event.preventDefault();
+    });
+  });
+
+  $('itemDialog').addEventListener('close', clearPreview);
+
+  loadMenu();
+})();
+</script>
+{% endblock %}

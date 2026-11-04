@@ -1,0 +1,447 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Website Channels · {{ hotel.hotel_name }}{% endblock %}
+
+{# Sidebar state (needs the matching blocks in base.html) #}
+{% block channels_open %}open{% endblock %}
+{% block nav_website_channel_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Small scoped helpers (same set as the Channel Manager page) */
+  .modal { z-index: 10100; }
+  .modal-backdrop { z-index: 10090; }
+
+  .cm-tint-blue   { --cm-c: 47, 107, 255; }
+  .cm-tint-purple { --cm-c: 124, 58, 237; }
+  .cm-tint-green  { --cm-c: 22, 168, 112; }
+  .cm-tint-red    { --cm-c: 229, 72, 77; }
+  .cm-tint-amber  { --cm-c: 217, 138, 0; }
+  .cm-tint-grey   { --cm-c: 107, 113, 148; }
+
+  .cm-tint { background: rgba(var(--cm-c), .09) !important; border-color: rgba(var(--cm-c), .2) !important; }
+  .cm-c    { color: rgb(var(--cm-c)); }
+
+  .cm-svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  .cm-ico { width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: #fff; color: rgb(var(--cm-c)); }
+  [data-theme="dark"] .cm-ico { background: rgba(255, 255, 255, .1); }
+  .cm-ico .cm-svg { width: 22px; height: 22px; }
+  .cm-ico.cm-soft { background: rgba(var(--cm-c), .12); }
+  .cm-ico.cm-sq { width: 40px; height: 40px; border-radius: 10px; }
+  .cm-ico.cm-sq .cm-svg { width: 19px; height: 19px; }
+
+  .cm-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px; border-radius: 999px; font-size: .85rem; font-weight: 600; white-space: nowrap; background: rgba(var(--cm-c), .12); color: rgb(var(--cm-c)); }
+  .cm-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
+  .cm-avatar { width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1rem; flex: none; }
+
+  /* Table header tint + compact icon buttons */
+  .cm-thead th { background: rgba(124, 58, 237, .07) !important; white-space: nowrap; }
+  .cm-iconbtn { width: 40px; height: 40px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+  .cm-iconbtn .cm-svg { width: 18px; height: 18px; }
+  .cm-url { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="cm-i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="cm-i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></symbol>
+  <symbol id="cm-i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="cm-i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+  <symbol id="cm-i-check" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+  <symbol id="cm-i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></symbol>
+  <symbol id="cm-i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="cm-i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M17 6l3 3"/><path d="M14 9l2 2"/></symbol>
+  <symbol id="cm-i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="cm-i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="cm-i-filter" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></symbol>
+  <symbol id="cm-i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="cm-i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></symbol>
+  <symbol id="cm-i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="cm-i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+</svg>
+
+<!-- ══════════ PAGE HEADER (same pattern as Channel Manager) ══════════ -->
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div class="d-flex align-items-center gap-3">
+    <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px">
+      <svg class="cm-svg"><use href="#cm-i-globe"/></svg>
+    </span>
+    <div>
+      <h1 class="page-title mb-1">Website Channels</h1>
+      <p class="page-subtitle text-muted mb-0">Manage your connected website channels, API credentials and sync settings.</p>
+    </div>
+  </div>
+  <button type="button" class="btn btn-admio btn-primary" data-cm-add>
+    <svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel
+  </button>
+</div>
+
+<!-- ══════════ LIST CARD ══════════ -->
+<div class="admio-card">
+  <div class="admio-card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <h2 class="card-title mb-0">Channel list</h2>
+    <div class="d-flex flex-wrap gap-3">
+      <div class="input-group" style="width:240px;max-width:100%">
+        <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-filter"/></svg></span>
+        <select class="form-select form-select-admio" id="cmFilter" aria-label="Filter by status">
+          <option value="all">All channels</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="pending">Pending approval</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="input-group" style="width:340px;max-width:100%">
+        <span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-search"/></svg></span>
+        <input type="search" class="form-control form-control-admio" id="cmSearch" placeholder="Search by site name or base URL…" aria-label="Search channels">
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table admio-table align-middle mb-0">
+      <thead class="cm-thead">
+        <tr>
+          <th style="width:48px">#</th>
+          <th>Site name</th>
+          <th>Base URL</th>
+          <th>Inbound API key</th>
+          <th>Status</th>
+          <th>Last sync</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="cmRows"></tbody>
+    </table>
+  </div>
+
+  <!-- Empty: no channels yet -->
+  <div class="text-center py-5 d-none" id="cmEmpty">
+    <svg viewBox="0 0 220 120" style="width:220px;max-width:100%" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="30" y="12" width="140" height="94" rx="10" fill="#fff" fill-opacity=".85" stroke="#7C3AED" stroke-opacity=".35"/>
+      <path d="M30 22a10 10 0 0 1 10-10h120a10 10 0 0 1 10 10v8H30z" fill="#7C3AED" fill-opacity=".14"/>
+      <circle cx="42" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".55"/><circle cx="51" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".35"/><circle cx="60" cy="21" r="2.4" fill="#7C3AED" fill-opacity=".2"/>
+      <use href="#cm-i-globe" x="74" y="42" width="48" height="48" stroke="#7C3AED" stroke-width="1.5"/>
+      <circle cx="160" cy="92" r="18" fill="#7C3AED"/>
+      <use href="#cm-i-link" x="149" y="81" width="22" height="22" stroke="#fff" stroke-width="2"/>
+    </svg>
+    <h2 class="fs-5 fw-700 mt-3 mb-1">No website channels yet</h2>
+    <p class="text-muted text-sm mb-3 mx-auto" style="max-width:340px">Add your first website channel to start managing bookings and synchronization.</p>
+    <button type="button" class="btn btn-admio btn-primary" data-cm-add><svg class="cm-svg me-1"><use href="#cm-i-plus"/></svg> Add channel</button>
+  </div>
+
+  <!-- Empty: filter/search matched nothing -->
+  <div class="text-center text-muted py-5 d-none" id="cmNoMatch">No channels match your search or filter.</div>
+</div>
+
+<!-- ══════════ ADD / EDIT MODAL ══════════ -->
+<div class="modal fade" id="cmChannelModal" tabindex="-1" aria-labelledby="cmModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 overflow-hidden">
+
+      <div class="modal-header align-items-center gap-3 px-4 py-3">
+        <span class="cm-ico cm-soft cm-sq cm-tint-purple" style="width:56px;height:56px;border-radius:16px"><svg class="cm-svg"><use href="#cm-i-share"/></svg></span>
+        <div class="flex-grow-1">
+          <h3 class="modal-title fs-4 fw-700 mb-0" id="cmModalTitle">Add channel</h3>
+          <div class="text-muted text-sm" id="cmModalSub">Connect your hotel with more booking platforms and reach more guests.</div>
+        </div>
+        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body px-4">
+        <div class="alert alert-danger d-none" id="cmFormError" role="alert"></div>
+        <div class="row g-4">
+          <div class="col-lg-7">
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWName"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-globe"/></svg>Site name <span class="text-danger">*</span></label>
+              <div class="input-group"><span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-building"/></svg></span><input class="form-control form-control-admio" id="cmWName" placeholder="e.g. My Hotel Website"></div>
+              <div class="form-text text-xs">Enter a name to identify this website channel.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWUrl"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-link"/></svg>Website URL <span class="text-danger">*</span></label>
+              <div class="input-group"><span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-globe"/></svg></span><input class="form-control form-control-admio" id="cmWUrl" placeholder="https://www.example.com"></div>
+              <div class="form-text text-xs">Enter the full website URL (including https://).</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWKey"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-key"/></svg>Website API key <span class="text-danger">*</span></label>
+              <div class="input-group"><span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-key"/></svg></span><input class="form-control form-control-admio" id="cmWKey" placeholder="Enter your website API key"></div>
+              <div class="form-text text-xs">This key is provided by your website platform or booking system.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-600" for="cmWCallback"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-refresh"/></svg>Callback URL <span class="text-muted fw-normal">(optional)</span></label>
+              <div class="input-group"><span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span><input class="form-control form-control-admio" id="cmWCallback" placeholder="https://www.example.com/api/booking-callback/"></div>
+              <div class="form-text text-xs">We'll send booking notifications to this URL (if supported).</div>
+            </div>
+            <div class="mb-1">
+              <label class="form-label fw-600" for="cmWInterval"><svg class="cm-svg cm-c cm-tint-purple me-1"><use href="#cm-i-clock"/></svg>Sync interval (minutes) <span class="text-danger">*</span></label>
+              <div class="input-group"><span class="input-group-text"><svg class="cm-svg"><use href="#cm-i-clock"/></svg></span><input class="form-control form-control-admio" id="cmWInterval" type="number" min="1" value="15"></div>
+              <div class="form-text text-xs">How often to sync data with this channel.</div>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <div class="cm-tint cm-tint-purple rounded-4 p-4 h-100">
+              <span class="cm-ico cm-soft cm-tint-purple mb-3"><svg class="cm-svg"><use href="#cm-i-link"/></svg></span>
+              <h4 class="fs-5 fw-700">Website channel</h4>
+              <p class="text-muted text-sm">Add your hotel's website details to sync inventory, rates and booking information automatically.</p>
+              <hr>
+              <ul class="list-unstyled mb-3">
+                <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Real-time availability sync</li>
+                <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Instant booking updates</li>
+                <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>Better rate management</li>
+                <li class="d-flex align-items-center gap-2 mb-2"><svg class="cm-svg cm-c cm-tint-purple"><use href="#cm-i-check"/></svg>More direct bookings</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer px-4">
+        <button type="button" class="btn btn-admio btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-admio btn-primary" id="cmSave"><svg class="cm-svg me-1"><use href="#cm-i-save"/></svg> <span id="cmSaveLabel">Save channel</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TOAST ══════════ -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="cmToast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="cmToastBody"></div>
+      <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var URLS = {
+    list:   "{% url 'website-channel-list' %}",
+    detail: "{% url 'website-channel-detail' 0 %}",
+    toggle: "{% url 'website-channel-toggle' 0 %}",
+    sync:   "{% url 'website-channel-sync' 0 %}",
+    rotate: "{% url 'website-channel-rotate-key' 0 %}"
+  };
+  function withPk(tpl, pk) { return tpl.replace("/0/", "/" + pk + "/"); }
+
+  var state = { channels: [], editId: null };
+  var modalEl = document.getElementById("cmChannelModal");
+  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function toast(msg) {
+    $("cmToastBody").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance($("cmToast"), { delay: 3200 }).show();
+  }
+  function fmtDate(iso) {
+    if (!iso) return "Never";
+    return new Date(iso).toLocaleString([], { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  var COLORS = ["#2f6bff", "#6c3df4", "#16a870", "#e5484d", "#d98a00", "#0ea5b7"];
+  function avatar(name) {
+    name = String(name || "?");
+    var h = 0; for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return '<span class="cm-avatar" style="background:' + COLORS[h % COLORS.length] + '">' + esc(name.charAt(0).toUpperCase()) + '</span>';
+  }
+  function dotPill(text, color) { return '<span class="cm-pill cm-tint-' + color + '"><span class="cm-dot"></span>' + esc(text) + '</span>'; }
+  function api(url, opts) {
+    opts = opts || {};
+    opts.credentials = "same-origin";
+    if (opts.body && !opts.headers) opts.headers = { "Content-Type": "application/json" };
+    return fetch(url, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) throw new Error(data.error || data.detail || ("Request failed (" + r.status + ")"));
+        return data;
+      });
+    });
+  }
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var t = document.createElement("textarea");
+      t.value = text; t.style.position = "fixed"; t.style.opacity = "0";
+      document.body.appendChild(t); t.select();
+      try { document.execCommand("copy") ? resolve() : reject(); } catch (e) { reject(e); }
+      document.body.removeChild(t);
+    });
+  }
+  function iconBtn(act, icon, title, disabled, danger) {
+    return '<button type="button" class="btn btn-admio btn-outline-' + (danger ? "danger" : "secondary") + ' cm-iconbtn" data-act="' + act + '" title="' + title + '" aria-label="' + title + '"' + (disabled ? " disabled" : "") + '><svg class="cm-svg"><use href="#cm-i-' + icon + '"/></svg></button>';
+  }
+
+  // ── Data ─────────────────────────────────────────────────────────
+  function load() {
+    return api(URLS.list).then(function (res) {
+      state.channels = res.results || [];
+      render();
+    }).catch(function (e) {
+      $("cmRows").innerHTML = '<tr><td colspan="7" class="text-center text-danger">Could not load channels: ' + esc(e.message) + '</td></tr>';
+    });
+  }
+
+  // ── Render ───────────────────────────────────────────────────────
+  function statusKey(c) {
+    if (c.status === "rejected") return "rejected";
+    if (c.status !== "approved") return "pending";
+    return c.is_active ? "active" : "inactive";
+  }
+  function statusPill(c) {
+    switch (statusKey(c)) {
+      case "active":   return dotPill("Active", "green");
+      case "inactive": return dotPill("Inactive", "grey");
+      case "rejected": return dotPill("Rejected", "red");
+      default:         return dotPill("Pending approval", "amber");
+    }
+  }
+  function filtered() {
+    var f = $("cmFilter").value, q = $("cmSearch").value.trim().toLowerCase();
+    return state.channels.filter(function (c) {
+      if (f !== "all" && statusKey(c) !== f) return false;
+      if (q && (c.site_name + " " + c.base_url).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    var total = state.channels.length;
+    var list = filtered();
+
+
+    // The backend allows one website channel per hotel
+    document.querySelectorAll("[data-cm-add]").forEach(function (b) {
+      b.disabled = total >= 1;
+      b.title = total >= 1 ? "A website channel already exists for this hotel." : "";
+    });
+    $("cmEmpty").classList.toggle("d-none", total > 0);
+    $("cmNoMatch").classList.toggle("d-none", !(total > 0 && list.length === 0));
+
+    $("cmRows").innerHTML = list.map(function (c, i) {
+      var key = String(c.inbound_api_key || "");
+      var link = /^https?:\/\//i.test(c.base_url)
+        ? '<a class="text-reset cm-url" href="' + esc(c.base_url) + '" target="_blank" rel="noopener noreferrer">' + esc(c.base_url) + '</a>'
+        : '<span class="cm-url">' + esc(c.base_url) + '</span>';
+      return '<tr data-id="' + c.id + '">' +
+        '<td class="text-muted">' + (i + 1) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2">' + avatar(c.site_name) +
+          '<div><div class="fw-700">' + esc(c.site_name) + '</div>' +
+          (c.sync_error ? '<div class="text-danger text-xs" style="max-width:260px">' + esc(c.sync_error) + '</div>' : '') +
+        '</div></div></td>' +
+        '<td>' + link + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2"><code>••••' + esc(key.slice(-4)) + '</code>' + iconBtn("copy", "copy", "Copy inbound API key") + '</div></td>' +
+        '<td>' + statusPill(c) + '</td>' +
+        '<td>' + fmtDate(c.last_sync) + '</td>' +
+        '<td><div class="d-flex align-items-center gap-2">' +
+          '<div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" data-act="toggle" aria-label="Enable or disable channel"' + (c.is_active ? " checked" : "") + '></div>' +
+          iconBtn("sync", "refresh", "Sync now", !c.is_active) +
+          iconBtn("edit", "pencil", "Edit channel") +
+          iconBtn("rotate", "key", "Rotate inbound API key") +
+          iconBtn("delete", "trash", "Delete channel", false, true) +
+        '</div></td>' +
+        '</tr>';
+    }).join("");
+  }
+
+  // ── Row actions ──────────────────────────────────────────────────
+  $("cmRows").addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-act]"); if (!btn) return;
+    var id = btn.closest("tr").getAttribute("data-id");
+    var ch = state.channels.find(function (c) { return String(c.id) === id; });
+    var act = btn.getAttribute("data-act");
+
+    if (act === "copy" && ch) {
+      copyText(ch.inbound_api_key).then(function () { toast("Inbound API key copied"); }, function () { toast("Could not copy. Copy it manually from the channel settings."); });
+    }
+    if (act === "toggle") {
+      api(withPk(URLS.toggle, id), { method: "PATCH" })
+        .then(function (r) { toast(r.is_active ? "Channel enabled" : "Channel disabled"); return load(); })
+        .catch(function (err) { toast(err.message); return load(); });
+    }
+    if (act === "sync") {
+      btn.disabled = true;
+      api(withPk(URLS.sync, id), { method: "POST" })
+        .then(function () { toast("Sync complete"); })
+        .catch(function (err) { toast("Sync failed: " + err.message); })
+        .then(function () { return load(); });
+    }
+    if (act === "edit" && ch) openModal(ch);
+    if (act === "rotate") {
+      if (!confirm("Rotate the inbound API key? Your website will be updated with the new key.")) return;
+      api(withPk(URLS.rotate, id), { method: "POST" })
+        .then(function () { toast("Inbound API key rotated"); return load(); })
+        .catch(function (err) { toast(err.message); });
+    }
+    if (act === "delete") {
+      if (!confirm("Delete this website channel? This cannot be undone.")) return;
+      api(withPk(URLS.detail, id), { method: "DELETE" })
+        .then(function () { toast("Channel deleted"); return load(); })
+        .catch(function (err) { toast(err.message); });
+    }
+  });
+
+  // ── Add / edit modal ─────────────────────────────────────────────
+  function showError(msg) { var el = $("cmFormError"); el.textContent = msg; el.classList.remove("d-none"); }
+
+  function openModal(ch) {
+    state.editId = ch ? ch.id : null;
+    $("cmFormError").classList.add("d-none");
+    $("cmModalTitle").textContent = ch ? "Edit channel" : "Add channel";
+    $("cmModalSub").textContent = ch ? "Update your website details and sync settings." : "Connect your hotel with more booking platforms and reach more guests.";
+    $("cmSaveLabel").textContent = ch ? "Save changes" : "Save channel";
+    $("cmWName").value = ch ? ch.site_name : "";
+    $("cmWUrl").value = ch ? ch.base_url : "";
+    $("cmWKey").value = ch ? (ch.outbound_api_key || "") : "";
+    $("cmWCallback").value = ch ? (ch.callback_url || "") : "";
+    $("cmWInterval").value = ch ? ch.sync_interval_minutes : 15;
+    modal.show();
+  }
+
+  $("cmSave").addEventListener("click", function () {
+    $("cmFormError").classList.add("d-none");
+    var body = {
+      site_name: $("cmWName").value.trim(),
+      base_url: $("cmWUrl").value.trim(),
+      outbound_api_key: $("cmWKey").value.trim(),
+      callback_url: $("cmWCallback").value.trim(),
+      sync_interval_minutes: parseInt($("cmWInterval").value, 10) || 0
+    };
+    if (!body.site_name || !body.base_url || !body.outbound_api_key) { showError("Site name, website URL and API key are required."); return; }
+    if (!/^https?:\/\//i.test(body.base_url)) { showError("Enter the full website URL, including https://"); return; }
+    if (body.sync_interval_minutes < 1) { showError("Sync interval must be at least 1 minute."); return; }
+
+    var editing = state.editId !== null;
+    var btn = $("cmSave"), original = btn.innerHTML;
+    btn.disabled = true; btn.textContent = "Saving…";
+
+    api(editing ? withPk(URLS.detail, state.editId) : URLS.list, { method: editing ? "PATCH" : "POST", body: JSON.stringify(body) })
+      .then(function () {
+        modal.hide();
+        toast(editing ? "Channel updated" : "Channel added. Waiting for the website to approve.");
+        return load();
+      })
+      .catch(function (e) { showError(e.message); })
+      .then(function () { btn.disabled = false; btn.innerHTML = original; });
+  });
+
+  // ── Wiring ───────────────────────────────────────────────────────
+  document.querySelectorAll("[data-cm-add]").forEach(function (el) { el.addEventListener("click", function () { openModal(null); }); });
+  $("cmFilter").addEventListener("change", render);
+  $("cmSearch").addEventListener("input", render);
+
+  load();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Guest Portal{% endblock %} | {{ hotel.hotel_name|default:"Hotel" }}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Serif+Display:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --p:#7C3AED; --p-soft:#F1EBFE; --p-line:#DDD0FB;
+  --bg:#F4F5FA; --card:#fff; --line:#E9EAF2; --ink:#1B1B2B; --muted:#7B7F93;
+  --green:#16A34A; --green-soft:#E7F7EE; --orange:#F97316; --orange-soft:#FFF1E6;
+  --red:#DC2626; --red-soft:#FEECEC; --blue:#2563EB; --blue-soft:#E8F0FE; --gold:#B7791F; --gold-soft:#FEF6E0;
+  --r:16px; --shadow:0 1px 3px rgba(20,20,50,.06),0 4px 16px rgba(20,20,50,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:clip;max-width:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+
+/* ── top bar ── */
+.g-top{position:sticky;top:0;z-index:1000;background:var(--card);border-bottom:1px solid var(--line)}
+.g-top-row{max-width:1320px;margin:0 auto;height:66px;padding:0 28px;display:flex;align-items:center;gap:14px}
+.g-brand{display:flex;align-items:center;gap:12px}
+.g-brand img,.g-brand .g-logo-ph{width:42px;height:42px;border-radius:10px;object-fit:contain;flex-shrink:0}
+.g-logo-ph{background:var(--p-soft);color:var(--p);display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.g-brand-name{font-weight:800;font-size:1.02rem;line-height:1.15}
+.g-brand-sub{font-size:.7rem;color:var(--muted);font-weight:500}
+.g-spacer{flex:1}
+.g-room-chip{display:inline-flex;align-items:center;gap:8px;background:var(--p-soft);color:var(--p);border:1px solid var(--p-line);padding:7px 14px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.g-user{position:relative}
+.g-user-btn{display:flex;align-items:center;gap:10px;background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:999px;color:var(--ink);font-size:.78rem;font-weight:700}
+.g-avatar{width:36px;height:36px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.g-user-btn i{font-size:.6rem;color:var(--muted)}
+.g-user-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:250px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px rgba(20,20,50,.16);padding:14px;z-index:1100}
+.g-user.open .g-user-menu{display:block}
+.g-user-menu .n{font-weight:700}
+.g-user-menu .s{font-size:.78rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;align-items:center}
+.g-user-menu hr{border:none;border-top:1px solid var(--line);margin:10px 0}
+
+/* ── tab strip ── */
+.g-tabs{border-top:1px solid var(--line);background:var(--card)}
+.g-tabs-row{max-width:1320px;margin:0 auto;padding:8px 28px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.g-tabs-row::-webkit-scrollbar{display:none}
+.g-tab{position:relative;display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;color:var(--muted);font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;flex-shrink:0}
+.g-tab i{font-size:.9rem}
+.g-tab:hover{background:var(--bg);color:var(--ink)}
+.g-tab.active{background:var(--p-soft);color:var(--p)}
+.g-tab.locked{opacity:.45}
+.g-badge{min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--p);color:#fff;font-size:.6rem;font-weight:700;display:none;align-items:center;justify-content:center;position:absolute;top:2px;right:6px}
+.g-badge.show{display:flex}
+
+/* ── page ── */
+.g-page{max-width:1320px;margin:0 auto;padding:22px 28px 60px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.g-foot{text-align:center;color:var(--muted);font-size:.7rem;padding:0 0 24px}
+
+/* shared building blocks for every tab */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card-head{display:flex;align-items:center;gap:12px;padding:18px 20px 0}
+.card-head .ic{width:38px;height:38px;border-radius:10px;background:var(--p-soft);color:var(--p);display:flex;align-items:center;justify-content:center}
+.card-head h3{font-size:1rem;font-weight:700;line-height:1.2}
+.card-head p{font-size:.72rem;color:var(--muted);margin-top:2px}
+.card-body{padding:16px 20px 20px}
+.btn-primary{width:100%;background:var(--p);color:#fff;border:none;padding:13px;border-radius:12px;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.badge{font-size:.66rem;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:capitalize}
+.empty{text-align:center;padding:30px 16px;color:var(--muted);font-size:.85rem}
+.empty i{display:block;font-size:2rem;opacity:.25;margin-bottom:8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* toast + notify modal */
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:11px 22px;border-radius:999px;font-size:.82rem;font-weight:500;z-index:9999;opacity:0;pointer-events:none;transition:.3s;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+.notify-overlay{position:fixed;inset:0;background:rgba(20,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:10001;opacity:0;pointer-events:none;transition:opacity .25s;padding:20px}
+.notify-overlay.show{opacity:1;pointer-events:auto}
+.notify-card{background:var(--card);border-radius:20px;padding:28px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:scale(.92);transition:transform .3s}
+.notify-overlay.show .notify-card{transform:none}
+.notify-icon{width:58px;height:58px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.notify-icon.success{background:var(--green-soft);color:var(--green)}
+.notify-icon.reminder{background:var(--orange-soft);color:var(--orange)}
+.notify-title{font-size:1.15rem;font-weight:800;margin-bottom:8px}
+.notify-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:20px}
+.notify-ok{width:100%;padding:12px;border:none;border-radius:12px;background:var(--p);color:#fff;font-weight:700;cursor:pointer}
+
+/* ── full-width, larger scale (matches the staff dashboard) ── */
+body{font-size:17px}
+.g-top-row{max-width:none;height:84px;padding:0 40px;gap:18px}
+.g-brand img,.g-brand .g-logo-ph{width:60px;height:60px;border-radius:12px}
+.g-brand-name{font-size:1.5rem;letter-spacing:-.01em}
+.g-brand-sub{font-size:.82rem}
+.g-room-chip{font-size:.92rem;padding:10px 18px}
+.g-avatar{width:44px;height:44px;font-size:1.05rem}
+.g-user-btn{font-size:.9rem}
+.g-tabs-row{max-width:none;padding:0 32px;height:58px;align-items:center;gap:6px}
+.g-tab{font-size:1rem;padding:10px 18px;border-radius:12px}
+.g-tab i{font-size:1.05rem}
+.g-page{max-width:none;padding:36px 48px 60px}
+.card{border-radius:20px}
+.card-head{padding:24px 26px 0;gap:14px}
+.card-head .ic{width:46px;height:46px;font-size:1.1rem;border-radius:12px}
+.card-head h3{font-size:1.25rem}
+.card-head p{font-size:.85rem}
+.card-body{padding:20px 26px 26px}
+.btn-primary{font-size:1rem;padding:15px}
+.g-foot{font-size:.85rem}
+@media(max-width:860px){
+  body{font-size:15px}
+  .g-top-row{height:60px;padding:0 16px}
+  .g-brand img,.g-brand .g-logo-ph{width:40px;height:40px}
+  .g-brand-name{font-size:1.05rem}
+  .g-tabs-row{height:auto;padding:6px 12px}
+  .g-tab{font-size:.85rem;padding:9px 14px}
+  .g-page{padding:18px 14px 60px}
+  .card-head{padding:18px 18px 0}.card-body{padding:16px 18px 20px}
+}
+@media(max-width:860px){
+  .g-top-row{padding:0 16px;height:60px}
+  .g-tabs-row{padding:6px 12px}
+  .g-page{padding:16px 14px 60px}
+  .g-room-chip,.g-user-btn span.nm{display:none}
+}
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<header class="g-top">
+  <div class="g-top-row">
+    <a href="#" class="g-brand" data-tab-link="dashboard">
+      {% if hotel.logo %}<img src="{{ hotel.logo.url }}" alt="{{ hotel.hotel_name }}">
+      {% else %}<div class="g-logo-ph"><i class="fas fa-hotel"></i></div>{% endif %}
+      <div><div class="g-brand-name">{{ hotel.hotel_name|default:"Hotel" }}</div><div class="g-brand-sub">Guest Portal</div></div>
+    </a>
+    <div class="g-spacer"></div>
+    <span class="g-room-chip"><i class="fas fa-bed"></i> Room {{ room.room_number }} · {{ room.room.room_type }}</span>
+    <div class="g-user" id="gUser">
+      <button class="g-user-btn" id="gUserBtn" aria-label="Guest menu">
+        <span class="g-avatar">{{ guest.full_name|first|upper }}</span>
+        <span class="nm">{{ guest.full_name|upper }}</span><i class="fas fa-chevron-down"></i>
+      </button>
+      <div class="g-user-menu">
+        <div class="n">{{ guest.full_name }}</div>
+        {% if guest.email %}<div class="s"><i class="fas fa-envelope"></i>{{ guest.email }}</div>{% endif %}
+        <div class="s"><i class="fas fa-door-open"></i>Room {{ room.room_number }}</div>
+        <div class="s"><i class="fas fa-calendar-days"></i>{{ booking.check_in|date:"M j" }} → {{ booking.check_out|date:"M j, Y" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="g-tabs"><div class="g-tabs-row">
+    <div class="g-tab active" data-tab="dashboard"><i class="fas fa-house"></i>Dashboard</div>
+    {% if "restaurant" in active_module_names or "food" in active_module_names %}
+    <div class="g-tab" data-tab="menu"><i class="fas fa-utensils"></i>Menu</div>
+    <div class="g-tab" data-tab="cart"><i class="fas fa-bag-shopping"></i>Cart<span class="g-badge" id="cartBadge">0</span></div>
+    <div class="g-tab" data-tab="orders"><i class="fas fa-receipt"></i>Orders</div>
+    <div class="g-tab" data-tab="dining"><i class="fas fa-bell-concierge"></i>Dining</div>
+    {% endif %}
+    {% if "laundry" in active_module_names %}<div class="g-tab" data-tab="laundry"><i class="fas fa-shirt"></i>Laundry</div>{% endif %}
+    <div class="g-tab" data-tab="bill"><i class="fas fa-file-invoice"></i>Bill</div>
+    <div class="g-tab" data-tab="service"><i class="fas fa-hand-holding-heart"></i>Service</div>
+  </div></nav>
+</header>
+
+<main class="g-page">
+  {% block content %}{% endblock %}
+  <div class="g-foot">© 2026 {{ hotel.hotel_name|default:"Hotel" }} &nbsp;|&nbsp; Guest Portal</div>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="notify-overlay" id="notifyOverlay">
+  <div class="notify-card">
+    <div class="notify-icon" id="notifyIcon"></div>
+    <div class="notify-title" id="notifyTitle"></div>
+    <div class="notify-desc" id="notifyDesc"></div>
+    <button class="notify-ok" id="notifyOk">Got it</button>
+  </div>
+</div>
+
+<script>
+/* ── portal state (from the view) ── */
+const BOOKING_STATUS = '{{ booking.status }}';
+const PORTAL_EXPIRED = {{ portal_expired|yesno:"true,false" }};
+const PORTAL_EXPIRED_REASON = '{{ portal_expired_reason }}';
+
+/* ── helpers shared by every tab ── */
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function fmt(n){return '₹'+parseFloat(n||0).toFixed(2)}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.innerHTML='<i class="fas '+(type==='success'?'fa-circle-check':'fa-circle-exclamation')+'"></i> '+msg;
+  t.className='toast '+type+' show';
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+let _nq=[],_nOpen=false;
+function showNotifyModal(title,desc,type='success',icon='fa-bell'){
+  if(_nOpen){_nq.push([title,desc,type,icon]);return}
+  _nOpen=true;
+  document.getElementById('notifyTitle').textContent=title;
+  document.getElementById('notifyDesc').textContent=desc;
+  const i=document.getElementById('notifyIcon');
+  i.className='notify-icon '+type;i.innerHTML='<i class="fas '+icon+'"></i>';
+  document.getElementById('notifyOverlay').classList.add('show');
+}
+document.getElementById('notifyOk').addEventListener('click',()=>{
+  document.getElementById('notifyOverlay').classList.remove('show');_nOpen=false;
+  if(_nq.length)showNotifyModal(..._nq.shift());
+});
+/* call this from your cart code: setCartBadge(totalQty) */
+function setCartBadge(n){const b=document.getElementById('cartBadge');if(!b)return;b.textContent=n;b.classList.toggle('show',n>0)}
+
+/* ── tabs: locked until the guest has checked in ── */
+function switchTab(name){
+  if(name!=='dashboard'&&BOOKING_STATUS!=='checked_in'){
+    showNotifyModal('Check-in required','Please complete self check-in from the Dashboard first. This section unlocks right after.','reminder','fa-lock');
+    name='dashboard';
+  }
+  document.querySelectorAll('.g-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+name));
+  window.scrollTo({top:0,behavior:'smooth'});
+  document.dispatchEvent(new CustomEvent('tabchange',{detail:name}));   // tabs can listen: refresh orders, etc.
+}
+document.querySelectorAll('.g-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+document.querySelectorAll('[data-tab-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();switchTab(a.dataset.tabLink)}));
+if(BOOKING_STATUS!=='checked_in')document.querySelectorAll('.g-tab').forEach(t=>{if(t.dataset.tab!=='dashboard')t.classList.add('locked')});
+
+/* guest menu */
+const gUser=document.getElementById('gUser');
+document.getElementById('gUserBtn').addEventListener('click',e=>{e.stopPropagation();gUser.classList.toggle('open')});
+document.addEventListener('click',e=>{if(!gUser.contains(e.target))gUser.classList.remove('open')});
+
+/* expired link: freeze the portal */
+if(PORTAL_EXPIRED){
+  document.querySelectorAll('.g-tab,button:not(#notifyOk)').forEach(el=>{el.style.pointerEvents='none';el.style.opacity='.5'});
+  document.getElementById('notifyOk').style.display='none';
+  showNotifyModal('Link expired',PORTAL_EXPIRED_REASON==='cancelled'
+    ?'This booking has been cancelled, so this link is no longer valid.'
+    :'Your stay has ended and this portal link is no longer active. Thank you for staying with us!','reminder','fa-hourglass-end');
+}
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

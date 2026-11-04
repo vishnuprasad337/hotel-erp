@@ -1,0 +1,741 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Staff Directory - Admio{% endblock %}
+{% block nav_staff_active %}active{% endblock %}
+
+{% block content %}
+<style>
+  /* Keep modals above the fixed sidebar (10001) and topbar (9999) from base.html */
+  .modal { z-index: 10050; }
+  .modal-backdrop { z-index: 10040; }
+  .modal-backdrop.show { opacity: 0.5; }
+  #registerFaceModal { z-index: 10060; }
+  #registerFaceModal + .modal-backdrop,
+  .modal-backdrop:nth-of-type(2) { z-index: 10055; }
+
+  /* Reliable scrolling inside the Update Staff modal */
+  #updateStaffModal .modal-dialog { max-height: 90vh; }
+  #updateStaffModal .modal-content { max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+  #updateStaffModal .modal-header,
+  #updateStaffModal .modal-footer { flex: 0 0 auto; }
+  #updateStaffModal .modal-body { flex: 1 1 auto; overflow-y: auto; }
+
+  #updateStaffModal .modal-header {
+    background: #1a1a2e;
+    color: #fff;
+    border-bottom: none;
+  }
+  #updateStaffModal .modal-header .modal-title,
+  #updateStaffModal .modal-header p { color: #fff; }
+  #updateStaffModal .modal-header .btn-close { filter: invert(1); }
+  #updateStaffModal .update-section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; margin-bottom: 14px;
+  }
+
+  /* Register Face modal */
+  #registerFaceModal video,
+  #registerFaceModal canvas {
+    width: 100%;
+    border-radius: 12px;
+    background: #111;
+  }
+  #registerFaceModal canvas { display: none; }
+  .face-status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+  }
+  .face-status-badge.ok { background: rgba(34,197,94,.12); color: #16a34a; }
+  .face-status-badge.warn { background: rgba(234,179,8,.12); color: #b45309; }
+  .face-status-badge.err { background: rgba(239,68,68,.12); color: #dc2626; }
+  #captureFaceBtn:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div>
+    <p class="text-xs text-muted mb-1">People / Staff</p>
+    <h1 class="page-title mb-1">Staff Directory</h1>
+    <p class="page-subtitle text-muted mb-0">Manage your team, departments and working shifts.</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button type="button" class="btn-admio btn-outline-primary" id="refreshStaffBtn">
+      <i class="icon-rotate"></i> Refresh
+    </button>
+    <a href="{% url 'add_staff_page' %}" class="btn-admio btn-primary">
+      <i class="icon-user-plus"></i> Add Staff
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="admio-card stat-card h-100">
+    <p class="stat-label text-muted text-uppercase mb-1">Total Staff</p>
+    <div class="stat-value text-primary">{{ total_staff|default:0 }}</div>
+    <p class="text-xs text-muted mb-0">All team members</p>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="admio-card stat-card h-100">
+    <p class="stat-label text-muted text-uppercase mb-1">Active Today</p>
+    <div class="stat-value text-success">{{ active_staff|default:0 }}</div>
+    <p class="text-xs text-muted mb-0">Scheduled staff</p>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="admio-card stat-card h-100">
+    <p class="stat-label text-muted text-uppercase mb-1">Departments</p>
+    <div class="stat-value text-primary">{{ total_departments|default:0 }}</div>
+    <p class="text-xs text-muted mb-0">Across the property</p>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="admio-card stat-card h-100">
+    <p class="stat-label text-muted text-uppercase mb-1">Average Salary</p>
+    <div class="stat-value">₹{{ average_salary|default:0|floatformat:0 }}</div>
+    <p class="text-xs text-muted mb-0">Monthly payroll</p>
+  </div></div>
+</div>
+
+<div class="admio-card mb-3">
+  <div class="admio-card-body-sm">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="text-xs text-muted text-uppercase mb-1" for="staffSearchInput">Search Staff</label>
+        <input type="search" class="form-control-admio w-100" id="staffSearchInput" placeholder="Name, email, phone or employee ID...">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="text-xs text-muted text-uppercase mb-1" for="departmentFilter">Department</label>
+        <select class="form-select-admio w-100" id="departmentFilter">
+          <option value="">All departments</option>
+          {% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="text-xs text-muted text-uppercase mb-1" for="roleFilter">Role</label>
+        <select class="form-select-admio w-100" id="roleFilter"><option value="">All roles</option></select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="text-xs text-muted text-uppercase mb-1" for="shiftFilter">Shift</label>
+        <select class="form-select-admio w-100" id="shiftFilter"><option value="">All shifts</option></select>
+      </div>
+      <div class="col-6 col-md-2 text-md-end">
+        <button type="button" class="btn-admio btn-outline-primary" id="clearFiltersBtn">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="admio-card">
+  <div class="admio-card-header d-flex align-items-center gap-2">
+    <i class="icon-users"></i><span class="card-title mb-0">All Staff</span>
+    <span class="badge-admio bg-light text-primary" id="staffCount">{{ total_staff|default:0 }} members</span>
+  </div>
+  <div class="table-responsive">
+    <table class="admio-table w-100">
+      <thead><tr><th>Employee ID</th><th>Name</th><th>Contact</th><th>Department</th><th>Role</th><th>Salary</th><th>Shift Today</th><th>Actions</th></tr></thead>
+      <tbody id="staffTableBody">
+      {% for s in staffs %}
+        <tr data-staff-row data-staff-id="{{ s.id }}" data-employee-id="{{ s.employee_id|default:'' }}" data-name="{{ s.name|default:'' }}" data-email="{{ s.user.email|default:'' }}" data-phone="{{ s.phone|default:'' }}" data-department-id="{{ s.department_id|default:'' }}" data-department-name="{{ s.department.name|default:'Unassigned' }}" data-role="{{ s.user.role.name|default:'Staff'|lower }}" data-role-name="{{ s.user.role.name|default:'Staff' }}" data-shift="{{ s.shift|default:''|lower }}" data-shift-name="{{ s.shift|default:'—' }}" data-salary="{{ s.salary|default:0 }}">
+          <td class="text-muted">{{ s.employee_id|default:"—" }}</td>
+          <td><div class="d-flex align-items-center gap-2"><span class="avatar-gen" data-name="{{ s.name }}" data-bg="#7C3AED" data-size="32">{{ s.name|slice:":1"|upper }}</span><span class="fw-600">{{ s.name }}</span></div></td>
+          <td><div>{{ s.user.email|default:"—" }}</div>{% if s.phone %}<div class="text-xs text-muted">{{ s.phone }}</div>{% endif %}</td>
+          <td>{% if s.department %}<span class="badge-admio bg-light text-primary">{{ s.department.name }}</span>{% else %}<span class="text-muted">Unassigned</span>{% endif %}</td>
+          <td><span class="badge-admio bg-light">{{ s.user.role.name|default:"Staff" }}</span></td>
+          <td class="fw-700">₹{{ s.salary|default:0|floatformat:0 }}</td>
+          <td class="text-muted">{{ s.shift|default:"—" }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn-admio btn-sm btn-outline-primary" data-edit-staff="{{ s.id }}">Update</button>
+              <button type="button" class="btn-admio btn-sm btn-outline-primary" data-delete-staff="{{ s.id }}">Delete</button>
+              <a href="{% url 'staff_details_page' s.id %}" class="btn-admio btn-sm btn-outline-primary">Details</a>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr id="emptyStaffRow"><td colspan="8" class="text-center text-muted py-4">No staff members found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="admio-card-footer text-xs text-muted" id="staffFooter">Showing {{ total_staff|default:0 }} team member{{ total_staff|default:0|pluralize }}</div>
+</div>
+
+<!-- Update Staff modal -->
+<div class="modal fade" id="updateStaffModal" tabindex="-1" aria-labelledby="updateStaffTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content">
+    <form method="post" action="{% url 'update_staff' %}" id="updateStaffForm" enctype="multipart/form-data" class="d-flex flex-column" style="min-height: 0; overflow: hidden;">
+      {% csrf_token %}<input type="hidden" name="staff_id" id="updateStaffId">
+
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+          <i class="icon-user-plus"></i>
+          <div>
+            <h5 class="modal-title mb-0" id="updateStaffTitle">Edit Staff Member</h5>
+            <p class="text-sm mb-0" style="opacity:.75;">Update employee details</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="updateStaffError" class="text-danger text-sm mb-3" style="display:none;"></div>
+
+        <!-- Personal Details -->
+        <p class="update-section-title text-primary"><i class="icon-circle-user"></i> Personal Details</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6"><label class="form-label">Full Name *</label><input class="form-control-admio w-100" name="name" id="updateName" required></div>
+          <div class="col-md-6"><label class="form-label">Nickname / Display Name</label><input class="form-control-admio w-100" name="nickname" id="updateNickname" placeholder="Short display name"></div>
+          <div class="col-md-6"><label class="form-label">Email</label><input class="form-control-admio w-100" type="email" name="email" id="updateEmail"></div>
+          <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control-admio w-100" name="phone" id="updatePhone" placeholder="10-digit mobile"></div>
+          <div class="col-md-6"><label class="form-label">Date of Birth</label><input class="form-control-admio w-100" type="date" name="dob" id="updateDob"></div>
+          <div class="col-md-6">
+            <label class="form-label">Gender</label>
+            <select class="form-select-admio w-100" name="gender" id="updateGender">
+              <option value="">— Select —</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-12"><label class="form-label">Address</label><textarea class="form-control-admio w-100" rows="3" name="address" id="updateAddress" placeholder="Residential address..."></textarea></div>
+          <div class="col-md-6"><label class="form-label">Emergency Contact Name</label><input class="form-control-admio w-100" name="emergency_contact_name" id="updateEmergencyName" placeholder="Relative / friend name"></div>
+          <div class="col-md-6"><label class="form-label">Emergency Contact Phone</label><input class="form-control-admio w-100" name="emergency_contact_phone" id="updateEmergencyPhone" placeholder="10-digit mobile"></div>
+        </div>
+
+        <!-- Employment Details -->
+        <p class="update-section-title text-primary"><i class="icon-briefcase"></i> Employment Details</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6"><label class="form-label">Employee ID</label><input class="form-control-admio w-100" name="employee_id" id="updateEmployeeId" placeholder="e.g. EMP-0042"></div>
+          <div class="col-md-6"><label class="form-label">Joining Date</label><input class="form-control-admio w-100" type="date" name="joining_date" id="updateJoiningDate"></div>
+          <div class="col-md-6">
+            <label class="form-label">Department</label>
+            <select class="form-select-admio w-100" name="department" id="updateDepartment">
+              <option value="">Unassigned</option>
+              {% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">Role / Designation</label><input class="form-control-admio w-100" name="role" id="updateRole" placeholder="Staff"></div>
+          <div class="col-md-6">
+            <label class="form-label">Employment Type</label>
+            <select class="form-select-admio w-100" name="employment_type" id="updateEmploymentType">
+              <option value="">Select</option>
+              <option value="Full-Time">Full-Time</option>
+              <option value="Part-Time">Part-Time</option>
+              <option value="Contract">Contract</option>
+              <option value="Intern">Intern</option>
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">Basic Salary (₹/month)</label><input class="form-control-admio w-100" type="number" min="0" step="0.01" name="salary" id="updateSalary" placeholder="0.00"></div>
+        </div>
+
+        <!-- Bank & Payroll Details -->
+        <p class="update-section-title text-success"><i class="icon-building"></i> Bank &amp; Payroll Details</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6"><label class="form-label">Bank Account Number</label><input class="form-control-admio w-100" name="bank_account" id="updateBankAccount" placeholder="For salary transfer"></div>
+          <div class="col-md-6"><label class="form-label">Bank IFSC Code</label><input class="form-control-admio w-100" name="ifsc" id="updateIfsc" placeholder="e.g. SBIN0001234"></div>
+          <div class="col-md-6"><label class="form-label">PF Account Number (UAN)</label><input class="form-control-admio w-100" name="pf_number" id="updatePfNumber" placeholder="12-digit UAN number"></div>
+          <div class="col-md-6"><label class="form-label">ESI Number</label><input class="form-control-admio w-100" name="esi_number" id="updateEsiNumber" placeholder="ESI insurance number"></div>
+        </div>
+
+        <!-- ID Proof & Documents -->
+        <p class="update-section-title" style="color:#e08a2b;"><i class="icon-file-text"></i> ID Proof &amp; Documents</p>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">ID Proof Type</label>
+            <select class="form-select-admio w-100" name="id_proof_type" id="updateIdProofType">
+              <option value="">— Select —</option>
+              <option value="aadhaar">Aadhaar</option>
+              <option value="pan">PAN</option>
+              <option value="passport">Passport</option>
+              <option value="driving_license">Driving license</option>
+              <option value="voter_id">Voter ID</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-6"><label class="form-label">ID Number</label><input class="form-control-admio w-100" name="id_proof_number" id="updateIdProofNumber" placeholder="Enter ID document number"></div>
+          <div class="col-12">
+            <label class="form-label">Upload New ID Proof Image <span class="text-muted text-xs">(leave blank to keep existing)</span></label>
+            <input class="form-control-admio w-100" type="file" name="id_proof_image" id="updateIdProofImage" accept="image/*">
+          </div>
+        </div>
+
+        <!-- Face Recognition -->
+        <p class="update-section-title" style="color:#7C3AED;"><i class="icon-circle-user"></i> Face Recognition</p>
+        <div class="mb-4 d-flex align-items-center gap-3 flex-wrap">
+          <button type="button" class="btn-admio btn-outline-primary" id="registerFaceBtn">
+            <i class="icon-bot"></i> Register Face
+          </button>
+          <span id="faceRegisteredNote" class="text-xs text-muted"></span>
+        </div>
+
+        <!-- Profile Photo + Status -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Profile Photo <span class="text-muted text-xs">(optional)</span></label>
+            <input class="form-control-admio w-100" type="file" name="photo" id="updatePhoto" accept="image/*">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select class="form-select-admio w-100" name="is_active" id="updateIsActive">
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Notes / Remarks</label>
+          <textarea class="form-control-admio w-100" rows="3" name="notes" id="updateNotes" placeholder="Any additional notes about this employee..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-admio btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn-admio btn-primary" id="updateStaffSubmit">Save changes</button>
+      </div>
+    </form>
+  </div></div>
+</div>
+
+<!-- Register Face modal -->
+<div class="modal fade" id="registerFaceModal" tabindex="-1" aria-labelledby="registerFaceTitle" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header">
+      <div>
+        <h5 class="modal-title" id="registerFaceTitle">Register Face</h5>
+        <p class="text-muted text-sm mb-0" id="registerFaceStaffName">—</p>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <div class="mb-3" id="faceCameraArea">
+        <video id="faceVideo" autoplay muted playsinline></video>
+        <canvas id="faceCanvas"></canvas>
+      </div>
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <span class="face-status-badge warn" id="faceStatusBadge">Starting camera…</span>
+        <span class="text-xs text-muted" id="faceLoadingModels" style="display:none;">Loading recognition models…</span>
+        <button type="button" class="btn-admio btn-sm btn-outline-primary" id="retryFaceBtn" style="display:none;">Retry</button>
+      </div>
+      <div id="faceCaptureError" class="text-danger text-sm" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-admio btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn-admio btn-outline-primary" id="retakeFaceBtn" style="display:none;">Retake</button>
+      <button type="button" class="btn-admio btn-primary" id="captureFaceBtn" disabled>Capture &amp; Save</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal fade" id="deleteStaffModal" tabindex="-1" aria-labelledby="deleteStaffTitle" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header">
+      <div><h5 class="modal-title" id="deleteStaffTitle">Delete staff</h5></div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <p class="mb-0">Delete <strong id="deleteStaffName">this staff member</strong>? This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-admio btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn-admio btn-primary" id="confirmDeleteStaffBtn">Delete</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- Details modal -->
+<div class="modal fade" id="staffDetailsModal" tabindex="-1" aria-labelledby="staffDetailsTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><div><h5 class="modal-title" id="staffDetailsTitle">Staff details</h5><p class="text-muted text-sm mb-0">Complete employee information</p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div class="row g-3">
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Name</div><div class="fw-600" id="detailName">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Employee ID</div><div class="fw-600" id="detailEmployeeId">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Email</div><div id="detailEmail">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Phone</div><div id="detailPhone">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Department</div><div id="detailDepartment">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Role</div><div id="detailRole">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Shift</div><div id="detailShift">—</div></div>
+      <div class="col-md-6"><div class="text-muted text-xs text-uppercase">Salary</div><div id="detailSalary">—</div></div>
+    </div></div>
+    <div class="modal-footer">
+      <a class="btn-admio btn-outline-primary" id="detailFullLink" href="#">Open full details</a>
+      <button type="button" class="btn-admio btn-primary" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<!-- face-api.js: lightweight face detection + 128-d descriptor extraction, loaded only for this page -->
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+(() => {
+  const rows = [...document.querySelectorAll('[data-staff-row]')];
+  const search = document.getElementById('staffSearchInput');
+  const department = document.getElementById('departmentFilter');
+  const role = document.getElementById('roleFilter');
+  const shift = document.getElementById('shiftFilter');
+  const count = document.getElementById('staffCount');
+  const footer = document.getElementById('staffFooter');
+  const addOptions = (select, values) => [...new Set(values.filter(Boolean))].sort().forEach(value => {
+    const option = document.createElement('option'); option.value = value; option.textContent = value.replace(/\b\w/g, c => c.toUpperCase()); select.appendChild(option);
+  });
+  addOptions(role, rows.map(row => row.dataset.role));
+  addOptions(shift, rows.map(row => row.dataset.shift));
+
+  function filterRows() {
+    const query = (search.value || '').trim().toLowerCase(); let visible = 0;
+    rows.forEach(row => {
+      const haystack = row.textContent.toLowerCase();
+      const matches = (!query || haystack.includes(query)) && (!department.value || row.dataset.departmentId === department.value) && (!role.value || row.dataset.role === role.value) && (!shift.value || row.dataset.shift === shift.value);
+      row.hidden = !matches; if (matches) visible++;
+    });
+    count.textContent = `${visible} member${visible === 1 ? '' : 's'}`;
+    footer.textContent = visible ? `Showing ${visible} matching team member${visible === 1 ? '' : 's'}` : 'No matching staff members';
+  }
+  [search, department, role, shift].forEach(input => input?.addEventListener('input', filterRows));
+  document.getElementById('clearFiltersBtn')?.addEventListener('click', () => { search.value = ''; department.value = ''; role.value = ''; shift.value = ''; filterRows(); });
+  document.getElementById('refreshStaffBtn')?.addEventListener('click', () => window.location.reload());
+
+  const modal = id => window.bootstrap ? bootstrap.Modal.getOrCreateInstance(document.getElementById(id)) : null;
+  const rowFor = id => document.querySelector(`[data-staff-row][data-staff-id="${CSS.escape(String(id))}"]`);
+  const value = (row, key, fallback = '—') => row?.dataset[key] || fallback;
+  const csrfToken = () => (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+  // ── Edit: fetch full profile via get_staff_details, then populate every field ──
+  const updateForm = document.getElementById('updateStaffForm');
+  const updateError = document.getElementById('updateStaffError');
+  let currentStaffId = null;
+  let currentStaffName = '';
+
+  function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+  document.querySelectorAll('[data-edit-staff]').forEach(el => el.addEventListener('click', () => {
+    const staffId = el.dataset.editStaff;
+    updateError.style.display = 'none';
+    updateError.textContent = '';
+
+    fetch(`{% url 'get_staff_details' 0 %}`.replace('/0/', `/${staffId}/`))
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) { updateError.textContent = data.error || 'Could not load staff details.'; updateError.style.display = 'block'; return; }
+        const s = data.staff;
+        currentStaffId = s.id;
+        currentStaffName = s.name;
+        document.getElementById('updateStaffId').value = s.id;
+        setVal('updateName', s.name);
+        setVal('updateNickname', s.nickname);
+        setVal('updateEmail', s.email);
+        setVal('updatePhone', s.phone);
+        setVal('updateDob', s.dob);
+        setVal('updateGender', s.gender);
+        setVal('updateAddress', s.address);
+        setVal('updateEmergencyName', s.emergency_contact_name);
+        setVal('updateEmergencyPhone', s.emergency_contact_phone);
+        setVal('updateEmployeeId', s.employee_id);
+        setVal('updateJoiningDate', s.joining_date);
+        setVal('updateDepartment', s.department_id);
+        setVal('updateRole', s.role);
+        setVal('updateEmploymentType', s.employment_type);
+        setVal('updateSalary', s.salary);
+        setVal('updateBankAccount', s.bank_account);
+        setVal('updateIfsc', s.ifsc);
+        setVal('updatePfNumber', s.pf_number);
+        setVal('updateEsiNumber', s.esi_number);
+        setVal('updateIdProofType', s.id_proof_type);
+        setVal('updateIdProofNumber', s.id_proof_number);
+        setVal('updateNotes', s.notes);
+        setVal('updateIsActive', s.is_active === false ? '0' : '1');
+        document.getElementById('updateIdProofImage').value = '';
+        document.getElementById('updatePhoto').value = '';
+        document.getElementById('faceRegisteredNote').textContent = s.face_registered_at ? `Registered ${s.face_registered_at}` : 'Not registered yet';
+        modal('updateStaffModal')?.show();
+      })
+      .catch(() => { updateError.textContent = 'Could not load staff details.'; updateError.style.display = 'block'; });
+  }));
+
+  updateForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    updateError.style.display = 'none';
+    updateError.textContent = '';
+
+    const submitBtn = document.getElementById('updateStaffSubmit');
+    submitBtn.disabled = true;
+
+    fetch(updateForm.action, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+      body: new FormData(updateForm),
+    })
+      .then(r => r.json())
+      .then(data => {
+        submitBtn.disabled = false;
+        if (data.success) {
+          modal('updateStaffModal')?.hide();
+          window.location.reload();
+        } else {
+          updateError.textContent = data.error || 'Failed to update staff member.';
+          updateError.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        submitBtn.disabled = false;
+        updateError.textContent = 'Failed to update staff member.';
+        updateError.style.display = 'block';
+      });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // Register Face modal
+  // ────────────────────────────────────────────────────────────
+  const faceModalEl = document.getElementById('registerFaceModal');
+  const video = document.getElementById('faceVideo');
+  const canvas = document.getElementById('faceCanvas');
+  const statusBadge = document.getElementById('faceStatusBadge');
+  const loadingModelsNote = document.getElementById('faceLoadingModels');
+  const captureBtn = document.getElementById('captureFaceBtn');
+  const retakeBtn = document.getElementById('retakeFaceBtn');
+  const retryBtn = document.getElementById('retryFaceBtn');
+  const captureErr = document.getElementById('faceCaptureError');
+
+  // face-api.js weights aren't published to npm — use the GitHub-hosted
+  // weights via jsdelivr's git CDN mode instead of the npm package path.
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+  let mediaStream = null;
+  let modelsReady = false;
+  let modelsLoading = false;
+  let capturedDescriptor = null;
+  let capturedPhotoBase64 = null;
+
+  function setStatus(text, kind) {
+    statusBadge.textContent = text;
+    statusBadge.className = `face-status-badge ${kind}`;
+  }
+
+  function setCaptureEnabled(enabled) {
+    captureBtn.disabled = !enabled;
+  }
+
+  async function loadModels() {
+    if (modelsReady || modelsLoading) return;
+    if (!window.faceapi) {
+      setStatus('Loading library…', 'warn');
+      captureErr.textContent = 'face-api.js has not finished loading yet. Please wait a moment and try Retry.';
+      captureErr.style.display = 'block';
+      retryBtn.style.display = 'inline-block';
+      return;
+    }
+    modelsLoading = true;
+    loadingModelsNote.style.display = 'inline';
+    captureErr.style.display = 'none';
+    retryBtn.style.display = 'none';
+
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+      ]);
+      modelsReady = true;
+      setCaptureEnabled(true);
+      setStatus('Face ready — click Capture', 'ok');
+    } catch (err) {
+      setStatus('Model load failed', 'err');
+      captureErr.textContent = 'Could not load face recognition models. Check your connection and click Retry.';
+      captureErr.style.display = 'block';
+      retryBtn.style.display = 'inline-block';
+      setCaptureEnabled(false);
+    } finally {
+      modelsLoading = false;
+      loadingModelsNote.style.display = 'none';
+    }
+  }
+
+  async function startCamera() {
+    captureErr.style.display = 'none';
+    retryBtn.style.display = 'none';
+    canvas.style.display = 'none';
+    video.style.display = 'block';
+    setCaptureEnabled(false);
+    retakeBtn.style.display = 'none';
+    captureBtn.textContent = 'Capture & Save';
+    captureBtn.dataset.mode = '';
+    setStatus('Starting camera…', 'warn');
+
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      video.srcObject = mediaStream;
+      setStatus('Looking for a face…', 'warn');
+      await loadModels();
+    } catch (err) {
+      setStatus('Camera access denied', 'err');
+      captureErr.textContent = 'Could not access the camera. Please allow camera permissions and try again.';
+      captureErr.style.display = 'block';
+      retryBtn.style.display = 'inline-block';
+    }
+  }
+
+  function stopCamera() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+  }
+
+  document.getElementById('registerFaceBtn')?.addEventListener('click', () => {
+    if (!currentStaffId) return;
+    document.getElementById('registerFaceStaffName').textContent = currentStaffName ? `for ${currentStaffName}` : '';
+    capturedDescriptor = null;
+    capturedPhotoBase64 = null;
+    modal('registerFaceModal')?.show();
+    startCamera();
+  });
+
+  retryBtn?.addEventListener('click', () => startCamera());
+
+  faceModalEl?.addEventListener('hidden.bs.modal', stopCamera);
+
+  captureBtn?.addEventListener('click', async () => {
+    // Second-stage click: save the already-captured descriptor
+    if (captureBtn.dataset.mode === 'save') {
+      if (!capturedDescriptor || !currentStaffId) return;
+      captureBtn.disabled = true;
+      captureBtn.textContent = 'Saving…';
+      captureErr.style.display = 'none';
+
+      fetch(`{% url 'register_staff_face' 0 %}`.replace('/0/', `/${currentStaffId}/`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({
+          descriptor: capturedDescriptor,
+          photo_base64: capturedPhotoBase64,
+        }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('faceRegisteredNote').textContent = 'Registered just now';
+            modal('registerFaceModal')?.hide();
+          } else {
+            captureErr.textContent = data.error || 'Failed to register face.';
+            captureErr.style.display = 'block';
+            captureBtn.disabled = false;
+            captureBtn.textContent = 'Save Face';
+          }
+        })
+        .catch(() => {
+          captureErr.textContent = 'Failed to register face.';
+          captureErr.style.display = 'block';
+          captureBtn.disabled = false;
+          captureBtn.textContent = 'Save Face';
+        });
+      return;
+    }
+
+    // First-stage click: detect face and freeze frame
+    if (!modelsReady) return;
+    captureErr.style.display = 'none';
+    setCaptureEnabled(false);
+    setStatus('Analyzing face…', 'warn');
+
+    try {
+      const detection = await faceapi
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        setStatus('No face detected', 'err');
+        captureErr.textContent = 'No face detected. Please center your face in the frame and try again.';
+        captureErr.style.display = 'block';
+        setCaptureEnabled(true);
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.9);
+      capturedDescriptor = Array.from(detection.descriptor);
+
+      video.style.display = 'none';
+      canvas.style.display = 'block';
+      stopCamera();
+
+      setStatus('Face captured', 'ok');
+      captureBtn.textContent = 'Save Face';
+      captureBtn.dataset.mode = 'save';
+      retakeBtn.style.display = 'inline-block';
+      setCaptureEnabled(true);
+    } catch (err) {
+      setStatus('Detection failed', 'err');
+      captureErr.textContent = 'Something went wrong analyzing the face. Please try again.';
+      captureErr.style.display = 'block';
+      setCaptureEnabled(true);
+    }
+  });
+
+  retakeBtn?.addEventListener('click', () => {
+    capturedDescriptor = null;
+    capturedPhotoBase64 = null;
+    startCamera();
+  });
+
+  // ── Delete: custom Admio modal instead of native confirm() ──
+  let pendingDeleteId = null;
+
+  document.querySelectorAll('[data-delete-staff]').forEach(el => el.addEventListener('click', () => {
+    const row = rowFor(el.dataset.deleteStaff); if (!row) return;
+    pendingDeleteId = row.dataset.staffId;
+    document.getElementById('deleteStaffName').textContent = value(row, 'name', 'this staff member');
+    modal('deleteStaffModal')?.show();
+  }));
+
+  document.getElementById('confirmDeleteStaffBtn')?.addEventListener('click', () => {
+    if (!pendingDeleteId) return;
+    const row = rowFor(pendingDeleteId);
+    const btn = document.getElementById('confirmDeleteStaffBtn');
+    btn.disabled = true;
+
+    fetch("{% url 'delete_staff' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ staff_id: pendingDeleteId })
+    })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        modal('deleteStaffModal')?.hide();
+        if (data.success) {
+          row?.remove();
+          filterRows();
+        } else {
+          alert(data.error || 'Failed to delete staff member.');
+        }
+        pendingDeleteId = null;
+      })
+      .catch(() => {
+        btn.disabled = false;
+        modal('deleteStaffModal')?.hide();
+        alert('Failed to delete staff member.');
+        pendingDeleteId = null;
+      });
+  });
+
+  // ── Details quick-view ──
+  document.querySelectorAll('[data-details-staff]').forEach(el => el.addEventListener('click', () => {
+    const row = rowFor(el.dataset.detailsStaff); if (!row) return;
+    document.getElementById('detailName').textContent = value(row, 'name');
+    document.getElementById('detailEmployeeId').textContent = value(row, 'employeeId');
+    document.getElementById('detailEmail').textContent = value(row, 'email');
+    document.getElementById('detailPhone').textContent = value(row, 'phone');
+    document.getElementById('detailDepartment').textContent = value(row, 'departmentName');
+    document.getElementById('detailRole').textContent = value(row, 'roleName');
+    document.getElementById('detailShift').textContent = value(row, 'shiftName');
+    document.getElementById('detailSalary').textContent = `₹${value(row, 'salary', '0')}`;
+    document.getElementById('detailFullLink').href = `{% url 'get_staff_details' 0 %}`.replace('/0/', `/${row.dataset.staffId}/`);
+    modal('staffDetailsModal')?.show();
+  }));
+
+  filterRows();
+})();
+</script>
+{% endblock %}

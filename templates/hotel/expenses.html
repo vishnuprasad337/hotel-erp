@@ -1,0 +1,1281 @@
+{% extends "hotel/base.html" %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+<div class="" id="expensePage">
+  {% csrf_token %}
+
+  <header class="page-header d-flex align-items-center flex-wrap gap-2 justify-content-between">
+    <div>
+      <small>Inventory / Expenses</small>
+      <h1 class="page-title">Expenses</h1>
+      <p class="page-subtitle mb-0">
+        Track spending across departments and categories.
+      </p>
+    </div>
+
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <button class="btn btn-admio btn-outline-secondary" id="addCategory">
+        Add category
+      </button>
+
+      <button class="btn btn-admio btn-outline-secondary" id="refreshExpenses">
+        ↻ Refresh
+      </button>
+
+      <button class="btn btn-admio btn-primary" data-add-expense>
+        + Add expense
+      </button>
+    </div>
+  </header>
+
+  <div
+    id="expensePageError"
+    class="alert alert-danger"
+    role="alert"
+    hidden
+  ></div>
+
+  <div
+    id="expenseNotice"
+    class="alert alert-success"
+    role="status"
+    hidden
+  ></div>
+
+  <div class="row g-3 mb-4" id="expenseStats">
+    <div class="admio-card admio-card-body">Loading expense totals…</div>
+  </div>
+
+  <section class="admio-card">
+    <div class="admio-card-body d-flex align-items-center flex-wrap gap-2 justify-content-between">
+      <h2 class="card-title mb-0">Filter expenses</h2>
+
+      <div class="d-flex flex-wrap gap-2" aria-label="Expense date range">
+        <button class="btn btn-admio btn-primary" data-expense-range="all" aria-pressed="true">
+          All time
+        </button>
+        <button class="btn btn-admio btn-outline-secondary" data-expense-range="today" aria-pressed="false">
+          Today
+        </button>
+        <button class="btn btn-admio btn-outline-secondary" data-expense-range="month" aria-pressed="false">
+          This month
+        </button>
+        <button class="btn btn-admio btn-outline-secondary" data-expense-range="last" aria-pressed="false">
+          Last month
+        </button>
+        <button class="btn btn-admio btn-outline-secondary" data-expense-range="custom" aria-pressed="false">
+          Custom
+        </button>
+      </div>
+    </div>
+
+    <div class="px-4 pb-3 d-flex align-items-center flex-wrap gap-2 d-none" id="expenseCustomDates" hidden>
+      <label class="form-label d-flex flex-column gap-2">
+        From
+        <input type="date" id="expenseFrom" class="form-control form-control-admio">
+      </label>
+
+      <label class="form-label d-flex flex-column gap-2">
+        To
+        <input type="date" id="expenseTo" class="form-control form-control-admio">
+      </label>
+    </div>
+
+    <div
+      id="expenseDateError"
+      class="px-4 pb-3 mb-0 text-muted"
+      role="status"
+      hidden
+    ></div>
+
+    <div class="px-4 pb-3 d-flex align-items-center flex-wrap gap-2">
+      <input
+        class="form-control form-control-admio w-auto flex-grow-1 form-control form-control-admio"
+        id="expenseSearch"
+        type="search"
+        aria-label="Search expenses"
+        placeholder="Search description, department, or category…"
+      >
+
+      <select id="expenseDepartment" aria-label="Filter department" class="form-select form-select-admio w-auto">
+        <option value="">All departments</option>
+      </select>
+
+      <select id="expenseCategory" aria-label="Filter category" class="form-select form-select-admio w-auto">
+        <option value="">All categories</option>
+      </select>
+
+      <select id="expenseSource" aria-label="Filter source" class="form-select form-select-admio w-auto">
+        <option value="">All sources</option>
+      </select>
+
+      <button class="btn btn-admio btn-link" id="resetExpenseFilters">
+        Reset filters
+      </button>
+    </div>
+
+    <p class="px-4 pb-3 mb-0 text-muted">
+      Totals and breakdowns reflect the selected filters.
+    </p>
+  </section>
+
+  <div class="row g-3 my-4">
+    <div class="col-12 col-lg-6"><section class="admio-card h-100">
+      <div class="admio-card-body">
+        <h2 class="card-title mb-0 d-flex align-items-center gap-2"><span class="text-primary d-inline-flex"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3h14v18M3 21h18M9 7h1m4 0h1m-6 4h1m4 0h1M10 21v-4h4v4"/></svg></span>Spending by department</h2>
+      </div>
+      <div class="admio-card-body pt-0" id="expenseByDepartment">
+        Loading…
+      </div>
+    </section></div>
+
+    <div class="col-12 col-lg-6"><section class="admio-card h-100">
+      <div class="admio-card-body">
+        <h2 class="card-title mb-0 d-flex align-items-center gap-2"><span class="text-primary d-inline-flex"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13 11 22 2 13V2h11l9 9z"/><circle cx="7" cy="7" r="1.5"/></svg></span>Spending by category</h2>
+      </div>
+      <div class="admio-card-body pt-0" id="expenseByCategory">
+        Loading…
+      </div>
+    </section></div>
+  </div>
+
+  <section class="admio-card">
+    <header class="admio-card-body d-flex align-items-center flex-wrap gap-2 justify-content-between">
+      <h2 class="card-title mb-0">All expenses</h2>
+      <small id="expenseCount">Loading…</small>
+    </header>
+
+    <div id="expenseResults" aria-live="polite">
+      <div class="admio-card-body text-center py-5">Loading expenses…</div>
+    </div>
+
+    <footer class="admio-card-footer d-flex align-items-center flex-wrap gap-2 justify-content-between">
+      <small id="expenseSummary"></small>
+
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <select id="expensePageSize" aria-label="Expenses per page" class="form-select form-select-admio w-auto">
+          <option value="20">20 per page</option>
+          <option value="50">50 per page</option>
+          <option value="100">100 per page</option>
+        </select>
+
+        <button class="btn btn-admio btn-outline-secondary" id="expensePrevious" disabled>
+          ← Previous
+        </button>
+
+        <small id="expensePageNumber"></small>
+
+        <button class="btn btn-admio btn-outline-secondary" id="expenseNext" disabled>
+          Next →
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<div class="modal fade" id="expenseDialog" tabindex="-1" aria-labelledby="expenseDialogTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content admio-card">
+      <header class="modal-header admio-card-header d-flex align-items-center justify-content-between">
+        <h2 id="expenseDialogTitle" class="card-title mb-0"></h2>
+        <button class="btn btn-admio btn-outline-secondary" type="button" data-close-expense aria-label="Close dialog">✕</button>
+      </header>
+      <div class="modal-body p-0">
+        <div id="expenseDialogError" class="alert alert-danger m-3" role="alert" hidden></div>
+        <div id="expenseDialogBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  const escapeHTML = value => String(value ?? "").replace(
+    /[&<>"']/g,
+    character => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[character])
+  );
+
+  const urls = {
+    list: "{% url 'list_expenses' %}",
+    add: "{% url 'add_expense' %}",
+    remove: "{% url 'delete_expense' 987654321 %}",
+    categories: "{% url 'list_expense_categories' %}",
+    categoryAdd: "{% url 'add_expense_category' %}",
+    departments: "{% url 'departments' %}"
+  };
+
+  const dialog = $("expenseDialog");
+
+  // Keeps the modal outside layout containers.
+  // Theme styling still follows html[data-theme].
+  document.body.appendChild(dialog);
+  const modal = new bootstrap.Modal(dialog);
+  let modalOpen = false;
+  let allowModalHide = false;
+  dialog.addEventListener("hide.bs.modal", event => {
+    if (busy && !allowModalHide) { event.preventDefault(); return; }
+    modalOpen = false;
+    dialogVersion += 1;
+  });
+
+  const receiptIcon = `
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/>
+      <path d="M9 7h6M9 11h6M9 15h3"/>
+    </svg>
+  `;
+
+  const departmentIcon = `
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 21V3h14v18M3 21h18"/>
+      <path d="M9 7h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/>
+      <path d="M10 21v-3h4v3"/>
+    </svg>
+  `;
+
+  const chartIcon = `
+    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3v18h18M7 17v-5m5 5V8m5 9V5"/>
+    </svg>
+  `;
+
+  let expenses = [];
+  let categories = [];
+  let departments = [];
+  let range = "all";
+  let page = 1;
+  let sortKey = "expense_date";
+  let sortDirection = -1;
+  let loaded = false;
+  let loading = false;
+  let busy = false;
+  let dialogVersion = 0;
+
+  function money(value) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR"
+    }).format(Number(value) || 0);
+  }
+
+  function sourceLabel(value) {
+    return String(value || "manual")
+      .replaceAll("_", " ")
+      .replace(/^./, character => character.toUpperCase());
+  }
+
+  function dateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+
+    const date = new Date(
+      String(value).slice(0, 10) + "T00:00:00"
+    );
+
+    if (Number.isNaN(date.getTime())) return "—";
+
+    return date.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  }
+
+  function message(id, text) {
+    $(id).textContent = text;
+    $(id).hidden = !text;
+  }
+
+  async function api(url, data) {
+    const options = {
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json"
+      }
+    };
+
+    if (data !== undefined) {
+      options.method = "POST";
+      options.headers["Content-Type"] = "application/json";
+      options.headers["X-CSRFToken"] = $("expensePage")
+        .querySelector("[name=csrfmiddlewaretoken]").value;
+      options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, options);
+
+    let body;
+
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(
+        "Unable to read the server response. Check your login and try again."
+      );
+    }
+
+    if (!response.ok || body.error || body.success === false) {
+      throw new Error(
+        body.error || "Unable to complete this request."
+      );
+    }
+
+    return body;
+  }
+
+  function optionHTML(rows, current, placeholder) {
+    return `
+      <option value="">${escapeHTML(placeholder)}</option>
+    ` + rows.map(([id, name]) => `
+      <option
+        value="${escapeHTML(id)}"
+        ${String(current) === String(id) ? "selected" : ""}
+      >
+        ${escapeHTML(name)}
+      </option>
+    `).join("");
+  }
+
+  function refreshFilters() {
+    const settings = [
+      [
+        "expenseDepartment",
+        "department",
+        "All departments",
+        "Unassigned"
+      ],
+      [
+        "expenseCategory",
+        "expense_category",
+        "All categories",
+        "Uncategorised"
+      ],
+      [
+        "expenseSource",
+        "source",
+        "All sources",
+        "manual"
+      ]
+    ];
+
+    settings.forEach(([id, field, placeholder, fallback]) => {
+      const current = $(id).value;
+
+      const rows = [
+        ...new Set(
+          expenses.map(expense => expense[field] || fallback)
+        )
+      ].sort().map(value => [
+        value,
+        field === "source" ? sourceLabel(value) : value
+      ]);
+
+      $(id).innerHTML = optionHTML(
+        rows,
+        current,
+        placeholder
+      );
+    });
+  }
+
+  function getFilteredExpenses() {
+    const now = new Date();
+
+    let from = "";
+    let to = "";
+
+    if (range === "today") {
+      from = dateKey(now);
+      to = dateKey(now);
+    }
+
+    if (range === "month") {
+      from = dateKey(
+        new Date(now.getFullYear(), now.getMonth(), 1)
+      );
+
+      to = dateKey(
+        new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      );
+    }
+
+    if (range === "last") {
+      from = dateKey(
+        new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      );
+
+      to = dateKey(
+        new Date(now.getFullYear(), now.getMonth(), 0)
+      );
+    }
+
+    if (range === "custom") {
+      from = $("expenseFrom").value;
+      to = $("expenseTo").value;
+    }
+
+    const query = $("expenseSearch").value.trim().toLowerCase();
+    const department = $("expenseDepartment").value;
+    const category = $("expenseCategory").value;
+    const source = $("expenseSource").value;
+
+    return expenses.filter(expense => {
+      const searchable = [
+        expense.description,
+        expense.department,
+        expense.expense_category,
+        expense.recorded_by
+      ].join(" ").toLowerCase();
+
+      return (
+        (!from || expense.expense_date >= from) &&
+        (!to || expense.expense_date <= to) &&
+        (
+          !department ||
+          (expense.department || "Unassigned") === department
+        ) &&
+        (
+          !category ||
+          (expense.expense_category || "Uncategorised") === category
+        ) &&
+        (
+          !source ||
+          (expense.source || "manual") === source
+        ) &&
+        (!query || searchable.includes(query))
+      );
+    });
+  }
+
+  function groupExpenses(rows, field, fallback) {
+    const grouped = new Map();
+
+    rows.forEach(expense => {
+      const name = expense[field] || fallback;
+      const amount = Number(expense.amount) || 0;
+
+      grouped.set(
+        name,
+        (grouped.get(name) || 0) + amount
+      );
+    });
+
+    return [...grouped].sort(
+      (first, second) => second[1] - first[1]
+    );
+  }
+
+  function renderBreakdown(id, rows) {
+    if (!rows.length) {
+      $(id).innerHTML = `
+        <div class="text-center text-muted py-4">
+          No spending to display for this selection.
+        </div>
+      `;
+      return;
+    }
+
+    const maximum = Math.max(
+      0,
+      ...rows.map(row => row[1])
+    );
+
+    $(id).innerHTML = rows.map(([name, amount]) => {
+      const width = maximum > 0
+        ? Math.max(0, (amount / maximum) * 100)
+        : 0;
+
+      return `
+        <div class="mb-3">
+          <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
+            <span>${escapeHTML(name)}</span>
+            <strong>${money(amount)}</strong>
+          </div>
+
+          <div class="progress progress-admio mt-2" aria-hidden="true">
+            <div class="progress-bar bg-primary" style="width:${width}%"></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function sortHeading(field, label) {
+    const selected = sortKey === field;
+
+    const state = selected
+      ? (sortDirection === 1 ? "ascending" : "descending")
+      : "none";
+
+    const arrow = selected
+      ? (sortDirection === 1 ? "↑" : "↓")
+      : "↕";
+
+    return `
+      <th aria-sort="${state}">
+        <button
+          class="btn btn-link p-0 text-reset fw-600 text-decoration-none"
+          data-expense-sort="${field}"
+        >
+          ${label} ${arrow}
+        </button>
+      </th>
+    `;
+  }
+
+  function render() {
+    const rows = getFilteredExpenses();
+
+    const departmentGroups = groupExpenses(
+      rows,
+      "department",
+      "Unassigned"
+    );
+
+    const categoryGroups = groupExpenses(
+      rows,
+      "expense_category",
+      "Uncategorised"
+    );
+
+    const namedDepartments = departmentGroups.filter(
+      ([name]) => name !== "Unassigned"
+    );
+
+    const total = rows.reduce(
+      (sum, expense) => sum + (Number(expense.amount) || 0),
+      0
+    );
+
+    const statistics = [
+      ["Total expenses", money(total), receiptIcon],
+      ["Departments", namedDepartments.length, departmentIcon],
+      [
+        "Top department",
+        namedDepartments[0]?.[0] || "—",
+        chartIcon
+      ]
+    ];
+
+    $("expenseStats").innerHTML = statistics.map(
+      ([label, value, icon]) => `
+        <div class="col-12 col-md-4">
+          <div class="admio-card h-100"><div class="admio-card-body d-flex align-items-center gap-3">
+            <span class="stat-icon d-inline-flex align-items-center justify-content-center text-primary">${icon}</span>
+            <div class="text-break"><div class="stat-label">${label}</div>
+              <div class="${label === 'Top department' ? 'card-title mb-0' : 'stat-value'}">${escapeHTML(value)}</div>
+            </div>
+          </div></div>
+        </div>
+      `
+    ).join("");
+
+    renderBreakdown(
+      "expenseByDepartment",
+      departmentGroups
+    );
+
+    renderBreakdown(
+      "expenseByCategory",
+      categoryGroups
+    );
+
+    rows.sort((first, second) => {
+      const comparison = sortKey === "amount"
+        ? (Number(first.amount) || 0) - (Number(second.amount) || 0)
+        : String(first[sortKey] || "").localeCompare(
+            String(second[sortKey] || "")
+          );
+
+      return sortDirection * comparison;
+    });
+
+    const size = Number($("expensePageSize").value);
+
+    const pages = Math.max(
+      1,
+      Math.ceil(rows.length / size)
+    );
+
+    page = Math.max(1, Math.min(page, pages));
+
+    const visible = rows.slice(
+      (page - 1) * size,
+      page * size
+    );
+
+    $("expenseCount").textContent = `${rows.length} expenses`;
+
+    if (rows.length) {
+      $("expenseResults").innerHTML = `
+        <div class="table-responsive">
+          <table class="admio-table w-100">
+            <thead>
+              <tr>
+                ${sortHeading("expense_date", "Date")}
+                ${sortHeading("department", "Department")}
+                <th>Category</th>
+                <th>Source</th>
+                <th>Description</th>
+                ${sortHeading("amount", "Amount")}
+                <th>Recorded by</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${visible.map(expense => `
+                <tr>
+                  <td>${formatDate(expense.expense_date)}</td>
+
+                  <td>
+                    ${escapeHTML(expense.department || "Unassigned")}
+                  </td>
+
+                  <td>
+                    ${escapeHTML(
+                      expense.expense_category || "Uncategorised"
+                    )}
+                  </td>
+
+                  <td>
+                    <span class="badge-admio">
+                      ${escapeHTML(sourceLabel(expense.source))}
+                    </span>
+                  </td>
+
+                  <td class="text-wrap text-break">
+                    ${escapeHTML(expense.description || "—")}
+                  </td>
+
+                  <td class="text-end">
+                    <strong>${money(expense.amount)}</strong>
+                  </td>
+
+                  <td>
+                    ${escapeHTML(expense.recorded_by || "—")}
+                  </td>
+
+                  <td>
+                    <button
+                      class="btn btn-admio btn-outline-secondary"
+                      data-view-expense="${escapeHTML(expense.id)}"
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      $("expenseResults").innerHTML = `
+        <div class="admio-card-body text-center py-5">
+          <span class="d-inline-flex align-items-center justify-content-center text-primary mb-3">${receiptIcon}</span>
+
+          <h3 class="card-title">
+            ${expenses.length
+              ? "No matching expenses"
+              : "No expenses yet"}
+          </h3>
+
+          <p class="text-muted my-3">
+            ${expenses.length
+              ? "Try another search or reset your filters."
+              : "Add your first expense to start tracking hotel spending."}
+          </p>
+
+          <button
+            class="btn btn-admio btn-primary"
+            ${expenses.length
+              ? "data-reset-expenses"
+              : "data-add-expense"}
+          >
+            ${expenses.length ? "Reset filters" : "+ Add expense"}
+          </button>
+        </div>
+      `;
+    }
+
+    $("expenseSummary").textContent = rows.length
+      ? `Showing ${(page - 1) * size + 1}–${Math.min(
+          page * size,
+          rows.length
+        )} of ${rows.length}`
+      : "0 expenses";
+
+    $("expensePageNumber").textContent = rows.length
+      ? `${page} / ${pages}`
+      : "";
+
+    $("expensePrevious").disabled = page === 1;
+    $("expenseNext").disabled = page === pages;
+  }
+
+  async function loadExpenses() {
+    if (loading) return;
+
+    loading = true;
+    $("refreshExpenses").disabled = true;
+
+    message("expensePageError", "");
+
+    try {
+      const data = await api(urls.list);
+
+      if (!Array.isArray(data.expenses)) {
+        throw new Error("Invalid expense list response.");
+      }
+
+      expenses = data.expenses;
+      loaded = true;
+
+      refreshFilters();
+      render();
+    } catch (error) {
+      message("expensePageError", error.message);
+
+      if (!loaded) {
+        $("expenseStats").innerHTML = "";
+        $("expenseByDepartment").textContent = "Unavailable";
+        $("expenseByCategory").textContent = "Unavailable";
+        $("expenseCount").textContent = "";
+
+        $("expenseResults").innerHTML = `
+          <div class="admio-card-body text-center py-5">
+            Unable to load expenses. Click Refresh to try again.
+          </div>
+        `;
+      }
+    } finally {
+      loading = false;
+      $("refreshExpenses").disabled = false;
+    }
+  }
+
+  function openDialog(title, html) {
+    dialogVersion += 1;
+
+    $("expenseDialogTitle").textContent = title;
+    $("expenseDialogBody").innerHTML = html;
+
+    message("expenseDialogError", "");
+
+    if (!modalOpen) { modalOpen = true; modal.show(); }
+
+    return dialogVersion;
+  }
+
+  function closeDialog() {
+    dialogVersion += 1;
+    allowModalHide = true;
+    modal.hide();
+    allowModalHide = false;
+  }
+
+  async function save(url, data, notice) {
+    if (busy) return;
+
+    busy = true;
+
+    message("expenseDialogError", "");
+
+    dialog.querySelectorAll("button").forEach(button => {
+      button.disabled = true;
+    });
+
+    try {
+      await api(url, data);
+
+      closeDialog();
+      message("expenseNotice", notice);
+
+      await loadExpenses();
+    } catch (error) {
+      message("expenseDialogError", error.message);
+    } finally {
+      busy = false;
+
+      dialog.querySelectorAll("button").forEach(button => {
+        button.disabled = false;
+      });
+    }
+  }
+
+  async function addExpense() {
+    const version = openDialog(
+      "Add expense",
+      '<div class="admio-card-body">Loading departments and categories…</div>'
+    );
+
+    try {
+      const [departmentData, categoryData] = await Promise.all([
+        api(urls.departments),
+        api(urls.categories)
+      ]);
+
+      departments = departmentData.departments || [];
+      categories = categoryData.expense_categories || [];
+    } catch (error) {
+      if (modalOpen && version === dialogVersion) {
+        message("expenseDialogError", error.message);
+      }
+      return;
+    }
+
+    if (!modalOpen || version !== dialogVersion) return;
+
+    $("expenseDialogBody").innerHTML = `
+      <form id="expenseForm">
+        <div class="row g-3 m-0 admio-card-body">
+          <label class="col-12 col-md-6 form-label d-flex flex-column gap-2">
+            Expense date *
+            <input
+              name="expense_date"
+              type="date"
+              value="${dateKey(new Date())}"
+              required
+             class="form-control form-control-admio">
+          </label>
+
+          <label class="col-12 col-md-6 form-label d-flex flex-column gap-2">
+            Amount (₹) *
+            <input
+              name="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              placeholder="0.00"
+             class="form-control form-control-admio">
+          </label>
+
+          <label class="col-12 col-md-6 form-label d-flex flex-column gap-2">
+            Department
+            <select name="department_id" class="form-select form-select-admio">
+              ${optionHTML(
+                departments.map(department => [
+                  department.id,
+                  department.name
+                ]),
+                "",
+                "Unassigned"
+              )}
+            </select>
+          </label>
+
+          <label class="col-12 col-md-6 form-label d-flex flex-column gap-2">
+            Category
+            <select name="expense_category_id" class="form-select form-select-admio">
+              ${optionHTML(
+                categories.map(category => [
+                  category.id,
+                  category.name
+                ]),
+                "",
+                "Uncategorised"
+              )}
+            </select>
+          </label>
+
+          <label class="col-12 form-label d-flex flex-column gap-2">
+            Description *
+            <textarea
+              name="description"
+              rows="4"
+              required
+              placeholder="What was this expense for?"
+             class="form-control form-control-admio"></textarea>
+          </label>
+
+          <p class="col-12 text-muted mb-0">
+            This expense will be recorded with the source Manual.
+          </p>
+        </div>
+
+        <footer class="admio-card-footer d-flex align-items-center flex-wrap gap-2 justify-content-between">
+          <button
+            type="button"
+            class="btn btn-admio btn-outline-secondary"
+            data-close-expense
+          >
+            Cancel
+          </button>
+
+          <button class="btn btn-admio btn-primary">
+            Save expense
+          </button>
+        </footer>
+      </form>
+    `;
+
+    $("expenseForm").onsubmit = event => {
+      event.preventDefault();
+
+      const data = Object.fromEntries(
+        new FormData(event.target)
+      );
+
+      data.description = data.description.trim();
+
+      if (
+        !data.description ||
+        !Number.isFinite(Number(data.amount)) ||
+        Number(data.amount) <= 0
+      ) {
+        message(
+          "expenseDialogError",
+          "Enter a description and an amount greater than zero."
+        );
+        return;
+      }
+
+      data.source = "manual";
+      data.department_id = data.department_id || null;
+      data.expense_category_id = data.expense_category_id || null;
+
+      save(
+        urls.add,
+        data,
+        "Expense saved."
+      );
+    };
+  }
+
+  function addCategory() {
+    openDialog(
+      "Add expense category",
+      `
+        <form id="expenseCategoryForm">
+          <div class="row g-3 m-0 admio-card-body">
+            <label class="col-12 form-label d-flex flex-column gap-2">
+              Category name *
+              <input
+                name="name"
+                required
+                maxlength="100"
+                placeholder="e.g. Utilities or Office supplies"
+               class="form-control form-control-admio">
+            </label>
+
+            <label class="col-12 form-label d-flex flex-column gap-2">
+              Budget (₹)
+              <input
+                name="budget"
+                type="number"
+                value="0"
+                min="0"
+                step="0.01"
+                required
+               class="form-control form-control-admio">
+            </label>
+          </div>
+
+          <footer class="admio-card-footer d-flex align-items-center flex-wrap gap-2 justify-content-between">
+            <button
+              type="button"
+              class="btn btn-admio btn-outline-secondary"
+              data-close-expense
+            >
+              Cancel
+            </button>
+
+            <button class="btn btn-admio btn-primary">
+              Save category
+            </button>
+          </footer>
+        </form>
+      `
+    );
+
+    $("expenseCategoryForm").onsubmit = event => {
+      event.preventDefault();
+
+      const data = Object.fromEntries(
+        new FormData(event.target)
+      );
+
+      data.name = data.name.trim();
+
+      if (
+        !data.name ||
+        !Number.isFinite(Number(data.budget)) ||
+        Number(data.budget) < 0
+      ) {
+        message(
+          "expenseDialogError",
+          "Enter a category name and a valid non-negative budget."
+        );
+        return;
+      }
+
+      save(
+        urls.categoryAdd,
+        data,
+        "Category saved. It is now available when adding an expense."
+      );
+    };
+  }
+
+  function showDetails(expense) {
+    const fields = [
+      ["Date", formatDate(expense.expense_date)],
+      ["Amount", money(expense.amount)],
+      ["Department", expense.department || "Unassigned"],
+      [
+        "Category",
+        expense.expense_category || "Uncategorised"
+      ],
+      ["Source", sourceLabel(expense.source)],
+      ["Recorded by", expense.recorded_by || "—"],
+      ["Description", expense.description || "—"]
+    ];
+
+    openDialog(
+      "Expense #" + expense.id,
+      `
+        <dl class="row g-3 m-0 admio-card-body">
+          ${fields.map(([label, value]) => `
+            <div class="col-12 col-md-6">
+              <dt class="text-muted fw-normal mb-1">${escapeHTML(label)}</dt>
+              <dd class="mb-0 text-break">${escapeHTML(value)}</dd>
+            </div>
+          `).join("")}
+        </dl>
+
+        <footer class="admio-card-footer d-flex align-items-center flex-wrap gap-2 justify-content-between">
+          <button class="btn btn-admio btn-outline-secondary" data-close-expense>
+            Close
+          </button>
+
+          <button
+            class="btn btn-admio btn-outline-secondary text-danger"
+            data-delete-expense="${escapeHTML(expense.id)}"
+          >
+            Delete expense
+          </button>
+        </footer>
+      `
+    );
+  }
+
+  function confirmDelete(expense) {
+    openDialog(
+      "Delete expense?",
+      `
+        <div class="admio-card-body">
+          <p>
+            Delete expense #${escapeHTML(expense.id)}
+            for ${money(expense.amount)}?
+            This cannot be undone.
+          </p>
+        </div>
+
+        <footer class="admio-card-footer d-flex align-items-center flex-wrap gap-2 justify-content-between">
+          <button
+            class="btn btn-admio btn-outline-secondary"
+            data-view-expense="${escapeHTML(expense.id)}"
+          >
+            Keep expense
+          </button>
+
+          <button
+            class="btn btn-admio btn-outline-secondary text-danger"
+            id="confirmExpenseDelete"
+          >
+            Delete expense
+          </button>
+        </footer>
+      `
+    );
+
+    $("confirmExpenseDelete").onclick = () => {
+      save(
+        urls.remove.replace("987654321", expense.id),
+        {},
+        "Expense deleted."
+      );
+    };
+  }
+
+  function resetFilters() {
+    range = "all";
+    page = 1;
+
+    [
+      "expenseSearch",
+      "expenseDepartment",
+      "expenseCategory",
+      "expenseSource",
+      "expenseFrom",
+      "expenseTo"
+    ].forEach(id => {
+      $(id).value = "";
+    });
+
+    $("expenseCustomDates").hidden = true;
+    $("expenseCustomDates").classList.add("d-none");
+
+    message("expenseDateError", "");
+
+    document.querySelectorAll("[data-expense-range]")
+      .forEach(button => {
+        button.setAttribute(
+          "aria-pressed",
+          String(button.dataset.expenseRange === "all")
+        );
+        button.classList.toggle("btn-primary", button.dataset.expenseRange === "all");
+        button.classList.toggle("btn-outline-secondary", button.dataset.expenseRange !== "all");
+      });
+
+    if (loaded) render();
+  }
+
+  function filtersChanged() {
+    page = 1;
+
+    const invalid = (
+      range === "custom" &&
+      $("expenseFrom").value &&
+      $("expenseTo").value &&
+      $("expenseFrom").value > $("expenseTo").value
+    );
+
+    message(
+      "expenseDateError",
+      invalid
+        ? "End date must be on or after the start date."
+        : ""
+    );
+
+    if (loaded) render();
+  }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest("button");
+
+    if (!button || busy) return;
+
+    if (button.hasAttribute("data-add-expense")) {
+      addExpense();
+    }
+
+    if (button.hasAttribute("data-close-expense")) {
+      closeDialog();
+    }
+
+    if (button.hasAttribute("data-reset-expenses")) {
+      resetFilters();
+    }
+
+    if (button.dataset.expenseRange) {
+      range = button.dataset.expenseRange;
+
+      $("expenseCustomDates").hidden = range !== "custom";
+      $("expenseCustomDates").classList.toggle("d-none", range !== "custom");
+
+      document.querySelectorAll("[data-expense-range]")
+        .forEach(item => {
+          item.setAttribute(
+            "aria-pressed",
+            String(item === button)
+          );
+          item.classList.toggle("btn-primary", item === button);
+          item.classList.toggle("btn-outline-secondary", item !== button);
+        });
+
+      filtersChanged();
+    }
+
+    if (button.dataset.expenseSort) {
+      const selected = button.dataset.expenseSort;
+
+      sortDirection = sortKey === selected
+        ? -sortDirection
+        : 1;
+
+      sortKey = selected;
+
+      if (loaded) render();
+    }
+
+    if (button.dataset.viewExpense) {
+      const expense = expenses.find(
+        item => String(item.id) === button.dataset.viewExpense
+      );
+
+      if (expense) showDetails(expense);
+    }
+
+    if (button.dataset.deleteExpense) {
+      const expense = expenses.find(
+        item => String(item.id) === button.dataset.deleteExpense
+      );
+
+      if (expense) confirmDelete(expense);
+    }
+  });
+
+
+
+  $("addCategory").onclick = () => {
+    if (!busy) addCategory();
+  };
+
+  $("refreshExpenses").onclick = loadExpenses;
+  $("resetExpenseFilters").onclick = resetFilters;
+
+  [
+    "expenseSearch",
+    "expenseDepartment",
+    "expenseCategory",
+    "expenseSource",
+    "expenseFrom",
+    "expenseTo",
+    "expensePageSize"
+  ].forEach(id => {
+    $(id).addEventListener(
+      id === "expenseSearch" ? "input" : "change",
+      filtersChanged
+    );
+  });
+
+  $("expensePrevious").onclick = () => {
+    page -= 1;
+    render();
+  };
+
+  $("expenseNext").onclick = () => {
+    page += 1;
+    render();
+  };
+
+  loadExpenses();
+})();
+</script>
+{% endblock %}

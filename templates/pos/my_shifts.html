@@ -1,0 +1,263 @@
+{% extends "pos/base.html" %}
+{% block title %}My Shifts{% endblock %}
+
+{% block extra_head %}
+<style>
+  .ms-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+  .ms-title{display:flex;align-items:center;gap:14px}
+  .ms-ico{width:52px;height:52px;border-radius:14px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .ms-title h1{font-size:1.9rem;font-weight:800;margin:0}
+  .ms-title p{margin:2px 0 0;color:#6b7280;font-size:1rem}
+
+  .ms-nav{display:flex;align-items:center;border:1px solid #e5e7eb;border-radius:12px;background:#fff;overflow:hidden}
+  .ms-nav button{border:none;background:transparent;width:42px;height:42px;cursor:pointer;color:#374151;font-size:20px}
+  .ms-nav button:hover{background:#f3f4f6}
+  .ms-nav .range{padding:0 18px;font-weight:600;font-size:.98rem;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;height:42px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+
+  /* ── stat cards ── */
+  .ms-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:26px}
+  .ms-card{border-radius:16px;padding:22px 24px;border:1px solid;display:flex;align-items:center;gap:18px;cursor:pointer;
+           transition:transform .15s, box-shadow .15s, outline-color .15s;outline:2px solid transparent;position:relative}
+  .ms-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.08)}
+  .ms-card.selected{outline-color:currentColor}
+  .ms-card .ic{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+  .ms-card .num{font-size:2.2rem;font-weight:800;line-height:1;color:#111}
+  .ms-card .lbl{font-weight:700;font-size:1.05rem;color:#111}
+  .ms-card .sub{color:#6b7280;font-size:.9rem}
+  .ms-card .meta{margin-top:4px;font-size:.85rem;font-weight:600}
+  .ms-card .go{margin-left:auto;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .ms-morning{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}.ms-morning .ic{background:#dbeafe}
+  .ms-evening{background:#f5f3ff;border-color:#ddd6fe;color:#7c3aed}.ms-evening .ic{background:#ede9fe}
+  .ms-night{background:#fffbeb;border-color:#fde68a;color:#d97706}.ms-night .ic{background:#fef3c7}
+
+  /* ── table ── */
+  .ms-panel{background:#fff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden}
+  .ms-panel-h{display:flex;align-items:center;justify-content:space-between;padding:20px 26px;gap:12px;flex-wrap:wrap}
+  .ms-panel-h h2{font-size:1.3rem;font-weight:700;margin:0}
+  .ms-panel-h p{margin:2px 0 0;color:#6b7280;font-size:.95rem}
+  .ms-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ms-total{font-size:.92rem;color:#374151;font-weight:600;background:#f3f4f6;padding:7px 14px;border-radius:999px}
+  .ms-clear{display:none;border:1px solid #e5e7eb;background:#fff;border-radius:999px;padding:7px 14px;font-size:.9rem;cursor:pointer}
+  .ms-table{width:100%;border-collapse:collapse}
+  .ms-table th{background:#f9fafb;color:#6b7280;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:14px 26px;font-weight:700}
+  .ms-table td{padding:16px 26px;border-top:1px solid #f1f5f9;font-size:1rem;vertical-align:middle}
+  .ms-table tr.today td{background:#eff6ff}
+  .ms-table tr.dim td{opacity:.35}
+
+  .pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.85rem;font-weight:700}
+  .day-Mon{background:#dbeafe;color:#1d4ed8}.day-Tue{background:#ede9fe;color:#6d28d9}
+  .day-Wed{background:#dbeafe;color:#1d4ed8}.day-Thu{background:#dcfce7;color:#15803d}
+  .day-Fri{background:#fee2e2;color:#b91c1c}.day-Sat{background:#ede9fe;color:#6d28d9}
+  .day-Sun{background:#ffedd5;color:#c2410c}
+  .sh-Off{background:#f3f4f6;color:#6b7280}
+  .sh-Morning{background:#dbeafe;color:#1d4ed8}.sh-Evening{background:#ede9fe;color:#6d28d9}
+  .sh-Night{background:#fef3c7;color:#b45309}.sh-Custom{background:#ccfbf1;color:#0f766e}
+  .st-Dayoff{background:#f3f4f6;color:#6b7280}.st-Today{background:#dbeafe;color:#1d4ed8}
+  .st-Completed{background:#dcfce7;color:#15803d}.st-Upcoming{background:#fef3c7;color:#b45309}
+
+  .ms-empty{padding:40px;text-align:center;color:#9ca3af}
+  .ms-loading .num{opacity:.4}
+
+  @media(max-width:991px){
+    .ms-cards{grid-template-columns:1fr}
+    .ms-table th:nth-child(3),.ms-table td:nth-child(3),
+    .ms-table th:nth-child(5),.ms-table td:nth-child(5){display:none}
+    .ms-table th,.ms-table td{padding:12px 14px}
+  }
+  [data-theme="dark"] .ms-panel,[data-theme="dark"] .ms-nav{background:#1e1e2d;border-color:#2d2d3d}
+  [data-theme="dark"] .ms-table th{background:#252535}
+  [data-theme="dark"] .ms-table td{border-color:#2d2d3d}
+  [data-theme="dark"] .ms-table tr.today td{background:#1e2a44}
+  [data-theme="dark"] .ms-card .num,[data-theme="dark"] .ms-card .lbl{color:#f3f4f6}
+  [data-theme="dark"] .ms-total{background:#252535;color:#d1d5db}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ms-head">
+  <div class="ms-title">
+    <div class="ms-ico"><i class="icon-calendar-days"></i></div>
+    <div>
+      <h1>My Shifts</h1>
+      <p>View your weekly schedule and stay on track.</p>
+    </div>
+  </div>
+  <div class="ms-nav">
+    <button type="button" id="msPrev" aria-label="Previous week">&lsaquo;</button>
+    <div class="range"><i class="icon-calendar"></i><span id="msRange">—</span></div>
+    <button type="button" id="msNext" aria-label="Next week">&rsaquo;</button>
+  </div>
+</div>
+
+<!-- Stat cards (dynamic) -->
+<div class="ms-cards" id="msCards">
+  <div class="ms-card ms-morning ms-loading" data-cat="Morning" title="Click to filter">
+    <div class="ic"><i class="icon-sun"></i></div>
+    <div>
+      <div class="num" id="cMorning">0</div>
+      <div class="lbl">Morning Shifts</div>
+      <div class="sub">Early shifts for a great start</div>
+      <div class="meta" id="mMorning">No shifts this week</div>
+    </div>
+    <div class="go">&rsaquo;</div>
+  </div>
+
+  <div class="ms-card ms-evening ms-loading" data-cat="Evening" title="Click to filter">
+    <div class="ic"><i class="icon-sunset"></i></div>
+    <div>
+      <div class="num" id="cEvening">0</div>
+      <div class="lbl">Evening Shifts</div>
+      <div class="sub">Evening shifts for smooth operations</div>
+      <div class="meta" id="mEvening">No shifts this week</div>
+    </div>
+    <div class="go">&rsaquo;</div>
+  </div>
+
+  <div class="ms-card ms-night ms-loading" data-cat="Night" title="Click to filter">
+    <div class="ic"><i class="icon-moon"></i></div>
+    <div>
+      <div class="num" id="cNight">0</div>
+      <div class="lbl">Night Shifts</div>
+      <div class="sub">Night shifts for continuous service</div>
+      <div class="meta" id="mNight">No shifts this week</div>
+    </div>
+    <div class="go">&rsaquo;</div>
+  </div>
+</div>
+
+<!-- Weekly schedule -->
+<div class="ms-panel">
+  <div class="ms-panel-h">
+    <div>
+      <h2>Weekly Schedule</h2>
+      <p>Your shift plan for the selected week</p>
+    </div>
+    <div class="ms-actions">
+      <span class="ms-total" id="msTotal">0 shifts · 0 hrs</span>
+      <button type="button" class="ms-clear" id="msClear">Clear filter</button>
+      <button type="button" class="btn-admio btn-sm" id="msToday">This week</button>
+    </div>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="ms-table">
+      <thead>
+        <tr><th>Day</th><th>Date</th><th>Shift</th><th>Time</th><th>Department</th><th>Status</th></tr>
+      </thead>
+      <tbody id="msBody">
+        <tr><td colspan="6" class="ms-empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const DATA_URL = "{% url 'my_shifts_data' %}";
+  const CATS = ["Morning", "Evening", "Night"];
+
+  let prevStart = null, nextStart = null;
+  let activeCat = null;      // card filter
+  let lastData = null;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* ── animated count-up ── */
+  function animate(el, to) {
+    const from = parseInt(el.textContent, 10) || 0;
+    if (from === to) { el.textContent = to; return; }
+    const steps = 12, dur = 350;
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      el.textContent = Math.round(from + (to - from) * (i / steps));
+      if (i >= steps) { clearInterval(t); el.textContent = to; }
+    }, dur / steps);
+  }
+
+  function metaText(count, days, hrs) {
+    if (!count) return "No shifts this week";
+    return `${days.join(", ")} · ${hrs} hrs`;
+  }
+
+  function shiftClass(r) {
+    if (r.shift === "Off") return "sh-Off";
+    return "sh-" + (r.shift_type || "Custom");
+  }
+
+  function renderCards(d) {
+    CATS.forEach(c => {
+      animate($("c" + c), d.counts[c] || 0);
+      $("m" + c).textContent = metaText(d.counts[c], d.days[c] || [], d.hours[c] || 0);
+    });
+    document.querySelectorAll(".ms-card").forEach(el => el.classList.remove("ms-loading"));
+    $("msTotal").textContent =
+      `${d.total_shifts} shift${d.total_shifts === 1 ? "" : "s"} · ${d.total_hours} hrs`;
+  }
+
+  function renderTable(d) {
+    $("msBody").innerHTML = d.rows.map(r => {
+      const dim = activeCat && r.category !== activeCat ? " dim" : "";
+      return `
+      <tr class="${r.is_today ? "today" : ""}${dim}">
+        <td><span class="pill day-${esc(r.day_short)}">${esc(r.day_short)}</span>
+            <span style="margin-left:10px">${esc(r.day)}</span></td>
+        <td>${esc(r.date_label)}</td>
+        <td><span class="pill ${shiftClass(r)}">${esc(r.shift)}</span></td>
+        <td>${r.time ? esc(r.time) : "—"}${r.hours ? ` <small style="color:#9ca3af">(${r.hours}h)</small>` : ""}</td>
+        <td>${r.department ? esc(r.department) : "—"}</td>
+        <td><span class="pill st-${esc(r.status.replace(/\s/g, ""))}">${esc(r.status)}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function render(d) {
+    lastData = d;
+    prevStart = d.prev_start;
+    nextStart = d.next_start;
+    $("msRange").textContent = d.range_label;
+    renderCards(d);
+    renderTable(d);
+  }
+
+  function load(start) {
+    document.querySelectorAll(".ms-card").forEach(el => el.classList.add("ms-loading"));
+    $("msBody").innerHTML = '<tr><td colspan="6" class="ms-empty">Loading…</td></tr>';
+    const url = start ? `${DATA_URL}?start=${start}` : DATA_URL;
+
+    fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(d => { if (d.error) throw new Error(d.error); render(d); })
+      .catch(e => {
+        $("msBody").innerHTML =
+          `<tr><td colspan="6" class="ms-empty">Could not load shifts (${esc(e.message)})</td></tr>`;
+      });
+  }
+
+  /* ── card click = filter table ── */
+  function setFilter(cat) {
+    activeCat = (activeCat === cat) ? null : cat;
+    document.querySelectorAll(".ms-card").forEach(el =>
+      el.classList.toggle("selected", el.dataset.cat === activeCat));
+    $("msClear").style.display = activeCat ? "inline-block" : "none";
+    if (lastData) renderTable(lastData);
+  }
+  document.querySelectorAll(".ms-card").forEach(el =>
+    el.addEventListener("click", () => setFilter(el.dataset.cat)));
+  $("msClear").addEventListener("click", () => setFilter(activeCat));
+
+  /* ── week navigation ── */
+  $("msPrev").addEventListener("click", () => prevStart && load(prevStart));
+  $("msNext").addEventListener("click", () => nextStart && load(nextStart));
+  $("msToday").addEventListener("click", () => load(null));
+
+  load(null);
+
+  /* keep cards fresh if HR changes the roster while this page is open */
+  setInterval(() => { if (lastData && !document.hidden) load(lastData.week_start); }, 60000);
+})();
+</script>
+{% endblock %}

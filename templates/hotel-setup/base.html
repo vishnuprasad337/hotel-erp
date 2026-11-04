@@ -1,0 +1,793 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admio - Admin Dashboard{% endblock %}</title>
+  <link rel="shortcut icon" type="image/x-icon" href="{% static 'admin-static/assets/img/favicon.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="{% static 'admin-static/assets/css/vendor/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'admin-static/assets/css/admio.css' %}">
+  <link rel="stylesheet" href="{% static 'admin-static/assets/css/admio-icons.css' %}">
+  <style>
+    /* ─── GLOBAL SIZE BOOST (unchanged) ─── */
+    body { font-size: 18px; }
+    .admio-content { padding: 40px 48px; }
+    .page-title { font-size: 2.4rem !important; font-weight: 800 !important; }
+    .page-subtitle { font-size: 1.15rem !important; }
+    .stat-value { font-size: 2.9rem !important; font-weight: 800 !important; line-height: 1.1 !important; }
+    .stat-label { font-size: 1.05rem !important; }
+    .card-title { font-size: 1.35rem !important; font-weight: 700 !important; }
+    .text-sm { font-size: 1.05rem !important; }
+    .text-xs { font-size: 0.96rem !important; }
+    .fw-600 { font-weight: 600 !important; }
+    .fw-700 { font-weight: 700 !important; }
+    .admio-table th { font-size: 1rem !important; padding: 18px 20px !important; font-weight: 700; }
+    .admio-table td { font-size: 1rem !important; padding: 18px 20px !important; }
+    .stat-card { padding: 32px 32px 0 !important; border-radius: 20px !important; }
+    .admio-card { border-radius: 20px !important; }
+    .admio-card-header { padding: 26px 30px !important; }
+    .admio-card-body { padding: 26px 30px !important; }
+    .admio-card-body-sm { padding: 20px 30px !important; }
+    .admio-card-footer { padding: 16px 30px !important; }
+    .progress-admio { height: 12px !important; border-radius: 10px !important; }
+    .country-row { padding: 14px 0 !important; font-size: 1.05rem !important; }
+    .chart-h-lg { min-height: 420px !important; }
+    .chart-h-md { min-height: 300px !important; }
+    .chart-h-sm { min-height: 280px !important; }
+    .mini-chart-bar { height: 64px !important; }
+    .stat-icon { width: 60px !important; height: 60px !important; border-radius: 16px !important; }
+    .stat-icon i { font-size: 26px !important; }
+    .stat-trend { font-size: 0.92rem !important; padding: 6px 12px !important; border-radius: 20px !important; }
+    .badge-admio { font-size: 0.88rem !important; padding: 6px 13px !important; }
+    .btn-admio { font-size: 1rem !important; padding: 11px 22px !important; }
+    .btn-sm.btn-admio, .btn-admio.btn-sm { font-size: 0.92rem !important; padding: 8px 16px !important; }
+    .page-header { margin-bottom: 32px !important; }
+    .ai-insight-banner { padding: 22px 28px !important; border-radius: 16px !important; font-size: 1.05rem !important; }
+    .ai-banner-title { font-size: 1.1rem !important; }
+    .ai-banner-text { font-size: 1rem !important; }
+    .notif-title { font-size: 1.02rem !important; }
+    .notif-desc { font-size: 0.92rem !important; }
+    .form-control-admio, .form-select-admio { font-size: 1rem !important; padding: 10px 16px !important; }
+
+    /* ══════════════════════════════════════
+       LAYOUT SHELL: sidebar + topbar + main
+       ══════════════════════════════════════ */
+    :root {
+      --h-sidebar-w: 268px;
+      --h-topbar-h: 118px;
+    }
+
+    html { height: 100%; overflow-x: hidden; }
+    body { display: flex; min-height: 100vh; overflow-x: hidden; max-width: 100vw; }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    /* ─── SIDEBAR ─── */
+    .h-sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--h-sidebar-w);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--admio-sidebar-bg, #fff);
+      border-right: 1px solid var(--admio-border-color, #e5e7eb);
+      z-index: 10001;
+      transition: transform .25s ease;
+    }
+
+    .h-sidebar-brand {
+      display: flex; align-items: center; gap: 16px;
+      height: var(--h-topbar-h);
+      padding: 0 22px;
+      box-sizing: border-box;
+      border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .h-sidebar-brand img {
+      width: 78px; height: 78px; object-fit: cover; border-radius: 16px; flex-shrink: 0;
+      border: 1px solid var(--admio-border-color, #e5e7eb);
+    }
+    .h-sidebar-brand-text {
+      flex: 1; min-width: 0;
+      font-size: 1.4rem; font-weight: 800; color: var(--admio-heading-color, #111);
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    .h-sidebar-brand-text span { color: #7C3AED; }
+
+    .h-sidebar-nav {
+      flex: 1; overflow-y: auto;
+      padding: 14px 14px 24px;
+    }
+    .h-sidebar-nav::-webkit-scrollbar { width: 5px; }
+    .h-sidebar-nav::-webkit-scrollbar-thumb { background: rgba(124,58,237,.25); border-radius: 10px; }
+
+    /* Section group labels ("SETUP", "QUICK LINKS") */
+    .h-side-group-label {
+      padding: 16px 14px 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--admio-nav-muted, #9ca3af);
+    }
+    .h-side-group-label:first-child { padding-top: 6px; }
+
+    /* Direct links (no submenu) — matches first template exactly */
+    .h-side-direct {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: 10px;
+      font-size: 15.5px; font-weight: 600;
+      color: var(--admio-nav-color, #6b7280);
+      text-decoration: none; margin-bottom: 3px;
+      transition: background .15s, color .15s;
+    }
+    .h-side-direct i { font-size: 18px; width: 20px; text-align: center; }
+    .h-side-direct:hover, .h-side-direct.active { background: rgba(124,58,237,.09); color: #7C3AED; }
+
+    /* Collapsible sections — matches first template exactly */
+    .h-side-section { margin-bottom: 3px; }
+    .h-side-section-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; border: none; background: transparent; border-radius: 10px;
+      font-size: 15.5px; font-weight: 600; color: var(--admio-nav-color, #6b7280);
+      cursor: pointer; text-align: left; transition: background .15s, color .15s;
+    }
+    .h-side-section-toggle:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-side-section-toggle .left { display: flex; align-items: center; gap: 12px; }
+    .h-side-section-toggle .left i.h-side-ico { font-size: 18px; width: 20px; text-align: center; }
+    .h-side-arrow { font-size: 11px; transition: transform .2s; flex-shrink: 0; }
+    .h-side-section.open .h-side-arrow { transform: rotate(180deg); }
+    .h-side-section.open > .h-side-section-toggle { color: #7C3AED; }
+
+    .h-side-sub {
+      display: none; flex-direction: column;
+      padding: 3px 0 6px 20px; gap: 1px;
+      margin-left: 24px;
+    }
+    .h-side-section.open .h-side-sub { display: flex; }
+    .h-side-sub a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px;
+      font-size: 14.5px; color: var(--admio-nav-color, #6b7280);
+      text-decoration: none; transition: background .12s, color .12s;
+    }
+    .h-side-sub a:hover { background: rgba(124,58,237,.08); color: #7C3AED; }
+    .h-side-sub a i { font-size: 15px; width: 18px; }
+    .h-side-sub a .h-side-badge {
+      margin-left: auto;
+      font-size: 11.5px; font-weight: 700;
+      background: rgba(124,58,237,.12); color: #7C3AED;
+      border-radius: 999px; padding: 1px 8px;
+    }
+
+    /* Sidebar overlay (mobile) */
+    .h-sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,15,25,.45);
+      z-index: 10000;
+    }
+    .h-sidebar-overlay.open { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════════════════════ */
+
+.h-navbar-top {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    width: 100%;
+    height: var(--h-topbar-h);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 28px;
+    background: var(--admio-sidebar-bg, #fff);
+    border-bottom: 1px solid var(--admio-border-color, #e5e7eb);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════════════════════════ */
+
+.h-topbar-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 650px !important;
+    min-width: 650px !important;
+    max-width: 650px !important;
+    height: 52px;
+    margin: 0 !important;
+    flex: 0 0 650px !important;
+    box-sizing: border-box;
+}
+
+.h-topbar-search .search-icon {
+    position: absolute;
+    left: 17px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.h-topbar-search .search-input {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 52px !important;
+    max-height: 52px !important;
+    margin: 0 !important;
+    padding: 0 20px 0 48px !important;
+    border: 1.5px solid #d8dae0 !important;
+    border-radius: 14px !important;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 15px;
+    outline: none;
+    box-sizing: border-box !important;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.h-topbar-search .search-input::placeholder { color: #9ca3af; }
+
+.h-topbar-search .search-input:focus {
+    border-color: #7C3AED !important;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, .12);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   RIGHT ACTIONS
+═══════════════════════════════════════════════════════════════ */
+
+.h-topbar-actions {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LANGUAGE
+═══════════════════════════════════════════════════════════════ */
+
+.lang-switcher {
+    position: relative;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.lang-btn {
+    width: auto !important;
+    min-width: 78px;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 10px !important;
+    background: transparent;
+    border: 1px solid transparent !important;
+    border-radius: 10px;
+    color: #374151;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.lang-btn:hover {
+    background: rgba(124, 58, 237, .06);
+    border-color: #e5e7eb !important;
+}
+
+.lang-flag-btn {
+    width: 22px;
+    height: 16px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.lang-label { font-size: 15px; font-weight: 600; }
+.lang-arrow { font-size: 11px; margin-left: 2px; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DIVIDERS
+═══════════════════════════════════════════════════════════════ */
+
+.h-topbar-divider {
+    width: 1px;
+    height: 30px;
+    margin: 0 5px;
+    background: #e1e3e8;
+    flex: 0 0 1px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TOPBAR BUTTONS
+═══════════════════════════════════════════════════════════════ */
+
+.topbar-btn {
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    background: transparent;
+    border: 1px solid transparent !important;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #374151;
+    box-sizing: border-box;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.topbar-btn:hover {
+    background: rgba(124, 58, 237, .06);
+    border-color: #e5e7eb !important;
+    color: #7C3AED;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTIFICATION
+═══════════════════════════════════════════════════════════════ */
+
+.topbar-btn-notification {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   USER
+═══════════════════════════════════════════════════════════════ */
+
+.topbar-user {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    cursor: pointer;
+}
+
+.topbar-user-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HAMBURGER
+═══════════════════════════════════════════════════════════════ */
+
+.h-menu-toggle {
+    display: none;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    color: #374151;
+    flex: 0 0 44px;
+}
+
+.h-menu-toggle:hover {
+    background: rgba(124, 58, 237, .09);
+    color: #7C3AED;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN AREA
+═══════════════════════════════════════════════════════════════ */
+
+.admio-main {
+    margin-left: var(--h-sidebar-w);
+    width: calc(100% - var(--h-sidebar-w));
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    padding-top: 0 !important;
+    box-sizing: border-box;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   1199px
+═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1199px) {
+    .admio-content { padding: 28px 24px; }
+
+    .h-topbar-search {
+        width: 520px !important;
+        min-width: 520px !important;
+        max-width: 520px !important;
+        flex: 0 0 520px !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   991px
+═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 991px) {
+    :root { --h-topbar-h: 102px; }
+
+    .admio-content { padding: 24px 20px; }
+    .chart-h-lg { min-height: 320px !important; }
+    .h-menu-toggle { display: flex; }
+
+    .h-sidebar {
+        transform: translateX(-100%);
+        box-shadow: 0 0 40px rgba(0, 0, 0, .15);
+    }
+    .h-sidebar.open { transform: translateX(0); }
+
+    .admio-main { margin-left: 0; width: 100%; max-width: 100vw; overflow-x: hidden; }
+
+    .h-navbar-top { padding: 0 24px; gap: 18px; }
+
+    .h-topbar-search {
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        flex: 1 1 auto !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   767px
+═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+    :root { --h-topbar-h: 88px; }
+
+    .h-navbar-top { padding: 0 14px; gap: 10px; }
+
+    .h-topbar-search {
+        height: 46px;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 220px !important;
+        flex: 1 1 auto !important;
+    }
+
+    .h-topbar-search .search-input {
+        height: 46px !important;
+        padding: 0 16px 0 40px !important;
+        font-size: 14px;
+        border-radius: 12px !important;
+    }
+
+    .h-topbar-search .search-icon { left: 13px; font-size: 15px; }
+
+    .h-sidebar-brand { padding: 0 18px; }
+    .h-sidebar-brand img { width: 64px; height: 64px; }
+
+    .admio-content { padding: 18px 16px; max-width: 100vw; overflow-x: hidden; }
+    .page-title { font-size: 1.6rem !important; }
+    .stat-value { font-size: 1.9rem !important; }
+    .chart-h-lg { min-height: 280px !important; }
+    .chart-h-sm { min-height: 200px !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   479px
+═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 479px) {
+    .h-topbar-search { max-width: 150px !important; }
+    .h-topbar-actions { gap: 2px; }
+
+    .topbar-btn { width: 40px !important; height: 40px !important; }
+
+    .topbar-btn-notification { width: 40px; height: 40px; flex-basis: 40px; }
+    .topbar-user { width: 40px; height: 40px; flex-basis: 40px; }
+
+    .admio-content { padding: 14px 12px; }
+    .stat-value { font-size: 1.65rem !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK THEME
+═══════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .h-sidebar {
+    background: var(--admio-sidebar-bg, #1e1e2d);
+    border-color: var(--admio-border-color, #2d2d3d);
+}
+
+[data-theme="dark"] .h-sidebar-brand {
+    border-color: var(--admio-border-color, #2d2d3d);
+}
+
+[data-theme="dark"] .h-navbar-top {
+    background: var(--admio-sidebar-bg, #1e1e2d);
+    border-color: var(--admio-border-color, #2d2d3d);
+}
+
+[data-theme="dark"] .h-topbar-search .search-input {
+    background: #252536;
+    border-color: #3a3a4c !important;
+    color: #f3f4f6;
+}
+
+[data-theme="dark"] .h-topbar-search .search-input:focus {
+    background: #1e1e2d;
+    border-color: #7C3AED !important;
+}
+
+[data-theme="dark"] .lang-btn { color: #d1d5db; }
+[data-theme="dark"] .topbar-btn { color: #d1d5db; }
+
+[data-theme="dark"] .topbar-btn:hover,
+[data-theme="dark"] .lang-btn:hover {
+    background: rgba(124, 58, 237, .12);
+    border-color: #3a3a4c !important;
+    color: #a78bfa;
+}
+
+[data-theme="dark"] .h-side-direct,
+[data-theme="dark"] .h-side-section-toggle { color: #a1a1b5; }
+
+[data-theme="dark"] .h-side-sub a { color: #9b9bb5; }
+[data-theme="dark"] .h-side-group-label { color: #6b6b85; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="h-sidebar" id="hSidebar">
+  <a href="{% url 'dashboard' %}" class="h-sidebar-brand">
+    {% if hotel.logo %}
+      <img src="{{ hotel.logo.url }}" alt="{{ hotel.hotel_name }}">
+      <span class="h-sidebar-brand-text">{{ hotel.hotel_name }}</span>
+    {% else %}
+      <img src="{% static 'admin-static/assets/img/logo.svg' %}" alt="Admio">
+      <span class="h-sidebar-brand-text">Admi<span>o</span></span>
+    {% endif %}
+  </a>
+
+  <nav class="h-sidebar-nav">
+
+    <div class="h-side-group-label">Setup</div>
+
+    <a href="{% url 'hotel_details_page' %}"
+   class="h-side-direct {% block nav_hotel_details_active %}{% endblock %}">
+    <i class="icon-building"></i>
+    Hotel Details
+</a>
+    <div class="h-side-section">
+      <button class="h-side-section-toggle" type="button">
+        <span class="left"><i class="icon-bed h-side-ico"></i>Rooms</span>
+        <i class="icon-chevron-down h-side-arrow"></i>
+      </button>
+      <div class="h-side-sub">
+        <a href="{% url 'add_room_page' %}"><i class="icon-plus-circle"></i> Add Room</a>
+        <a href="{% url 'view_rooms_page' %}">
+    <i class="icon-list"></i>
+    <span>View Rooms</span>
+</a>
+      </div>
+    </div>
+
+   <a href="{% url 'subscription_page' %}" class="h-side-direct {% block nav_subscription_active %}{% endblock %}">
+  <i class="icon-credit-card"></i> Subscription
+</a>
+
+    <div class="h-side-group-label">Quick Links</div>
+
+    <a href="{% url 'dashboard' %}" class="h-side-direct {% block nav_dashboard_active %}{% endblock %}">
+      <i class="icon-layout-dashboard"></i> Dashboard
+    </a>
+
+  </nav>
+</aside>
+<div class="h-sidebar-overlay" id="hSidebarOverlay"></div>
+<!-- ══════════ END SIDEBAR ══════════ -->
+
+<div class="admio-main" id="admioMain">
+
+  <!-- ══════════ TOPBAR (no nav links — actions only) ══════════ -->
+  <div class="h-navbar-top">
+    <button class="h-menu-toggle" id="hMenuToggle" aria-label="Toggle menu">
+      <i class="icon-menu" id="hMenuIcon"></i>
+    </button>
+
+    <div class="h-topbar-search d-none d-md-block">
+      <i class="icon-search search-icon"></i>
+      <input type="text" class="search-input" placeholder="Search anything… (⌘K)" id="globalSearch">
+    </div>
+
+    <div class="h-topbar-actions">
+      <div class="lang-switcher d-none d-lg-block">
+        
+        <div class="lang-dropdown">
+          <div class="lang-dropdown-header"><i class="icon-globe"></i><span>Select Language</span></div>
+          <div class="lang-search-wrap"><i class="icon-search"></i><input type="text" class="lang-search" placeholder="Search language…" autocomplete="off"></div>
+          <div class="lang-list">
+            <div class="lang-item active" data-lang="EN" data-name="English" data-abbr="EN">
+              <img src="{% static 'admin-static/assets/img/flags/us.svg' %}" alt="US" class="lang-flag" data-code="us">
+              <div class="lang-info"><span class="lang-name">English</span><span class="lang-region">United States</span></div>
+              <i class="icon-circle-check lang-check"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="h-topbar-divider d-none d-lg-block"></div>
+      <button class="topbar-btn header-icon" id="themeToggle" title="Toggle theme">
+        <i class="icon-moon" id="themeIcon"></i>
+      </button>
+      <div class="h-topbar-divider"></div>
+      <div class="topbar-btn-notification">
+        <button class="topbar-btn header-icon" id="notifBtn">
+          <i class="icon-bell"></i><span class="notif-badge"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-header"><h2>Notifications</h2><button class="btn-text">Mark all read</button></div>
+          <div class="notif-list">
+            <div class="notif-item unread">
+              <div class="notif-icon bg-primary"><i class="icon-bot"></i></div>
+              <div class="notif-content"><p class="notif-title">AI Report Ready</p><p class="notif-desc">Weekly summary generated</p><span class="notif-time">2 min ago</span></div>
+            </div>
+            <div class="notif-item unread">
+              <div class="notif-icon bg-success"><i class="icon-user-plus"></i></div>
+              <div class="notif-content"><p class="notif-title">New API Key Created</p><p class="notif-desc">Production key for TechStart</p><span class="notif-time">15 min ago</span></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-icon bg-warning"><i class="icon-triangle-alert"></i></div>
+              <div class="notif-content"><p class="notif-title">Rate Limit Warning</p><p class="notif-desc">GPT-4 at 85% of quota</p><span class="notif-time">1 hour ago</span></div>
+            </div>
+          </div>
+          <div class="notif-footer"><a href="{}">View all notifications</a></div>
+        </div>
+      </div>
+      <div class="h-topbar-divider"></div>
+         <div class="topbar-user position-relative"> 
+    <span class="avatar-gen topbar-user-avatar" data-name="{{ request.user.get_full_name|default:request.user.username }}" data-bg="#7C3AED" data-size="36">
+        {{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}
+    </span> 
+    <div class="user-dropdown-menu"> 
+        <div class="user-dropdown-header"> 
+            <span class="avatar-gen udm-avatar" data-name="{{ request.user.get_full_name|default:request.user.username }}" data-bg="#7C3AED" data-size="42">
+                {{ request.user.get_full_name|default:request.user.username|slice:":2"|upper }}
+            </span> 
+            <div class="udm-info">
+                <p class="user-dropdown-name">{{ request.user.get_full_name|default:request.user.username }}</p>
+                <p class="user-dropdown-email">{{ request.user.email }}</p>
+            </div> 
+        </div>
+          <div class="udm-body">
+           
+            <hr class="user-dropdown-divider">
+            <a href="{% url 'logout' %}" class="user-dropdown-item danger"><i class="icon-log-out"></i><span>Sign Out</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ══════════ END TOPBAR ══════════ -->
+
+  <main class="admio-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="admio-footer">
+    <span>&copy; 2026 <strong>Admio</strong>. All rights reserved.</span>
+    <ul class="d-flex align-items-center mb-0 list-unstyled gap-4">
+      <li><a href="#">About</a></li><li><a href="#">Support</a></li>
+    </ul>
+  </footer>
+
+  <button class="back-to-top visible" id="backToTop" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </button>
+</div>
+
+<script src="{% static 'admin-static/assets/js/vendor/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'admin-static/assets/js/vendor/chart.umd.min.js' %}"></script>
+<script src="{% static 'admin-static/assets/js/admio.js' %}"></script>
+<script src="{% static 'admin-static/assets/js/charts.js' %}"></script>
+
+<script>
+(function () {
+  const sidebar   = document.getElementById('hSidebar');
+  const overlay   = document.getElementById('hSidebarOverlay');
+  const menuBtn   = document.getElementById('hMenuToggle');
+  const menuIcon  = document.getElementById('hMenuIcon');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('open');
+    menuIcon.className = 'icon-x';
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    menuIcon.className = 'icon-menu';
+  }
+
+  if (menuBtn) {
+    menuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+  }
+  if (overlay) overlay.addEventListener('click', closeSidebar);
+
+  // ── ACCORDION SECTIONS ──
+  const sectionToggles = document.querySelectorAll('.h-side-section-toggle');
+  sectionToggles.forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const section = btn.closest('.h-side-section');
+      section.classList.toggle('open');
+    });
+  });
+
+  // ── NAV LINKS → switchPanel() bridge (data-panel attr) ──
+  document.querySelectorAll('[data-panel]').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      const panel = link.getAttribute('data-panel');
+      if (typeof window.switchPanel === 'function') {
+        e.preventDefault();
+        window.switchPanel(panel);
+        closeSidebar();
+      }
+    });
+  });
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

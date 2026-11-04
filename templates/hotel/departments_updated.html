@@ -1,0 +1,323 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+
+{% block title %}Departments - Admio{% endblock %}
+{% block nav_department_active %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Only shape/color rules stay here — layout comes from Bootstrap row/col like the rest of the app */
+  .dept-select{position:relative}
+  .dept-select-trigger{width:100%;border:1px solid #d9e1ec;border-radius:9px;background:#fff;color:#63728a;font:inherit;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left}
+  .dept-select-trigger.filled{color:#1b2b48;font-weight:700}
+  .dept-select-trigger:focus,.dept-select.open .dept-select-trigger{outline:none;border-color:#8d70eb;box-shadow:0 0 0 3px rgba(109,69,232,.1)}
+  .dept-select-trigger svg{width:15px;height:15px;color:#9aa5b8;flex:0 0 auto;transition:transform .15s}
+  .dept-select.open .dept-select-trigger svg{transform:rotate(180deg)}
+  .dept-select-panel{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #e6ebf3;border-radius:10px;box-shadow:0 14px 32px rgba(20,33,61,.14);padding:6px;z-index:50;display:none;max-height:240px;overflow-y:auto}
+  .dept-select.open .dept-select-panel{display:block}
+  .dept-select-option{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:7px;font-size:13.5px;color:#334563;cursor:pointer}
+  .dept-select-option:hover{background:#f4f0ff}
+  .dept-select-option.locked{color:#aab3c4}
+  .dept-select-option.locked:hover{background:#faf8ff}
+  .dept-select-option svg{width:15px;height:15px;flex:0 0 auto;color:#d88a14}
+
+  .dept-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto}
+  .dept-icon svg{width:20px;height:20px}
+  .dept-icon.purple{background:#f0eaff;color:#8c4df0}.dept-icon.green{background:#e7faf3;color:#159b70}.dept-icon.blue{background:#e8f0ff;color:#3478f6}.dept-icon.orange{background:#fff4dc;color:#d88a14}
+
+  .dept-row{display:flex;align-items:center;gap:13px;padding:14px 0;border-bottom:1px solid #f0f2f7}
+  .dept-row:last-child{border-bottom:0}
+  .dept-row-info{flex:1;min-width:0}
+  .dept-row-name{display:block;color:#1b2b48;font-weight:800;font-size:.9em}
+  .dept-row-description{display:block;color:#929db0;font-size:.75em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dept-count{background:#edf4ff;color:#2865db;border-radius:7px;padding:6px 10px;font-size:.75em;font-weight:800;white-space:nowrap;flex:0 0 auto}
+
+  .dept-mini{position:relative;overflow:hidden}
+  .dept-mini::before{content:"";position:absolute;top:0;left:0;bottom:0;width:4px}
+  .dept-mini.green::before{background:#14b889}.dept-mini.blue::before{background:#3478f6}.dept-mini.orange::before{background:#e3a021}.dept-mini.purple::before{background:#8c4df0}
+  .dept-mini-lead{display:flex;align-items:center;gap:9px;margin-top:12px}
+  .dept-mini-avatar{width:26px;height:26px;border-radius:50%;background:#6d45e8;color:#fff;display:grid;place-items:center;font-size:.7em;font-weight:800;flex:0 0 auto}
+  .dept-mini-nolead{color:#b3bccb;font-size:.8em;font-style:italic;display:block;margin-top:12px}
+  .dept-mini-delete{position:absolute;top:14px;right:14px;border:0;background:transparent;color:#c3cadb;cursor:pointer;display:flex}
+  .dept-mini-delete:hover{color:#e23b42}
+  .dept-mini-delete svg{width:15px;height:15px}
+
+  .dept-modal-overlay{position:fixed;inset:0;background:rgba(20,33,61,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+  .dept-modal-overlay.open{display:flex}
+  .dept-modal{background:#fff;border-radius:20px;max-width:380px;width:100%;padding:26px;box-shadow:0 20px 50px rgba(20,33,61,.25);text-align:center}
+  .dept-modal-icon{width:54px;height:54px;border-radius:50%;background:#fff4dc;color:#d88a14;display:grid;place-items:center;margin:0 auto 16px}
+  .dept-modal-icon svg{width:24px;height:24px}
+  .dept-modal-actions{display:flex;gap:10px}
+  .dept-modal-btn{flex:1;border-radius:9px;cursor:pointer;text-decoration:none;display:inline-block;border:0}
+  .dept-modal-btn.secondary{border:1px solid #e2e7f0;background:#fff;color:#56657e}
+  .dept-modal-btn.primary{background:#6d45e8;color:#fff}
+  .dept-modal-btn.primary:hover{background:#5c36d3}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div>
+    <p class="text-xs text-muted mb-1">People / Staff / Departments</p>
+    <h1 class="page-title mb-1">Departments</h1>
+    <p class="page-subtitle text-muted mb-0">Organize your hotel team and manage department assignments.</p>
+  </div>
+  <button type="button" class="btn-admio btn-primary" data-scroll-add-department>+ Add Department</button>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-4">
+    <div class="admio-card h-100 stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <span class="dept-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      </div>
+      <div class="stat-label text-uppercase text-muted mt-2">Total departments</div>
+      <div class="stat-value">{{ total_departments|default:0 }}</div>
+      <div class="stat-trend text-success">↗ +0 this month</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="admio-card h-100 stat-card">
+      <span class="dept-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      <div class="stat-label text-uppercase text-muted mt-2">Total staff</div>
+      <div class="stat-value">{{ total_staff|default:0 }}</div>
+      <div class="stat-trend text-success">↗ +0 this month</div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="admio-card h-100 stat-card">
+      <span class="dept-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+      <div class="stat-label text-uppercase text-muted mt-2">Active teams</div>
+      <div class="stat-value">{{ total_departments|default:0 }}</div>
+      <div class="stat-trend text-success">↗ +0 this month</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-5">
+    <div class="admio-card h-100" id="addDepartmentCard">
+      <div class="admio-card-header">
+        <span class="card-title">Add New Department</span>
+        <div class="text-xs text-muted">Create a department for your hotel team.</div>
+      </div>
+      <div class="admio-card-body">
+        <form method="post" action="">
+          {% csrf_token %}
+          <label class="fw-600 text-sm mb-2 d-block" for="departmentTrigger">Department Name</label>
+          <div class="dept-select" id="departmentSelect">
+            <button type="button" class="dept-select-trigger form-control-admio" id="departmentTrigger" aria-haspopup="listbox" aria-expanded="false">
+              <span id="departmentTriggerLabel">Select a department</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="dept-select-panel" role="listbox">
+              <div class="dept-select-option{% if "restaurant" not in active_module_names and "food" not in active_module_names and "pos" not in active_module_names %} locked{% endif %}" data-value="Restaurant" data-locked="{% if "restaurant" not in active_module_names and "food" not in active_module_names and "pos" not in active_module_names %}true{% else %}false{% endif %}" role="option">{% if "restaurant" not in active_module_names and "food" not in active_module_names and "pos" not in active_module_names %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{% endif %}<span>Restaurant</span></div>
+              <div class="dept-select-option{% if "hr" not in active_module_names and "payroll" not in active_module_names and "attendance" not in active_module_names and "hroperations" not in active_module_names and "hr_operations" not in active_module_names and "hrops" not in active_module_names %} locked{% endif %}" data-value="HR" data-locked="{% if "hr" not in active_module_names and "payroll" not in active_module_names and "attendance" not in active_module_names and "hroperations" not in active_module_names and "hr_operations" not in active_module_names and "hrops" not in active_module_names %}true{% else %}false{% endif %}" role="option">{% if "hr" not in active_module_names and "payroll" not in active_module_names and "attendance" not in active_module_names and "hroperations" not in active_module_names and "hr_operations" not in active_module_names and "hrops" not in active_module_names %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{% endif %}<span>HR</span></div>
+              <div class="dept-select-option" data-value="Housekeeping" role="option">Housekeeping</div>
+              <div class="dept-select-option" data-value="Front Desk" role="option">Front Desk</div>
+              <div class="dept-select-option{% if "billing" not in active_module_names and "accountant" not in active_module_names %} locked{% endif %}" data-value="Accountant" data-locked="{% if "billing" not in active_module_names and "accountant" not in active_module_names %}true{% else %}false{% endif %}" role="option">{% if "billing" not in active_module_names and "accountant" not in active_module_names %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{% endif %}<span>Accountant</span></div>
+            </div>
+            <input type="hidden" name="name" id="departmentName" required>
+          </div>
+          <button type="submit" class="btn-admio btn-primary w-100 mt-3">+ Create Department</button>
+          <div class="text-xs text-muted mt-3">You can add more departments later from this page.</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-7">
+    <div class="admio-card h-100">
+      <div class="admio-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <span class="card-title">Department Overview</span>
+          <div class="text-xs text-muted">Staff distribution across your property.</div>
+        </div>
+        <input type="text" class="form-control-admio" id="deptOverviewSearch" placeholder="Search departments..." style="max-width:220px">
+      </div>
+      <div class="admio-card-body" id="deptOverviewList">
+        {% for dept in departments %}
+        <div class="dept-row" data-dept-name="{{ dept.name|lower }}">
+          <span class="dept-icon {{ dept.color|default:'purple' }}">{% if dept.icon_svg %}{{ dept.icon_svg|safe }}{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>{% endif %}</span>
+          <div class="dept-row-info">
+            <span class="dept-row-name">{{ dept.name }}</span>
+            <span class="dept-row-description">{{ dept.description|default:"Department operations" }}</span>
+          </div>
+          <span class="dept-count">{{ dept.staff_count|default:0 }} staff</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn-admio btn-sm btn-outline-primary" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+            <button type="button" class="btn-admio btn-sm btn-outline-danger" data-delete-department="{{ dept.id }}" data-department-name="{{ dept.name }}" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>
+        </div>
+        {% empty %}<div class="text-center text-muted py-4">No departments created yet.</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-end mb-3">
+  <div>
+    <h2 class="card-title mb-0">Your Departments</h2>
+    <span class="text-xs text-muted">Quick view of team distribution</span>
+  </div>
+  <a href="#" class="text-primary fw-600 text-sm">View All Departments →</a>
+</div>
+
+<div class="row g-3">
+  {% for dept in departments %}
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="admio-card dept-mini {{ dept.color|default:'purple' }} h-100">
+      <div class="admio-card-body">
+        <button type="button" class="dept-mini-delete" data-delete-department="{{ dept.id }}" data-department-name="{{ dept.name }}" aria-label="Delete {{ dept.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="dept-icon {{ dept.color|default:'purple' }}" style="width:38px;height:38px">{% if dept.icon_svg %}{{ dept.icon_svg|safe }}{% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>{% endif %}</span>
+          <span class="fw-700 text-truncate">{{ dept.name }}</span>
+        </div>
+        <span class="text-xs text-muted">{{ dept.staff_count|default:0 }} staff</span>
+        <hr class="my-2">
+        {% if dept.lead_name %}
+        <div class="dept-mini-lead">
+          <span class="dept-mini-avatar">{{ dept.lead_initials }}</span>
+          <div><span class="d-block fw-600 text-sm">{{ dept.lead_name }}</span><span class="d-block text-xs text-muted">{{ dept.lead_role }}</span></div>
+        </div>
+        {% else %}
+        <span class="dept-mini-nolead">No staff assigned yet</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}<div class="col-12 text-muted">No departments available.</div>{% endfor %}
+</div>
+
+<div class="dept-modal-overlay" id="deptUpgradeModal">
+  <div class="dept-modal">
+    <div class="dept-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <h3 id="deptUpgradeTitle">Upgrade to access this department</h3>
+    <p id="deptUpgradeText" class="text-sm text-muted">This department isn't included in your current plan. Upgrade to unlock it for your hotel.</p>
+    <div class="dept-modal-actions">
+      <button type="button" class="dept-modal-btn secondary btn-admio" id="deptUpgradeCancel">Cancel</button>
+      <a href="{% url 'hotel_setup' %}?edit=true" class="dept-modal-btn primary btn-admio">Upgrade Plan</a>
+    </div>
+  </div>
+</div>
+
+<div class="dept-modal-overlay" id="deptDeleteModal">
+  <div class="dept-modal">
+    <div class="dept-modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></div>
+    <h3 id="deptDeleteTitle">Delete department?</h3>
+    <p id="deptDeleteText" class="text-sm text-muted">This action can't be undone.</p>
+    <div class="dept-modal-actions">
+      <button type="button" class="dept-modal-btn secondary btn-admio" id="deptDeleteCancel">Cancel</button>
+      <button type="button" class="dept-modal-btn primary btn-admio" id="deptDeleteConfirm" style="background:#e23b42">Delete</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function(){
+  const deptSelectWrap = document.getElementById('departmentSelect');
+  const deptTrigger = document.getElementById('departmentTrigger');
+  const deptTriggerLabel = document.getElementById('departmentTriggerLabel');
+  const deptHiddenInput = document.getElementById('departmentName');
+  const upgradeModal = document.getElementById('deptUpgradeModal');
+  const upgradeTitle = document.getElementById('deptUpgradeTitle');
+  const upgradeText = document.getElementById('deptUpgradeText');
+
+  function openUpgradeModal(deptName){
+    upgradeTitle.textContent = 'Upgrade to access ' + deptName;
+    upgradeText.textContent = deptName + " isn't included in your current plan. Upgrade to unlock this department for your hotel.";
+    upgradeModal.classList.add('open');
+  }
+  function closeUpgradeModal(){ upgradeModal.classList.remove('open'); }
+
+  function closeDeptDropdown(){
+    deptSelectWrap.classList.remove('open');
+    deptTrigger.setAttribute('aria-expanded', 'false');
+  }
+
+  deptTrigger?.addEventListener('click', function(){
+    const isOpen = deptSelectWrap.classList.toggle('open');
+    deptTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function(e){
+    if(deptSelectWrap && !deptSelectWrap.contains(e.target)) closeDeptDropdown();
+  });
+
+  document.querySelectorAll('.dept-select-option').forEach(function(option){
+    option.addEventListener('click', function(){
+      const value = option.dataset.value;
+      const locked = option.dataset.locked === 'true';
+      closeDeptDropdown();
+      if(locked){ openUpgradeModal(value); return; }
+      deptHiddenInput.value = value;
+      deptTriggerLabel.textContent = value;
+      deptTrigger.classList.add('filled');
+    });
+  });
+
+  document.getElementById('deptUpgradeCancel')?.addEventListener('click', closeUpgradeModal);
+  upgradeModal?.addEventListener('click', function(e){ if(e.target === upgradeModal) closeUpgradeModal(); });
+
+  document.querySelector('#addDepartmentCard form')?.addEventListener('submit', function(e){
+    if(!deptHiddenInput.value){ e.preventDefault(); deptTrigger.focus(); }
+  });
+
+  document.querySelector('[data-scroll-add-department]')?.addEventListener('click',function(){
+    document.getElementById('addDepartmentCard')?.scrollIntoView({behavior:'smooth',block:'center'});
+    deptTrigger?.focus();
+  });
+
+  const searchInput = document.getElementById('deptOverviewSearch');
+  searchInput?.addEventListener('input', function(){
+    const q = searchInput.value.trim().toLowerCase();
+    document.querySelectorAll('#deptOverviewList .dept-row').forEach(function(row){
+      const name = row.dataset.deptName || '';
+      row.style.display = name.includes(q) ? '' : 'none';
+    });
+  });
+
+  const deleteModal = document.getElementById('deptDeleteModal');
+  const deleteText = document.getElementById('deptDeleteText');
+  const deleteCancelBtn = document.getElementById('deptDeleteCancel');
+  const deleteConfirmBtn = document.getElementById('deptDeleteConfirm');
+  let pendingDeleteId = null;
+
+  function openDeleteModal(id, name){
+    pendingDeleteId = id;
+    deleteText.textContent = 'Are you sure you want to delete "' + name + '"? This action can\'t be undone.';
+    deleteModal.classList.add('open');
+  }
+  function closeDeleteModal(){ deleteModal.classList.remove('open'); pendingDeleteId = null; }
+
+  document.querySelectorAll('[data-delete-department]').forEach(function(button){
+    button.addEventListener('click',function(){
+      const id = button.dataset.deleteDepartment;
+      const name = button.dataset.departmentName || 'this department';
+      openDeleteModal(id, name);
+    });
+  });
+
+  deleteCancelBtn?.addEventListener('click', closeDeleteModal);
+  deleteModal?.addEventListener('click', function(e){ if(e.target === deleteModal) closeDeleteModal(); });
+
+  deleteConfirmBtn?.addEventListener('click', function(){
+    if(!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    deleteConfirmBtn.disabled = true;
+    fetch('/departments/delete/'+id+'/',{
+      method:'POST',
+      headers:{'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''}
+    }).then(function(response){
+      if(response.ok) window.location.reload();
+      else { alert('Could not delete department.'); deleteConfirmBtn.disabled = false; closeDeleteModal(); }
+    }).catch(function(){ alert('Could not delete department.'); deleteConfirmBtn.disabled = false; closeDeleteModal(); });
+  });
+})();
+</script>
+{% endblock %}

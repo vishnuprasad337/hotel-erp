@@ -22,7 +22,7 @@ urlpatterns = [
     # ── Vendors ────────────────────────────────────────────────
     path("vendors/",               views.list_vendors,          name="list_vendors"),
     path("vendors/add/",           views.add_vendor,            name="add_vendor"),
- 
+    path("inventory_overview/", views.inventory_overview_page, name="inventory_overview_page"),
     # ── Inventory Items ────────────────────────────────────────
     path("items/",                 views.list_inventory,        name="list_inventory"),
     path("items/add/",             views.add_inventory_item,    name="add_inventory_item"),
@@ -69,17 +69,15 @@ urlpatterns = [
 path(
     "maintenance/<int:log_id>/delete/",
     views.delete_maintenance_log,
-    name="delete_maintenance_log"
-),
-    path("laundry/services/", views.list_laundry_services),
-    path("laundry/add-service/", views.add_laundry_service),
+    name="delete_maintenance_log"),
+    path("laundry/services/", views.list_laundry_services, name="list_laundry_services"),
+path("laundry/add-service/", views.add_laundry_service, name="add_laundry_service"),
 
-    path("laundry/orders/", views.list_laundry_orders),
-    path("laundry/create-order/", views.create_laundry_order),
-   path('laundry/update-status/<int:order_id>/', views.update_laundry_status),
-     path('inventory/items/<int:pk>/update/', views.update_inventory_item),
-   path('inventory/items/<int:pk>/delete/', views.delete_inventory_item),
-   
+path("laundry/orders/", views.list_laundry_orders, name="list_laundry_orders"),
+path("laundry/create-order/", views.create_laundry_order, name="create_laundry_order"),
+path('laundry/update-status/<int:order_id>/', views.update_laundry_status, name="update_laundry_status"),
+     path('inventory/items/<int:pk>/update/', views.update_inventory_item, name='update_inventory_item'),
+path('inventory/items/<int:pk>/delete/', views.delete_inventory_item, name='delete_inventory_item'),
    path(
     "expenses/<int:expense_id>/delete/",
     views.delete_expense,
@@ -89,11 +87,11 @@ path(
    # PO items
    path('inventory/po/<int:pk>/items/', views.get_po_items),
    
-    path('linen/dispatch/',                                     views.dispatch_linen_batch),
-    path('linen/batches/',                                      views.list_linen_batches),
-    path('linen/batches/<int:batch_id>/',                       views.linen_batch_detail),
-    path('linen/batches/<int:batch_id>/items/<int:item_id>/receive/', views.mark_item_received),
-    path('linen/batches/<int:batch_id>/confirm/',               views.confirm_batch_received),
+   path('linen/dispatch/',                                     views.dispatch_linen_batch, name="dispatch_linen_batch"),
+path('linen/batches/',                                      views.list_linen_batches, name="list_linen_batches"),
+path('linen/batches/<int:batch_id>/',                       views.linen_batch_detail, name="linen_batch_detail"),
+path('linen/batches/<int:batch_id>/items/<int:item_id>/receive/', views.mark_item_received, name="mark_item_received"),
+path('linen/batches/<int:batch_id>/confirm/',               views.confirm_batch_received, name="confirm_batch_received"),
     path('linen/missing-reasons/',                                  views.list_missing_reasons),
     path('linen/missing-reasons/manage/',                           views.manage_missing_reason),
     path('linen/missing-reasons/seed/',                             views.seed_missing_reasons),
@@ -103,6 +101,7 @@ path(
    path('inventory/asset-categories/add/', views.add_asset_category),
    path('assets/assign-room/', views.assign_room_to_assets),
    path('assets/bulk-add/',views.bulk_add_assets),
+   path('assets/<int:pk>/update/', views.update_asset, name='update_asset'),
    # Maintenance
    
    # Expense categories
@@ -113,6 +112,46 @@ path(
     views.edit_maintenance_log,
     name="edit_maintenance_log"
 ),
+path("items/manage/", views.inventory_items_page, name="inventory_items_page"),
+path("vendors/",               views.list_vendors,          name="list_vendors"),
+path("vendors/add/",           views.add_vendor,            name="add_vendor"),
+path("vendors/<int:pk>/update/", views.update_vendor,       name="update_vendor"),
+path("vendors/<int:pk>/delete/", views.delete_vendor,       name="delete_vendor"),
+path("vendors/manage/",        views.vendors_page,          name="vendors_page"),
+path(
+    "po/manage/",
+    views.purchase_orders_page,
+    name="purchase_orders_page",
+),
+path('assets-page/', views.assets_page, name='assets_page'),
+path(
+    "assets/room-options/",
+    views.asset_room_options,
+    name="asset_room_options",
+),
+path(
+    "assets/<int:asset_id>/locations/",
+    views.save_asset_locations,
+    name="save_asset_locations",
+),
+path(
+    "maintenance/manage/",
+    views.maintenance_page,
+    name="maintenance_page",
+),
+path(
+    "expenses/manage/",
+    views.expenses_page,
+    name="expenses_page",
+),
+path(
+    "laundry/manage/",
+    views.laundry_orders_page,
+    name="laundry_orders_page",
+),
+path("laundry/services/manage/", views.laundry_services_page, name="laundry_services_page"),
+path("laundry/report/", views.laundry_report_page, name="laundry_report_page"),
+path("expenses/daily-summary/", views.expense_daily_summary, name="expense_daily_summary"),
  path("inv/categories/",                      ItemCategoryListAPIView.as_view(),       name="inv-category-list"),
     path("inv/categories/<int:pk>/",             ItemCategoryDetailAPIView.as_view(),     name="inv-category-detail"),
 

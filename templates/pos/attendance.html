@@ -1,0 +1,807 @@
+{% extends "pos/base.html" %}
+{% block title %}Attendance{% endblock %}
+
+{% block extra_head %}
+<style>
+  .att { --blue:#3b82f6; --green:#16a34a; --red:#e11d48; --purple:#7c3aed; --amber:#d97706; color:#1e2a4a; max-width:100%; }
+  .att, .att * { box-sizing:border-box; }
+  .att svg { display:block; }
+  .att-card { background:#fff; border:1px solid #e6ecf7; border-radius:18px; box-shadow:0 4px 18px rgba(30,60,120,.05); min-width:0; }
+
+  /* hero */
+  .att-hero { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px; margin-bottom:18px;
+              background:linear-gradient(120deg,#eef4ff,#f6f9ff); }
+  .att-hero .lead { display:flex; align-items:center; gap:16px; min-width:0; }
+  .att-hero .hero-ico { width:56px; height:56px; border-radius:16px; background:#dbe8ff; color:#2563eb; display:grid; place-items:center; flex-shrink:0; }
+  .att-hero h1 { font-size:1.9rem; font-weight:800; margin:0; }
+  .att-hero p { margin:2px 0 0; color:#6b7a99; font-size:1rem; }
+  .today-pill { display:flex; align-items:center; gap:8px; border:1px solid #e0e7f5; border-radius:10px; padding:9px 14px; background:#fff; font-size:.95rem; font-weight:600; white-space:nowrap; }
+  .today-pill svg { color:#3b82f6; flex-shrink:0; }
+
+  /* clickable filter cards */
+  .fcard { cursor:pointer; user-select:none; transition:transform .12s, box-shadow .12s, outline-color .12s; outline:2px solid transparent; outline-offset:2px; -webkit-tap-highlight-color:transparent; }
+  .fcard:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(30,60,120,.10); }
+  .fcard:focus-visible { outline-color:#93b4ff; }
+  .fcard.active { outline-color:currentColor; }
+
+  /* stat cards */
+  .att-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:18px; }
+  .att-stat { display:flex; align-items:center; gap:16px; padding:20px 22px; }
+  .att-stat .ic { width:54px; height:54px; border-radius:50%; display:grid; place-items:center; color:#fff; flex-shrink:0; }
+  .att-stat .num { font-size:1.9rem; font-weight:800; line-height:1.1; color:#1e2a4a; }
+  .att-stat .lbl { font-weight:700; font-size:.95rem; color:#1e2a4a; }
+  .att-stat .sub { font-size:.82rem; color:#7b88a6; }
+  .s-present{background:#f0fbf4; color:#16a34a;} .s-present .ic{background:#16a34a;}
+  .s-late{background:#f1f6ff; color:#3b82f6;}    .s-late .ic{background:#3b82f6;}
+  .s-absent{background:#fff1f3; color:#e11d48;}  .s-absent .ic{background:#e11d48;}
+  .s-ot{background:#f6f2ff; color:#7c3aed;}      .s-ot .ic{background:#7c3aed;}
+
+  .att-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:18px; }
+  .att-head { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #eef2fa; }
+  .att-head .h-ico { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; flex-shrink:0; background:#e3edff; color:#2563eb; }
+  .att-head h3 { font-size:1.15rem; font-weight:700; margin:0; }
+  .att-head small { color:#7b88a6; }
+
+  /* clock card */
+  .clock-body { padding:40px 24px; text-align:center; min-height:380px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+  .state-ico { width:84px; height:84px; border-radius:24px; display:grid; place-items:center; margin-bottom:6px; }
+  .st-idle  { background:#e3edff; color:#2563eb; }
+  .st-in    { background:#fff3dc; color:#d97706; }
+  .st-done  { background:#dcf7e6; color:#16a34a; }
+  .st-warn  { background:#ffe6ea; color:#e11d48; }
+  .clock-body h4 { font-weight:800; margin:6px 0 0; font-size:1.25rem; }
+  .clock-body p { color:#7b88a6; margin:0; }
+  .clock-body p b { color:#1e2a4a; }
+  .clock-strip { display:flex; align-items:center; gap:18px; margin-top:16px; padding:14px 18px; border:1px solid #e0e9fb; background:#f3f7ff; border-radius:14px; flex-wrap:wrap; justify-content:center; }
+  .clock-strip .t { display:flex; align-items:center; gap:8px; }
+  .clock-strip .t svg { color:var(--green); }
+  .clock-strip b { color:var(--green); }
+  .btn-clock { border:0; border-radius:12px; padding:13px 30px; font-weight:700; font-size:1rem; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-in  { background:var(--green); color:#fff; margin-top:10px; }
+  .btn-out { background:#ffe4e8; color:var(--red); border:1px solid #ffc9d1; }
+
+  /* summary */
+  .att-body { padding:18px 22px; }
+  .filters { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .filters > div { min-width:0; }
+  .filters label { font-size:.85rem; font-weight:700; display:block; margin-bottom:5px; }
+  .filters select, .filters input { width:100%; border:1px solid #e0e7f5; border-radius:10px; padding:9px 12px; background:#fff; min-width:0; }
+
+  .mini { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+  .mini .fcard { border-radius:12px; padding:12px; font-size:.8rem; color:#6b7a99; }
+  .mini .mi { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; color:#fff; margin-bottom:6px; }
+  .mini b { display:block; font-size:1.25rem; color:#1e2a4a; }
+  .m-present{background:#f0fbf4; color:#16a34a;} .m-late{background:#f1f6ff; color:#3b82f6;}
+  .m-absent{background:#fff1f3; color:#e11d48;}  .m-ot{background:#f6f2ff; color:#7c3aed;}
+  .mini .fcard .mtxt { color:#6b7a99; }
+
+  .chip-row { min-height:0; margin-bottom:10px; }
+  .chip { display:inline-flex; align-items:center; gap:8px; background:#eef2ff; color:#3730a3; border-radius:20px; padding:5px 8px 5px 12px; font-size:.82rem; font-weight:700; }
+  .chip button { border:0; background:#c7d2fe; color:#3730a3; width:20px; height:20px; border-radius:50%; cursor:pointer; display:grid; place-items:center; padding:0; }
+  .chip[hidden] { display:none; }
+
+  .list-title { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:6px; }
+  .list-title h4 { font-weight:700; font-size:1rem; margin:0; }
+  .list-title span { color:#7b88a6; font-size:.85rem; text-align:right; }
+  .att-scroll { max-height:420px; overflow-y:auto; overflow-x:hidden; }
+  table.att-t { width:100%; border-collapse:collapse; }
+  .att-t th { font-size:.8rem; color:#6b7a99; text-align:left; padding:8px 10px; font-weight:600; position:sticky; top:0; background:#fff; }
+  .att-t td { padding:12px 10px; border-top:1px solid #eef2fa; font-size:.92rem; }
+  .att-t tr.today td { background:#faf7ff; }
+  .att-t tr.upcoming td { color:#94a3b8; }
+  .att-t .dbadge { display:none; }
+  .pill { padding:4px 12px; border-radius:20px; font-size:.78rem; font-weight:700; white-space:nowrap; display:inline-block; }
+  .p-Present{background:#e3f8ea;color:#15803d;} .p-Late{background:#e2ecff;color:#2563eb;}
+  .p-Absent{background:#ffe3e8;color:#be123c;}  .p-Half{background:#f0e7ff;color:#6d28d9;}
+  .p-Pending{background:#fff3dc;color:#b45309;} .p-Upcoming{background:#eef1f7;color:#64748b;}
+  .empty { text-align:center; color:#8a96b2; padding:24px; }
+
+  /* face modal */
+  .fm-back { position:fixed; inset:0; background:rgba(15,23,42,.55); display:none; align-items:center; justify-content:center; z-index:99999; padding:12px; overflow-y:auto; }
+  .fm-back.open { display:flex; }
+  .fm { background:#fff; border-radius:20px; width:min(440px,100%); padding:22px; text-align:center; margin:auto; }
+  .fm h3 { font-weight:800; margin:0 0 4px; }
+  .fm .vid { position:relative; margin:14px auto; width:min(320px,70vw); aspect-ratio:1; border-radius:50%; overflow:hidden; background:#0f172a; border:4px solid #dbe6ff; }
+  .fm .vid.ok { border-color:#16a34a; } .fm .vid.bad { border-color:#e11d48; }
+  .fm video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .fm .msg { min-height:24px; font-weight:600; color:#3b4a75; }
+  .fm .msg.err { color:#be123c; } .fm .msg.ok { color:#15803d; }
+  .fm .close { background:#eef2fa; border:0; border-radius:10px; padding:10px 24px; font-weight:600; margin-top:10px; cursor:pointer; }
+
+  /* wrong-face popup */
+  .fm.wrong-box { padding:28px 24px; }
+  .fm .w-ico { width:84px; height:84px; border-radius:50%; background:#ffe6ea; color:#e11d48; display:grid; place-items:center; margin:0 auto 14px; }
+  .fm.wrong-box h3 { color:#be123c; font-size:1.45rem; }
+  .fm.wrong-box p { color:#6b7a99; margin:8px 0 16px; line-height:1.55; }
+  .fm.wrong-box p b { color:#1e2a4a; }
+  .fm .w-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .fm .w-actions button { border:0; border-radius:10px; padding:11px 24px; font-weight:700; cursor:pointer; }
+  .fm .btn-retry { background:#e11d48; color:#fff; }
+  .fm .btn-wclose { background:#eef2fa; color:#1e2a4a; }
+
+  /* ── tablet ── */
+  @media (max-width:1100px){
+    .att-stats { grid-template-columns:repeat(2,1fr); }
+    .att-grid  { grid-template-columns:minmax(0,1fr); }
+    .clock-body { min-height:300px; }
+  }
+
+  /* ── mobile ── */
+  @media (max-width:640px){
+    .att-hero { flex-direction:column; align-items:flex-start; padding:16px; gap:12px; }
+    .att-hero .hero-ico { width:46px; height:46px; border-radius:13px; }
+    .att-hero .hero-ico svg { width:24px; height:24px; }
+    .att-hero h1 { font-size:1.45rem; }
+    .att-hero p { font-size:.88rem; }
+    .today-pill { font-size:.85rem; padding:7px 12px; }
+
+    .att-stats { gap:10px; margin-bottom:14px; }
+    .att-stat { flex-direction:column; align-items:flex-start; gap:10px; padding:14px; }
+    .att-stat .ic { width:40px; height:40px; }
+    .att-stat .ic svg { width:20px; height:20px; }
+    .att-stat .num { font-size:1.5rem; }
+    .att-stat .lbl { font-size:.88rem; }
+    .att-stat .sub { font-size:.74rem; }
+
+    .att-grid { gap:14px; }
+    .att-head { padding:14px 16px; gap:12px; }
+    .att-head .h-ico { width:38px; height:38px; }
+    .att-head h3 { font-size:1.02rem; }
+    .att-head small { font-size:.78rem; display:block; }
+
+    .clock-body { padding:26px 16px; min-height:0; }
+    .state-ico { width:70px; height:70px; border-radius:20px; }
+    .state-ico svg { width:34px; height:34px; }
+    .clock-body h4 { font-size:1.1rem; }
+    .clock-body p { font-size:.88rem; }
+    .btn-in { width:100%; }
+    .clock-strip { flex-direction:column; align-items:stretch; gap:12px; width:100%; }
+    .clock-strip .t { justify-content:center; }
+    .clock-strip .btn-clock { width:100%; }
+
+    .att-body { padding:14px 12px; }
+    .filters { grid-template-columns:1fr 1fr; gap:10px; }
+    .filters select, .filters input { font-size:16px; padding:9px 10px; }   /* stops iOS zoom */
+
+    /* small tiles duplicate the top cards on phones, so hide them */
+    .mini { display:none; }
+
+    /* ── attendance list → day cards ── */
+    .att-scroll { max-height:none; overflow:visible; }
+    .att-t, .att-t tbody { display:block; width:100%; }
+    .att-t thead { display:none; }
+    .att-t tr {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px 8px;
+      padding:12px; margin-bottom:10px;
+      background:#fff; border:1px solid #e6ecf7; border-radius:16px;
+      box-shadow:0 2px 8px rgba(30,60,120,.04);
+    }
+    .att-t tr.today { background:#faf7ff; border-color:#ddd0ff; }
+    .att-t tr.upcoming { background:#f8fafc; box-shadow:none; }
+    .att-t td { display:block; padding:0; border:0; font-size:.9rem; }
+    .att-t tr.today td { background:transparent; }
+
+    .att-t td.c-date { grid-column:1 / 3; display:flex; align-items:center; gap:10px; font-weight:700; color:#1e2a4a; }
+    .att-t tr.upcoming td.c-date { color:#94a3b8; }
+    .att-t .dbadge { display:flex; flex-direction:column; align-items:center; justify-content:center; width:44px; height:46px; border-radius:12px; background:#e9f0ff; color:#2563eb; line-height:1.05; flex-shrink:0; }
+    .att-t .dbadge b { font-size:1.15rem; font-weight:800; }
+    .att-t .dbadge span { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+    .att-t tr.upcoming .dbadge { background:#eef1f7; color:#94a3b8; }
+    .att-t td.c-date .dtxt { font-size:.92rem; }
+
+    .att-t td.c-status { grid-column:3; align-self:center; text-align:right; }
+
+    .att-t td.c-in, .att-t td.c-out, .att-t td.c-hrs {
+      background:#f4f7fd; border-radius:12px; padding:8px 10px; color:#1e2a4a; font-weight:700; font-size:.88rem;
+    }
+    .att-t tr.today td.c-in, .att-t tr.today td.c-out, .att-t tr.today td.c-hrs { background:#efe9ff; }
+    .att-t tr.upcoming td.c-in, .att-t tr.upcoming td.c-out, .att-t tr.upcoming td.c-hrs { background:#f1f4f9; color:#94a3b8; }
+    .att-t td.c-in::before, .att-t td.c-out::before, .att-t td.c-hrs::before {
+      content:attr(data-label); display:block; font-size:.66rem; color:#8a96b2; font-weight:600; margin-bottom:2px; text-transform:uppercase; letter-spacing:.03em;
+    }
+    .att-t td.empty { grid-column:1 / -1; }
+    .att-t tr:has(td.empty) { display:block; border:0; box-shadow:none; background:transparent; }
+
+    .fm { padding:18px; }
+  }
+
+  @media (max-width:380px){
+    .filters { grid-template-columns:1fr; }
+    .att-t td.c-in, .att-t td.c-out, .att-t td.c-hrs { padding:7px 8px; font-size:.82rem; }
+  }
+
+  /* ═══════════════ DARK THEME ═══════════════ */
+  [data-theme="dark"] .att { color:#e5e7f3; }
+  [data-theme="dark"] .att h1,
+  [data-theme="dark"] .att h3,
+  [data-theme="dark"] .att h4 { color:#f3f4f6; }
+
+  [data-theme="dark"] .att-card { background:#1e1e2d; border-color:#2d2d3d; box-shadow:0 4px 18px rgba(0,0,0,.25); }
+
+  /* hero */
+  [data-theme="dark"] .att-hero { background:linear-gradient(120deg,#1f2340,#1a1d33); }
+  [data-theme="dark"] .att-hero .hero-ico { background:#2a3358; color:#8fb2ff; }
+  [data-theme="dark"] .att-hero p { color:#9aa4c0; }
+  [data-theme="dark"] .today-pill { background:#252535; border-color:#3a3a4c; color:#e5e7f3; }
+  [data-theme="dark"] .today-pill svg { color:#8fb2ff; }
+
+  [data-theme="dark"] .fcard:hover { box-shadow:0 8px 22px rgba(0,0,0,.4); }
+
+  /* stat cards */
+  [data-theme="dark"] .s-present { background:rgba(22,163,74,.13); }
+  [data-theme="dark"] .s-late    { background:rgba(59,130,246,.13); }
+  [data-theme="dark"] .s-absent  { background:rgba(225,29,72,.13); }
+  [data-theme="dark"] .s-ot      { background:rgba(124,58,237,.16); }
+  [data-theme="dark"] .att-stat .num,
+  [data-theme="dark"] .att-stat .lbl { color:#f3f4f6; }
+  [data-theme="dark"] .att-stat .sub { color:#9aa4c0; }
+
+  /* card headers */
+  [data-theme="dark"] .att-head { border-bottom-color:#2d2d3d; }
+  [data-theme="dark"] .att-head .h-ico { background:#2a3358; color:#8fb2ff; }
+  [data-theme="dark"] .att-head small { color:#9aa4c0; }
+
+  /* clock card */
+  [data-theme="dark"] .st-idle { background:rgba(59,130,246,.18); color:#8fb2ff; }
+  [data-theme="dark"] .st-in   { background:rgba(217,119,6,.18);  color:#fbbf24; }
+  [data-theme="dark"] .st-done { background:rgba(22,163,74,.18);  color:#4ade80; }
+  [data-theme="dark"] .st-warn { background:rgba(225,29,72,.18);  color:#fb7185; }
+  [data-theme="dark"] .clock-body p { color:#9aa4c0; }
+  [data-theme="dark"] .clock-body p b { color:#f3f4f6; }
+  [data-theme="dark"] .clock-strip { background:#252535; border-color:#3a3a4c; color:#e5e7f3; }
+  [data-theme="dark"] .clock-strip b,
+  [data-theme="dark"] .clock-strip .t svg { color:#4ade80; }
+  [data-theme="dark"] .btn-out { background:rgba(225,29,72,.15); color:#fb7185; border-color:rgba(225,29,72,.35); }
+
+  /* filters */
+  [data-theme="dark"] .filters label { color:#e5e7f3; }
+  [data-theme="dark"] .filters select,
+  [data-theme="dark"] .filters input { background:#1c1c27; border-color:#3a3a4c; color:#f3f4f6; color-scheme:dark; }
+
+  /* small tiles */
+  [data-theme="dark"] .m-present { background:rgba(22,163,74,.13); }
+  [data-theme="dark"] .m-late    { background:rgba(59,130,246,.13); }
+  [data-theme="dark"] .m-absent  { background:rgba(225,29,72,.13); }
+  [data-theme="dark"] .m-ot      { background:rgba(124,58,237,.16); }
+  [data-theme="dark"] .mini b { color:#f3f4f6; }
+  [data-theme="dark"] .mini .fcard .mtxt { color:#9aa4c0; }
+
+  /* chip */
+  [data-theme="dark"] .chip { background:rgba(99,102,241,.2); color:#c7d2fe; }
+  [data-theme="dark"] .chip button { background:rgba(99,102,241,.4); color:#e0e7ff; }
+
+  /* list + table */
+  [data-theme="dark"] .list-title span { color:#9aa4c0; }
+  [data-theme="dark"] .att-t th { background:#1e1e2d; color:#9aa4c0; }
+  [data-theme="dark"] .att-t td { border-top-color:#2d2d3d; color:#e5e7f3; }
+  [data-theme="dark"] .att-t tr.today td { background:rgba(124,58,237,.14); }
+  [data-theme="dark"] .att-t tr.upcoming td { color:#6b7280; }
+  [data-theme="dark"] .empty { color:#9aa4c0; }
+
+  /* status pills */
+  [data-theme="dark"] .p-Present  { background:rgba(22,163,74,.2);   color:#4ade80; }
+  [data-theme="dark"] .p-Late     { background:rgba(59,130,246,.2);  color:#93c5fd; }
+  [data-theme="dark"] .p-Absent   { background:rgba(225,29,72,.2);   color:#fda4af; }
+  [data-theme="dark"] .p-Half     { background:rgba(124,58,237,.24); color:#c4b5fd; }
+  [data-theme="dark"] .p-Pending  { background:rgba(217,119,6,.2);   color:#fbbf24; }
+  [data-theme="dark"] .p-Upcoming { background:rgba(148,163,184,.15);color:#94a3b8; }
+
+  /* face modal */
+  [data-theme="dark"] .fm-back { background:rgba(0,0,0,.7); }
+  [data-theme="dark"] .fm { background:#1e1e2d; color:#e5e7f3; border:1px solid #2d2d3d; }
+  [data-theme="dark"] .fm .vid { border-color:#3a3a4c; }
+  [data-theme="dark"] .fm .vid.ok  { border-color:#16a34a; }
+  [data-theme="dark"] .fm .vid.bad { border-color:#e11d48; }
+  [data-theme="dark"] .fm .msg { color:#c4c4d4; }
+  [data-theme="dark"] .fm .msg.err { color:#fda4af; }
+  [data-theme="dark"] .fm .msg.ok  { color:#4ade80; }
+  [data-theme="dark"] .fm .close { background:#2e2e3f; color:#e5e7f3; }
+
+  /* wrong-face popup (dark) */
+  [data-theme="dark"] .fm .w-ico { background:rgba(225,29,72,.18); color:#fb7185; }
+  [data-theme="dark"] .fm.wrong-box h3 { color:#fda4af; }
+  [data-theme="dark"] .fm.wrong-box p { color:#9aa4c0; }
+  [data-theme="dark"] .fm.wrong-box p b { color:#f3f4f6; }
+  [data-theme="dark"] .fm .btn-wclose { background:#2e2e3f; color:#e5e7f3; }
+
+  /* mobile day-cards */
+  @media (max-width:640px){
+    [data-theme="dark"] .att-t tr { background:#1e1e2d; border-color:#2d2d3d; box-shadow:none; }
+    [data-theme="dark"] .att-t tr.today { background:rgba(124,58,237,.14); border-color:#4c3a8a; }
+    [data-theme="dark"] .att-t tr.upcoming { background:#1a1a26; }
+    [data-theme="dark"] .att-t tr.today td { background:transparent; }
+    [data-theme="dark"] .att-t td.c-date { color:#f3f4f6; }
+    [data-theme="dark"] .att-t tr.upcoming td.c-date { color:#6b7280; }
+    [data-theme="dark"] .att-t .dbadge { background:rgba(59,130,246,.18); color:#8fb2ff; }
+    [data-theme="dark"] .att-t tr.upcoming .dbadge { background:#252535; color:#6b7280; }
+
+    [data-theme="dark"] .att-t td.c-in,
+    [data-theme="dark"] .att-t td.c-out,
+    [data-theme="dark"] .att-t td.c-hrs { background:#252535; color:#f3f4f6; }
+    [data-theme="dark"] .att-t tr.today td.c-in,
+    [data-theme="dark"] .att-t tr.today td.c-out,
+    [data-theme="dark"] .att-t tr.today td.c-hrs { background:rgba(124,58,237,.22); }
+    [data-theme="dark"] .att-t tr.upcoming td.c-in,
+    [data-theme="dark"] .att-t tr.upcoming td.c-out,
+    [data-theme="dark"] .att-t tr.upcoming td.c-hrs { background:#20202c; color:#6b7280; }
+    [data-theme="dark"] .att-t td.c-in::before,
+    [data-theme="dark"] .att-t td.c-out::before,
+    [data-theme="dark"] .att-t td.c-hrs::before { color:#9aa4c0; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="att">
+
+  <!-- HERO -->
+  <div class="att-card att-hero">
+    <div class="lead">
+      <div class="hero-ico">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="16" cy="16" r="2.5"/><path d="M16 15v1l.7.5"/></svg>
+      </div>
+      <div>
+        <h1>Attendance</h1>
+        <p>Track clock in and out, and view your attendance summary.</p>
+      </div>
+    </div>
+    <div class="today-pill">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      {{ today|date:"D, M j, Y" }}
+    </div>
+  </div>
+
+  <!-- STAT CARDS (click = filter the list) -->
+  <div class="att-stats">
+    <div class="att-card att-stat s-present fcard" data-filter="present" role="button" tabindex="0" aria-pressed="false" title="Show present days">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div><div class="num" id="stPresent">0</div><div class="lbl">Present</div><div class="sub" id="stPresentSub">Out of 0 working days</div></div>
+    </div>
+    <div class="att-card att-stat s-late fcard" data-filter="halfday" role="button" tabindex="0" aria-pressed="false" title="Show half days">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></div>
+      <div><div class="num" id="stHalf">0</div><div class="lbl">Half Day</div><div class="sub">Worked less than 4 hrs</div></div>
+    </div>
+    <div class="att-card att-stat s-absent fcard" data-filter="absent" role="button" tabindex="0" aria-pressed="false" title="Show absent days">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+      <div><div class="num" id="stAbsent">0</div><div class="lbl">Absent</div><div class="sub">Days with no record</div></div>
+    </div>
+    <div class="att-card att-stat s-ot fcard" data-filter="overtime" role="button" tabindex="0" aria-pressed="false" title="Show days with overtime">
+      <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg></div>
+      <div><div class="num" id="stOT">0 hrs</div><div class="lbl">Overtime</div><div class="sub">Total overtime hours</div></div>
+    </div>
+  </div>
+
+  <div class="att-grid">
+    <!-- TODAY'S CLOCK -->
+    <div class="att-card">
+      <div class="att-head">
+        <div class="h-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div><h3>Today's Clock</h3><small>View and manage your clock in and out records for today.</small></div>
+      </div>
+      <div class="clock-body" id="clockBody"></div>
+    </div>
+
+    <!-- MY SUMMARY -->
+    <div class="att-card">
+      <div class="att-head">
+        <div class="h-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+        <div><h3>My Attendance Summary</h3><small>Your attendance details for the selected month.</small></div>
+      </div>
+      <div class="att-body">
+        <div class="filters">
+          <div><label for="fMonth">Month</label><input type="month" id="fMonth" value="{{ current_month }}" max="{{ current_month }}"></div>
+          <div><label for="fStatus">Status</label>
+            <select id="fStatus">
+              <option value="">All Status</option>
+              <option value="present">Present</option>
+              <option value="late">Late</option>
+              <option value="halfday">Half Day</option>
+              <option value="absent">Absent</option>
+              <option value="overtime">Overtime</option>
+              <option value="upcoming">Upcoming</option>
+            </select></div>
+        </div>
+
+        <!-- small tiles (desktop) - also filters -->
+        <div class="mini">
+          <div class="fcard m-present" data-filter="present" role="button" tabindex="0" aria-pressed="false"><span class="mi" style="background:#16a34a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><b id="mPresent">0</b><span class="mtxt">Present</span></div>
+          <div class="fcard m-late" data-filter="halfday" role="button" tabindex="0" aria-pressed="false"><span class="mi" style="background:#3b82f6"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg></span><b id="mHalf">0</b><span class="mtxt">Half Day</span></div>
+          <div class="fcard m-absent" data-filter="absent" role="button" tabindex="0" aria-pressed="false"><span class="mi" style="background:#e11d48"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span><b id="mAbsent">0</b><span class="mtxt">Absent</span></div>
+          <div class="fcard m-ot" data-filter="overtime" role="button" tabindex="0" aria-pressed="false"><span class="mi" style="background:#7c3aed"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg></span><b id="mOT">0 hrs</b><span class="mtxt">Overtime</span></div>
+        </div>
+
+        <div class="chip-row">
+          <span class="chip" id="chip" hidden>
+            <span id="chipText"></span>
+            <button type="button" id="chipClear" aria-label="Clear filter">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </span>
+        </div>
+
+        <div class="list-title"><h4>My Attendance List</h4><span id="monthLabel"></span></div>
+        <div class="att-scroll">
+          <table class="att-t">
+            <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th></tr></thead>
+            <tbody id="attRows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FACE SCAN MODAL -->
+<div class="fm-back" id="fmBack">
+  <div class="fm">
+    <h3 id="fmTitle">Face Scan</h3>
+    <div style="color:#7b88a6;font-size:.9rem">Look straight at the camera</div>
+    <div class="vid" id="fmVid"><video id="fmVideo" autoplay muted playsinline></video></div>
+    <div class="msg" id="fmMsg">Starting camera…</div>
+    <button class="close" id="fmClose" type="button">Cancel</button>
+  </div>
+</div>
+
+<!-- WRONG FACE POPUP -->
+<div class="fm-back" id="wrongBack" style="z-index:100000">
+  <div class="fm wrong-box" role="alertdialog" aria-labelledby="wrongTitle" aria-describedby="wrongText">
+    <div class="w-ico">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </div>
+    <h3 id="wrongTitle">Wrong face</h3>
+    <p id="wrongText">This face does not match the face registered for <b>{{ staff.name }}</b>.<br>Only <b>{{ staff.name }}</b> can clock in or out from this account.</p>
+    <div class="w-actions">
+      <button type="button" class="btn-retry" id="wrongRetry">Try again</button>
+      <button type="button" class="btn-wclose" id="wrongClose">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<script>
+(function () {
+  const URL_DATA  = "{% url 'attendance_pos_data' %}";
+  const URL_CLOCK = "{% url 'attendance_face_clock' %}";
+  const CSRF = "{{ csrf_token }}";
+  const FACE_ENROLLED = {{ face_enrolled|yesno:"true,false" }};
+  const TODAY_ISO = "{{ today|date:'Y-m-d' }}";
+  const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+
+  /* ── face verification (browser side) ──
+     The registered descriptor(s) of THIS staff member come from the server.
+     Lower distance = more similar. Above THRESHOLD = a different person. */
+  const THRESHOLD = {{ face_threshold|default:"0.45" }};
+  const MISMATCH_LIMIT = 3;        // wrong-face frames in a row before the popup shows
+  const MATCH_FRAMES = 3;           // matching frames in a row needed before clocking
+  let rawStored = {{ face_descriptor_json|default:"[]"|safe }};
+  if (rawStored.length && typeof rawStored[0] === "number") rawStored = [rawStored];   // old single-descriptor format
+  const STORED = rawStored
+    .filter(d => Array.isArray(d) && d.length === 128)
+    .map(d => Float32Array.from(d));
+
+  function bestDistance(live) {
+    let best = Infinity;
+    for (const s of STORED) {
+      const d = faceapi.euclideanDistance(live, s);
+      if (d < best) best = d;
+    }
+    return best;   // Infinity when nothing is stored
+  }
+
+  let myState = {{ my_state|safe }};
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  /* ── SVG icons ── */
+  const svg = (size, sw, body) =>
+    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+  const ICON = {
+    userScan: s => svg(s, 2, '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M7 20c.6-2.4 2.6-4 5-4s4.4 1.6 5 4"/>'),
+    clock:    s => svg(s, 2, '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    timer:    s => svg(s, 2, '<path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/>'),
+    check:    s => svg(s, 2.6, '<path d="M20 6 9 17l-5-5"/>'),
+    logIn:    s => svg(s, 2, '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/>'),
+    logOut:   s => svg(s, 2, '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>'),
+  };
+  const stateIcon = (cls, icon) => `<div class="state-ico ${cls}">${icon}</div>`;
+
+  /* ── Today's clock card ── */
+  function renderClock() {
+    const b = $("clockBody");
+    if (!FACE_ENROLLED) {
+      b.innerHTML = stateIcon("st-warn", ICON.userScan(42)) +
+        `<h4>Face not registered</h4><p>Ask HR to register your face before you can clock in.</p>`;
+      return;
+    }
+    if (myState.state === "idle") {
+      b.innerHTML = stateIcon("st-idle", ICON.clock(42)) +
+        `<h4>You have not clocked in yet</h4><p>Scan your face to start your day.</p>
+         <button class="btn-clock btn-in" id="btnIn">${ICON.logIn(18)} Clock In</button>`;
+      $("btnIn").onclick = () => openScan("in");
+    } else if (myState.state === "in") {
+      b.innerHTML = stateIcon("st-in", ICON.timer(42)) +
+        `<h4>You have not clocked out yet</h4>
+         <p>Your clock in time is recorded. Please clock out when you finish your work.</p>
+         <div class="clock-strip">
+           <span class="t">${ICON.clock(18)} Clock In <b>${esc(myState.check_in)}</b></span>
+           <button class="btn-clock btn-out" id="btnOut">${ICON.logOut(18)} Clock Out</button>
+         </div>`;
+      $("btnOut").onclick = () => openScan("out");
+    } else {
+      b.innerHTML = stateIcon("st-done", ICON.check(46)) +
+        `<h4>You're done for today</h4>
+         <p>Clock in <b>${esc(myState.check_in)}</b> · Clock out <b>${esc(myState.check_out)}</b></p>`;
+    }
+  }
+
+  /* ── Filtering (client-side, so cards + dropdown + list stay in sync) ── */
+  let allRows = [];
+  let currentFilter = "";               // "", present, late, halfday, absent, overtime, upcoming
+
+  const FILTER_LABEL = {
+    present: "Present", late: "Late", halfday: "Half Day",
+    absent: "Absent", overtime: "Overtime", upcoming: "Upcoming",
+  };
+
+  function matches(row, f) {
+    switch (f) {
+      case "":         return true;
+      case "present":  return ["Present", "Late"].includes(row.status);
+      case "late":     return row.status === "Late";
+      case "halfday":  return row.status === "Half Day";
+      case "absent":   return row.status === "Absent";
+      case "overtime": return (row.overtime || 0) > 0;
+      case "upcoming": return row.status === "Upcoming";
+      default:         return true;
+    }
+  }
+
+  function setFilter(f) {
+    currentFilter = (f === currentFilter) ? "" : f;     // click again = clear
+    render();
+  }
+
+  function render() {
+    // keep every control in sync with the active filter
+    $("fStatus").value = currentFilter;
+    document.querySelectorAll(".fcard").forEach(el => {
+      const on = el.dataset.filter === currentFilter;
+      el.classList.toggle("active", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const chip = $("chip");
+    chip.hidden = !currentFilter;
+    if (currentFilter) $("chipText").textContent = "Showing: " + FILTER_LABEL[currentFilter];
+
+    const rows = allRows.filter(r => matches(r, currentFilter));
+    $("attRows").innerHTML = rows.length ? rows.map(x => {
+      const cls = x.status === "Half Day" ? "Half" : x.status;
+      const hrs = x.hours_label || "--";
+      const rowCls = x.date === TODAY_ISO ? "today" : (x.status === "Upcoming" ? "upcoming" : "");
+      const day = x.date.slice(8, 10).replace(/^0/, "");
+      const wk = (x.date_label.split(", ")[1] || "").slice(0, 3);
+      return `<tr class="${rowCls}">
+        <td class="c-date" data-label="Date">
+          <span class="dbadge"><b>${esc(day)}</b><span>${esc(wk)}</span></span>
+          <span class="dtxt">${esc(x.date_label)}</span>
+        </td>
+        <td class="c-in" data-label="Check In">${esc(x.check_in || "--")}</td>
+        <td class="c-out" data-label="Check Out">${esc(x.check_out || "--")}</td>
+        <td class="c-hrs" data-label="Hours">${esc(hrs)}</td>
+        <td class="c-status" data-label="Status"><span class="pill p-${cls}">${esc(x.status)}</span></td></tr>`;
+    }).join("") : `<tr><td colspan="5" class="empty">No records for this selection.</td></tr>`;
+
+    const base = $("monthLabel").dataset.month || "";
+    $("monthLabel").textContent = currentFilter ? `${base} · ${rows.length} shown` : base;
+  }
+
+  /* ── Load (always the full month; cards stay full-month totals) ── */
+  async function loadData() {
+    const qs = new URLSearchParams({ month: $("fMonth").value });
+    const r = await fetch(URL_DATA + "?" + qs, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const s = d.stats;
+    const ot = s.overtime + " hrs";
+
+    $("stPresent").textContent = s.present;
+    $("stPresentSub").textContent = `Out of ${d.working_days} working day${d.working_days === 1 ? "" : "s"}`;
+    $("stHalf").textContent = s.half_day;
+    $("stAbsent").textContent = s.absent;
+    $("stOT").textContent = ot;
+    $("mPresent").textContent = s.present; $("mHalf").textContent = s.half_day;
+    $("mAbsent").textContent = s.absent;   $("mOT").textContent = ot;
+
+    $("monthLabel").dataset.month = d.month_label;
+    allRows = d.rows;
+    render();
+  }
+
+  /* ── Wire up filters ── */
+  $("fMonth").onchange = loadData;
+  $("fStatus").onchange = e => { currentFilter = e.target.value; render(); };
+  $("chipClear").onclick = () => { currentFilter = ""; render(); };
+  document.querySelectorAll(".fcard").forEach(el => {
+    el.addEventListener("click", () => setFilter(el.dataset.filter));
+    el.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFilter(el.dataset.filter); }
+    });
+  });
+
+  /* ── Face scan ── */
+  let stream = null, scanning = false, modelsReady = false, currentAction = null;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function loadModels() {
+    if (modelsReady) return;
+    await faceapi.tf.ready();
+    await Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+    ]);
+    modelsReady = true;
+  }
+  const say  = (t, cls = "") => { const m = $("fmMsg"); m.textContent = t; m.className = "msg " + cls; };
+  const ring = cls => { $("fmVid").className = "vid " + cls; };
+
+  function stopCamera() {
+    scanning = false;
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    $("fmVideo").srcObject = null;
+  }
+  function closeModal() { stopCamera(); $("fmBack").classList.remove("open"); }
+  $("fmClose").onclick = closeModal;
+
+  /* wrong-face popup */
+  function showWrongFace() {
+    closeModal();                                   // stops the camera + hides the scan modal
+    $("wrongBack").classList.add("open");
+  }
+  function closeWrongFace() { $("wrongBack").classList.remove("open"); }
+  $("wrongClose").onclick = closeWrongFace;
+  $("wrongRetry").onclick = () => { closeWrongFace(); openScan(currentAction); };
+  $("wrongBack").addEventListener("click", e => { if (e.target === $("wrongBack")) closeWrongFace(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeWrongFace(); });
+
+  async function openScan(action) {
+    currentAction = action;
+    $("fmTitle").textContent = action === "in" ? "Clock In — Face Scan" : "Clock Out — Face Scan";
+    ring(""); say("Starting camera…");
+    $("fmBack").classList.add("open");
+    try {
+      await loadModels();
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 480, height: 480 } });
+      const v = $("fmVideo");
+      v.srcObject = stream;
+      await new Promise(res => { if (v.readyState >= 1) res(); else v.onloadedmetadata = res; });
+      await v.play();
+      while (v.readyState < 2 || !v.videoWidth) await sleep(100);
+    } catch (e) {
+      console.error("openScan error:", e);
+      say("Camera or models failed: " + (e.message || e), "err");
+      return;
+    }
+    scanning = true; scanLoop(action);
+  }
+
+  /* ── detection helpers ── */
+  const frameCanvas = document.createElement("canvas");
+
+  // square, centered, brightened copy of the current video frame
+  function grabFrame(video) {
+    const size = 416;
+    frameCanvas.width = size;
+    frameCanvas.height = size;
+    const ctx = frameCanvas.getContext("2d", { willReadFrequently: true });
+    const s = Math.min(video.videoWidth, video.videoHeight);
+    const sx = (video.videoWidth - s) / 2;
+    const sy = (video.videoHeight - s) / 2;
+    ctx.filter = "brightness(1.6) contrast(1.15)";
+    ctx.drawImage(video, sx, sy, s, s, 0, 0, size, size);
+    return frameCanvas;
+  }
+
+  // tries raw video first, then the brightened frame, with two detectors each
+  async function detectFace(video) {
+    const ssd  = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2 });
+    const tiny = new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.2 });
+    for (const input of [video, grabFrame(video)]) {
+      for (const opts of [ssd, tiny]) {
+        const det = await faceapi
+          .detectSingleFace(input, opts)
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        if (det) return det;
+      }
+    }
+    return null;
+  }
+
+  async function scanLoop(action) {
+    let mismatches = 0, matches = 0, misses = 0;
+    say("Scanning…");
+
+    while (scanning) {
+      let det = null;
+      try {
+        det = await detectFace($("fmVideo"));
+      } catch (err) {
+        console.error("detect error:", err);
+        say("Detection error: " + (err.message || err), "err");
+        ring("bad"); scanning = false; return;
+      }
+      if (!scanning) return;
+
+      if (!det) {
+        mismatches = 0; matches = 0; misses++;
+        ring("");
+        say(misses > 6
+          ? "Still no face — move to a brighter spot, keep your whole face in the circle"
+          : "No face detected — look at the camera");
+        await sleep(400);
+        continue;
+      }
+      misses = 0;
+
+      /* 1) verify in the browser with the face model.
+         No stored face data = never allow (fail closed). */
+      if (!STORED.length) {
+        say("Registered face data is missing. Ask HR to re-register your face.", "err");
+        ring("bad"); scanning = false; return;
+      }
+
+      const dist = bestDistance(det.descriptor);
+      console.log("face distance:", dist.toFixed(3), "(must be below " + THRESHOLD + ")");
+
+      if (dist > THRESHOLD) {
+        matches = 0;
+        mismatches++;
+        ring("bad");
+        say("Checking face…", "err");
+        if (mismatches >= MISMATCH_LIMIT) { showWrongFace(); return; }   // wrong face → popup
+        await sleep(350);
+        continue;
+      }
+
+      // same face must match on several frames in a row before we accept it
+      mismatches = 0;
+      matches++;
+      ring("ok");
+      if (matches < MATCH_FRAMES) {
+        say(`Matching… ${matches}/${MATCH_FRAMES}`, "ok");
+        await sleep(300);
+        continue;
+      }
+      say("Face matched — recording…", "ok");
+
+      /* 2) same face → the server checks it again and saves the attendance */
+      let res;
+      try {
+        const r = await fetch(URL_CLOCK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+          body: JSON.stringify({ action, descriptor: Array.from(det.descriptor) }),
+        });
+        res = await r.json();
+      } catch (e) { say("Network error. Try again.", "err"); ring("bad"); scanning = false; return; }
+
+      if (res.success) {
+        ring("ok"); say(res.message + (res.status ? ` (${res.status})` : ""), "ok");
+        myState = res.my_state; renderClock(); loadData();   // cards + list refresh instantly
+        scanning = false; setTimeout(closeModal, 1400); return;
+      }
+      if (res.matched === false) { showWrongFace(); return; }   // server also says different person
+      ring("bad"); say(res.error || "Could not record attendance.", "err");
+      scanning = false; return;
+    }
+  }
+
+  renderClock();
+  loadData();
+})();
+</script>
+{% endblock %}

@@ -202,16 +202,21 @@ class LeaveRequest(models.Model):
         ("Rejected", "Rejected"),
     ]
 
-    staff = models.ForeignKey(
-        Staff,
-        on_delete=models.CASCADE
-    )
+    LEAVE_TYPE_CHOICES = [
+        ("casual", "Casual Leave"),
+        ("sick", "Sick Leave"),
+        ("earned", "Earned Leave"),
+        ("bereavement", "Bereavement Leave"),
+        ("other", "Other"),
+    ]
 
-    tenant = models.ForeignKey(
-        Client,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True)
+
+    leave_type = models.CharField(
+        max_length=20,
+        choices=LEAVE_TYPE_CHOICES,
+        default="casual",
     )
 
     from_date = models.DateField()
@@ -249,8 +254,7 @@ class LeaveRequest(models.Model):
     # ============================================================
 
     def __str__(self):
-
-        return f"{self.staff.name} - {self.status}"
+        return f"{self.staff.name} - {self.leave_type} - {self.status}"
 
 
     # ============================================================

@@ -1,0 +1,166 @@
+{% extends "hotel/base.html" %}
+{% load static %}
+{% block title %}{{ staff.name|default:"Staff Details" }} - Admio{% endblock %}
+{% block nav_staff_active %}active{% endblock %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+  <div><p class="text-xs text-muted mb-1">People / Staff / Profile</p><h1 class="page-title mb-1">Staff details</h1><p class="page-subtitle text-muted mb-0">Complete profile, employment, payroll and identity information.</p></div>
+  <div class="d-flex gap-2"><a href="{% url 'staff_directory_page' %}" class="btn-admio btn-outline-primary">Back to staff</a><button type="button" class="btn-admio btn-primary" id="editStaffButton">Update staff</button></div>
+</div>
+<div class="admio-card mb-3"><div class="admio-card-body d-flex align-items-center gap-3 flex-wrap">
+{% if staff.hotel_logo_url %}<img src="{{ staff.hotel_logo_url }}" alt="{{ staff.hotel_name }} logo" class="rounded" width="44" height="44" style="object-fit:cover">{% endif %}
+{% if staff.photo_url %}<img src="{{ staff.photo_url }}" alt="{{ staff.name }}" class="rounded-circle" width="84" height="84" style="object-fit:cover">{% else %}<span class="avatar-gen" data-name="{{ staff.name }}" data-bg="#7C3AED" data-size="84">{{ staff.name|slice:":1"|upper }}</span>{% endif %}
+<div class="flex-grow-1"><div class="d-flex align-items-center gap-2 flex-wrap"><h2 class="card-title mb-0">{{ staff.name|default:"Unnamed staff" }}</h2>{% if staff.is_active %}<span class="badge-admio bg-success-subtle text-success">Active</span>{% else %}<span class="badge-admio bg-danger-subtle text-danger">Inactive</span>{% endif %}{% if staff.is_available %}<span class="badge-admio bg-info-subtle text-info">Available</span>{% endif %}</div><p class="text-muted mb-1">{{ staff.role|default:"Staff" }} · {{ staff.department|default:"Unassigned" }} · {{ staff.hotel_name|default:"N/A" }}</p><span class="text-sm text-muted">Employee ID: {{ staff.employee_id|default:"—" }}</span></div>
+<div class="text-md-end"><div class="text-xs text-muted text-uppercase">Member since</div><div class="fw-700">{{ staff.created_at|default:staff.joining_date|default:"—" }}</div><div class="text-xs text-muted mt-1">Monthly salary ₹{{ staff.salary|default:0|floatformat:0 }}</div></div>
+</div></div>
+<div class="row g-3 mb-3"><div class="col-12 col-md-6"><div class="admio-card h-100"><div class="admio-card-body text-center"><div class="text-success fs-3">✓</div><div class="fw-600">{% if staff.is_active %}Active employee{% else %}Inactive employee{% endif %}</div><div class="text-xs text-muted">Account status</div></div></div></div><div class="col-12 col-md-6"><div class="admio-card h-100"><div class="admio-card-body text-center"><div class="text-info fs-3">●</div><div class="fw-600">{% if staff.is_available %}Available{% else %}Unavailable{% endif %}</div><div class="text-xs text-muted">Current availability</div></div></div></div></div>
+<div class="row g-3">
+<div class="col-12 col-xl-6"><div class="admio-card h-100"><div class="admio-card-header"><span class="card-title">Personal information</span></div><div class="admio-card-body"><dl class="row mb-0"><dt class="col-sm-5 text-muted fw-400">Full name</dt><dd class="col-sm-7">{{ staff.name|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Nickname</dt><dd class="col-sm-7">{{ staff.nickname|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Email</dt><dd class="col-sm-7 text-break">{{ staff.email|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Phone</dt><dd class="col-sm-7">{{ staff.phone|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Date of birth</dt><dd class="col-sm-7">{{ staff.dob|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Gender</dt><dd class="col-sm-7">{{ staff.gender|default:"—"|title }}</dd><dt class="col-sm-5 text-muted fw-400">Address</dt><dd class="col-sm-7">{{ staff.address|default:"—" }}</dd></dl></div></div></div>
+<div class="col-12 col-xl-6"><div class="admio-card h-100"><div class="admio-card-header"><span class="card-title">Employment details</span></div><div class="admio-card-body"><dl class="row mb-0"><dt class="col-sm-5 text-muted fw-400">Employee ID</dt><dd class="col-sm-7">{{ staff.employee_id|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Department</dt><dd class="col-sm-7">{{ staff.department|default:"Unassigned" }}{% if staff.department_id %}<span class="text-xs text-muted d-block">ID: {{ staff.department_id }}</span>{% endif %}</dd><dt class="col-sm-5 text-muted fw-400">Role</dt><dd class="col-sm-7">{{ staff.role|default:"Staff" }}</dd><dt class="col-sm-5 text-muted fw-400">Employment type</dt><dd class="col-sm-7">{{ staff.employment_type|default:"—"|title }}</dd><dt class="col-sm-5 text-muted fw-400">Joining date</dt><dd class="col-sm-7">{{ staff.joining_date|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Hotel</dt><dd class="col-sm-7">{{ staff.hotel_name|default:"N/A" }}{% if staff.hotel_id %}<span class="text-xs text-muted d-block">ID: {{ staff.hotel_id }}</span>{% endif %}</dd><dt class="col-sm-5 text-muted fw-400">Created at</dt><dd class="col-sm-7">{{ staff.created_at|default:"—" }}</dd></dl></div></div></div>
+<div class="col-12 col-xl-6"><div class="admio-card h-100"><div class="admio-card-header"><span class="card-title">Payroll and banking</span></div><div class="admio-card-body"><dl class="row mb-0"><dt class="col-sm-5 text-muted fw-400">Salary</dt><dd class="col-sm-7">₹{{ staff.salary|default:0|floatformat:0 }}</dd><dt class="col-sm-5 text-muted fw-400">Bank account</dt><dd class="col-sm-7">{{ staff.bank_account|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">IFSC code</dt><dd class="col-sm-7">{{ staff.ifsc|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">PF number</dt><dd class="col-sm-7">{{ staff.pf_number|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">ESI number</dt><dd class="col-sm-7">{{ staff.esi_number|default:"—" }}</dd></dl></div></div></div>
+<div class="col-12 col-xl-6"><div class="admio-card h-100"><div class="admio-card-header"><span class="card-title">Emergency contact</span></div><div class="admio-card-body"><dl class="row mb-0"><dt class="col-sm-5 text-muted fw-400">Contact name</dt><dd class="col-sm-7">{{ staff.emergency_contact_name|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Contact phone</dt><dd class="col-sm-7">{{ staff.emergency_contact_phone|default:"—" }}</dd><dt class="col-sm-5 text-muted fw-400">Notes</dt><dd class="col-sm-7">{{ staff.notes|default:"—" }}</dd></dl></div></div></div>
+
+<!-- FACE RECOGNITION card (Register / Re-register button) -->
+<div class="col-12"><div class="admio-card"><div class="admio-card-header d-flex justify-content-between align-items-center flex-wrap gap-2"><span class="card-title">Face recognition</span><button type="button" class="btn-admio btn-sm btn-primary" id="registerFaceBtn">{% if staff.face_photo_url or staff.face_registered_at %}Re-register face{% else %}Register face{% endif %}</button></div><div class="admio-card-body"><div class="d-flex align-items-center gap-3 flex-wrap">{% if staff.face_photo_url %}<img src="{{ staff.face_photo_url }}" alt="Registered face" class="rounded" width="120" height="120" style="object-fit:cover">{% endif %}<div><div class="fw-600">{% if staff.face_photo_url or staff.face_registered_at %}Registered face{% else %}Face not registered{% endif %}</div><div class="text-sm text-muted">{% if staff.face_registered_at %}Captured: {{ staff.face_registered_at }}{% else %}No face registration record available.{% endif %}</div>{% if staff.face_photo_url %}<a href="{{ staff.face_photo_url }}" target="_blank" rel="noopener" class="text-primary text-sm">View photo</a>{% endif %}</div></div></div></div></div>
+
+<div class="col-12"><div class="admio-card"><div class="admio-card-header d-flex justify-content-between align-items-center"><span class="card-title">ID proof and documents</span>{% if staff.id_proof_image_url %}<a href="{{ staff.id_proof_image_url }}" target="_blank" rel="noopener" class="btn-admio btn-sm btn-outline-primary">Open ID proof</a>{% endif %}</div><div class="admio-card-body"><div class="row g-3"><div class="col-md-3"><div class="text-xs text-muted text-uppercase">Proof type</div><div>{{ staff.id_proof_type_label|default:staff.id_proof_type|default:"—" }}</div></div><div class="col-md-3"><div class="text-xs text-muted text-uppercase">Proof number</div><div>{{ staff.id_proof_number|default:"—" }}</div></div><div class="col-md-3"><div class="text-xs text-muted text-uppercase">Uploaded at</div><div>{{ staff.id_proof_uploaded_at|default:"—" }}</div></div><div class="col-md-3">{% if staff.id_proof_image_url %}<img src="{{ staff.id_proof_image_url }}" alt="ID proof" class="rounded border" width="100" height="70" style="object-fit:cover">{% else %}<span class="text-muted">No proof image</span>{% endif %}</div></div>{% if staff.id_cards %}<hr><div class="row g-3">{% for card in staff.id_cards %}<div class="col-md-4"><div class="border rounded p-2 h-100"><div class="text-sm fw-600">{{ card.document_type|default:"ID document" }}</div><div class="text-xs text-muted">{{ card.uploaded_at|default:"" }}</div>{% if card.id_proof_number %}<div class="text-xs text-muted">No: {{ card.id_proof_number }}</div>{% endif %}{% if card.url %}<a href="{{ card.url }}" target="_blank" rel="noopener" class="text-primary text-sm">View document</a>{% endif %}</div></div>{% endfor %}</div>{% endif %}</div></div></div>
+</div>
+
+<!-- ══════════ REGISTER FACE MODAL (auto capture) ══════════
+     Set data-save-url to your "save face" endpoint -->
+<div class="modal fade" id="faceRegModal" tabindex="-1" aria-labelledby="faceRegTitle" aria-hidden="true"
+     data-save-url="/api/staff/{{ staff.id }}/register-face/">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:18px;border:none;">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="faceRegTitle" style="font-weight:800;">Register Face</h5>
+          <small class="text-muted">for {{ staff.name|default:"staff" }}</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div style="position:relative;background:#111;border-radius:14px;overflow:hidden;">
+          <video id="faceRegVideo" autoplay playsinline muted style="width:100%;display:block;transform:scaleX(-1);"></video>
+        </div>
+        <p id="faceRegMsg" class="mt-3 mb-0 text-sm text-muted">Starting camera…</p>
+        <p class="text-xs text-muted mt-2 mb-0">Face is captured automatically. Face the light (not a window behind you), look straight at the camera and hold still.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-admio" data-bs-dismiss="modal" style="background:#eee;color:#111;border:none;">Cancel</button>
+        <button type="button" class="btn-admio" id="faceRegCapture" disabled style="background:var(--admio-accent);color:#fff;border:none;">Starting…</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{{ block.super }}
+<script src="{% static 'admin-static/assets/js/admio-face.js' %}"></script>
+<script>
+document.getElementById('editStaffButton')?.addEventListener('click', () => window.dispatchEvent(new CustomEvent('staff:edit', {detail: {id: '{{ staff.id }}'}})));
+
+(function () {
+  var modalEl = document.getElementById('faceRegModal');
+  var openBtn = document.getElementById('registerFaceBtn');
+  var video   = document.getElementById('faceRegVideo');
+  var msg     = document.getElementById('faceRegMsg');
+  var capBtn  = document.getElementById('faceRegCapture');
+  if (!modalEl || !openBtn || !window.bootstrap) return;
+
+  var runId = 0;
+
+  function say(text, isError) {
+    msg.textContent = text;
+    msg.className = 'mt-3 mb-0 text-sm ' + (isError ? 'text-danger' : 'text-muted');
+  }
+  function csrf() {
+    var m = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  async function save(r, myRun) {
+    say('Face captured. Saving…');
+    var fd = new FormData();
+    fd.append('staff_id', '{{ staff.id }}');
+    fd.append('photo', r.blob, 'face.jpg');
+    fd.append('descriptor', JSON.stringify(r.descriptor));
+    try {
+      var res = await fetch(modalEl.dataset.saveUrl, {
+        method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrf() }
+      });
+      var data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (myRun !== runId) return;
+      if (!res.ok || data.success === false || data.error) {
+        say(data.error || data.message || ('Save failed (' + res.status + ').'), true);
+        capBtn.textContent = 'Try again'; capBtn.disabled = false;
+        return;
+      }
+      say('Face registered successfully.');
+      capBtn.textContent = 'Done';
+      setTimeout(function () { window.location.reload(); }, 700);
+    } catch (e) {
+      say('Network error while saving.', true);
+      capBtn.textContent = 'Try again'; capBtn.disabled = false;
+    }
+  }
+
+  async function runAuto() {
+    var myRun = ++runId;
+    capBtn.disabled = true;
+    capBtn.textContent = 'Scanning…';
+    var r;
+    try {
+      r = await AdmioFace.autoCapture(video, {
+        onStatus: function (t) { if (myRun === runId) say(t); }
+      });
+    } catch (e) {
+      if (myRun !== runId) return;
+      say(e.message || 'Detection failed.', true);
+      capBtn.textContent = 'Try again'; capBtn.disabled = false;
+      return;
+    }
+    if (myRun !== runId || r.cancelled) return;
+    if (!r.ok) {
+      say(r.reason, true);
+      capBtn.textContent = 'Try again'; capBtn.disabled = false;
+      return;
+    }
+    await save(r, myRun);
+  }
+
+  openBtn.addEventListener('click', function () {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  });
+
+  modalEl.addEventListener('shown.bs.modal', async function () {
+    capBtn.disabled = true;
+    capBtn.textContent = 'Starting…';
+    say('Loading face recognition & starting camera…');
+    try {
+      await AdmioFace.start(video);
+      say('Camera ready. Look straight at the camera…');
+      runAuto();
+    } catch (e) {
+      say((e && e.message) || 'Could not start the camera. Allow camera access (needs https or localhost).', true);
+      capBtn.textContent = 'Try again'; capBtn.disabled = false;
+    }
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    runId++;
+    AdmioFace.stop(video);
+  });
+
+  // Button works as "Try again"
+  capBtn.addEventListener('click', async function () {
+    if (!video.srcObject) {
+      try { await AdmioFace.start(video); } catch (e) { say(e.message, true); return; }
+    }
+    runAuto();
+  });
+})();
+</script>
+{% endblock %}
